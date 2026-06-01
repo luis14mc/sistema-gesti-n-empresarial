@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Centro de Soporte y Tickets</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#136dec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101822",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        .ios-blur {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+<!-- Status Bar Spacer (iOS Style) -->
+<div class="h-12 w-full bg-background-light dark:bg-background-dark sticky top-0 z-50"></div>
+<!-- Header Section -->
+<header class="px-5 pb-4 sticky top-12 z-50 bg-background-light/80 dark:bg-background-dark/80 ios-blur">
+<div class="flex justify-between items-center mb-4">
+<div>
+<h1 class="text-2xl font-bold tracking-tight">Soporte</h1>
+<p class="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">Gestión de Tickets</p>
+</div>
+<div class="flex gap-3">
+<button class="relative w-10 h-10 flex items-center justify-center rounded-full bg-slate-200/50 dark:bg-slate-800/50">
+<span class="material-icons-round text-xl">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-background-dark"></span>
+</button>
+<img alt="Perfil" class="w-10 h-10 rounded-full border-2 border-primary/20 object-cover" data-alt="User profile avatar of a business administrator" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCdm4KhEtTDFFEiueTsN0jmrtyKaCP9QGQdc2fJP7RqxnRrQMmJglYQ8oyd4gawUTCZ5GSjUorG_c0QdbfJxPxCDmEmr0ffN_L-Tck23NsKza6QclUOjQHPF4aghmtR-vcR31TL1WE89DaX7k65nmhVSRbAvWK_ooyeusQmM--a6g8F2dwQxntdNMa38oeJLkhj7AXavsAu2Tzygoq8W4OQhh5UglF9739QJlFCRtoI-iQfqi7Oa9DilG5iRrpKjs54-1ZXB56itypV"/>
+</div>
+</div>
+<!-- Search Bar -->
+<div class="relative group">
+<span class="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">search</span>
+<input class="w-full pl-10 pr-4 py-3 bg-slate-200/50 dark:bg-slate-800/50 border-none rounded-xl focus:ring-2 focus:ring-primary/50 text-sm transition-all outline-none" placeholder="Buscar por ID o título..." type="text"/>
+</div>
+</header>
+<!-- Scrollable Categories/Filters -->
+<div class="px-5 py-2 overflow-x-auto hide-scrollbar flex gap-2 mb-4">
+<button class="px-4 py-2 bg-primary text-white rounded-full text-sm font-semibold whitespace-nowrap shadow-lg shadow-primary/20">Todos</button>
+<button class="px-4 py-2 bg-slate-200/50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 rounded-full text-sm font-medium whitespace-nowrap">TI</button>
+<button class="px-4 py-2 bg-slate-200/50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 rounded-full text-sm font-medium whitespace-nowrap">Mantenimiento</button>
+<button class="px-4 py-2 bg-slate-200/50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 rounded-full text-sm font-medium whitespace-nowrap">Recursos Humanos</button>
+<button class="px-4 py-2 bg-slate-200/50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 rounded-full text-sm font-medium whitespace-nowrap">Logística</button>
+</div>
+<!-- Ticket List Container -->
+<main class="px-5 pb-32 space-y-4">
+<!-- Ticket Card: High Priority -->
+<div class="p-4 rounded-xl bg-white dark:bg-slate-900 border-l-4 border-red-500 shadow-sm active:scale-[0.98] transition-transform duration-100">
+<div class="flex justify-between items-start mb-2">
+<span class="text-[10px] font-bold text-slate-500 tracking-widest uppercase">#TK-2841</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800">Alta</span>
+</div>
+<h3 class="font-semibold text-base mb-1">Caída de Servidor Principal</h3>
+<p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-1 mb-3">El servidor de base de datos no responde a las peticiones externas...</p>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-icons-round text-xs text-primary">lan</span>
+<span class="text-xs font-medium text-slate-600 dark:text-slate-400">Departamento TI</span>
+</div>
+<div class="flex items-center -space-x-2">
+<img alt="Agent" class="w-6 h-6 rounded-full border-2 border-white dark:border-slate-900 object-cover" data-alt="Avatar of technician assigned to ticket" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDyjuzJgr7H156kscO7ory1kccWoFDmX-Jl-D92WWn7kDs-p0TSfT9WF0wTez0FTDU93Z3-_Gm4mswzDzvvuS7q1RipgjGlASbS3-ccnxoqH4j2IN1OIiudiZ3_YTaBvZOVcTGFpBM6oa-p2JCFxLnDHhHCmsAb-yyJGdoi4K7Ov5SmSHDDtJBmqYfG3fwaKrUL7me-vxUSFbF0V0w_K3EUdRbc84bbZOwZGu8j6_qETCUhe7gtQCXRxBKbmPr0mVszfZdYtNEBng5c"/>
+<div class="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center border-2 border-white dark:border-slate-900">
+<span class="text-[8px] font-bold">+2</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Ticket Card: Medium Priority -->
+<div class="p-4 rounded-xl bg-white dark:bg-slate-900 border-l-4 border-amber-500 shadow-sm active:scale-[0.98] transition-transform duration-100">
+<div class="flex justify-between items-start mb-2">
+<span class="text-[10px] font-bold text-slate-500 tracking-widest uppercase">#TK-2845</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800">Media</span>
+</div>
+<h3 class="font-semibold text-base mb-1">Mantenimiento A/C Piso 3</h3>
+<p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-1 mb-3">Se solicita revisión periódica de las unidades de ventilación.</p>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-icons-round text-xs text-primary">build</span>
+<span class="text-xs font-medium text-slate-600 dark:text-slate-400">Mantenimiento</span>
+</div>
+<div class="text-[10px] text-slate-400">Hace 2 horas</div>
+</div>
+</div>
+<!-- Ticket Card: Low Priority -->
+<div class="p-4 rounded-xl bg-white dark:bg-slate-900 border-l-4 border-emerald-500 shadow-sm active:scale-[0.98] transition-transform duration-100">
+<div class="flex justify-between items-start mb-2">
+<span class="text-[10px] font-bold text-slate-500 tracking-widest uppercase">#TK-2849</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">Baja</span>
+</div>
+<h3 class="font-semibold text-base mb-1">Solicitud de Papelería</h3>
+<p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-1 mb-3">Requerimiento de resmas de papel y tóners para administración.</p>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-icons-round text-xs text-primary">inventory_2</span>
+<span class="text-xs font-medium text-slate-600 dark:text-slate-400">Logística</span>
+</div>
+<span class="material-icons-round text-slate-400 text-sm">attachment</span>
+</div>
+</div>
+<!-- Ticket Card: Medium Priority -->
+<div class="p-4 rounded-xl bg-white dark:bg-slate-900 border-l-4 border-amber-500 shadow-sm active:scale-[0.98] transition-transform duration-100">
+<div class="flex justify-between items-start mb-2">
+<span class="text-[10px] font-bold text-slate-500 tracking-widest uppercase">#TK-2850</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800">Media</span>
+</div>
+<h3 class="font-semibold text-base mb-1">Error Acceso Portal RRHH</h3>
+<p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-1 mb-3">Varios empleados reportan problemas al intentar marcar entrada.</p>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-icons-round text-xs text-primary">groups</span>
+<span class="text-xs font-medium text-slate-600 dark:text-slate-400">RRHH</span>
+</div>
+<div class="flex items-center -space-x-2">
+<img alt="Agent" class="w-6 h-6 rounded-full border-2 border-white dark:border-slate-900 object-cover" data-alt="Technician avatar for HR portal issue" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCX4zINmqodyOBEoD2dJLhi1HLpK3byFC3DtJqrrnVwDUBYeD6Wj_bcAk7fLNw6exbI9mwScHOeImG1NgIX08fYnyk5IfSkyKGXgcY8uJQV-uRsCm0ZLh5FZqMWJIDt7iLtSkRCm1A-ibehIYK97dWXlHN_csbrAbxWEiWgHPReS_D00MROncGxzjBY1DDcXvGemUa5OFxFo6SEuLErd8b6riOGJDUu3slC4R-uOFJmEKrJzz91DtYJSI9cNbWNsPuQCLLnpQh1otJi"/>
+</div>
+</div>
+</div>
+</main>
+<!-- Floating Action Button -->
+<button class="fixed bottom-24 right-6 w-14 h-14 bg-primary text-white rounded-2xl shadow-xl shadow-primary/40 flex items-center justify-center active:scale-90 transition-transform z-40">
+<span class="material-icons-round text-3xl">add</span>
+</button>
+<!-- iOS Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 ios-blur border-t border-slate-200 dark:border-slate-800 px-6 pb-8 pt-3 flex justify-between items-center z-50">
+<div class="flex flex-col items-center gap-1 group">
+<span class="material-icons-round text-slate-400 group-active:text-primary">dashboard</span>
+<span class="text-[10px] font-medium text-slate-400">Activos</span>
+</div>
+<div class="flex flex-col items-center gap-1 group">
+<span class="material-icons-round text-primary">confirmation_number</span>
+<span class="text-[10px] font-bold text-primary">Tickets</span>
+</div>
+<div class="flex flex-col items-center gap-1 group">
+<span class="material-icons-round text-slate-400 group-active:text-primary">email</span>
+<span class="text-[10px] font-medium text-slate-400">Correo</span>
+</div>
+<div class="flex flex-col items-center gap-1 group">
+<span class="material-icons-round text-slate-400 group-active:text-primary">settings</span>
+<span class="text-[10px] font-medium text-slate-400">Ajustes</span>
+</div>
+</nav>
+<!-- iOS Home Indicator -->
+<div class="fixed bottom-1 left-1/2 -translate-x-1/2 w-32 h-1 bg-slate-300 dark:bg-slate-700 rounded-full z-[60]"></div>
+</body></html>

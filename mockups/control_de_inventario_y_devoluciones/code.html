@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Control de Inventario y Devoluciones</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#136dec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101822",
+                        "surface-dark": "#1a2432",
+                        "border-dark": "#2d3a4d",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .ios-blur { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen font-display">
+<!-- iOS Status Bar Spacer -->
+<div class="h-12 w-full bg-background-light dark:bg-background-dark sticky top-0 z-50">
+<div class="flex justify-between items-center px-6 h-full text-xs font-semibold">
+<span>9:41</span>
+<div class="flex gap-1 items-center">
+<span class="material-icons text-sm">signal_cellular_alt</span>
+<span class="material-icons text-sm">wifi</span>
+<span class="material-icons text-sm rotate-90">battery_full</span>
+</div>
+</div>
+</div>
+<!-- Header Section -->
+<header class="px-4 pb-4 bg-background-light dark:bg-background-dark border-b border-slate-200 dark:border-border-dark">
+<div class="flex justify-between items-center mb-4">
+<div>
+<h1 class="text-2xl font-bold tracking-tight">Inventario</h1>
+<p class="text-xs text-primary font-medium">Congreso Anual 2024</p>
+</div>
+<button class="p-2 bg-primary/10 text-primary rounded-full">
+<span class="material-icons">filter_list</span>
+</button>
+</div>
+<!-- Quick Stats Chips -->
+<div class="flex gap-3 overflow-x-auto hide-scrollbar">
+<div class="flex-none bg-surface-dark/40 border border-border-dark p-3 rounded-xl min-w-[120px]">
+<span class="text-[10px] uppercase text-slate-400 font-bold block mb-1">Total Stock</span>
+<span class="text-lg font-bold">4,250</span>
+</div>
+<div class="flex-none bg-surface-dark/40 border border-border-dark p-3 rounded-xl min-w-[120px]">
+<span class="text-[10px] uppercase text-slate-400 font-bold block mb-1">Entregado</span>
+<span class="text-lg font-bold text-primary">3,120</span>
+</div>
+<div class="flex-none bg-surface-dark/40 border border-border-dark p-3 rounded-xl min-w-[120px]">
+<span class="text-[10px] uppercase text-slate-400 font-bold block mb-1">Pendiente</span>
+<span class="text-lg font-bold text-amber-500">1,130</span>
+</div>
+</div>
+</header>
+<!-- Search Bar -->
+<div class="p-4">
+<div class="relative">
+<span class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">search</span>
+<input class="w-full bg-slate-200 dark:bg-surface-dark border-none rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-1 focus:ring-primary" placeholder="Buscar artículo..." type="text"/>
+</div>
+</div>
+<!-- Inventory Items List -->
+<main class="px-4 pb-32 space-y-4">
+<!-- Item Card 1 -->
+<div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark overflow-hidden shadow-sm">
+<div class="p-4">
+<div class="flex gap-4 items-start">
+<img class="w-16 h-16 rounded-lg object-cover" data-alt="Blue hardcover professional executive notebooks stack" src="https://lh3.googleusercontent.com/aida-public/AB6AXuClzs9V72DmneqqozOIdoFzvinrW9p71-zMdDWB-DkwEDiCaTtLImMGo4dz64OhpvYJW5ds--bBupRXiecSVmzdArHaz54M3GMxj43Uwv0E0x8Fbs7WlEQC4txHsnguCVkoRiejsUfoRLNPjBQ72-2K6SvwsPALdbWfQggEpYII7VkZiVSp_f3k1iqOzVTALyx3G11Wjvx86J1PZv5rmk8QMq59CtWSEnhvRRN5eG1VZ-_-Tgun0_ECJjpMcd9HqtAUg9f4-h9bfMUK"/>
+<div class="flex-1">
+<div class="flex justify-between">
+<h3 class="font-semibold text-sm">Libreta Ejecutiva Premium</h3>
+<span class="text-[10px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full font-bold">ACTIVO</span>
+</div>
+<p class="text-xs text-slate-500 mt-1">Ref: LIB-2024-X</p>
+<div class="grid grid-cols-2 gap-4 mt-3">
+<div>
+<span class="text-[10px] text-slate-400 uppercase">Stock Inicial</span>
+<p class="text-sm font-medium">500 uds</p>
+</div>
+<div>
+<span class="text-[10px] text-slate-400 uppercase">Entregado</span>
+<p class="text-sm font-medium text-primary">450 uds</p>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-4 pt-4 border-t border-slate-100 dark:border-border-dark flex gap-2">
+<button class="flex-1 bg-primary text-white text-xs font-bold py-3 rounded-lg flex items-center justify-center gap-2">
+<span class="material-icons text-sm">assignment_return</span>
+                        PROCESAR DEVOLUCIÓN
+                    </button>
+<button class="px-3 bg-slate-100 dark:bg-border-dark text-slate-600 dark:text-slate-300 rounded-lg">
+<span class="material-icons text-sm">history</span>
+</button>
+</div>
+</div>
+<div class="h-1 bg-slate-100 dark:bg-border-dark w-full overflow-hidden">
+<div class="h-full bg-primary w-[90%]"></div>
+</div>
+</div>
+<!-- Item Card 2 -->
+<div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark overflow-hidden shadow-sm">
+<div class="p-4">
+<div class="flex gap-4 items-start">
+<img class="w-16 h-16 rounded-lg object-cover" data-alt="Metallic premium pens with company logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDgWFOEVEWXGhghgfbeL_cAStmuYuEGjx-96vIWRWSCw6lz9nqyVFna6p6zntQUbPOJ6bwE0PKECgcfnvx_57QTyZ2Q0EMrSh_-Y4ariQD_JuEA6Gaom-CYG453_yehGKpiTLvwQTzH98BolRP2tg8eNeA2EULr5xiIv2Z2lcXXwqiNQTnJEUqYamNJgL9aQfYtK0_8h7zvU6JQPvM3N9TSSNdA9iQT2TbumFbTKitH969OSkfaP4PM9ehcNUxK5HHUokGREHeZYe2M"/>
+<div class="flex-1">
+<div class="flex justify-between">
+<h3 class="font-semibold text-sm">Bolígrafo Metálico Logo</h3>
+<span class="text-[10px] bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-full font-bold">BAJO</span>
+</div>
+<p class="text-xs text-slate-500 mt-1">Ref: BOL-LOGO-P</p>
+<div class="grid grid-cols-2 gap-4 mt-3">
+<div>
+<span class="text-[10px] text-slate-400 uppercase">Stock Inicial</span>
+<p class="text-sm font-medium">1,200 uds</p>
+</div>
+<div>
+<span class="text-[10px] text-slate-400 uppercase">Entregado</span>
+<p class="text-sm font-medium text-primary">1,180 uds</p>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-4 pt-4 border-t border-slate-100 dark:border-border-dark flex gap-2">
+<button class="flex-1 bg-primary text-white text-xs font-bold py-3 rounded-lg flex items-center justify-center gap-2">
+<span class="material-icons text-sm">assignment_return</span>
+                        PROCESAR DEVOLUCIÓN
+                    </button>
+<button class="px-3 bg-slate-100 dark:bg-border-dark text-slate-600 dark:text-slate-300 rounded-lg">
+<span class="material-icons text-sm">history</span>
+</button>
+</div>
+</div>
+<div class="h-1 bg-slate-100 dark:bg-border-dark w-full overflow-hidden">
+<div class="h-full bg-amber-500 w-[98%]"></div>
+</div>
+</div>
+<!-- Item Card 3 -->
+<div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark overflow-hidden shadow-sm">
+<div class="p-4">
+<div class="flex gap-4 items-start">
+<img class="w-16 h-16 rounded-lg object-cover" data-alt="Modern high quality canvas tote bags" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCoISUZobhemkB9q0J5kBRHeqdmBUPMcsI2C0WKqW5XM-NQdluNvYyKGKmiwT-_Jj_b-CC7R0z2A3Dun2hFKHpmVgFVuNKpUROyQ6pYdOn68li8SPM7_qWHnYm4vyE1h00Wi_bicVGhk7EmOUvK8IEilNHWAFftRxIri3Ad5sfeb-hESfot3ePU8d7_1Rt9AnzZXQN6F-oNQhyJPHZzXXiCv_o-ynygx0O_qyRT3GZ6N7NG-V4hpgKzMGjpRapJYC3chJcQDdRI8XLS"/>
+<div class="flex-1">
+<div class="flex justify-between">
+<h3 class="font-semibold text-sm">Bolsa Tote Ecológica</h3>
+<span class="text-[10px] bg-slate-500/10 text-slate-500 px-2 py-0.5 rounded-full font-bold">SIN ENTREGAS</span>
+</div>
+<p class="text-xs text-slate-500 mt-1">Ref: TOT-ECO-24</p>
+<div class="grid grid-cols-2 gap-4 mt-3">
+<div>
+<span class="text-[10px] text-slate-400 uppercase">Stock Inicial</span>
+<p class="text-sm font-medium">800 uds</p>
+</div>
+<div>
+<span class="text-[10px] text-slate-400 uppercase">Entregado</span>
+<p class="text-sm font-medium text-primary">0 uds</p>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-4 pt-4 border-t border-slate-100 dark:border-border-dark flex gap-2">
+<button class="flex-1 bg-slate-200 dark:bg-border-dark text-slate-400 text-xs font-bold py-3 rounded-lg flex items-center justify-center gap-2 cursor-not-allowed">
+<span class="material-icons text-sm">assignment_return</span>
+                        PROCESAR DEVOLUCIÓN
+                    </button>
+<button class="px-3 bg-slate-100 dark:bg-border-dark text-slate-600 dark:text-slate-300 rounded-lg">
+<span class="material-icons text-sm">history</span>
+</button>
+</div>
+</div>
+<div class="h-1 bg-slate-100 dark:bg-border-dark w-full overflow-hidden">
+<div class="h-full bg-primary w-[0%]"></div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation Bar (iOS Standard) -->
+<nav class="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-background-dark/80 ios-blur border-t border-slate-200 dark:border-border-dark px-6 pt-2 pb-8 flex justify-between items-center z-50">
+<button class="flex flex-col items-center gap-1">
+<span class="material-icons text-slate-400">dashboard</span>
+<span class="text-[10px] font-medium text-slate-400">Dashboard</span>
+</button>
+<button class="flex flex-col items-center gap-1">
+<span class="material-icons text-primary">inventory_2</span>
+<span class="text-[10px] font-medium text-primary">Inventario</span>
+</button>
+<button class="flex flex-col items-center gap-1">
+<span class="material-icons text-slate-400">qr_code_scanner</span>
+<span class="text-[10px] font-medium text-slate-400">Scanner</span>
+</button>
+<button class="flex flex-col items-center gap-1">
+<span class="material-icons text-slate-400">description</span>
+<span class="text-[10px] font-medium text-slate-400">Tickets</span>
+</button>
+<button class="flex flex-col items-center gap-1">
+<span class="material-icons text-slate-400">person</span>
+<span class="text-[10px] font-medium text-slate-400">Perfil</span>
+</button>
+</nav>
+<!-- Return Processing Bottom Sheet (Mockup View) -->
+<div class="fixed inset-0 bg-black/60 z-[60] flex items-end invisible opacity-0 pointer-events-none transition-opacity duration-300">
+<div class="w-full bg-background-light dark:bg-surface-dark rounded-t-[2rem] p-6 pb-12 transition-transform translate-y-full">
+<div class="w-12 h-1.5 bg-slate-300 dark:bg-border-dark rounded-full mx-auto mb-8"></div>
+<h2 class="text-xl font-bold mb-1">Procesar Devolución</h2>
+<p class="text-slate-400 text-sm mb-6">Libreta Ejecutiva Premium</p>
+<div class="space-y-6">
+<div>
+<label class="block text-xs font-bold text-slate-400 uppercase mb-2">Cantidad Recibida</label>
+<div class="flex items-center gap-4">
+<button class="w-12 h-12 rounded-lg bg-slate-200 dark:bg-border-dark flex items-center justify-center">
+<span class="material-icons">remove</span>
+</button>
+<input class="flex-1 bg-slate-100 dark:bg-background-dark border-none rounded-lg text-center font-bold text-xl py-3 focus:ring-1 focus:ring-primary" type="number" value="12"/>
+<button class="w-12 h-12 rounded-lg bg-primary text-white flex items-center justify-center">
+<span class="material-icons">add</span>
+</button>
+</div>
+</div>
+<div>
+<label class="block text-xs font-bold text-slate-400 uppercase mb-2">Estado del Producto</label>
+<div class="grid grid-cols-3 gap-2">
+<button class="py-3 rounded-lg border border-primary bg-primary/10 text-primary text-xs font-bold">Óptimo</button>
+<button class="py-3 rounded-lg border border-border-dark bg-transparent text-slate-400 text-xs font-bold">Dañado</button>
+<button class="py-3 rounded-lg border border-border-dark bg-transparent text-slate-400 text-xs font-bold">Incompleto</button>
+</div>
+</div>
+<div>
+<label class="block text-xs font-bold text-slate-400 uppercase mb-2">Notas Adicionales</label>
+<textarea class="w-full bg-slate-100 dark:bg-background-dark border-none rounded-lg text-sm p-3 focus:ring-1 focus:ring-primary" placeholder="Ej: Devuelto por staff de zona A..." rows="2"></textarea>
+</div>
+<div class="pt-4 flex gap-3">
+<button class="flex-1 py-4 bg-slate-200 dark:bg-border-dark font-bold rounded-xl">Cancelar</button>
+<button class="flex-[2] py-4 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/20">Confirmar Ingreso</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Feedback Toast (Hidden) -->
+<div class="fixed bottom-28 left-1/2 -translate-x-1/2 bg-surface-dark border border-emerald-500/50 text-white px-6 py-3 rounded-full flex items-center gap-3 shadow-2xl z-[70] hidden">
+<span class="material-icons text-emerald-500">check_circle</span>
+<span class="text-sm font-medium">Inventario actualizado correctamente</span>
+</div>
+</body></html>

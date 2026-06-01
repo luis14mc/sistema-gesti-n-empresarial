@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Configurador de Formatos de Código</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#136dec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101822",
+                        "surface-dark": "#1c2632",
+                        "neutral-dark": "#2a3746",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "mono": ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"],
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        /* Custom scrollbar for horizontal builder */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex justify-center">
+<!-- Mobile Container (iPhone Pro Max roughly) -->
+<div class="w-full max-w-[430px] bg-background-light dark:bg-background-dark min-h-screen flex flex-col relative border-x border-primary/10">
+<!-- Header -->
+<header class="sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md px-6 py-4 flex items-center justify-between border-b border-primary/10">
+<div class="flex items-center gap-3">
+<button class="p-2 -ml-2 hover:bg-primary/10 rounded-full transition-colors">
+<span class="material-icons text-primary">arrow_back_ios_new</span>
+</button>
+<h1 class="text-lg font-bold tracking-tight">Formato de Código</h1>
+</div>
+<button class="text-primary font-semibold text-sm">Ayuda</button>
+</header>
+<main class="flex-1 overflow-y-auto pb-32">
+<!-- Live Preview Section -->
+<section class="px-6 pt-6 pb-4">
+<p class="text-[11px] font-bold uppercase tracking-wider text-primary/70 mb-3">Vista Previa en Tiempo Real</p>
+<div class="bg-surface-dark border border-primary/20 rounded-xl p-6 shadow-xl shadow-primary/5 relative overflow-hidden">
+<div class="absolute top-0 right-0 p-2 opacity-20">
+<span class="material-icons text-primary text-4xl">qr_code_2</span>
+</div>
+<div class="flex flex-col items-center justify-center py-4">
+<span class="text-3xl font-mono font-bold tracking-[0.2em] text-white">ADM-2024-0015</span>
+<div class="mt-4 flex gap-1">
+<span class="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></span>
+<span class="text-[10px] text-slate-400 font-medium">SISTEMA ACTIVO</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Builder Area -->
+<section class="px-6 py-4">
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-sm font-semibold">Estructura del Código</h2>
+<span class="text-[11px] text-slate-500">Arrastra para reordenar</span>
+</div>
+<div class="flex gap-2 overflow-x-auto no-scrollbar py-2">
+<!-- Format Blocks -->
+<div class="flex-shrink-0 bg-primary text-white px-4 py-3 rounded-lg flex items-center gap-2 shadow-lg shadow-primary/20">
+<span class="text-xs font-bold">PREFIJO</span>
+<span class="material-icons text-xs">close</span>
+</div>
+<div class="flex-shrink-0 bg-surface-dark border border-neutral-dark text-slate-300 px-4 py-3 rounded-lg flex items-center gap-2">
+<span class="material-icons text-xs text-slate-500">drag_indicator</span>
+<span class="text-xs font-bold">AÑO</span>
+<span class="material-icons text-xs text-slate-500">close</span>
+</div>
+<div class="flex-shrink-0 bg-surface-dark border border-neutral-dark text-slate-300 px-4 py-3 rounded-lg flex items-center gap-2">
+<span class="material-icons text-xs text-slate-500">drag_indicator</span>
+<span class="text-xs font-bold">CONTADOR</span>
+<span class="material-icons text-xs text-slate-500">close</span>
+</div>
+<button class="flex-shrink-0 bg-primary/10 border border-dashed border-primary/40 text-primary px-4 py-3 rounded-lg flex items-center gap-2">
+<span class="material-icons text-sm">add</span>
+<span class="text-xs font-bold">NUEVO</span>
+</button>
+</div>
+</section>
+<!-- Available Blocks Library -->
+<section class="px-6 py-4">
+<p class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-4">Bloques Disponibles</p>
+<div class="grid grid-cols-2 gap-3">
+<div class="bg-surface-dark/50 border border-neutral-dark p-4 rounded-xl flex flex-col gap-2 hover:border-primary/50 transition-colors cursor-pointer">
+<span class="material-icons text-primary/80">calendar_month</span>
+<span class="text-xs font-bold">Mes (MM)</span>
+</div>
+<div class="bg-surface-dark/50 border border-neutral-dark p-4 rounded-xl flex flex-col gap-2 hover:border-primary/50 transition-colors cursor-pointer">
+<span class="material-icons text-primary/80">today</span>
+<span class="text-xs font-bold">Día (DD)</span>
+</div>
+<div class="bg-surface-dark/50 border border-neutral-dark p-4 rounded-xl flex flex-col gap-2 hover:border-primary/50 transition-colors cursor-pointer">
+<span class="material-icons text-primary/80">label</span>
+<span class="text-xs font-bold">Sufijo Fijo</span>
+</div>
+<div class="bg-surface-dark/50 border border-neutral-dark p-4 rounded-xl flex flex-col gap-2 hover:border-primary/50 transition-colors cursor-pointer">
+<span class="material-icons text-primary/80">remove</span>
+<span class="text-xs font-bold">Separador (-)</span>
+</div>
+</div>
+</section>
+<!-- Counter Settings -->
+<section class="px-6 py-6 space-y-8">
+<div>
+<div class="flex justify-between items-center mb-6">
+<label class="text-sm font-semibold">Longitud del Folio</label>
+<span class="bg-primary/20 text-primary text-xs font-bold px-2 py-1 rounded">4 Dígitos</span>
+</div>
+<input class="w-full h-1.5 bg-neutral-dark rounded-lg appearance-none cursor-pointer accent-primary" max="8" min="3" type="range" value="4"/>
+<div class="flex justify-between mt-2 text-[10px] text-slate-500 font-bold">
+<span>MIN (3)</span>
+<span>MAX (8)</span>
+</div>
+</div>
+<div class="space-y-4">
+<div class="flex items-center justify-between p-4 bg-surface-dark/30 rounded-xl border border-neutral-dark/50">
+<div class="flex flex-col gap-1">
+<span class="text-sm font-semibold">Reiniciar cada año</span>
+<span class="text-[11px] text-slate-500">El contador volverá a 001 cada 1 de Enero</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-neutral-dark peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<div class="flex items-center justify-between p-4 bg-surface-dark/30 rounded-xl border border-neutral-dark/50">
+<div class="flex flex-col gap-1">
+<span class="text-sm font-semibold">Rellenar con ceros</span>
+<span class="text-[11px] text-slate-500">Ejemplo: 0001 en lugar de 1</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-neutral-dark peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+</section>
+</main>
+<!-- Fixed Footer Actions -->
+<footer class="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-background-dark via-background-dark to-transparent pt-10">
+<div class="flex flex-col gap-3">
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2">
+<span class="material-icons text-sm">save</span>
+                    Guardar Configuración
+                </button>
+<button class="w-full bg-transparent border border-neutral-dark text-slate-400 font-semibold py-3 rounded-xl hover:bg-white/5 transition-all">
+                    Restablecer valores
+                </button>
+</div>
+</footer>
+<!-- iOS Home Indicator -->
+<div class="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-32 h-1 bg-white/20 rounded-full"></div>
+</div>
+</body></html>

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#136dec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101822",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .ios-blur {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+<!-- Mobile Container (iPhone Aspect Ratio Simulation) -->
+<div class="max-w-md mx-auto min-h-screen bg-background-light dark:bg-background-dark flex flex-col relative overflow-hidden">
+<!-- Status Bar Space (iOS) -->
+<div class="h-12 w-full flex justify-between items-center px-8 pt-4">
+<span class="text-sm font-semibold">9:41</span>
+<div class="flex gap-1.5 items-center">
+<span class="material-icons-round text-[16px]">signal_cellular_alt</span>
+<span class="material-icons-round text-[16px]">wifi</span>
+<span class="material-icons-round text-[16px]">battery_full</span>
+</div>
+</div>
+<!-- Header -->
+<header class="px-6 pt-4 pb-2">
+<div class="flex items-center justify-between mb-4">
+<h1 class="text-2xl font-bold tracking-tight">Gestión de Oficios</h1>
+<button class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+<span class="material-icons-round text-primary">notifications</span>
+</button>
+</div>
+<!-- Search Bar -->
+<div class="relative group">
+<span class="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">search</span>
+<input class="w-full bg-slate-200/50 dark:bg-slate-800/50 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/50 transition-all outline-none" placeholder="Buscar por código (ADM-2023...)" type="text"/>
+</div>
+</header>
+<!-- Tabs -->
+<div class="px-6 py-4">
+<div class="flex p-1 bg-slate-200/50 dark:bg-slate-800/50 rounded-xl">
+<button class="flex-1 py-2 text-sm font-semibold rounded-lg bg-white dark:bg-primary shadow-sm text-primary dark:text-white transition-all">
+                    Entrada
+                </button>
+<button class="flex-1 py-2 text-sm font-medium text-slate-500 dark:text-slate-400 rounded-lg hover:bg-white/50 dark:hover:bg-slate-700/50 transition-all">
+                    Salida
+                </button>
+</div>
+</div>
+<!-- Content Area -->
+<main class="flex-1 overflow-y-auto px-6 pb-24 hide-scrollbar">
+<!-- Quick Upload Mini Card -->
+<div class="mb-6 p-4 rounded-xl bg-gradient-to-br from-primary to-blue-600 text-white shadow-lg shadow-primary/20">
+<div class="flex justify-between items-start mb-2">
+<div>
+<p class="text-xs font-medium opacity-80 uppercase tracking-wider">Acción Rápida</p>
+<h3 class="text-lg font-bold leading-tight">Carga de Documentos</h3>
+</div>
+<span class="material-icons-round text-3xl opacity-40">upload_file</span>
+</div>
+<p class="text-sm opacity-90 mb-4">Digitaliza oficios y regístralos instantáneamente.</p>
+<button class="w-full bg-white/20 hover:bg-white/30 border border-white/30 py-2.5 rounded-lg text-sm font-semibold backdrop-blur transition-all flex items-center justify-center gap-2">
+<span class="material-icons-round text-[18px]">add_circle</span>
+                    Nuevo Registro
+                </button>
+</div>
+<!-- Section Title -->
+<div class="flex justify-between items-center mb-4">
+<h2 class="text-sm font-bold uppercase tracking-widest text-slate-500">Recientes</h2>
+<button class="text-primary text-xs font-semibold">Ver todos</button>
+</div>
+<!-- Document List -->
+<div class="space-y-4">
+<!-- Card 1 -->
+<div class="p-4 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-xl shadow-sm">
+<div class="flex justify-between items-start mb-3">
+<div>
+<span class="text-[10px] font-bold px-2 py-0.5 bg-primary/10 text-primary rounded-full uppercase tracking-tighter">ADM-2023-082</span>
+<h4 class="mt-1 font-bold text-sm">Solicitud de Activos TI</h4>
+</div>
+<span class="flex items-center gap-1 text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded-full uppercase">
+<span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                            Pendiente
+                        </span>
+</div>
+<div class="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mb-4">
+<div class="flex items-center gap-1">
+<span class="material-icons-round text-[14px]">calendar_today</span>
+                            12 Oct, 2023
+                        </div>
+<div class="flex items-center gap-1">
+<span class="material-icons-round text-[14px]">person</span>
+                            Ing. Marco Polo
+                        </div>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 bg-primary text-white text-xs font-bold py-2 rounded-lg flex items-center justify-center gap-1">
+<span class="material-icons-round text-[16px]">draw</span>
+                            Firmar
+                        </button>
+<button class="w-10 h-10 bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center text-slate-500 dark:text-slate-300">
+<span class="material-icons-round text-[20px]">visibility</span>
+</button>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="p-4 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-xl shadow-sm">
+<div class="flex justify-between items-start mb-3">
+<div>
+<span class="text-[10px] font-bold px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-full uppercase tracking-tighter">FIN-2023-145</span>
+<h4 class="mt-1 font-bold text-sm">Reporte Trimestral Q3</h4>
+</div>
+<span class="flex items-center gap-1 text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-full uppercase">
+<span class="material-icons-round text-[12px]">verified</span>
+                            Firmado
+                        </span>
+</div>
+<div class="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mb-4">
+<div class="flex items-center gap-1">
+<span class="material-icons-round text-[14px]">calendar_today</span>
+                            10 Oct, 2023
+                        </div>
+<div class="flex items-center gap-1">
+<span class="material-icons-round text-[14px]">person</span>
+                            Lic. Elena R.
+                        </div>
+</div>
+<div class="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-dashed border-slate-300 dark:border-slate-600">
+<div class="w-8 h-8 rounded bg-red-500/10 flex items-center justify-center">
+<span class="material-icons-round text-red-500 text-[20px]">picture_as_pdf</span>
+</div>
+<div class="flex-1 overflow-hidden">
+<p class="text-[10px] font-medium truncate">reporte_q3_final.pdf</p>
+<p class="text-[9px] text-slate-400">2.4 MB • Certificado digital</p>
+</div>
+<span class="material-icons-round text-slate-400 text-[18px]">download</span>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="p-4 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-xl shadow-sm opacity-80">
+<div class="flex justify-between items-start mb-3">
+<div>
+<span class="text-[10px] font-bold px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-full uppercase tracking-tighter">RRHH-2023-012</span>
+<h4 class="mt-1 font-bold text-sm">Contrato Nuevo Personal</h4>
+</div>
+<span class="flex items-center gap-1 text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-full uppercase">
+                            Recibido
+                        </span>
+</div>
+<div class="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+<div class="flex items-center gap-1">
+<span class="material-icons-round text-[14px]">calendar_today</span>
+                            08 Oct, 2023
+                        </div>
+</div>
+</div>
+</div>
+</main>
+<!-- Floating Action Button (Alternative Placement) -->
+<button class="absolute bottom-24 right-6 w-14 h-14 bg-primary text-white rounded-full shadow-xl shadow-primary/40 flex items-center justify-center active:scale-95 transition-transform z-10">
+<span class="material-icons-round text-3xl">add</span>
+</button>
+<!-- Bottom Navigation Bar (iOS Style) -->
+<nav class="h-20 w-full ios-blur bg-white/80 dark:bg-background-dark/80 border-t border-slate-200 dark:border-slate-800 flex justify-around items-center px-4 pb-4 fixed bottom-0 max-w-md mx-auto">
+<button class="flex flex-col items-center gap-0.5 text-slate-400">
+<span class="material-icons-round text-[26px]">dashboard</span>
+<span class="text-[10px] font-medium">Dashboard</span>
+</button>
+<button class="flex flex-col items-center gap-0.5 text-primary">
+<span class="material-icons-round text-[26px]">description</span>
+<span class="text-[10px] font-medium">Oficios</span>
+</button>
+<button class="flex flex-col items-center gap-0.5 text-slate-400">
+<span class="material-icons-round text-[26px]">confirmation_number</span>
+<span class="text-[10px] font-medium">Tickets</span>
+</button>
+<button class="flex flex-col items-center gap-0.5 text-slate-400">
+<span class="material-icons-round text-[26px]">inventory_2</span>
+<span class="text-[10px] font-medium">Activos</span>
+</button>
+<button class="flex flex-col items-center gap-0.5 text-slate-400">
+<span class="material-icons-round text-[26px]">settings</span>
+<span class="text-[10px] font-medium">Más</span>
+</button>
+</nav>
+<!-- iOS Indicator Bar -->
+<div class="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-32 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full"></div>
+</div>
+<!-- Quick Document Upload Overlay (Hidden State Example) -->
+<!-- This would normally be toggled via JS -->
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end justify-center hidden">
+<div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-3xl p-8 animate-slide-up">
+<div class="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-6"></div>
+<h3 class="text-xl font-bold mb-6">Nuevo Oficio</h3>
+<form class="space-y-4">
+<div>
+<label class="block text-xs font-bold text-slate-500 uppercase mb-2">Tipo de Documento</label>
+<select class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl py-3 px-4 text-sm">
+<option>Administrativo</option>
+<option>Financiero</option>
+<option>Recursos Humanos</option>
+<option>Legal</option>
+</select>
+</div>
+<div>
+<label class="block text-xs font-bold text-slate-500 uppercase mb-2">Asunto</label>
+<input class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl py-3 px-4 text-sm" placeholder="Ej: Solicitud de Vacaciones" type="text"/>
+</div>
+<div class="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-8 flex flex-col items-center text-center">
+<span class="material-icons-round text-4xl text-primary mb-2">cloud_upload</span>
+<p class="text-sm font-semibold">Toca para subir archivo</p>
+<p class="text-xs text-slate-500 mt-1">PDF, JPG o PNG (Max 10MB)</p>
+</div>
+<button class="w-full bg-primary text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/30 mt-4" type="button">
+                    Registrar Oficio
+                </button>
+</form>
+</div>
+</div>
+</body></html>

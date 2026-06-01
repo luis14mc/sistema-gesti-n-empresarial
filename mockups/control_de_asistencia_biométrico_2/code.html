@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Reporte de Asistencia y Horas</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#136dec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#0a0f16",
+                        "card-dark": "#161e2b",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .ios-blur {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .chart-bar {
+            @apply w-full bg-primary/20 rounded-t-sm relative flex items-end;
+        }
+        .chart-bar-fill {
+            @apply w-full bg-primary rounded-t-sm transition-all duration-500;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-dark text-slate-100 min-h-screen font-display pb-24">
+<div class="h-12 w-full"></div>
+<main class="max-w-md mx-auto px-5">
+<header class="flex justify-between items-center mb-6">
+<div>
+<h1 class="text-2xl font-bold tracking-tight">Reportes</h1>
+<p class="text-slate-400 text-sm">Asistencia y Horas</p>
+</div>
+<button class="h-10 w-10 rounded-full bg-card-dark flex items-center justify-center border border-white/10">
+<span class="material-symbols-outlined text-primary">filter_list</span>
+</button>
+</header>
+<section class="mb-6 space-y-3">
+<div class="flex space-x-2 overflow-x-auto custom-scrollbar">
+<div class="flex-shrink-0 bg-card-dark border border-white/10 px-4 py-2 rounded-xl flex items-center space-x-2">
+<span class="material-symbols-outlined text-sm text-slate-400">calendar_today</span>
+<span class="text-xs font-medium">15 Jul - 21 Jul</span>
+</div>
+<div class="flex-shrink-0 bg-card-dark border border-white/10 px-4 py-2 rounded-xl flex items-center space-x-2">
+<span class="material-symbols-outlined text-sm text-slate-400">corporate_fare</span>
+<span class="text-xs font-medium">IT Dept.</span>
+</div>
+<div class="flex-shrink-0 bg-card-dark border border-white/10 px-4 py-2 rounded-xl flex items-center space-x-2">
+<span class="material-symbols-outlined text-sm text-slate-400">person</span>
+<span class="text-xs font-medium">Todos</span>
+</div>
+</div>
+</section>
+<section class="grid grid-cols-2 gap-3 mb-6">
+<div class="bg-card-dark p-4 rounded-2xl border border-white/5">
+<p class="text-slate-400 text-[10px] uppercase font-bold tracking-widest mb-1">Puntualidad</p>
+<div class="flex items-end space-x-2">
+<p class="text-2xl font-bold">94%</p>
+<span class="text-emerald-500 text-[10px] font-bold mb-1">+2%</span>
+</div>
+<div class="w-full bg-white/5 h-1 mt-3 rounded-full overflow-hidden">
+<div class="bg-emerald-500 h-full w-[94%]"></div>
+</div>
+</div>
+<div class="bg-card-dark p-4 rounded-2xl border border-white/5">
+<p class="text-slate-400 text-[10px] uppercase font-bold tracking-widest mb-1">Total Faltas</p>
+<div class="flex items-end space-x-2">
+<p class="text-2xl font-bold">03</p>
+<span class="text-rose-500 text-[10px] font-bold mb-1">Sin camb.</span>
+</div>
+<div class="w-full bg-white/5 h-1 mt-3 rounded-full overflow-hidden">
+<div class="bg-rose-500 h-full w-[15%]"></div>
+</div>
+</div>
+<div class="bg-card-dark p-4 rounded-2xl border border-white/5 col-span-2">
+<div class="flex justify-between items-center">
+<div>
+<p class="text-slate-400 text-[10px] uppercase font-bold tracking-widest mb-1">Promedio Diario</p>
+<p class="text-2xl font-bold">08h 12m</p>
+</div>
+<div class="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
+<span class="material-symbols-outlined text-primary">avg_time</span>
+</div>
+</div>
+</div>
+</section>
+<section class="bg-card-dark rounded-2xl border border-white/5 p-5 mb-6">
+<div class="flex justify-between items-center mb-6">
+<h2 class="text-sm font-bold">Horas por Semana</h2>
+<span class="text-[10px] text-slate-400">Total: 164h</span>
+</div>
+<div class="flex items-end justify-between h-32 space-x-3 px-1">
+<div class="flex flex-col items-center flex-1 space-y-2">
+<div class="chart-bar h-24"><div class="chart-bar-fill h-[80%]"></div></div>
+<span class="text-[9px] text-slate-500">L</span>
+</div>
+<div class="flex flex-col items-center flex-1 space-y-2">
+<div class="chart-bar h-24"><div class="chart-bar-fill h-[95%]"></div></div>
+<span class="text-[9px] text-slate-500">M</span>
+</div>
+<div class="flex flex-col items-center flex-1 space-y-2">
+<div class="chart-bar h-24"><div class="chart-bar-fill h-[70%]"></div></div>
+<span class="text-[9px] text-slate-500">X</span>
+</div>
+<div class="flex flex-col items-center flex-1 space-y-2">
+<div class="chart-bar h-24"><div class="chart-bar-fill h-[85%]"></div></div>
+<span class="text-[9px] text-slate-500">J</span>
+</div>
+<div class="flex flex-col items-center flex-1 space-y-2">
+<div class="chart-bar h-24"><div class="chart-bar-fill h-[100%]"></div></div>
+<span class="text-[9px] text-slate-500">V</span>
+</div>
+<div class="flex flex-col items-center flex-1 space-y-2">
+<div class="chart-bar h-24"><div class="chart-bar-fill h-[30%] bg-slate-600"></div></div>
+<span class="text-[9px] text-slate-500">S</span>
+</div>
+<div class="flex flex-col items-center flex-1 space-y-2">
+<div class="chart-bar h-24"><div class="chart-bar-fill h-[10%] bg-slate-600"></div></div>
+<span class="text-[9px] text-slate-500">D</span>
+</div>
+</div>
+</section>
+<section>
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-sm font-bold">Registros Detallados</h2>
+<button class="text-primary text-xs font-semibold">Ver historial</button>
+</div>
+<div class="space-y-3">
+<div class="bg-card-dark p-4 rounded-xl border border-white/5">
+<div class="flex justify-between items-start mb-3">
+<div class="flex items-center space-x-3">
+<div class="h-10 w-10 rounded-lg bg-slate-800 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-400">person</span>
+</div>
+<div>
+<p class="text-sm font-bold">Carlos Mendoza</p>
+<p class="text-[10px] text-slate-400 uppercase tracking-tighter">Desarrollo Frontend</p>
+</div>
+</div>
+<div class="flex items-center space-x-1 px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+<span class="material-symbols-outlined text-[10px]">check_circle</span>
+<span class="text-[8px] font-bold">VALIDADO</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4 border-t border-white/5 pt-3">
+<div>
+<p class="text-[9px] text-slate-500 uppercase">Entrada / Salida</p>
+<p class="text-xs font-medium">08:02 AM - 05:14 PM</p>
+</div>
+<div class="text-right">
+<p class="text-[9px] text-slate-500 uppercase">Verificación</p>
+<p class="text-xs font-medium flex items-center justify-end">
+<span class="material-symbols-outlined text-xs mr-1">pin_drop</span> GPS / Bio
+                            </p>
+</div>
+</div>
+</div>
+<div class="bg-card-dark p-4 rounded-xl border border-white/5">
+<div class="flex justify-between items-start mb-3">
+<div class="flex items-center space-x-3">
+<div class="h-10 w-10 rounded-lg bg-slate-800 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-400">person</span>
+</div>
+<div>
+<p class="text-sm font-bold">Ana Rodríguez</p>
+<p class="text-[10px] text-slate-400 uppercase tracking-tighter">RR.HH.</p>
+</div>
+</div>
+<div class="flex items-center space-x-1 px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20">
+<span class="material-symbols-outlined text-[10px]">priority_high</span>
+<span class="text-[8px] font-bold">PENDIENTE</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4 border-t border-white/5 pt-3">
+<div>
+<p class="text-[9px] text-slate-500 uppercase">Entrada / Salida</p>
+<p class="text-xs font-medium">09:15 AM - --:--</p>
+</div>
+<div class="text-right">
+<p class="text-[9px] text-slate-500 uppercase">Verificación</p>
+<p class="text-xs font-medium flex items-center justify-end">
+<span class="material-symbols-outlined text-xs mr-1">fingerprint</span> Biométrica
+                            </p>
+</div>
+</div>
+</div>
+<div class="bg-card-dark p-4 rounded-xl border border-white/5 opacity-80">
+<div class="flex justify-between items-start mb-3">
+<div class="flex items-center space-x-3">
+<div class="h-10 w-10 rounded-lg bg-slate-800 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-400">person</span>
+</div>
+<div>
+<p class="text-sm font-bold">Juan Pérez</p>
+<p class="text-[10px] text-slate-400 uppercase tracking-tighter">Administración</p>
+</div>
+</div>
+<div class="flex items-center space-x-1 px-2 py-0.5 rounded bg-rose-500/10 text-rose-500 border border-rose-500/20">
+<span class="material-symbols-outlined text-[10px]">cancel</span>
+<span class="text-[8px] font-bold">SIN REGISTRO</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4 border-t border-white/5 pt-3">
+<div>
+<p class="text-[9px] text-slate-500 uppercase">Entrada / Salida</p>
+<p class="text-xs font-medium text-slate-500">No detectado</p>
+</div>
+<div class="text-right">
+<p class="text-[9px] text-slate-500 uppercase">Estado</p>
+<p class="text-xs font-medium text-rose-400">Falta</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<nav class="fixed bottom-0 left-0 right-0 ios-blur bg-background-dark/80 border-t border-white/10 px-8 py-3 flex justify-between items-center z-50">
+<button class="flex flex-col items-center text-slate-400">
+<span class="material-symbols-outlined">timer</span>
+<span class="text-[10px] mt-0.5 font-medium">Reloj</span>
+</button>
+<button class="flex flex-col items-center text-primary">
+<span class="material-symbols-outlined">bar_chart</span>
+<span class="text-[10px] mt-0.5 font-medium">Reportes</span>
+</button>
+<button class="flex flex-col items-center text-slate-400">
+<span class="material-symbols-outlined">group</span>
+<span class="text-[10px] mt-0.5 font-medium">Personal</span>
+</button>
+<button class="flex flex-col items-center text-slate-400">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-[10px] mt-0.5 font-medium">Ajustes</span>
+</button>
+</nav>
+<div class="fixed bottom-1 left-1/2 -translate-x-1/2 w-32 h-1 bg-slate-700 rounded-full z-[60]"></div>
+
+</body></html>

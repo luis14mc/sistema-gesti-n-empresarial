@@ -1,0 +1,745 @@
+// ============================================
+// TIPOS FRONTEND — Fuente de verdad: prisma/schema.prisma
+// ============================================
+
+// ── Enums (mirror de Prisma) ──────────────────────────────────
+
+export type Role = 'ADMIN' | 'USER' | 'RRHH' | 'IT';
+
+export type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED' | 'CANCELLED';
+export type TicketPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+
+export type OficioType = 'INCOMING' | 'OUTGOING' | 'INTERNAL_MEMO';
+
+export type AttendanceStatus = 'ON_TIME' | 'LATE' | 'ABSENT' | 'EXCUSED';
+
+export type EquipmentStatus = 'AVAILABLE' | 'ASSIGNED' | 'IN_MAINTENANCE' | 'DAMAGED' | 'RETIRED';
+
+export type MovementType = 'EXIT' | 'RETURN';
+
+// Constantes legibles para selects/badges
+export const ROLE_LABELS: Record<Role, string> = {
+  ADMIN: 'Administrador',
+  USER: 'Usuario',
+  RRHH: 'Recursos Humanos',
+  IT: 'Tecnología',
+};
+
+export const TICKET_STATUS_LABELS: Record<TicketStatus, string> = {
+  OPEN: 'Abierto',
+  IN_PROGRESS: 'En Progreso',
+  RESOLVED: 'Resuelto',
+  CLOSED: 'Cerrado',
+  CANCELLED: 'Cancelado',
+};
+
+export const TICKET_PRIORITY_LABELS: Record<TicketPriority, string> = {
+  LOW: 'Baja',
+  MEDIUM: 'Media',
+  HIGH: 'Alta',
+  URGENT: 'Urgente',
+};
+
+export const OFICIO_TYPE_LABELS: Record<OficioType, string> = {
+  INCOMING: 'Entrada',
+  OUTGOING: 'Salida',
+  INTERNAL_MEMO: 'Memo Interno',
+};
+
+export const ATTENDANCE_STATUS_LABELS: Record<AttendanceStatus, string> = {
+  ON_TIME: 'A Tiempo',
+  LATE: 'Tarde',
+  ABSENT: 'Ausente',
+  EXCUSED: 'Justificado',
+};
+
+export const EQUIPMENT_STATUS_LABELS: Record<EquipmentStatus, string> = {
+  AVAILABLE: 'Disponible',
+  ASSIGNED: 'Asignado',
+  IN_MAINTENANCE: 'En Mantenimiento',
+  DAMAGED: 'Dañado',
+  RETIRED: 'Dado de Baja',
+};
+
+// ── Usuario de sesión (serializable, sin password) ────────────
+
+export interface SessionUser {
+  id: string;
+  employeeNumber: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+  role: Role;
+  isActive: boolean;
+  departmentId: string | null;
+  positionId: string | null;
+  department: { id: string; name: string } | null;
+  position: { id: string; name: string } | null;
+}
+
+// ── Resultado genérico de Server Actions ──────────────────────
+
+export interface ActionResult<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  fieldErrors?: Record<string, string[]>;
+}
+
+// ── Dashboard ─────────────────────────────────────────────────
+
+export interface DashboardStats {
+  totalTickets: number;
+  openTickets: number;
+  totalOficios: number;
+  totalEquipment: number;
+  availableEquipment: number;
+  todayEntries: number;
+  activeUsers: number;
+  pendingPurchases: number;
+}
+
+// ── Modelos serializados (para Client Components) ─────────────
+
+export interface Department {
+  id: string;
+  name: string;
+  description: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface JobPosition {
+  id: string;
+  name: string;
+  departmentId: string;
+  isActive: boolean;
+  department?: Department;
+}
+
+export interface User {
+  id: string;
+  employeeNumber: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+  role: Role;
+  isActive: boolean;
+  departmentId: string | null;
+  positionId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  department?: Department | null;
+  position?: JobPosition | null;
+}
+
+export interface Ticket {
+  id: string;
+  title: string;
+  description: string;
+  type: string;
+  category: string;
+  priority: TicketPriority;
+  status: TicketStatus;
+  attachmentUrl: string | null;
+  deletedAt: string | null;
+  attachments: any;
+  comments: any[];
+  createdById: string;
+  assignedToId: string | null;
+  resolvedAt: string | null;
+  closedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: Pick<User, 'id' | 'firstName' | 'lastName'>;
+  assignedTo?: Pick<User, 'id' | 'firstName' | 'lastName'> | null;
+}
+
+export interface Oficio {
+  id: string;
+  number: string;
+  type: OficioType;
+  subject: string;
+  content: string;
+  status: string;
+  attachmentUrl: string | null;
+  deletedAt: string | null;
+  attachments: unknown;
+  comments: string | null;
+  externalRecipient: string | null;
+  recipientId: string | null;
+  oficioDate: string;
+  receivedDate: string | null;
+  sentDate: string | null;
+  createdById: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: Pick<User, 'id' | 'firstName' | 'lastName'>;
+  recipient?: Pick<User, 'id' | 'firstName' | 'lastName'> | null;
+}
+
+export interface TimeEntry {
+  id: string;
+  userId: string;
+  type: EntryType;
+  timestamp: string;
+  date: string;
+  checkIn: string | null;
+  checkOut: string | null;
+  latitude: number;
+  longitude: number;
+  location: string | null;
+  status: AttendanceStatus;
+  notes: string | null;
+  createdAt: string;
+  user?: Pick<User, 'id' | 'firstName' | 'lastName'>;
+}
+
+export interface Equipment {
+  id: string;
+  code: string;
+  inventoryCode: string;
+  name: string;
+  type: string;
+  brand: string;
+  model: string;
+  serialNumber: string;
+  status: EquipmentStatus;
+  description: string | null;
+  purchaseDate: string;
+  purchaseCost: number | null;
+  warrantyDate: string | null;
+  depreciationDate: string | null;
+  ram: string | null;
+  processor: string | null;
+  storage: string | null;
+  os: string | null;
+  retirementReason: string | null;
+  retiredAt: string | null;
+  deletedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  assignments?: EquipmentAssignment[];
+  maintenances?: EquipmentMaintenance[];
+}
+
+export interface EquipmentAssignment {
+  id: string;
+  equipmentId: string;
+  userId: string;
+  status: string;
+  condition: string | null;
+  assignedDate: string;
+  returnedDate: string | null;
+  departmentAtTime: string | null;
+  positionAtTime: string | null;
+  notes: string | null;
+  urlNotaPdf: string | null;
+  equipment?: Equipment;
+  user?: Pick<User, 'id' | 'firstName' | 'lastName'>;
+}
+
+export interface PromotionalItem {
+  id: string;
+  code: string;
+  inventoryCode: string;
+  name: string;
+  description: string | null;
+  quantity: number;
+  unitPrice: number;
+  unitCost: number | null;
+  purchaseDate: string;
+  status: string;
+  createdAt: string;
+  movements?: PromotionalMovement[];
+}
+
+export interface PromotionalMovement {
+  id: string;
+  itemId: string;
+  type: MovementType | string;
+  quantity: number;
+  quantityOut: number;
+  quantityReturn: number | null;
+  reason: string;
+  notes: string | null;
+  movementDate: string;
+  returnDate: string | null;
+  eventName: string | null;
+  eventLocation: string | null;
+  eventDate: string | null;
+  responsible: string | null;
+  comments: string | null;
+  createdAt: string;
+  item?: PromotionalItem;
+  user?: Pick<User, 'id' | 'firstName' | 'lastName'>;
+}
+
+export interface PurchaseItem {
+  id: string;
+  purchaseRequestId: string;
+  description: string;
+  quantity: number;
+  unitPrice: number | null;
+  totalPrice: number | null;
+  specifications: string | null;
+  received: boolean;
+}
+
+export interface PurchaseRequest {
+  id: string;
+  number: string;
+  title: string;
+  description: string;
+  justification: string;
+  category: string;
+  priority: string;
+  status: string;
+  estimatedTotal: number | null;
+  approvedBudget: number | null;
+  supplier: string | null;
+  supplierContact: string | null;
+  rejectionReason: string | null;
+  notes: string | null;
+  deliveryDate: string | null;
+  receptionDate: string | null;
+  closingDate: string | null;
+  attachments: unknown;
+  comments: string | null;
+  requestedById: string;
+  approvedById: string | null;
+  createdAt: string;
+  updatedAt: string;
+  requestedBy?: Pick<User, 'id' | 'firstName' | 'lastName'>;
+  approvedBy?: Pick<User, 'id' | 'firstName' | 'lastName'> | null;
+  items?: PurchaseItem[];
+}
+
+export interface AuditRecord {
+  id: string;
+  title: string;
+  description: string;
+  justification: string | null;
+  module: string;
+  category: string;
+  priority: string;
+  status: string;
+  entityId: string | null;
+  userId: string | null;
+  createdAt: string;
+  user?: Pick<User, 'id' | 'firstName' | 'lastName'> | null;
+}
+
+// ── Paginación ────────────────────────────────────────────────
+
+export interface PaginationParams {
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+// ── Aliases de compatibilidad (tipos legacy) ─────────────────
+// Estos tipos existían como enums en el schema anterior.
+// Ahora son strings libres en Prisma, pero los mantenemos como
+// type aliases para no romper páginas aún no migradas.
+
+export type TicketCategory = string;
+export type OficioStatus = string;
+export type EntryType = 'CHECK_IN' | 'CHECK_OUT' | 'BREAK_START' | 'BREAK_END';
+export type EquipmentType = string;
+export type AssignmentStatus = 'ACTIVE' | 'RETURNED' | 'CANCELLED';
+export type MaintenanceType = 'PREVENTIVE' | 'CORRECTIVE' | 'UPDATE';
+export type MaintenanceStatus = 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+export type PurchaseCategory = string;
+export type PurchasePriority = string;
+export type PurchaseStatus = string;
+export type PromotionalStatus = string;
+
+// Interfaces legacy para retrocompatibilidad
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface RegisterData {
+  employeeNumber?: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  user: User;
+}
+
+export interface EquipmentMaintenance {
+  id: string;
+  equipmentId: string;
+  type: MaintenanceType;
+  status: MaintenanceStatus;
+  description: string;
+  scheduledDate: string;
+  completedDate?: string;
+  cost?: number;
+  technician?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateMaintenanceData extends Partial<CreateMaintenanceData> {
+  status?: string;
+}
+
+export interface CreateTicketData {
+  title: string;
+  description: string;
+  priority: TicketPriority;
+  category: string;
+  type: string;
+  assignedToId?: string;
+  attachmentUrl: string;
+}
+
+export interface UpdateTicketData extends Partial<CreateTicketData> {
+  status?: TicketStatus;
+}
+
+export interface CreateOficioData {
+  subject: string;
+  content: string;
+  type: OficioType;
+  recipientId?: string;
+  externalRecipient?: string;
+  attachmentUrl: string;
+}
+
+export interface UpdateOficioData extends Partial<CreateOficioData> {
+  status?: string;
+}
+
+export interface CreateTimeEntryData {
+  type?: EntryType;
+  location?: string;
+  latitude: number;
+  longitude: number;
+  notes?: string;
+}
+
+export interface CreateEquipmentData {
+  code?: string;
+  inventoryCode?: string;
+  name?: string;
+  type: string;
+  brand?: string;
+  model?: string;
+  serialNumber?: string;
+  purchaseDate?: string;
+  purchaseCost?: number;
+  description?: string;
+}
+
+export interface UpdateEquipmentData extends Partial<CreateEquipmentData> {
+  status?: EquipmentStatus;
+}
+
+export interface CreateMaintenanceData {
+  equipmentId: string;
+  type?: string;
+  description?: string;
+  scheduledDate?: string;
+  completedDate?: string;
+  cost?: number;
+  notes?: string;
+}
+
+export interface TicketComment {
+  id: string;
+  content: string;
+  ticketId: string;
+  userId: string;
+  createdAt: string;
+  updatedAt?: string;
+  user?: Pick<User, 'id' | 'firstName' | 'lastName'>;
+}
+
+export interface ApiError {
+  message?: string;
+  error?: string;
+  statusCode?: number;
+  errors?: Record<string, string[]>;
+}
+
+// ── Filter types (para hooks React Query) ─────────────────────
+
+export interface TicketFilters extends PaginationParams {
+  search?: string;
+  status?: TicketStatus;
+  priority?: TicketPriority;
+  category?: string;
+  assignedToId?: string;
+}
+
+export interface OficioFilters extends PaginationParams {
+  search?: string;
+  status?: string;
+  type?: OficioType;
+}
+
+export interface TimeEntryFilters extends PaginationParams {
+  userId?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface PurchaseFilters extends PaginationParams {
+  search?: string;
+  status?: string;
+  category?: string;
+  priority?: string;
+}
+
+export interface PromotionalItemFilters extends PaginationParams {
+  search?: string;
+  status?: string;
+}
+
+export interface EquipmentFilters extends PaginationParams {
+  search?: string;
+  status?: EquipmentStatus;
+  type?: string;
+}
+
+export interface AssignmentFilters extends PaginationParams {
+  status?: string;
+  equipmentId?: string;
+  userId?: string;
+}
+
+// ── Data types para mutaciones ────────────────────────────────
+
+export interface CreateCommentData {
+  content: string;
+}
+
+export interface CreatePurchaseData {
+  title: string;
+  justification: string;
+  category: string;
+  priority: string;
+  supplier?: string;
+  supplierContact?: string;
+  notes?: string;
+}
+
+export interface UpdatePurchaseData extends Partial<CreatePurchaseData> {
+  status?: string;
+  rejectionReason?: string;
+  approvedBudget?: number;
+}
+
+export interface CreatePurchaseItemData {
+  description: string;
+  quantity: number;
+  unitPrice?: number;
+  specifications?: string;
+}
+
+export interface CreatePromotionalItemData {
+  code: string;
+  name: string;
+  description?: string;
+  quantity: number;
+  unitCost?: number;
+}
+
+export interface UpdatePromotionalItemData {
+  name?: string;
+  description?: string;
+  unitCost?: number;
+  status?: string;
+}
+
+export interface CreatePromotionalMovementData {
+  itemId?: string;
+  type: string;
+  quantity: number;
+  reason: string;
+  notes?: string;
+}
+
+export interface CreateUserData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  role: Role;
+  employeeNumber?: string;
+  phone?: string;
+  departmentId?: string;
+  positionId?: string;
+}
+
+export interface UpdateUserData {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  role?: Role;
+  isActive?: boolean;
+  phone?: string;
+  departmentId?: string;
+  positionId?: string;
+}
+
+export interface CreateAssignmentData {
+  equipmentId: string;
+  userId: string;
+  condition?: string;
+  notes?: string;
+}
+
+export interface ReturnAssignmentData {
+  returnCondition?: string;
+  notes?: string;
+}
+
+// ── Tipos legacy de Auditoría ─────────────────────────────────
+
+export type AuditLog = AuditRecord;
+
+export interface Audit {
+  id: string;
+  code?: string;
+  title: string;
+  description: string;
+  status: string;
+  module: string;
+  category: string;
+  priority: string;
+  type?: string;
+  standard?: string;
+  scope?: string;
+  objectives?: string;
+  criteria?: string;
+  department?: string;
+  conclusions?: string;
+  recommendations?: string;
+  auditeeContact?: string;
+  entityId: string | null;
+  userId: string | null;
+  leadAuditorId?: string | null;
+  leadAuditor?: Pick<User, 'id' | 'firstName' | 'lastName'> | null;
+  plannedDate?: string;
+  startDate?: string | null;
+  endDate?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user?: Pick<User, 'id' | 'firstName' | 'lastName'> | null;
+  findings?: AuditFinding[];
+  checklist?: AuditChecklistItem[];
+}
+
+export interface CreateAuditData {
+  title: string;
+  description?: string;
+  module?: string;
+  category?: string;
+  priority?: string;
+  type?: string;
+  standard?: string;
+  scope?: string;
+  objectives?: string;
+  criteria?: string;
+  department?: string;
+  leadAuditorId?: string;
+  plannedDate?: string;
+}
+
+export interface UpdateAuditData extends Partial<CreateAuditData> {
+  status?: string;
+  conclusions?: string;
+  recommendations?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface AuditFinding {
+  id: string;
+  auditId: string;
+  code?: string;
+  description: string;
+  evidence?: string;
+  severity: string;
+  clause?: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface CreateFindingData {
+  description: string;
+  severity: string;
+  evidence?: string;
+  clause?: string;
+}
+
+export interface AuditChecklistItem {
+  id: string;
+  auditId: string;
+  description: string;
+  requirement?: string;
+  clause?: string;
+  sortOrder?: number;
+  completed: boolean;
+  result: string | null;
+  notes?: string | null;
+  evidence?: string | null;
+  createdAt: string;
+}
+
+export interface CreateChecklistItemData {
+  description?: string;
+  requirement?: string;
+  clause?: string;
+  sortOrder?: number;
+}
+
+export interface UpdateChecklistResultData {
+  completed?: boolean;
+  result?: string;
+  notes?: string;
+  evidence?: string;
+}
+
+// ── Acciones Correctivas (legacy stub) ───────────────────────
+
+export interface CorrectiveAction {
+  id: string;
+  findingId?: string;
+  description: string;
+  responsibleId?: string;
+  responsible?: Pick<User, 'id' | 'firstName' | 'lastName'> | null;
+  dueDate?: string;
+  completedDate?: string | null;
+  status: string;
+  evidence?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── Utilidades ────────────────────────────────────────────────
+
+export interface SelectOption {
+  label: string;
+  value: string;
+}

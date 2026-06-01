@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Gestión de Activos IT - Inventario</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#136dec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101822",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen pb-24">
+<!-- Header & Navigation -->
+<header class="sticky top-0 z-30 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-4">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-3">
+<button class="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors">
+<span class="material-icons text-primary">arrow_back</span>
+</button>
+<h1 class="text-xl font-bold tracking-tight">Inventario de Equipos</h1>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 bg-primary/10 text-primary rounded-lg">
+<span class="material-icons">notifications</span>
+</button>
+<img alt="Admin" class="w-8 h-8 rounded-full border border-primary/20" data-alt="Profile photo of the IT administrator" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCTuzFrmzxuVuoJsSje5ItjSg91_ZssI5w_xLgvF2_YunQqQXIkWVqfKwt0T-p__Ddl4sQCX4P6M_gO70Cufj--PfQgWeETTZKfJojodeZ1MmdxlAgL3Ax3oFUZSPj6koGIA29bBrHZ67dO4pDf9DXPjtDACXotWcPjM6V31iw1RRfPxvdIjbAFor_u3lkgouX3QDcjTjJkTiViyIaqMqqnNfoIiFkp5lc-vUpIuUipBlYzvLd6i6hsyNW8z8fBcmh3rCBFcxhqY7NF"/>
+</div>
+</div>
+<!-- Search and Filter -->
+<div class="relative mb-4">
+<span class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+<input class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none" placeholder="Buscar por ID, Modelo o Usuario..." type="text"/>
+</div>
+<!-- Category Chips -->
+<div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+<button class="px-4 py-2 bg-primary text-white text-xs font-semibold rounded-full whitespace-nowrap">Todos</button>
+<button class="px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-semibold rounded-full whitespace-nowrap">Laptops</button>
+<button class="px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-semibold rounded-full whitespace-nowrap">Desktops</button>
+<button class="px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-semibold rounded-full whitespace-nowrap">Monitores</button>
+<button class="px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-semibold rounded-full whitespace-nowrap">Accesorios</button>
+</div>
+</header>
+<!-- Asset Grid -->
+<main class="p-4 space-y-4">
+<!-- Asset Card 1 -->
+<div class="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+<div class="p-4">
+<div class="flex justify-between items-start mb-4">
+<div class="flex gap-3">
+<div class="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center">
+<span class="material-icons text-slate-400 text-3xl">laptop</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-bold uppercase tracking-wider text-primary">AST-99021</span>
+<span class="px-2 py-0.5 rounded bg-green-500/10 text-green-500 text-[10px] font-bold uppercase">Activo</span>
+</div>
+<h3 class="font-bold text-lg">MacBook Pro M2</h3>
+<p class="text-xs text-slate-500">S/N: C02FP1Y6MD6R</p>
+</div>
+</div>
+<input class="rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary h-5 w-5" type="checkbox"/>
+</div>
+<!-- Technical Specs -->
+<div class="grid grid-cols-3 gap-2 mb-4 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-lg">
+<div class="text-center">
+<p class="text-[10px] text-slate-500 uppercase font-bold">RAM</p>
+<p class="text-xs font-semibold">16 GB</p>
+</div>
+<div class="text-center border-x border-slate-200 dark:border-slate-700">
+<p class="text-[10px] text-slate-500 uppercase font-bold">Disco</p>
+<p class="text-xs font-semibold">512 GB SSD</p>
+</div>
+<div class="text-center">
+<p class="text-[10px] text-slate-500 uppercase font-bold">CPU</p>
+<p class="text-xs font-semibold">Apple M2</p>
+</div>
+</div>
+<!-- User & Warranty -->
+<div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+<div class="flex items-center gap-2">
+<img alt="User" class="w-6 h-6 rounded-full border border-slate-200 dark:border-slate-700" data-alt="User profile picture in asset card" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_yVIK6TUB-OmhbmEs_GBmlG9VZnluXr1Qmz-_ZpXyTuRQGFOZklaz3GUog_WivOsWJy-gD-Ya7DVuyd8b07_6AOtvXLqMjRs7tNBCdjUKO-ykP_N3oP7YUNtfrNT42WfuxKZcOhF3my5jM7cRTbgOVjxei-VAzOkc3mfmWj5Qj_RuJFl7Jwjukm8ZKZLFP46Ilty0pwt_7WhmTtBYDOPGy7QAOY5QhjNCX84C8ADRpG50PgLZeeD-B7SJLINHp61s7hrYVsRr05BO"/>
+<span class="text-xs font-medium">Carlos Méndez</span>
+</div>
+<div class="flex items-center gap-1 text-slate-500">
+<span class="material-icons text-[16px]">verified_user</span>
+<span class="text-xs">Garantía: <span class="text-green-500 font-bold">Ok</span></span>
+</div>
+</div>
+</div>
+</div>
+<!-- Asset Card 2 (Warning State) -->
+<div class="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+<div class="p-4">
+<div class="flex justify-between items-start mb-4">
+<div class="flex gap-3">
+<div class="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center">
+<span class="material-icons text-slate-400 text-3xl">desktop_windows</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-bold uppercase tracking-wider text-primary">AST-88432</span>
+<span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 text-[10px] font-bold uppercase">Mantenimiento</span>
+</div>
+<h3 class="font-bold text-lg">Dell OptiPlex 7000</h3>
+<p class="text-xs text-slate-500">S/N: J9K8L7M6N5</p>
+</div>
+</div>
+<input class="rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary h-5 w-5" type="checkbox"/>
+</div>
+<div class="grid grid-cols-3 gap-2 mb-4 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-lg">
+<div class="text-center">
+<p class="text-[10px] text-slate-500 uppercase font-bold">RAM</p>
+<p class="text-xs font-semibold">32 GB</p>
+</div>
+<div class="text-center border-x border-slate-200 dark:border-slate-700">
+<p class="text-[10px] text-slate-500 uppercase font-bold">Disco</p>
+<p class="text-xs font-semibold">1 TB NVMe</p>
+</div>
+<div class="text-center">
+<p class="text-[10px] text-slate-500 uppercase font-bold">CPU</p>
+<p class="text-xs font-semibold">Intel i7 12th</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+<div class="flex items-center gap-2">
+<img alt="User" class="w-6 h-6 rounded-full border border-slate-200 dark:border-slate-700" data-alt="Assigned user female employee avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjaj9jBUH0rqYtDL4u4r9MgWbjjMnvHmU1RRZQ4MCzsWEOkQ2LhAhDS0zlR7RU3PpzwO-vkEpfoih4fGOHLJ7iSNzUlj4D8eRYYwOBpK_ySXTrI6vefjb8ZF-UnTu4GuXpU5diO3EreYP9Ij-941PbgS4uxZqxKxVEii8dMgic0NqV3IJkp9qcftNMAJ237SIeepUjvAiFlmpBC7GKq-M0zwlmE8T96-yqVGkT0mLCo_6tAhSU9fPAx9wivauQXeLUhbEv79v1Y4tH"/>
+<span class="text-xs font-medium">Elena Rivas</span>
+</div>
+<div class="flex items-center gap-1 text-slate-500">
+<span class="material-icons text-[16px] text-amber-500">warning</span>
+<span class="text-xs">Expira: <span class="text-amber-500 font-bold">12d</span></span>
+</div>
+</div>
+</div>
+</div>
+<!-- Asset Card 3 -->
+<div class="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm opacity-70">
+<div class="p-4">
+<div class="flex justify-between items-start mb-4">
+<div class="flex gap-3">
+<div class="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center">
+<span class="material-icons text-slate-400 text-3xl">laptop</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-bold uppercase tracking-wider text-primary">AST-77551</span>
+<span class="px-2 py-0.5 rounded bg-slate-500/10 text-slate-500 text-[10px] font-bold uppercase">Baja</span>
+</div>
+<h3 class="font-bold text-lg">Lenovo ThinkPad X1</h3>
+<p class="text-xs text-slate-500">S/N: PF23X901</p>
+</div>
+</div>
+<input class="rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary h-5 w-5" type="checkbox"/>
+</div>
+<div class="grid grid-cols-3 gap-2 mb-4 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-lg text-slate-400">
+<div class="text-center">
+<p class="text-[10px] uppercase font-bold">RAM</p>
+<p class="text-xs font-semibold">8 GB</p>
+</div>
+<div class="text-center border-x border-slate-200 dark:border-slate-700">
+<p class="text-[10px] uppercase font-bold">Disco</p>
+<p class="text-xs font-semibold">256 GB</p>
+</div>
+<div class="text-center">
+<p class="text-[10px] uppercase font-bold">CPU</p>
+<p class="text-xs font-semibold">Intel i5 10th</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-icons text-[14px] text-slate-400">person_off</span>
+</div>
+<span class="text-xs font-medium italic">Sin asignar</span>
+</div>
+<div class="flex items-center gap-1 text-slate-400">
+<span class="material-icons text-[16px]">history</span>
+<span class="text-xs font-bold uppercase">Caducada</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Floating Action Toolbar -->
+<div class="fixed bottom-0 left-0 right-0 p-4 z-40">
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-4 flex gap-4 items-center">
+<div class="flex-1 flex gap-2">
+<button class="flex-1 bg-primary text-white py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold text-sm shadow-lg shadow-primary/30 active:scale-95 transition-transform">
+<span class="material-icons text-base">fact_check</span>
+<span>Auditar (2)</span>
+</button>
+<button class="bg-slate-100 dark:bg-slate-800 p-3 rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-300 active:scale-95 transition-transform">
+<span class="material-icons">file_download</span>
+</button>
+</div>
+<div class="h-10 w-px bg-slate-200 dark:bg-slate-800"></div>
+<button class="p-3 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300">
+<span class="material-icons">filter_list</span>
+</button>
+</div>
+</div>
+<!-- Export Menu (Hidden Mockup) -->
+<!-- This represents what happens when clicking download -->
+<div class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end">
+<div class="w-full bg-white dark:bg-slate-900 rounded-t-3xl p-6">
+<div class="w-12 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full mx-auto mb-6"></div>
+<h4 class="text-center font-bold mb-6 text-lg">Exportar Inventario</h4>
+<div class="grid grid-cols-2 gap-4 mb-8">
+<button class="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-transparent hover:border-primary transition-all text-center">
+<span class="material-icons text-green-500 text-4xl mb-2">description</span>
+<p class="font-bold text-sm">Excel (.xlsx)</p>
+</button>
+<button class="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-transparent hover:border-primary transition-all text-center">
+<span class="material-icons text-red-500 text-4xl mb-2">picture_as_pdf</span>
+<p class="font-bold text-sm">PDF Report</p>
+</button>
+</div>
+<button class="w-full py-4 bg-slate-100 dark:bg-slate-800 rounded-xl font-bold">Cancelar</button>
+</div>
+</div>
+</body></html>

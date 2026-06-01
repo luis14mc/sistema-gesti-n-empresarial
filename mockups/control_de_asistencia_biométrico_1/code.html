@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Control de Asistencia Biométrico</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#136dec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101822",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .ios-blur {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .shadow-ios {
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen font-display">
+<!-- iOS Status Bar Spacer -->
+<div class="h-12 w-full"></div>
+<main class="max-w-md mx-auto px-6 pb-12">
+<!-- Header Section -->
+<header class="flex justify-between items-start mb-8">
+<div>
+<p class="text-primary font-semibold text-sm uppercase tracking-wider mb-1">Panel de Empleado</p>
+<h1 class="text-3xl font-bold tracking-tight">¡Hola, Carlos!</h1>
+<p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Lunes, 24 de Julio</p>
+</div>
+<div class="h-12 w-12 rounded-full overflow-hidden border-2 border-primary/20 bg-primary/10 flex items-center justify-center">
+<img alt="Profile Picture" class="h-full w-full object-cover" data-alt="Close up professional portrait of a man" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDTtkd-22Ui7cfcJ41FOEMf4lEvvAPeugs2cZgIrFOQFltM-xmqPT5ESRISB8HrBIaOBAs06cCNy1VjvfLlu5_67xqNttiHfekHnST7WZ-0eq6HtCgdXenxUGMCrKLWAYeV60vH2mdZFhh77BiKp6rrBkADpvKT7ie2ZnoG6ljilcp8fBZUbMY3IB23Zu8HJfAlhbstuTpnBTIdanktdo0I5Psmn3iejDAsLDsWkC0lUuvTnDGy3YB23jhJangNPwYFNzunyZrLsMIj"/>
+</div>
+</header>
+<!-- Main Punch Area -->
+<section class="flex flex-col items-center justify-center space-y-8 mb-10">
+<!-- Digital Clock Display -->
+<div class="text-center">
+<div class="text-5xl font-light tracking-tighter tabular-nums mb-1">
+                    08:42<span class="text-primary animate-pulse">:</span>15
+                </div>
+<div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-xs font-medium">
+<span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+<span>Dentro de Perímetro</span>
+</div>
+</div>
+<!-- Central Action Button -->
+<div class="relative group">
+<div class="absolute inset-0 bg-primary/30 rounded-full blur-3xl group-active:blur-2xl transition-all"></div>
+<button class="relative h-56 w-56 rounded-full bg-primary flex flex-col items-center justify-center text-white shadow-xl shadow-primary/40 active:scale-95 transition-transform duration-150 z-10">
+<span class="material-icons text-6xl mb-2">touch_app</span>
+<span class="text-xl font-bold uppercase tracking-widest">Entrada</span>
+<span class="text-[10px] opacity-70 mt-1">Presiona para marcar</span>
+</button>
+</div>
+</section>
+<!-- Stats Grid -->
+<section class="grid grid-cols-2 gap-4 mb-8">
+<div class="bg-white dark:bg-primary/5 border border-primary/10 p-4 rounded-2xl">
+<div class="flex items-center space-x-2 mb-2">
+<span class="material-icons text-primary text-lg">schedule</span>
+<span class="text-xs text-slate-500 font-medium">Horas Hoy</span>
+</div>
+<p class="text-xl font-bold">06:24 <span class="text-sm font-normal text-slate-400">/ 08h</span></p>
+</div>
+<div class="bg-white dark:bg-primary/5 border border-primary/10 p-4 rounded-2xl">
+<div class="flex items-center space-x-2 mb-2">
+<span class="material-icons text-primary text-lg">restaurant</span>
+<span class="text-xs text-slate-500 font-medium">Próximo Break</span>
+</div>
+<p class="text-xl font-bold">13:30</p>
+</div>
+</section>
+<!-- Location Context Section -->
+<section class="mb-8">
+<h2 class="text-sm font-semibold uppercase tracking-widest text-slate-400 mb-3 px-1">Validación GPS</h2>
+<div class="relative rounded-2xl overflow-hidden h-32 border border-primary/20 shadow-lg">
+<div class="absolute inset-0 bg-slate-800 flex items-center justify-center overflow-hidden">
+<img alt="Location Map" class="w-full h-full object-cover opacity-50 grayscale contrast-125" data-alt="A dark themed city map layout with blue highlights" data-location="Madrid" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCdaF_dvvndRCW_IbDU6fEhEQi5Ozz6LJqMvEG5i2fsvi42wQ611IVhNLfPYqP1YUoZrwbFvHKJ5ujAm78SzTb0eoWOrpPLQTjCoMz-jl8fRNdrPIMcSd5yK39AeCe2nOqqmz-ueRfY7IRrQDWpV-N6dEiyb5lZdQe3rkUChIeYDuPWERPqDKLuiUnEeuOvwPJXmEXxFsGZHry5GyiYZVc3Y0Yz_15Ocn2OrITFC9-l_rfq9ZJ-f4l86G2URsFkxRSQod8YYhRJraeO"/>
+</div>
+<!-- Location Overlay -->
+<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+<div class="relative">
+<div class="h-6 w-6 bg-primary rounded-full border-2 border-white animate-ping absolute opacity-50"></div>
+<div class="h-6 w-6 bg-primary rounded-full border-2 border-white relative"></div>
+</div>
+</div>
+<!-- Location Label -->
+<div class="absolute bottom-3 left-3 ios-blur bg-white/10 dark:bg-black/40 px-3 py-1.5 rounded-lg border border-white/10 flex items-center space-x-2">
+<span class="material-icons text-xs text-primary">location_on</span>
+<span class="text-[10px] font-medium text-white">Sede Central, Edificio B</span>
+</div>
+</div>
+</section>
+<!-- Recent Activity Feed -->
+<section class="mb-6">
+<div class="flex items-center justify-between mb-4 px-1">
+<h2 class="text-sm font-semibold uppercase tracking-widest text-slate-400">Historial Reciente</h2>
+<button class="text-xs font-bold text-primary">Ver Todo</button>
+</div>
+<div class="space-y-3">
+<!-- Activity Item 1 -->
+<div class="flex items-center justify-between bg-white dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/5">
+<div class="flex items-center space-x-4">
+<div class="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center">
+<span class="material-icons text-emerald-500 text-sm">login</span>
+</div>
+<div>
+<p class="font-bold text-sm">Entrada</p>
+<p class="text-[11px] text-slate-500">24 Jul • Sede Central</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-bold text-sm">08:02 AM</p>
+<p class="text-[10px] text-emerald-500 flex items-center justify-end font-medium">
+<span class="material-icons text-[12px] mr-1">check_circle</span> Verificado
+                        </p>
+</div>
+</div>
+<!-- Activity Item 2 -->
+<div class="flex items-center justify-between bg-white dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/5 opacity-80">
+<div class="flex items-center space-x-4">
+<div class="h-10 w-10 rounded-full bg-rose-500/10 flex items-center justify-center">
+<span class="material-icons text-rose-500 text-sm">logout</span>
+</div>
+<div>
+<p class="font-bold text-sm">Salida</p>
+<p class="text-[11px] text-slate-500">21 Jul • Sede Central</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-bold text-sm">05:14 PM</p>
+<p class="text-[10px] text-slate-400 font-medium">Hace 3 días</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Footer Tab Bar (Simulated) -->
+<nav class="fixed bottom-0 left-0 right-0 ios-blur bg-white/80 dark:bg-background-dark/80 border-t border-slate-200 dark:border-white/10 px-8 py-3 flex justify-between items-center z-50">
+<button class="flex flex-col items-center text-primary">
+<span class="material-icons text-2xl">timer</span>
+<span class="text-[10px] mt-0.5 font-medium">Reloj</span>
+</button>
+<button class="flex flex-col items-center text-slate-400">
+<span class="material-icons text-2xl">confirmation_number</span>
+<span class="text-[10px] mt-0.5 font-medium">Tickets</span>
+</button>
+<button class="flex flex-col items-center text-slate-400">
+<span class="material-icons text-2xl">inventory_2</span>
+<span class="text-[10px] mt-0.5 font-medium">Activos</span>
+</button>
+<button class="flex flex-col items-center text-slate-400">
+<span class="material-icons text-2xl">mail</span>
+<span class="text-[10px] mt-0.5 font-medium">Correo</span>
+</button>
+</nav>
+</main>
+<!-- App Overlay for Home Indicator (iOS) -->
+<div class="fixed bottom-1 left-1/2 -translate-x-1/2 w-32 h-1 bg-slate-300 dark:bg-slate-700 rounded-full z-[60]"></div>
+</body></html>

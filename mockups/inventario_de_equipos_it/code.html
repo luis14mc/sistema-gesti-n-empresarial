@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#136dec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101822",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<title>Inventario de Equipos IT</title>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen pb-24">
+<!-- iOS Status Bar Spacer -->
+<div class="h-12 w-full bg-background-light dark:bg-background-dark sticky top-0 z-50 flex items-center justify-between px-6 pt-2">
+<span class="text-sm font-semibold">9:41</span>
+<div class="flex items-center space-x-1.5">
+<span class="material-icons-round text-sm">signal_cellular_alt</span>
+<span class="material-icons-round text-sm">wifi</span>
+<span class="material-icons-round text-sm">battery_full</span>
+</div>
+</div>
+<!-- Header Section -->
+<header class="px-6 py-4 bg-background-light dark:bg-background-dark sticky top-12 z-40 border-b border-primary/10">
+<div class="flex items-center justify-between mb-4">
+<h1 class="text-2xl font-bold tracking-tight">Equipos IT</h1>
+<div class="flex space-x-2">
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-primary/10 text-primary">
+<span class="material-icons-round">filter_list</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-primary/10 text-primary">
+<span class="material-icons-round">notifications_none</span>
+</button>
+</div>
+</div>
+<!-- Search Bar -->
+<div class="relative group">
+<span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 group-focus-within:text-primary transition-colors">
+<span class="material-icons-round text-lg">search</span>
+</span>
+<input class="w-full bg-slate-200/50 dark:bg-slate-800/50 border-none rounded-xl py-3 pl-10 pr-4 focus:ring-2 focus:ring-primary/50 text-sm" placeholder="Buscar por S/N, modelo o usuario..." type="text"/>
+</div>
+</header>
+<main class="px-6 py-6">
+<!-- Stock Summary Cards (Horizontal Scroll) -->
+<div class="flex space-x-4 overflow-x-auto pb-6 scrollbar-hide no-scrollbar">
+<div class="flex-shrink-0 w-32 bg-primary dark:bg-primary/90 p-4 rounded-xl text-white shadow-lg shadow-primary/20">
+<p class="text-[10px] uppercase font-bold opacity-80">Total</p>
+<h3 class="text-2xl font-bold">142</h3>
+<p class="text-[10px] mt-1">+4 esta semana</p>
+</div>
+<div class="flex-shrink-0 w-32 bg-white dark:bg-slate-800 p-4 rounded-xl border border-primary/10">
+<p class="text-[10px] uppercase font-bold text-slate-500">Disponible</p>
+<h3 class="text-2xl font-bold text-emerald-500">28</h3>
+<p class="text-[10px] mt-1 text-slate-400">En bodega</p>
+</div>
+<div class="flex-shrink-0 w-32 bg-white dark:bg-slate-800 p-4 rounded-xl border border-primary/10">
+<p class="text-[10px] uppercase font-bold text-slate-500">Reparación</p>
+<h3 class="text-2xl font-bold text-amber-500">12</h3>
+<p class="text-[10px] mt-1 text-slate-400">Soporte Técnico</p>
+</div>
+</div>
+<!-- Section Title -->
+<div class="flex items-center justify-between mb-4 mt-2">
+<h2 class="text-lg font-bold">Activos Recientes</h2>
+<button class="text-primary text-sm font-semibold">Ver todos</button>
+</div>
+<!-- Inventory List -->
+<div class="space-y-4">
+<!-- Asset Card 1 -->
+<div class="bg-white dark:bg-slate-800/60 p-4 rounded-xl border border-primary/5 flex items-start space-x-4 shadow-sm">
+<div class="w-16 h-16 rounded-lg bg-slate-100 dark:bg-slate-700 flex-shrink-0 overflow-hidden border border-primary/5">
+<img alt="MacBook Pro" class="w-full h-full object-cover" data-alt="Sleek silver laptop on a gray surface" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDix_DPxgKZpuSaDUjKKOG0TSSx2hL_o2moKiQB_pdfHxvl7RqhlcJdZpro-eKCG7JQCGpvF79Cm_dcmXdcX24pe9fikemi_lna9IfrmgCB7HZA7Fw32dGzchZTl1qisS8h36j--CLV4ynKO-eBwkHaxlF9wTSpKwl2oxLBdv7lXxEb3ki0GbK-RKIirmStUS25cvWXgStOoMEIGPcXB-GyvHwaL106pd4zPfLTvzJMCtX2gZLCFBfu6sd_uaYjwQ2-RLXUheSj7GBJ"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<h4 class="font-bold text-sm truncate">MacBook Pro 14" M2</h4>
+<span class="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-wider">Nuevo</span>
+</div>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center">
+<span class="material-icons-round text-[14px] mr-1">qr_code</span> 
+                        S/N: APPLE-2023-9912
+                    </p>
+<div class="mt-3 flex items-center">
+<div class="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center mr-2">
+<span class="material-icons-round text-[12px] text-primary">person</span>
+</div>
+<p class="text-xs font-medium truncate">Asignado a: Carlos Mendoza</p>
+</div>
+</div>
+</div>
+<!-- Asset Card 2 -->
+<div class="bg-white dark:bg-slate-800/60 p-4 rounded-xl border border-primary/5 flex items-start space-x-4 shadow-sm">
+<div class="w-16 h-16 rounded-lg bg-slate-100 dark:bg-slate-700 flex-shrink-0 overflow-hidden border border-primary/5">
+<img alt="Dell Latitude" class="w-full h-full object-cover" data-alt="Professional black business laptop closed" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDVlMesSsL_GiFiNPUOFIARGt3qYZks7uhL4iOYfDD515VVAjkoS26VoNoVR0r88OdvZV89rDLYD_A0259M-dW65WWuQXvQr76lt93z6GCWk777MfAjh9GhWhP-lTRXwJ-h1MLAdUuhfEA9FwZEWvCGrUi8zRW94dUgKRR9GbSsaKRYSoxY_44DKOBAWMvdhdWzNgDImyLj8QP3Vg275790EN87KVgUkjp8fqcxDQh6dhTeEGp_C_8zuSZJXoeIGKbZeD7OYjSZNo2A"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<h4 class="font-bold text-sm truncate">Dell Latitude 5430</h4>
+<span class="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 text-[10px] font-bold uppercase tracking-wider">Usado</span>
+</div>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center">
+<span class="material-icons-round text-[14px] mr-1">qr_code</span> 
+                        S/N: DELL-LAT-55102
+                    </p>
+<div class="mt-3 flex items-center">
+<div class="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center mr-2">
+<span class="material-icons-round text-[12px] text-slate-500">inventory_2</span>
+</div>
+<p class="text-xs font-medium text-slate-500">En Inventario (Bodega central)</p>
+</div>
+</div>
+</div>
+<!-- Asset Card 3 -->
+<div class="bg-white dark:bg-slate-800/60 p-4 rounded-xl border border-primary/5 flex items-start space-x-4 shadow-sm">
+<div class="w-16 h-16 rounded-lg bg-slate-100 dark:bg-slate-700 flex-shrink-0 overflow-hidden border border-primary/5">
+<img alt="Workstation PC" class="w-full h-full object-cover" data-alt="Desktop computer tower unit on desk" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBRzPA7K0AxNoFuZzyXxfEQ01SudyFf1p62Yn1b_hi1N4wJvodFWNRYp2gbd6HYh5c-r6qHlehO_ki8eN91z3NMCQ-KxqEFiX6f3C_PGUPALTL1VMPJQ__5DYdkDHovv5jgRNnLPViZjpdvz1EAAoHHqCvfCNGLACXkm9gYN1dp2WyY6y10XWMN1SCX9x_TuJRgpFWBAdQvtjWhJCKwHrb_Rc4hRUhFMIr4ksC0nR7qK2Pyk51Iu6P0lUhQu1oennnmrTre1mGjmpcd"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<h4 class="font-bold text-sm truncate">HP Workstation Z4</h4>
+<span class="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-bold uppercase tracking-wider">Reparación</span>
+</div>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center">
+<span class="material-icons-round text-[14px] mr-1">qr_code</span> 
+                        S/N: HP-WORK-Z4-001
+                    </p>
+<div class="mt-3 flex items-center">
+<div class="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center mr-2">
+<span class="material-icons-round text-[12px] text-amber-600">build</span>
+</div>
+<p class="text-xs font-medium truncate">Ticket #882: Cambio de SSD</p>
+</div>
+</div>
+</div>
+<!-- Asset Card 4 -->
+<div class="bg-white dark:bg-slate-800/60 p-4 rounded-xl border border-primary/5 flex items-start space-x-4 shadow-sm">
+<div class="w-16 h-16 rounded-lg bg-slate-100 dark:bg-slate-700 flex-shrink-0 overflow-hidden border border-primary/5">
+<img alt="Monitor" class="w-full h-full object-cover" data-alt="Widescreen computer monitor on a stand" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCUJFfZbWqLlKnQiDknm72cdNY4bBylB-6qtWb6ZA9XRr-qWDKlRq0nUtSPgXrLYFZt9W-9T_9pITcpMsJCH-KI54PnFJe7B8D7K0XMUzUww7eXhJYWyJ9sKt_e8uRT_H01hPDKYigJ7ERGg8QcNSFKVTUr_MrJ2Fatnd6f93EOrxytmfQso80l8Lw2gvaVMD9dlxc5MyETMQFfef6eMZ63X5-9JWUHoGqjqaiOgeZmLmnek_94NPYsr4BsIt-VUh8Fxyj-RrAzTclm"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<h4 class="font-bold text-sm truncate">Monitor LG UltraWide 34"</h4>
+<span class="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-wider">Nuevo</span>
+</div>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center">
+<span class="material-icons-round text-[14px] mr-1">qr_code</span> 
+                        S/N: LG-UW-2024-X12
+                    </p>
+<div class="mt-3 flex items-center">
+<div class="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center mr-2">
+<span class="material-icons-round text-[12px] text-primary">person</span>
+</div>
+<p class="text-xs font-medium truncate">Asignado a: Laura García</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Floating Action Button -->
+<button class="fixed bottom-24 right-6 w-14 h-14 bg-primary rounded-full shadow-lg shadow-primary/40 flex items-center justify-center text-white z-50">
+<span class="material-icons-round text-3xl">add</span>
+</button>
+<!-- iOS Bottom Tab Bar -->
+<nav class="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-background-dark/80 backdrop-blur-xl border-t border-primary/10 px-6 py-3 flex justify-between items-center z-50">
+<div class="flex flex-col items-center space-y-1 text-primary">
+<span class="material-icons-round">laptop_mac</span>
+<span class="text-[10px] font-bold uppercase">Equipos</span>
+</div>
+<div class="flex flex-col items-center space-y-1 text-slate-400">
+<span class="material-icons-round">confirmation_number</span>
+<span class="text-[10px] font-bold uppercase">Tickets</span>
+</div>
+<div class="flex flex-col items-center space-y-1 text-slate-400">
+<span class="material-icons-round">mail</span>
+<span class="text-[10px] font-bold uppercase">Correo</span>
+</div>
+<div class="flex flex-col items-center space-y-1 text-slate-400">
+<span class="material-icons-round">person</span>
+<span class="text-[10px] font-bold uppercase">Perfil</span>
+</div>
+</nav>
+<!-- iOS Home Indicator -->
+<div class="fixed bottom-1 left-1/2 -translate-x-1/2 w-32 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full z-50"></div>
+</body></html>
