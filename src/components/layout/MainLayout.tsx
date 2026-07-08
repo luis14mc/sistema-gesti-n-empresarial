@@ -5,11 +5,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
-  Ticket,
   FileText,
   Monitor,
-  Package,
-  Clock,
   Users,
   Settings,
   Menu,
@@ -40,17 +37,14 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard',        href: '/dashboard',     icon: LayoutDashboard,  module: 'dashboard' },
-  { label: 'Tickets',          href: '/tickets',       icon: Ticket,           module: 'tickets' },
-  { label: 'Oficios',          href: '/oficios',       icon: FileText,         module: 'oficios' },
-  { label: 'Equipos',          href: '/equipment',     icon: Monitor,          module: 'equipment' },
-  { label: 'Inv. Promocional', href: '/inventory',     icon: Package,          module: 'inventory' },
-  { label: 'Compras',          href: '/purchases',     icon: ShoppingCart,     module: 'purchases' },
-  { label: 'Asistencia',       href: '/time-entries',  icon: Clock,            module: 'time-entries' },
-  { label: 'Asignaciones',     href: '/assignments',   icon: ClipboardList,    module: 'assignments' },
-  { label: 'Auditoría',        href: '/audit-records', icon: ClipboardCheck,   module: 'audit-records' },
-  { label: 'Usuarios',         href: '/users',         icon: Users,            module: 'users' },
-  { label: 'Ajustes',          href: '/settings',      icon: Settings,         module: 'settings' },
+  { label: 'Dashboard',    href: '/dashboard',     icon: LayoutDashboard, module: 'dashboard' },
+  { label: 'Oficios',      href: '/oficios',       icon: FileText,        module: 'oficios' },
+  { label: 'Equipos',      href: '/equipment',     icon: Monitor,         module: 'equipment' },
+  { label: 'Asignaciones', href: '/assignments',   icon: ClipboardList,   module: 'assignments' },
+  { label: 'Compras',      href: '/purchases',     icon: ShoppingCart,    module: 'purchases' },
+  { label: 'Auditoría',    href: '/audit-records', icon: ClipboardCheck,  module: 'audit-records' },
+  { label: 'Usuarios',     href: '/users',         icon: Users,           module: 'users' },
+  { label: 'Ajustes',      href: '/settings',      icon: Settings,        module: 'settings' },
 ];
 
 // ── SIDEBAR NAV ───────────────────────────────────────────────
@@ -126,7 +120,7 @@ export default function MainLayout({ children, user: propUser }: MainLayoutProps
 
   useEffect(() => {
     if (propUser) return;
-    
+
     const abortController = new AbortController();
 
     fetch('/api/auth/me', { signal: abortController.signal })
@@ -148,6 +142,7 @@ export default function MainLayout({ children, user: propUser }: MainLayoutProps
 
   const user = propUser ?? fetchedUser;
 
+  if (isFetching && !user) return <LoadingShell />;
   if (!user) return <LoadingShell />;
 
   const userRole = user.role as Role;
