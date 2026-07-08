@@ -1,11 +1,211 @@
 @import "tailwindcss";
+@import "react-datepicker/dist/react-datepicker.css";
 @import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
 
-/* ============================================
-   THEME TOKENS — shadcn/ui compatible
-   ============================================ */
+/* ── iOS 26 Typography ── */
+@layer base {
+  html {
+    font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    color: oklch(20% 0.02 260);
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    background: linear-gradient(160deg, oklch(92% 0.03 260) 0%, oklch(93.5% 0.025 285) 40%, oklch(92.5% 0.02 200) 100%);
+    min-height: 100vh;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    @apply bg-background text-foreground;
+  }
+
+  * {
+    @apply border-border outline-ring/50;
+  }
+}
+
+/* ── Glass Card Treatment (applies to shadcn Card via [data-slot="card"]) ── */
+@layer components {
+  [data-slot="card"] {
+    background: oklch(99% 0.003 260 / 0.78);
+    backdrop-filter: blur(40px) saturate(1.8);
+    -webkit-backdrop-filter: blur(40px) saturate(1.8);
+    border: 1px solid oklch(100% 0 0 / 0.6);
+    box-shadow:
+      0 0 0 0.5px oklch(0% 0 0 / 0.05),
+      0 2px 8px oklch(0% 0 0 / 0.06),
+      0 8px 24px oklch(0% 0 0 / 0.08);
+    border-radius: 1.25rem;
+  }
+
+  [data-slot="card"]:hover {
+    border-color: oklch(100% 0 0 / 0.75);
+    box-shadow:
+      0 0 0 0.5px oklch(0% 0 0 / 0.06),
+      0 4px 12px oklch(0% 0 0 / 0.08),
+      0 12px 32px oklch(0% 0 0 / 0.10);
+  }
+
+  /* Glass treatment for shadcn Dialog */
+  [data-slot="dialog-content"] {
+    background: oklch(99% 0.003 260 / 0.88);
+    backdrop-filter: blur(60px) saturate(2);
+    -webkit-backdrop-filter: blur(60px) saturate(2);
+    border: 1px solid oklch(100% 0 0 / 0.6);
+    border-radius: 1.25rem;
+    box-shadow:
+      0 0 0 0.5px oklch(0% 0 0 / 0.06),
+      0 8px 32px oklch(0% 0 0 / 0.12),
+      0 24px 60px oklch(0% 0 0 / 0.10);
+  }
+
+  [data-slot="dialog-content"],
+  [data-slot="card"],
+  [data-slot="table-container"] {
+    min-width: 0;
+  }
+
+  [data-slot="button"],
+  [data-slot="badge"],
+  [data-slot="select-trigger"] {
+    max-width: 100%;
+  }
+
+  @media (max-width: 640px) {
+    [data-slot="card"] {
+      border-radius: 1rem;
+    }
+
+    [data-slot="dialog-content"] {
+      border-radius: 1rem;
+    }
+
+    [data-slot="button"]:not([data-size^="icon"]) {
+      height: auto;
+      min-height: 2.25rem;
+      white-space: normal;
+      line-height: 1.2;
+      text-align: center;
+    }
+
+    [data-slot="card"],
+    [data-slot="dialog-content"] {
+      overflow-wrap: anywhere;
+    }
+  }
+
+  /* Glass treatment for shadcn DropdownMenu */
+  [data-slot="dropdown-menu-content"] {
+    background: oklch(99% 0.003 260 / 0.85);
+    backdrop-filter: blur(40px) saturate(1.8);
+    -webkit-backdrop-filter: blur(40px) saturate(1.8);
+    border: 1px solid oklch(100% 0 0 / 0.6);
+    border-radius: 1rem;
+    box-shadow:
+      0 0 0 0.5px oklch(0% 0 0 / 0.06),
+      0 8px 32px oklch(0% 0 0 / 0.14);
+  }
+
+  /* Glass treatment for shadcn Popover / Select dropdown */
+  [data-slot="select-content"],
+  [data-slot="popover-content"] {
+    background: oklch(99% 0.003 260 / 0.85);
+    backdrop-filter: blur(40px) saturate(1.8);
+    -webkit-backdrop-filter: blur(40px) saturate(1.8);
+    border: 1px solid oklch(100% 0 0 / 0.6);
+    border-radius: 0.875rem;
+  }
+}
+
+/* Custom DatePicker Styles */
+.react-datepicker-wrapper {
+  width: 100%;
+}
+
+.react-datepicker {
+  font-family: inherit;
+  border: 1px solid oklch(100% 0 0 / 0.5);
+  border-radius: 1.25rem;
+  box-shadow: 0 8px 32px oklch(0% 0 0 / 0.12);
+  font-size: 0.8125rem;
+  overflow: hidden;
+  backdrop-filter: blur(40px) saturate(1.8);
+  background: oklch(99% 0.002 260 / 0.85);
+}
+
+.react-datepicker__header {
+  background: oklch(55% 0.24 264);
+  border-bottom: none;
+  border-radius: 0;
+  padding-top: 0.875rem;
+}
+
+.react-datepicker__current-month,
+.react-datepicker__day-name {
+  color: white;
+  font-weight: 600;
+  font-size: 0.8125rem;
+}
+
+.react-datepicker__day {
+  color: oklch(20% 0.02 260);
+  border-radius: 0.625rem;
+  transition: all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  font-size: 0.8125rem;
+  line-height: 2rem;
+  width: 2rem;
+  height: 2rem;
+}
+
+.react-datepicker__day:hover {
+  background-color: oklch(55% 0.24 264 / 0.12);
+  color: oklch(55% 0.24 264);
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background-color: oklch(55% 0.24 264);
+  color: white;
+  font-weight: 600;
+}
+
+.react-datepicker__day--today {
+  font-weight: 700;
+  color: oklch(55% 0.24 264);
+}
+
+.react-datepicker__day--disabled {
+  color: oklch(80% 0 0);
+  cursor: not-allowed;
+}
+
+.react-datepicker__day--disabled:hover {
+  background-color: transparent;
+}
+
+.react-datepicker__navigation {
+  top: 1rem;
+}
+
+.react-datepicker__navigation-icon::before {
+  border-color: white;
+}
+
+.react-datepicker__month-container {
+  background-color: oklch(95.814% 0 0);
+}
+
+.react-datepicker__input-container input {
+  width: 100%;
+}
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -13,8 +213,8 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
-
-  /* Color mappings for Tailwind utilities */
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -47,152 +247,80 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* Institucional colors (always available) */
-  --color-brand-green: #25A966;
-  --color-brand-blue: #35A8E0;
-  --color-brand-navy: #252A58;
-
-  /* Fonts */
-  --font-heading: var(--font-montserrat), "Montserrat", sans-serif;
-  --font-body: var(--font-aptos), "Aptos", system-ui, -apple-system, sans-serif;
+  --font-heading: -apple-system, 'SF Pro Display', 'Inter', system-ui, sans-serif;
+  --font-body: -apple-system, 'SF Pro Text', 'Inter', system-ui, sans-serif;
 }
 
-/* ============================================
-   LIGHT MODE — Default
-   ============================================ */
 :root {
   --radius: 0.625rem;
-
-  /* Backgrounds */
-  --background: #f8f9fb;
-  --foreground: #1a1d3e;
-  --card: #ffffff;
-  --card-foreground: #1a1d3e;
-  --popover: #ffffff;
-  --popover-foreground: #1a1d3e;
-
-  /* Primary = Brand Green #25A966 */
-  --primary: #25A966;
-  --primary-foreground: #ffffff;
-
-  /* Secondary = Brand Blue #35A8E0 */
-  --secondary: #e8f4fd;
-  --secondary-foreground: #1a6fa0;
-
-  /* Neutral muted */
-  --muted: #f1f3f7;
-  --muted-foreground: #6b7280;
-
-  /* Accent = Brand Navy #252A58 */
-  --accent: #eef0f6;
-  --accent-foreground: #252A58;
-
-  /* States */
-  --destructive: #ef4444;
-
-  /* Borders & Input */
-  --border: #e2e5eb;
-  --input: #e2e5eb;
-  --ring: #25A966;
-
-  /* Charts */
-  --chart-1: #25A966;
-  --chart-2: #35A8E0;
-  --chart-3: #252A58;
-  --chart-4: #f59e0b;
-  --chart-5: #8b5cf6;
-
-  /* Sidebar */
-  --sidebar: #ffffff;
-  --sidebar-foreground: #1a1d3e;
-  --sidebar-primary: #25A966;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f1f3f7;
-  --sidebar-accent-foreground: #252A58;
-  --sidebar-border: #e2e5eb;
-  --sidebar-ring: #25A966;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
 }
 
-/* ============================================
-   DARK MODE
-   ============================================ */
 .dark {
-  /* Backgrounds */
-  --background: #0c0f1a;
-  --foreground: #e8eaf0;
-  --card: #141829;
-  --card-foreground: #e8eaf0;
-  --popover: #141829;
-  --popover-foreground: #e8eaf0;
-
-  /* Primary = Brand Green #25A966 */
-  --primary: #2fbd75;
-  --primary-foreground: #ffffff;
-
-  /* Secondary = Brand Blue */
-  --secondary: #1a2744;
-  --secondary-foreground: #7ec8ed;
-
-  /* Neutral muted */
-  --muted: #1a1f36;
-  --muted-foreground: #8b92a8;
-
-  /* Accent */
-  --accent: #1a1f36;
-  --accent-foreground: #c4c9dd;
-
-  /* States */
-  --destructive: #f87171;
-
-  /* Borders & Input */
-  --border: #252a42;
-  --input: #252a42;
-  --ring: #2fbd75;
-
-  /* Charts */
-  --chart-1: #2fbd75;
-  --chart-2: #4bb8eb;
-  --chart-3: #7c82b8;
-  --chart-4: #fbbf24;
-  --chart-5: #a78bfa;
-
-  /* Sidebar */
-  --sidebar: #0f1322;
-  --sidebar-foreground: #e8eaf0;
-  --sidebar-primary: #2fbd75;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1a1f36;
-  --sidebar-accent-foreground: #c4c9dd;
-  --sidebar-border: #252a42;
-  --sidebar-ring: #2fbd75;
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
 }
 
-/* ============================================
-   BASE LAYER
-   ============================================ */
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-
-  body {
-    @apply bg-background text-foreground antialiased;
-    font-family: var(--font-body);
-  }
-
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    font-family: var(--font-heading);
-  }
-}
-
-/* ============================================
-   SCROLLBAR
-   ============================================ */
+/* ── Scrollbar ── */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -219,9 +347,7 @@
   scrollbar-width: none;
 }
 
-/* ============================================
-   ANIMATIONS
-   ============================================ */
+/* ── Existing animation helpers ── */
 @keyframes fadeIn {
   from {
     opacity: 0;
