@@ -36,14 +36,8 @@ export function normalizeOficioDirection(value?: string | null, scope?: OficioSc
   return 'OUTGOING';
 }
 
-export function getOficioNumberPrefix(scope: OficioScope, direction: OficioDirection): string {
-  if (direction === 'INCOMING') {
-    return scope === 'DESPACHO' ? 'ING-DPICP' : 'ING-CNI';
-  }
-
-  if (direction === 'INTERNAL_MEMO') return 'MEMO';
-
-  return scope === 'DESPACHO' ? 'DPICP' : 'CNI';
+export function shouldGenerateOficioNumber(direction: OficioDirection): boolean {
+  return direction === 'OUTGOING' || direction === 'INTERNAL_MEMO';
 }
 
 export function formatOficioNumber(params: {
@@ -66,8 +60,7 @@ export function formatOficioNumber(params: {
     return `MEMO-${sequence}-${params.year}`;
   }
 
-  const prefix = getOficioNumberPrefix(params.scope, params.direction);
-  return `${prefix}-${sequence}-${params.year}`;
+  throw new Error('Los oficios ingresados conservan la nomenclatura de la institución remitente.');
 }
 
 export function parseOficioSequence(number: string): number {
