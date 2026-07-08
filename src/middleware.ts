@@ -8,15 +8,15 @@ type Role = 'ADMIN' | 'USER' | 'RRHH' | 'IT';
 
 const TOKEN_COOKIE = 'token';
 
-// Rutas protegidas y qué roles las pueden acceder (vacío = cualquier rol autenticado)
+// Rutas legacy fuera del alcance funcional actual.
+const DISABLED_ROUTES = ['/tickets', '/inventory', '/time-entries'];
+
+// Rutas protegidas y qué roles las pueden acceder (null = cualquier rol autenticado)
 const ROUTE_ACCESS: Record<string, Role[] | null> = {
   '/dashboard':      null,
-  '/tickets':        null,
   '/oficios':        null,
-  '/time-entries':   null,
   '/equipment':      ['ADMIN', 'IT'],
   '/assignments':    ['ADMIN', 'IT'],
-  '/inventory':      ['ADMIN', 'RRHH'],
   '/purchases':      ['ADMIN', 'IT', 'RRHH'],
   '/users':          ['ADMIN', 'RRHH'],
   '/audit-records':  ['ADMIN'],
@@ -32,7 +32,7 @@ async function decodeAndVerifyJwt(token: string): Promise<{ userId: string; role
 
     // Verificar firma usando Web Crypto API (Edge Runtime compatible)
     const secret = process.env.JWT_SECRET || '';
-    if (!secret) return null; // Fallback si no hay secreto configurado
+    if (!secret) return null;
 
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey(
@@ -43,16 +43,14 @@ async function decodeAndVerifyJwt(token: string): Promise<{ userId: string; role
       ['verify']
     );
 
-    // JWT uses base64url, so we need to convert to standard base64 first
     const signatureStr = parts[2].replace(/-/g, '+').replace(/_/g, '/');
-    // Pad with = to make length a multiple of 4
     const paddedSignature = signatureStr.padEnd(signatureStr.length + (4 - signatureStr.length % 4) % 4, '=');
     const signatureBytes = Uint8Array.from(atob(paddedSignature), c => c.charCodeAt(0));
     const dataBytes = encoder.encode(parts[0] + '.' + parts[1]);
 
     const isValid = await crypto.subtle.verify('HMAC', key, signatureBytes, dataBytes);
-    
-    if (!isValid) return null; // Token manipulado
+
+    if (!isValid) return null;
 
     const payloadStr = parts[1].replace(/-/g, '+').replace(/_/g, '/');
     const paddedPayload = payloadStr.padEnd(payloadStr.length + (4 - payloadStr.length % 4) % 4, '=');
@@ -73,9 +71,19 @@ function matchRoute(pathname: string): { prefix: string; roles: Role[] | null } 
   return null;
 }
 
+function isDisabledRoute(pathname: string): boolean {
+  return DISABLED_ROUTES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(TOKEN_COOKIE)?.value;
+
+  if (isDisabledRoute(pathname)) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
 
   const routeMatch = matchRoute(pathname);
   const isAuthRoute = AUTH_ROUTES.some(
