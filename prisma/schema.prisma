@@ -73,13 +73,16 @@ model User {
   department Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   position   JobPosition? @relation(fields: [positionId], references: [id], onDelete: SetNull)
 
-  ticketsCreated    Ticket[]              @relation("TicketCreator")
-  ticketsAssigned   Ticket[]              @relation("TicketAssignee")
-  oficiosCreated    Oficio[]              @relation("OficioCreator")
-  timeEntries       TimeEntry[]
-  equipmentAssigned EquipmentAssignment[]
-  purchaseRequests  PurchaseRequest[]
-  auditRecords      AuditRecord[]         @relation("AuditUser")
+  ticketsCreated      Ticket[]              @relation("TicketCreator")
+  ticketsAssigned     Ticket[]              @relation("TicketAssignee")
+  oficiosCreated      Oficio[]              @relation("OficioCreator")
+  timeEntries         TimeEntry[]
+  equipmentAssigned   EquipmentAssignment[]
+  purchaseRequests    PurchaseRequest[]     @relation("PurchaseRequester")
+  auditRecords        AuditRecord[]         @relation("AuditUser")
+  auditsLed           Audit[]               @relation("AuditLeadAuditor")
+  auditsCreated       Audit[]               @relation("AuditCreator")
+  correctiveActions   CorrectiveAction[]   @relation("CorrectiveActionResponsible")
 
   @@index([departmentId])
   @@index([positionId])
@@ -265,7 +268,8 @@ model Equipment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  assignments EquipmentAssignment[]
+  assignments  EquipmentAssignment[]
+  maintenances EquipmentMaintenance[]
 
   @@index([status])
   @@index([type])
@@ -363,7 +367,7 @@ model PurchaseRequest {
   comments    String? @db.Text
 
   requestedById String
-  requestedBy   User   @relation(fields: [requestedById], references: [id])
+  requestedBy   User   @relation("PurchaseRequester", fields: [requestedById], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -371,4 +375,188 @@ model PurchaseRequest {
   @@index([requestedById])
   @@index([status])
   @@map("purchase_requests")
+}
+
+// ============================================
+// MÓDULO DE MANTENIMIENTO DE EQUIPOS
+// ============================================
+
+enum MaintenanceType {
+  PREVENTIVE
+  CORRECTIVE
+  UPDATE
+  INSPECTION
+}
+
+enum MaintenanceStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model EquipmentMaintenance {
+  id              String            @id @default(cuid())
+  equipmentId     String
+  type            MaintenanceType   @default(PREVENTIVE)
+  status          MaintenanceStatus @default(SCHEDULED)
+  description     String            @db.Text
+  scheduledDate   DateTime?         @db.Date
+  completedDate   DateTime?         @db.Date
+  cost            Float?
+  technician      String?
+  notes           String?           @db.Text
+  performedById   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@index([equipmentId])
+  @@index([status])
+  @@index([scheduledDate])
+  @@map("equipment_maintenances")
+}
+
+// ============================================
+// MÓDULO DE AUDITORÍAS ISO 19011
+// ============================================
+
+enum AuditStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum AuditType {
+  INTERNAL
+  EXTERNAL
+  COMBINED
+}
+
+model Audit {
+  id              String       @id @default(cuid())
+  code            String       @unique
+  title           String
+  description     String?      @db.Text
+  type            AuditType    @default(INTERNAL)
+  status          AuditStatus  @default(PLANNED)
+  standard        String?
+  scope           String?      @db.Text
+  objectives      String?      @db.Text
+  criteria        String?      @db.Text
+  department      String?
+  conclusions     String?      @db.Text
+  recommendations String?      @db.Text
+  auditeeContact  String?
+  plannedDate     DateTime?    @db.Date
+  startDate       DateTime?
+  endDate         DateTime?
+
+  leadAuditorId   String?
+  createdById     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  leadAuditor User?           @relation("AuditLeadAuditor", fields: [leadAuditorId], references: [id], onDelete: SetNull)
+  createdBy   User?           @relation("AuditCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  findings    AuditFinding[]
+  checklist   AuditChecklistItem[]
+
+  @@index([status])
+  @@index([leadAuditorId])
+  @@index([plannedDate])
+  @@map("audits")
+}
+
+enum AuditFindingSeverity {
+  STRENGTH
+  CONFORMITY
+  OBSERVATION
+  MINOR_NC
+  MAJOR_NC
+}
+
+model AuditFinding {
+  id          String               @id @default(cuid())
+  auditId     String
+  code        String?
+  description String              @db.Text
+  evidence    String?             @db.Text
+  severity    AuditFindingSeverity
+  clause      String?
+  status      String              @default("OPEN")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  audit Audit @relation(fields: [auditId], references: [id], onDelete: Cascade)
+
+  @@index([auditId])
+  @@index([severity])
+  @@map("audit_findings")
+}
+
+enum ChecklistResult {
+  CONFORMING
+  NON_CONFORMING
+  OBSERVATION
+  NOT_APPLICABLE
+}
+
+model AuditChecklistItem {
+  id          String          @id @default(cuid())
+  auditId     String
+  description String?         @db.Text
+  requirement String          @db.Text
+  clause      String?
+  sortOrder   Int             @default(0)
+  completed   Boolean         @default(false)
+  result      ChecklistResult?
+  notes       String?         @db.Text
+  evidence    String?         @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  audit Audit @relation(fields: [auditId], references: [id], onDelete: Cascade)
+
+  @@index([auditId])
+  @@index([sortOrder])
+  @@map("audit_checklist_items")
+}
+
+enum CorrectiveActionStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+  CANCELLED
+}
+
+model CorrectiveAction {
+  id            String                @id @default(cuid())
+  findingId     String?
+  auditId       String?
+  description   String                @db.Text
+  responsibleId String?
+  dueDate       DateTime?             @db.Date
+  completedDate DateTime?
+  status        CorrectiveActionStatus @default(PENDING)
+  evidence      String?               @db.Text
+  notes         String?               @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  responsible User? @relation("CorrectiveActionResponsible", fields: [responsibleId], references: [id], onDelete: SetNull)
+
+  @@index([findingId])
+  @@index([auditId])
+  @@index([status])
+  @@index([responsibleId])
+  @@map("corrective_actions")
 }

@@ -38,7 +38,7 @@ export function useAssignments(filters?: AssignmentFilters) {
         queryKey: assignmentKeys.list(filters),
         queryFn: async () => {
             const response = await equipmentAssignmentsService.list(filters);
-            return response.data.assignments;
+            return response.data;
         },
     });
 
@@ -69,7 +69,11 @@ export function useAssignments(filters?: AssignmentFilters) {
 
     return {
         // --- Datos ---
-        assignments: assignmentsQuery.data ?? [],
+        assignments: assignmentsQuery.data?.assignments ?? [],
+        total: assignmentsQuery.data?.total ?? 0,
+        page: assignmentsQuery.data?.page ?? 1,
+        pageSize: assignmentsQuery.data?.pageSize ?? 10,
+        totalPages: assignmentsQuery.data?.totalPages ?? 1,
         isLoading: assignmentsQuery.isLoading,
         isError: assignmentsQuery.isError,
         error: assignmentsQuery.error,

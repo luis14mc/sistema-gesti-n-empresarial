@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
+import { createAuditRecord } from '@/lib/audit';
 
 // PATCH - Devolver equipo (cerrar asignación)
 async function patchHandler(
@@ -57,6 +58,18 @@ async function patchHandler(
         data: { status: 'AVAILABLE' },
       }),
     ]);
+
+    // Registrar en auditoría
+    await createAuditRecord({
+      title: 'Devolución de equipo',
+      description: `Se registró devolución de equipo ${assignment.equipmentId}`,
+      module: 'EQUIPOS',
+      category: 'UPDATE',
+      userId: req.user!.userId,
+      entityId: params.id,
+      previousData: { status: 'ACTIVE' },
+      newData: { status: 'RETURNED', returnCondition },
+    });
 
     return NextResponse.json({ assignment: result[0] });
   } catch (error) {

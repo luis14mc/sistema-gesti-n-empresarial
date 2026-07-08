@@ -2,9 +2,12 @@
 // Cada servicio encapsula las llamadas HTTP de un módulo específico
 
 export * from './auth.service';
+export * from './users.service';
 export * from './tickets.service';
 export * from './oficios.service';
 export * from './time-entries.service';
 export * from './promotional-items.service';
 export * from './equipment.service';
 export * from './equipment-assignments.service';
+export * from './audits.service';
+export * from './purchases.service';

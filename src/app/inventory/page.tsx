@@ -90,7 +90,8 @@ export default function InventoryPage() {
         isLoading,
         createItem,
         isCreating,
-        deleteItem
+        deleteItem,
+        isDeleting
     } = usePromotionalItems({
         search: debouncedSearch,
         status: statusFilter === 'ALL' ? undefined : statusFilter as any,
@@ -264,6 +265,7 @@ export default function InventoryPage() {
                                                         size="icon"
                                                         className="h-8 w-8 text-muted-foreground hover:text-destructive"
                                                         onClick={() => handleDeleteFromTable(item.id, item.name)}
+                                                        disabled={isDeleting}
                                                     >
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
@@ -306,7 +308,7 @@ export default function InventoryPage() {
 // ============================================
 
 function ItemDetailPanel({ itemId, role, onClose }: { itemId: string; role: Role; onClose: () => void }) {
-    const { item, isLoading, updateItem, isUpdating, deleteItem, addMovement, isAddingMovement } = usePromotionalItemDetail(itemId);
+    const { item, isLoading, updateItem, isUpdating, deleteItem, isDeleting, addMovement, isAddingMovement } = usePromotionalItemDetail(itemId);
     const canUpdate = canAccess(role, 'inventory', 'update');
     const canDelete = canAccess(role, 'inventory', 'delete');
     const [editing, setEditing] = useState(false);
@@ -392,7 +394,7 @@ function ItemDetailPanel({ itemId, role, onClose }: { itemId: string; role: Role
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={startEditing}><Edit3 className="h-4 w-4" /></Button>
                         )}
                         {canDelete && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={handleDelete}><Trash2 className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={handleDelete} disabled={isDeleting}><Trash2 className="h-4 w-4" /></Button>
                         )}
                     </div>
                 </div>

@@ -97,7 +97,8 @@ export default function OficiosPage() {
         isLoading,
         createOficio,
         isCreating,
-        deleteOficio
+        deleteOficio,
+        isDeleting
     } = useOficios({
         search: debouncedSearch,
         status: statusFilter === 'ALL' ? undefined : statusFilter as any,
@@ -317,6 +318,7 @@ export default function OficiosPage() {
                                                         size="icon"
                                                         className="h-8 w-8 text-muted-foreground hover:text-destructive"
                                                         onClick={() => handleDeleteFromTable(oficio.id, oficio.subject)}
+                                                        disabled={isDeleting}
                                                     >
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
@@ -359,7 +361,7 @@ export default function OficiosPage() {
 // ============================================
 
 function OficioDetailPanel({ oficioId, role, onClose }: { oficioId: string; role: Role; onClose: () => void }) {
-    const { oficio, isLoading, updateOficio, isUpdating, deleteOficio } = useOficioDetail(oficioId);
+    const { oficio, isLoading, updateOficio, isUpdating, deleteOficio, isDeleting } = useOficioDetail(oficioId);
     const canUpdate = canAccess(role, 'oficios', 'update');
     const canDelete = canAccess(role, 'oficios', 'delete');
     const [editing, setEditing] = useState(false);
@@ -442,7 +444,7 @@ function OficioDetailPanel({ oficioId, role, onClose }: { oficioId: string; role
                             </Button>
                         )}
                         {canDelete && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={handleDelete}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={handleDelete} disabled={isDeleting}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         )}

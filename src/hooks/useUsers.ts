@@ -8,7 +8,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usersService } from '@/services/users.service';
-import type { UpdateUserData, CreateUserData } from '@/types';
+import type { UpdateUserData, CreateUserData, PaginationParams } from '@/types';
 
 // ============================================
 // QUERY KEYS
@@ -17,22 +17,28 @@ import type { UpdateUserData, CreateUserData } from '@/types';
 export const userKeys = {
     all: ['users'] as const,
     lists: () => [...userKeys.all, 'list'] as const,
-    list: (filters?: Record<string, string>) => [...userKeys.lists(), filters] as const,
+    list: (filters?: Record<string, unknown>) => [...userKeys.lists(), filters] as const,
 };
 
 // ============================================
 // HOOK PRINCIPAL
 // ============================================
 
-export function useUsers(filters?: { role?: string; search?: string; isActive?: string }) {
+export interface UsersFilters extends PaginationParams {
+    role?: string;
+    search?: string;
+    isActive?: string;
+}
+
+export function useUsers(filters?: UsersFilters) {
     const queryClient = useQueryClient();
 
     // --- Lista de usuarios ---
     const usersQuery = useQuery({
-        queryKey: userKeys.list(filters as Record<string, string>),
+        queryKey: userKeys.list(filters as Record<string, unknown>),
         queryFn: async () => {
             const response = await usersService.list(filters);
-            return response.data.users;
+            return response.data;
         },
     });
 
@@ -60,7 +66,11 @@ export function useUsers(filters?: { role?: string; search?: string; isActive?: 
 
     return {
         // --- Datos ---
-        users: usersQuery.data ?? [],
+        users: usersQuery.data?.users ?? [],
+        total: usersQuery.data?.total ?? 0,
+        page: usersQuery.data?.page ?? 1,
+        pageSize: usersQuery.data?.pageSize ?? 10,
+        totalPages: usersQuery.data?.totalPages ?? 1,
         isLoading: usersQuery.isLoading,
         isError: usersQuery.isError,
         error: usersQuery.error,
@@ -76,4 +86,3 @@ export function useUsers(filters?: { role?: string; search?: string; isActive?: 
         refetch: usersQuery.refetch,
     };
 }
-

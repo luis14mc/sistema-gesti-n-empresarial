@@ -21,6 +21,10 @@ async function getHandler(req: AuthenticatedRequest) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
+    const page = parseInt(searchParams.get('page') || '1');
+    const pageSize = parseInt(searchParams.get('pageSize') || '100');
+    const skip = (page - 1) * pageSize;
+
     const where: Prisma.TimeEntryWhereInput = { userId: requestedUserId || undefined };
 
     if (startDate || endDate) {
@@ -29,22 +33,28 @@ async function getHandler(req: AuthenticatedRequest) {
       if (endDate) where.date.lte = new Date(endDate);
     }
 
-    const timeEntries = await prisma.timeEntry.findMany({
-      where,
-      include: {
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
+    const [timeEntries, total] = await Promise.all([
+      prisma.timeEntry.findMany({
+        where,
+        skip,
+        take: pageSize,
+        include: {
+          user: {
+            select: { id: true, firstName: true, lastName: true, email: true },
           },
         },
-      },
-      orderBy: { date: 'desc' },
-    });
+        orderBy: { date: 'desc' },
+      }),
+      prisma.timeEntry.count({ where })
+    ]);
 
-    return NextResponse.json({ timeEntries });
+    return NextResponse.json({ 
+      timeEntries,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize)
+    });
   } catch (error) {
     console.error('Error al obtener registros:', error);
     return NextResponse.json(

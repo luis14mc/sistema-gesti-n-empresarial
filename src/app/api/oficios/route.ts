@@ -3,31 +3,6 @@ import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
 
-async function generateOficioNumber(origin: 'CNI' | 'DPICP' = 'CNI'): Promise<string> {
-  const year = new Date().getFullYear();
-  const prefix = origin === 'CNI' ? 'CNI' : 'DPICP';
-
-  const lastOficio = await prisma.oficio.findFirst({
-    where: {
-      number: {
-        startsWith: `${prefix}-`,
-      },
-    },
-    orderBy: {
-      number: 'desc',
-    },
-  });
-
-  let nextNumber = 1;
-  if (lastOficio) {
-    const parts = lastOficio.number.split('-');
-    const lastNum = parseInt(parts[1]);
-    if (!isNaN(lastNum)) nextNumber = lastNum + 1;
-  }
-
-  return `${prefix}-${nextNumber.toString().padStart(3, '0')}-${year}`;
-}
-
 // GET - Listar oficios
 async function getHandler(req: AuthenticatedRequest) {
   try {
@@ -107,30 +82,46 @@ async function postHandler(req: AuthenticatedRequest) {
       );
     }
 
-    const number = await generateOficioNumber(origin);
+    // Usamos una transacción interactiva de Prisma para evitar condiciones de carrera (Race Condition)
+    // al generar el número correlativo de oficio.
+    const oficio = await prisma.$transaction(async (tx) => {
+      // 1. Obtener el último número bajo aislamiento de transacción
+      const year = new Date().getFullYear();
+      const prefix = origin === 'CNI' ? 'CNI' : 'DPICP';
+      const lastOficio = await tx.oficio.findFirst({
+        where: { number: { startsWith: `${prefix}-` } },
+        orderBy: { number: 'desc' },
+      });
+      
+      let nextNumber = 1;
+      if (lastOficio) {
+        const parts = lastOficio.number.split('-');
+        const lastNum = parseInt(parts[1]);
+        if (!isNaN(lastNum)) nextNumber = lastNum + 1;
+      }
+      const number = `${prefix}-${nextNumber.toString().padStart(3, '0')}-${year}`;
 
-    const oficio = await prisma.oficio.create({
-      data: {
-        number,
-        subject,
-        type,
-        comments,
-        oficioDate: new Date(oficioDate),
-        receivedDate: receivedDate ? new Date(receivedDate) : undefined,
-        sentDate: sentDate ? new Date(sentDate) : undefined,
-        attachments: attachments || [],
-        createdById: req.user!.userId,
-      },
-      include: {
-        createdBy: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
+      // 2. Crear el registro
+      const newOficio = await tx.oficio.create({
+        data: {
+          number,
+          subject,
+          type,
+          comments,
+          oficioDate: new Date(oficioDate),
+          receivedDate: receivedDate ? new Date(receivedDate) : undefined,
+          sentDate: sentDate ? new Date(sentDate) : undefined,
+          attachments: attachments || [],
+          createdById: req.user!.userId,
+        },
+        include: {
+          createdBy: {
+            select: { id: true, firstName: true, lastName: true, email: true },
           },
         },
-      },
+      });
+
+      return newOficio;
     });
 
     await createAuditRecord({
@@ -140,7 +131,7 @@ async function postHandler(req: AuthenticatedRequest) {
       category: 'CREATE',
       userId: req.user!.userId,
       entityId: oficio.id,
-      newData: { number, subject, type },
+      newData: { number: oficio.number, subject, type },
     });
 
     return NextResponse.json({ oficio }, { status: 201 });

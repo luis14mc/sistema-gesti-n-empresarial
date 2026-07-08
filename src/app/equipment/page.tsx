@@ -93,7 +93,8 @@ export default function EquipmentPage() {
         isLoading,
         createEquipment,
         isCreating,
-        deleteEquipment
+        deleteEquipment,
+        isDeleting
     } = useEquipment({
         search: debouncedSearch,
         status: statusFilter === 'ALL' ? undefined : statusFilter as any,
@@ -317,6 +318,7 @@ export default function EquipmentPage() {
                                                         size="icon"
                                                         className="h-8 w-8 text-muted-foreground hover:text-destructive"
                                                         onClick={() => handleDeleteFromTable(eq)}
+                                                        disabled={isDeleting}
                                                     >
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
@@ -359,7 +361,7 @@ export default function EquipmentPage() {
 // ============================================
 
 function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: string; role: Role; onClose: () => void }) {
-    const { equipment: eq, isLoading, updateEquipment, isUpdating, deleteEquipment } = useEquipmentDetail(equipmentId);
+    const { equipment: eq, isLoading, updateEquipment, isUpdating, deleteEquipment, isDeleting } = useEquipmentDetail(equipmentId);
     const canUpdate = canAccess(role, 'equipment', 'update');
     const canDelete = canAccess(role, 'equipment', 'delete');
     const [editing, setEditing] = useState(false);
@@ -453,7 +455,7 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={startEditing}><Edit3 className="h-4 w-4" /></Button>
                         )}
                         {canDelete && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={handleDelete}><Trash2 className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={handleDelete} disabled={isDeleting}><Trash2 className="h-4 w-4" /></Button>
                         )}
                     </div>
                 </div>
@@ -558,7 +560,7 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
                         <Button variant="outline" onClick={() => setSelectedAssignment(null)}>
                             Cerrar
                         </Button>
-                        <Button onClick={() => window.print()}>
+                        <Button onClick={() => setTimeout(() => window.print(), 100)}>
                             <PrintIcon className="h-4 w-4 mr-2" />
                             Imprimir / Guardar PDF
                         </Button>

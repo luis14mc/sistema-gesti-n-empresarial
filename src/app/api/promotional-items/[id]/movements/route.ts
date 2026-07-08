@@ -25,32 +25,9 @@ async function postHandler(
       );
     }
 
-    const item = await prisma.promotionalItem.findUnique({
-      where: { id: params.id },
-    });
-
-    if (!item) {
-      return NextResponse.json(
-        { error: 'Item no encontrado' },
-        { status: 404 }
-      );
-    }
-
-    let newQuantity = item.quantity;
-    if (type === 'EXIT') {
-      newQuantity -= quantityOut;
-      if (newQuantity < 0) {
-        return NextResponse.json(
-          { error: 'No hay suficiente stock disponible' },
-          { status: 400 }
-        );
-      }
-    } else if (type === 'RETURN') {
-      newQuantity += (quantityReturn || quantityOut);
-    }
-
-    const result = await prisma.$transaction([
-      prisma.promotionalMovement.create({
+    const result = await prisma.$transaction(async (tx) => {
+      // Registrar el movimiento
+      const movement = await tx.promotionalMovement.create({
         data: {
           itemId: params.id,
           type,
@@ -64,21 +41,44 @@ async function postHandler(
           responsible,
           comments,
         },
-      }),
-      prisma.promotionalItem.update({
-        where: { id: params.id },
-        data: {
-          quantity: newQuantity,
-        },
-      }),
-    ]);
+      });
 
-    return NextResponse.json({ 
-      movement: result[0],
-      item: result[1]
-    }, { status: 201 });
-  } catch (error) {
+      let updatedItem;
+
+      // Actualizar inventario de forma atómica
+      if (type === 'EXIT') {
+        // Asegura que solo actualiza si hay suficiente stock
+        const updateResult = await tx.promotionalItem.updateMany({
+          where: { id: params.id, quantity: { gte: quantityOut } },
+          data: { quantity: { decrement: quantityOut } },
+        });
+
+        if (updateResult.count === 0) {
+          throw new Error('STOCK_ERROR');
+        }
+        
+        updatedItem = await tx.promotionalItem.findUnique({ where: { id: params.id } });
+      } else {
+        updatedItem = await tx.promotionalItem.update({
+          where: { id: params.id },
+          data: { quantity: { increment: quantityReturn || quantityOut } },
+        });
+      }
+
+      return { movement, item: updatedItem };
+    });
+
+    return NextResponse.json(result, { status: 201 });
+  } catch (error: any) {
     console.error('Error al crear movimiento:', error);
+    
+    if (error.message === 'STOCK_ERROR') {
+      return NextResponse.json(
+        { error: 'No hay suficiente stock disponible o el item no existe' },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
       { error: 'Error al crear movimiento' },
       { status: 500 }

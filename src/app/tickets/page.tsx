@@ -121,7 +121,8 @@ export default function TicketsPage() {
         isLoading,
         createTicket,
         isCreating,
-        deleteTicket
+        deleteTicket,
+        isDeleting
     } = useTickets({
         search: debouncedSearch,
         status: statusFilter === 'ALL' ? undefined : statusFilter as any,
@@ -352,6 +353,7 @@ export default function TicketsPage() {
                                                         size="icon"
                                                         className="h-8 w-8 text-muted-foreground hover:text-destructive"
                                                         onClick={(e) => { e.stopPropagation(); handleDelete(tk); }}
+                                                        disabled={isDeleting}
                                                     >
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
@@ -407,7 +409,7 @@ function TicketDetailPanel({
 }) {
     const {
         ticket: tk, isLoading, updateTicket, isUpdating,
-        deleteTicket, addComment, isAddingComment,
+        deleteTicket, isDeleting, addComment, isAddingComment,
     } = useTicketDetail(ticketId);
 
     const { users } = useUsers({ role: 'IT' });
@@ -531,7 +533,7 @@ function TicketDetailPanel({
                             </Button>
                         )}
                         {canDelete && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={handleDeleteTicket}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={handleDeleteTicket} disabled={isDeleting}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         )}

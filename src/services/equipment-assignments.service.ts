@@ -16,6 +16,10 @@ const BASE = '/api/equipment-assignments';
 /** Forma de la respuesta GET /api/equipment-assignments */
 export interface AssignmentsListResponse {
   assignments: EquipmentAssignment[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 }
 
 /** Forma de la respuesta POST/PATCH /api/equipment-assignments */

@@ -20,6 +20,9 @@ async function getHandler(
                     },
                     orderBy: { assignedDate: 'desc' },
                 },
+                maintenances: {
+                    orderBy: { createdAt: 'desc' },
+                },
             },
         });
 
@@ -30,7 +33,14 @@ async function getHandler(
             );
         }
 
-        return NextResponse.json({ equipment });
+        // Mapear campos legacy `name` y `code` para compatibilidad con frontend
+        const equipmentWithLegacy = {
+            ...equipment,
+            name: `${equipment.brand} ${equipment.model}`,
+            code: equipment.inventoryCode,
+        };
+
+        return NextResponse.json({ equipment: equipmentWithLegacy });
     } catch (error) {
         console.error('Error al obtener equipo:', error);
         return NextResponse.json(

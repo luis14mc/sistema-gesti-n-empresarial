@@ -1,5 +1,75 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
+import { createAuditRecord } from '@/lib/audit';
 
-const stub = () => NextResponse.json({ error: 'Module not yet migrated to new schema' }, { status: 501 });
+// POST /api/audits/[id]/findings - Agregar hallazgo
+async function postHandler(
+  req: AuthenticatedRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { description, severity, evidence, clause } = await req.json();
 
-export const POST = stub;
+    if (!description || !severity) {
+      return NextResponse.json(
+        { error: 'Descripción y severidad son requeridas' },
+        { status: 400 }
+      );
+    }
+
+    const audit = await prisma.audit.findUnique({ where: { id: params.id } });
+    if (!audit) {
+      return NextResponse.json(
+        { error: 'Auditoría no encontrada' },
+        { status: 404 }
+      );
+    }
+
+    // Generar código correlativo para el hallazgo
+    const lastFinding = await prisma.auditFinding.findFirst({
+      where: { auditId: params.id },
+      orderBy: { code: 'desc' },
+    });
+
+    let nextNumber = 1;
+    if (lastFinding?.code) {
+      const parts = lastFinding.code.split('-');
+      const lastNum = parseInt(parts[parts.length - 1]);
+      if (!isNaN(lastNum)) nextNumber = lastNum + 1;
+    }
+    const code = `${audit.code}-H${nextNumber.toString().padStart(2, '0')}`;
+
+    const finding = await prisma.auditFinding.create({
+      data: {
+        auditId: params.id,
+        code,
+        description,
+        severity,
+        evidence,
+        clause,
+        status: 'OPEN',
+      },
+    });
+
+    await createAuditRecord({
+      title: 'Hallazgo registrado',
+      description: `Se registró hallazgo en auditoría ${audit.code}`,
+      module: 'MANUAL',
+      category: 'CREATE',
+      userId: req.user!.userId,
+      entityId: finding.id,
+      newData: { code, severity, auditId: audit.id },
+    });
+
+    return NextResponse.json({ finding }, { status: 201 });
+  } catch (error) {
+    console.error('Error al crear hallazgo:', error);
+    return NextResponse.json(
+      { error: 'Error al crear hallazgo' },
+      { status: 500 }
+    );
+  }
+}
+
+export const POST = withAuth(postHandler, ['ADMIN', 'RRHH', 'IT']);

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
+import { createAuditRecord } from '@/lib/audit';
 
 // ============================================
 // GET /api/users — Listar usuarios (ADMIN only)
@@ -12,6 +13,10 @@ async function getHandler(req: AuthenticatedRequest) {
         const role = searchParams.get('role');
         const search = searchParams.get('search');
         const isActive = searchParams.get('isActive');
+
+        const page = parseInt(searchParams.get('page') || '1');
+        const pageSize = parseInt(searchParams.get('pageSize') || '100');
+        const skip = (page - 1) * pageSize;
 
         const where: Record<string, unknown> = {};
 
@@ -28,26 +33,37 @@ async function getHandler(req: AuthenticatedRequest) {
             ];
         }
 
-        const users = await prisma.user.findMany({
-            where,
-            select: {
-                id: true,
-                employeeNumber: true,
-                email: true,
-                firstName: true,
-                lastName: true,
-                phone: true,
-                role: true,
-                isActive: true,
-                departmentId: true,
-                positionId: true,
-                createdAt: true,
-                updatedAt: true,
-            },
-            orderBy: { createdAt: 'desc' },
-        });
+        const [users, total] = await Promise.all([
+            prisma.user.findMany({
+                where,
+                skip,
+                take: pageSize,
+                select: {
+                    id: true,
+                    employeeNumber: true,
+                    email: true,
+                    firstName: true,
+                    lastName: true,
+                    phone: true,
+                    role: true,
+                    isActive: true,
+                    departmentId: true,
+                    positionId: true,
+                    createdAt: true,
+                    updatedAt: true,
+                },
+                orderBy: { createdAt: 'desc' },
+            }),
+            prisma.user.count({ where })
+        ]);
 
-        return NextResponse.json({ users });
+        return NextResponse.json({ 
+            users,
+            total,
+            page,
+            pageSize,
+            totalPages: Math.ceil(total / pageSize)
+        });
     } catch (error) {
         console.error('Error al obtener usuarios:', error);
         return NextResponse.json(
@@ -81,6 +97,12 @@ async function patchHandler(req: AuthenticatedRequest) {
             );
         }
 
+        // Obtener estado anterior para auditoría
+        const previousUser = await prisma.user.findUnique({
+            where: { id },
+            select: { role: true, isActive: true, firstName: true, lastName: true },
+        });
+
         const user = await prisma.user.update({
             where: { id },
             data: {
@@ -107,6 +129,20 @@ async function patchHandler(req: AuthenticatedRequest) {
                 createdAt: true,
                 updatedAt: true,
             },
+        });
+
+        // Registrar en auditoría
+        await createAuditRecord({
+            title: 'Actualización de usuario',
+            description: `Se actualizó usuario: ${user.firstName} ${user.lastName}`,
+            module: 'USUARIOS',
+            category: 'UPDATE',
+            userId: req.user!.userId,
+            entityId: user.id,
+            previousData: previousUser
+                ? { role: previousUser.role, isActive: previousUser.isActive }
+                : undefined,
+            newData: { role: user.role, isActive: user.isActive },
         });
 
         return NextResponse.json({ user });
@@ -174,6 +210,17 @@ async function postHandler(req: AuthenticatedRequest) {
                 createdAt: true,
                 updatedAt: true,
             },
+        });
+
+        // Registrar en auditoría
+        await createAuditRecord({
+            title: 'Creación de usuario',
+            description: `Se creó usuario: ${user.firstName} ${user.lastName} (${user.email})`,
+            module: 'USUARIOS',
+            category: 'CREATE',
+            userId: req.user!.userId,
+            entityId: user.id,
+            newData: { email: user.email, role: user.role, employeeNumber: user.employeeNumber },
         });
 
         return NextResponse.json({ user }, { status: 201 });

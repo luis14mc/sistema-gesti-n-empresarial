@@ -126,24 +126,24 @@ export default function MainLayout({ children, user: propUser }: MainLayoutProps
 
   useEffect(() => {
     if (propUser) return;
-    let cancelled = false;
-    fetch('/api/auth/me')
+    
+    const abortController = new AbortController();
+
+    fetch('/api/auth/me', { signal: abortController.signal })
       .then((r) => {
         if (!r.ok) throw new Error('No auth');
         return r.json();
       })
       .then((data) => {
-        if (!cancelled) {
-          setFetchedUser(data.user);
-          setIsFetching(false);
-        }
+        setFetchedUser(data.user);
+        setIsFetching(false);
       })
-      .catch(() => {
-        if (!cancelled) {
-          router.push('/login');
-        }
+      .catch((err) => {
+        if (err.name === 'AbortError') return;
+        router.push('/login');
       });
-    return () => { cancelled = true; };
+
+    return () => abortController.abort();
   }, [propUser, router]);
 
   const user = propUser ?? fetchedUser;

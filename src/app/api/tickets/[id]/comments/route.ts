@@ -28,11 +28,25 @@ async function postHandler(
       );
     }
 
+    // Obtener info del usuario que comenta para resolver el bug
+    // (frontend accede a c.user?.firstName pero solo se guardaba userId)
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.userId },
+      select: { id: true, firstName: true, lastName: true, email: true },
+    });
+
     const existingComments = (ticket.comments as any[]) || [];
     const newComment = {
       id: crypto.randomUUID(),
       content,
       userId: req.user!.userId,
+      user: user
+        ? {
+            id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+          }
+        : null,
       createdAt: new Date().toISOString(),
     };
 

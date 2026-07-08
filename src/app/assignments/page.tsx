@@ -48,6 +48,15 @@ const statusLabels: Record<string, string> = {
     ACTIVE: 'Activa', RETURNED: 'Devuelto', CANCELLED: 'Cancelada',
 };
 
+// Condiciones disponibles para devolución
+const returnConditions = [
+    { value: 'BUENO', label: 'Bueno - Sin daños' },
+    { value: 'BUENO_CON_DETALLES', label: 'Bueno con detalles menores' },
+    { value: 'REGULAR', label: 'Regular - Desgaste normal' },
+    { value: 'DANADO', label: 'Dañado - Requiere reparación' },
+    { value: 'IRREPARABLE', label: 'Irreparable - Dar de baja' },
+];
+
 // ============================================
 // PAGE
 // ============================================
@@ -60,6 +69,9 @@ export default function AssignmentsPage() {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('ALL');
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [returnDialogOpen, setReturnDialogOpen] = useState(false);
+    const [returningAssignment, setReturningAssignment] = useState<EquipmentAssignment | null>(null);
+    const [returnForm, setReturnForm] = useState({ returnCondition: 'BUENO', notes: '' });
 
     const role = (user?.role ?? 'USER') as Role;
     const canCreate = canAccess(role, 'assignments', 'create');
@@ -102,19 +114,32 @@ export default function AssignmentsPage() {
         );
     };
 
-    // Return equipment
-    const handleReturn = async (assignment: EquipmentAssignment) => {
-        const result = await swalConfirm(
-            'Registrar Devolución',
-            `¿Confirmas la devolución del equipo ${assignment.equipment?.name ?? ''}?`,
-            'Sí, registrar'
-        );
-        if (!result.isConfirmed) return;
+    // Abrir dialog de devolución
+    const openReturnDialog = (assignment: EquipmentAssignment) => {
+        setReturningAssignment(assignment);
+        setReturnForm({ returnCondition: 'BUENO', notes: '' });
+        setReturnDialogOpen(true);
+    };
+
+    // Confirmar devolución con condición real
+    const handleConfirmReturn = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!returningAssignment) return;
 
         returnAssignment(
-            { id: assignment.id, data: { returnCondition: 'Bueno' } },
             {
-                onSuccess: () => sileo.success({ title: 'Devolución registrada' }),
+                id: returningAssignment.id,
+                data: {
+                    returnCondition: returnForm.returnCondition,
+                    notes: returnForm.notes || undefined,
+                },
+            },
+            {
+                onSuccess: () => {
+                    sileo.success({ title: 'Devolución registrada', description: `Condición: ${returnConditions.find(c => c.value === returnForm.returnCondition)?.label}` });
+                    setReturnDialogOpen(false);
+                    setReturningAssignment(null);
+                },
                 onError: () => sileo.error({ title: 'Error', description: 'No se pudo registrar la devolución' }),
             }
         );
@@ -249,11 +274,11 @@ export default function AssignmentsPage() {
                                                 {assignment.condition ?? '—'}
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                {assignment.status === 'ACTIVE' && (
+                                                {assignment.status === 'ACTIVE' && canCreate && (
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        onClick={() => handleReturn(assignment)}
+                                                        onClick={() => openReturnDialog(assignment)}
                                                         disabled={isReturning}
                                                     >
                                                         <RotateCcw className="h-4 w-4 mr-1" />
@@ -269,6 +294,56 @@ export default function AssignmentsPage() {
                     </Card>
                 )}
             </div>
+
+            {/* Dialog de Devolución con condición real */}
+            <Dialog open={returnDialogOpen} onOpenChange={setReturnDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Registrar Devolución</DialogTitle>
+                        <DialogDescription>
+                            Equipo: <strong>{returningAssignment?.equipment?.name ?? '—'}</strong>
+                            <br />
+                            Usuario: <strong>{returningAssignment?.user?.firstName} {returningAssignment?.user?.lastName}</strong>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleConfirmReturn} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Condición de devolución</Label>
+                            <Select
+                                value={returnForm.returnCondition}
+                                onValueChange={(v) => setReturnForm(f => ({ ...f, returnCondition: v }))}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecciona condición" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {returnConditions.map((c) => (
+                                        <SelectItem key={c.value} value={c.value}>
+                                            {c.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Observaciones</Label>
+                            <Input
+                                placeholder="Detalles adicionales sobre la devolución..."
+                                value={returnForm.notes}
+                                onChange={(e) => setReturnForm(f => ({ ...f, notes: e.target.value }))}
+                            />
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setReturnDialogOpen(false)}>
+                                Cancelar
+                            </Button>
+                            <Button type="submit" disabled={isReturning}>
+                                {isReturning ? 'Procesando...' : 'Confirmar Devolución'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </MainLayout>
     );
 }
