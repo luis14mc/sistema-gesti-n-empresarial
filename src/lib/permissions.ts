@@ -7,11 +7,12 @@ import { type Role } from '@/types';
 
 export type Module =
   | 'dashboard'
+  // Módulos legacy deshabilitados: se mantienen en el tipo para no romper imports existentes.
   | 'tickets'
-  | 'oficios'
-  | 'equipment'
   | 'inventory'
   | 'time-entries'
+  | 'oficios'
+  | 'equipment'
   | 'assignments'
   | 'users'
   | 'purchases'
@@ -23,24 +24,19 @@ export type Action = 'read' | 'create' | 'update' | 'delete';
 const PERMISSIONS: Record<Role, Partial<Record<Module, Action[]>>> = {
   ADMIN: {
     dashboard:       ['read'],
-    tickets:         ['read', 'create', 'update', 'delete'],
     oficios:         ['read', 'create', 'update', 'delete'],
     equipment:       ['read', 'create', 'update', 'delete'],
-    inventory:       ['read', 'create', 'update', 'delete'],
-    'time-entries':  ['read', 'create'],
     assignments:     ['read', 'create', 'update', 'delete'],
-    users:           ['read', 'create', 'update', 'delete'],
     purchases:       ['read', 'create', 'update', 'delete'],
+    users:           ['read', 'create', 'update', 'delete'],
     'audit-records': ['read', 'create', 'update', 'delete'],
     settings:        ['read', 'update'],
   },
 
   IT: {
     dashboard:       ['read'],
-    tickets:         ['read', 'create', 'update'],
     equipment:       ['read', 'create', 'update'],
     assignments:     ['read', 'create', 'update'],
-    'time-entries':  ['read', 'create'],
     purchases:       ['read', 'create'],
     'audit-records': ['read'],
   },
@@ -49,17 +45,13 @@ const PERMISSIONS: Record<Role, Partial<Record<Module, Action[]>>> = {
     dashboard:       ['read'],
     users:           ['read', 'create', 'update'],
     oficios:         ['read', 'create', 'update'],
-    'time-entries':  ['read', 'create'],
-    inventory:       ['read', 'create', 'update'],
     purchases:       ['read', 'create'],
     'audit-records': ['read'],
   },
 
   USER: {
     dashboard:       ['read'],
-    tickets:         ['read', 'create'],
     oficios:         ['read'],
-    'time-entries':  ['read', 'create'],
     equipment:       ['read'],
     assignments:     ['read'],
   },
