@@ -2,7 +2,7 @@
   "name": "sistema-gestion-empresarial",
   "version": "1.0.0",
   "type": "module",
-  "description": "Sistema multifuncional de gestión empresarial con módulos de tickets, oficios, asistencia e inventarios",
+  "description": "Sistema multifuncional de gestión empresarial con módulos de oficios, equipos, asignaciones, compras, usuarios y auditoría",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -30,6 +30,7 @@
     "pg": "^8.18.0",
     "radix-ui": "^1.4.3",
     "react": "^19.2.4",
+    "react-datepicker": "^9.0.0",
     "react-dom": "^19.2.4",
     "react-hook-form": "^7.71.2",
     "react-icons": "^5.5.0",
