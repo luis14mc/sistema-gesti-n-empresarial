@@ -13,13 +13,13 @@ El módulo de Oficios se mantiene como uno de los módulos principales del Siste
    - Oficios externos del Consejo Nacional de Inversiones.
    - Incluye documentos que ingresan y documentos que se envían.
    - Oficios enviados: `Oficio No. 0001-CNI-2026`.
-   - Oficios ingresados: código interno de control `ING-CNI-0001-2026`.
+   - Oficios ingresados: conservan el número original de la institución remitente.
 
 3. **Externos Despacho**
    - Oficios externos del Despacho.
    - Incluye documentos que ingresan y documentos que se envían.
    - Oficios enviados: `Oficio No. DPICP-0001-2026`.
-   - Oficios ingresados: código interno de control `ING-DPICP-0001-2026`.
+   - Oficios ingresados: conservan el número original de la institución remitente.
 
 ## Campos funcionales
 
@@ -27,7 +27,7 @@ El módulo de Oficios se mantiene como uno de los módulos principales del Siste
 | --- | --- |
 | `scope` | Submódulo operativo: `INTERNO`, `CNI`, `DESPACHO`. |
 | `direction` | Dirección del documento: `INCOMING`, `OUTGOING`, `INTERNAL_MEMO`. |
-| `number` | Número oficial o código interno generado por el sistema. |
+| `number` | Para salientes y memos, número generado por el sistema. Para ingresados, número original de la institución remitente. |
 | `subject` | Asunto del oficio o memo. |
 | `status` | Estado del flujo: borrador, enviado, recibido, en proceso, completado, archivado. |
 | `oficioDate` | Fecha del oficio. |
@@ -38,15 +38,15 @@ El módulo de Oficios se mantiene como uno de los módulos principales del Siste
 
 ## Reglas de numeración
 
-La numeración debe generarse en backend para evitar duplicidades y mantener una sola fuente de verdad.
+La numeración generada por el sistema aplica únicamente para oficios salientes y memos internos. Los oficios ingresados no reciben una nomenclatura nueva; se registra el número que ya trae el documento de la institución remitente.
 
 | Submódulo | Dirección | Formato |
 | --- | --- | --- |
 | Despacho | Saliente | `DPICP-0001-2026` |
 | CNI | Saliente | `0001-CNI-2026` |
 | Interno / Memo | Interno | `MEMO-0001-2026` |
-| CNI | Ingresado | `ING-CNI-0001-2026` |
-| Despacho | Ingresado | `ING-DPICP-0001-2026` |
+| CNI | Ingresado | Número original de la institución remitente |
+| Despacho | Ingresado | Número original de la institución remitente |
 
 ## Módulos fuera de alcance
 
