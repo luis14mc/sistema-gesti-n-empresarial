@@ -1,7 +1,105 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
+import {
+  formatOficioNumber,
+  normalizeOficioDirection,
+  normalizeOficioScope,
+  parseOficioSequence,
+  type OficioDirection,
+  type OficioScope,
+} from '@/lib/oficios-numbering';
+
+function buildScopeWhere(scope: OficioScope): Prisma.OficioWhereInput {
+  if (scope === 'INTERNO') {
+    return { type: 'INTERNAL_MEMO' };
+  }
+
+  if (scope === 'DESPACHO') {
+    return {
+      OR: [
+        { number: { startsWith: 'DPICP-' } },
+        { number: { startsWith: 'ING-DPICP-' } },
+      ],
+    };
+  }
+
+  return {
+    OR: [
+      { number: { contains: '-CNI-' } },
+      { number: { startsWith: 'ING-CNI-' } },
+    ],
+  };
+}
+
+function buildNumberSequenceWhere(params: {
+  scope: OficioScope;
+  direction: OficioDirection;
+  year: number;
+}): Prisma.OficioWhereInput {
+  const { scope, direction, year } = params;
+
+  if (direction === 'OUTGOING' && scope === 'DESPACHO') {
+    return {
+      type: 'OUTGOING',
+      number: {
+        startsWith: 'DPICP-',
+        endsWith: `-${year}`,
+      },
+    };
+  }
+
+  if (direction === 'OUTGOING' && scope === 'CNI') {
+    return {
+      type: 'OUTGOING',
+      number: {
+        contains: '-CNI-',
+        endsWith: `-${year}`,
+      },
+    };
+  }
+
+  if (direction === 'INTERNAL_MEMO') {
+    return {
+      type: 'INTERNAL_MEMO',
+      number: {
+        startsWith: 'MEMO-',
+        endsWith: `-${year}`,
+      },
+    };
+  }
+
+  return {
+    type: 'INCOMING',
+    number: {
+      startsWith: scope === 'DESPACHO' ? 'ING-DPICP-' : 'ING-CNI-',
+      endsWith: `-${year}`,
+    },
+  };
+}
+
+async function getNextOficioNumber(tx: Prisma.TransactionClient, params: {
+  scope: OficioScope;
+  direction: OficioDirection;
+  year: number;
+}) {
+  const lastOficio = await tx.oficio.findFirst({
+    where: buildNumberSequenceWhere(params),
+    orderBy: { createdAt: 'desc' },
+    select: { number: true },
+  });
+
+  const nextSequence = lastOficio ? parseOficioSequence(lastOficio.number) + 1 : 1;
+
+  return formatOficioNumber({
+    scope: params.scope,
+    direction: params.direction,
+    sequence: nextSequence,
+    year: params.year,
+  });
+}
 
 // GET - Listar oficios
 async function getHandler(req: AuthenticatedRequest) {
@@ -9,22 +107,40 @@ async function getHandler(req: AuthenticatedRequest) {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
     const type = searchParams.get('type');
+    const scopeParam = searchParams.get('scope');
+    const directionParam = searchParams.get('direction');
     const search = searchParams.get('search');
     const page = parseInt(searchParams.get('page') || '1');
-    const pageSize = parseInt(searchParams.get('pageSize') || '10');
+    const pageSize = Math.min(parseInt(searchParams.get('pageSize') || '10'), 100);
     const skip = (page - 1) * pageSize;
 
-    const where: any = {};
+    const where: Prisma.OficioWhereInput = {};
+    const andConditions: Prisma.OficioWhereInput[] = [];
 
     if (status) where.status = status;
-    if (type) where.type = type;
+
+    if (scopeParam) {
+      const scope = normalizeOficioScope(scopeParam);
+      andConditions.push(buildScopeWhere(scope));
+    }
+
+    if (directionParam || type) {
+      const scope = scopeParam ? normalizeOficioScope(scopeParam) : undefined;
+      where.type = normalizeOficioDirection(directionParam ?? type, scope) as any;
+    }
 
     if (search) {
-      where.OR = [
-        { subject: { contains: search, mode: 'insensitive' } },
-        { number: { contains: search, mode: 'insensitive' } },
-        { comments: { contains: search, mode: 'insensitive' } },
-      ];
+      andConditions.push({
+        OR: [
+          { subject: { contains: search, mode: 'insensitive' } },
+          { number: { contains: search, mode: 'insensitive' } },
+          { comments: { contains: search, mode: 'insensitive' } },
+        ],
+      });
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
     }
 
     const [oficios, total] = await Promise.all([
@@ -66,11 +182,25 @@ async function getHandler(req: AuthenticatedRequest) {
 // POST - Crear oficio
 async function postHandler(req: AuthenticatedRequest) {
   try {
-    const { subject, type, comments, oficioDate, receivedDate, sentDate, attachments, origin } = await req.json();
+    const {
+      subject,
+      type,
+      direction,
+      scope,
+      origin,
+      comments,
+      oficioDate,
+      receivedDate,
+      sentDate,
+      attachments,
+    } = await req.json();
 
-    if (!subject || !type || !oficioDate) {
+    const oficioScope = normalizeOficioScope(scope ?? origin);
+    const oficioDirection = normalizeOficioDirection(direction ?? type, oficioScope);
+
+    if (!subject || !oficioDate) {
       return NextResponse.json(
-        { error: 'Asunto, tipo y fecha del oficio son requeridos' },
+        { error: 'Asunto y fecha del oficio son requeridos' },
         { status: 400 }
       );
     }
@@ -82,35 +212,23 @@ async function postHandler(req: AuthenticatedRequest) {
       );
     }
 
-    // Usamos una transacción interactiva de Prisma para evitar condiciones de carrera (Race Condition)
-    // al generar el número correlativo de oficio.
     const oficio = await prisma.$transaction(async (tx) => {
-      // 1. Obtener el último número bajo aislamiento de transacción
-      const year = new Date().getFullYear();
-      const prefix = origin === 'CNI' ? 'CNI' : 'DPICP';
-      const lastOficio = await tx.oficio.findFirst({
-        where: { number: { startsWith: `${prefix}-` } },
-        orderBy: { number: 'desc' },
+      const year = new Date(oficioDate).getFullYear();
+      const number = await getNextOficioNumber(tx, {
+        scope: oficioScope,
+        direction: oficioDirection,
+        year,
       });
-      
-      let nextNumber = 1;
-      if (lastOficio) {
-        const parts = lastOficio.number.split('-');
-        const lastNum = parseInt(parts[1]);
-        if (!isNaN(lastNum)) nextNumber = lastNum + 1;
-      }
-      const number = `${prefix}-${nextNumber.toString().padStart(3, '0')}-${year}`;
 
-      // 2. Crear el registro
-      const newOficio = await tx.oficio.create({
+      return tx.oficio.create({
         data: {
           number,
           subject,
-          type,
+          type: oficioDirection as any,
           comments,
           oficioDate: new Date(oficioDate),
           receivedDate: receivedDate ? new Date(receivedDate) : undefined,
-          sentDate: sentDate ? new Date(sentDate) : undefined,
+          sentDate: sentDate ? new Date(sentDate) : oficioDirection === 'OUTGOING' ? new Date(oficioDate) : undefined,
           attachments: attachments || [],
           createdById: req.user!.userId,
         },
@@ -120,18 +238,21 @@ async function postHandler(req: AuthenticatedRequest) {
           },
         },
       });
-
-      return newOficio;
     });
 
     await createAuditRecord({
       title: 'Creación de oficio',
-      description: `Se creó oficio: ${subject}`,
+      description: `Se creó oficio: ${oficio.number} - ${subject}`,
       module: 'OFICIOS',
       category: 'CREATE',
       userId: req.user!.userId,
       entityId: oficio.id,
-      newData: { number: oficio.number, subject, type },
+      newData: {
+        number: oficio.number,
+        subject,
+        scope: oficioScope,
+        direction: oficioDirection,
+      },
     });
 
     return NextResponse.json({ oficio }, { status: 201 });
