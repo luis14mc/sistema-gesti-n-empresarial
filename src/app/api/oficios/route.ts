@@ -8,6 +8,7 @@ import {
   normalizeOficioDirection,
   normalizeOficioScope,
   parseOficioSequence,
+  shouldGenerateOficioNumber,
   type OficioDirection,
   type OficioScope,
 } from '@/lib/oficios-numbering';
@@ -21,7 +22,7 @@ function buildScopeWhere(scope: OficioScope): Prisma.OficioWhereInput {
     return {
       OR: [
         { number: { startsWith: 'DPICP-' } },
-        { number: { startsWith: 'ING-DPICP-' } },
+        { type: 'INCOMING' },
       ],
     };
   }
@@ -29,7 +30,7 @@ function buildScopeWhere(scope: OficioScope): Prisma.OficioWhereInput {
   return {
     OR: [
       { number: { contains: '-CNI-' } },
-      { number: { startsWith: 'ING-CNI-' } },
+      { type: 'INCOMING' },
     ],
   };
 }
@@ -61,20 +62,10 @@ function buildNumberSequenceWhere(params: {
     };
   }
 
-  if (direction === 'INTERNAL_MEMO') {
-    return {
-      type: 'INTERNAL_MEMO',
-      number: {
-        startsWith: 'MEMO-',
-        endsWith: `-${year}`,
-      },
-    };
-  }
-
   return {
-    type: 'INCOMING',
+    type: 'INTERNAL_MEMO',
     number: {
-      startsWith: scope === 'DESPACHO' ? 'ING-DPICP-' : 'ING-CNI-',
+      startsWith: 'MEMO-',
       endsWith: `-${year}`,
     },
   };
@@ -184,6 +175,8 @@ async function postHandler(req: AuthenticatedRequest) {
   try {
     const {
       subject,
+      number,
+      externalNumber,
       type,
       direction,
       scope,
@@ -197,10 +190,18 @@ async function postHandler(req: AuthenticatedRequest) {
 
     const oficioScope = normalizeOficioScope(scope ?? origin);
     const oficioDirection = normalizeOficioDirection(direction ?? type, oficioScope);
+    const incomingNumber = (externalNumber ?? number)?.toString().trim();
 
     if (!subject || !oficioDate) {
       return NextResponse.json(
         { error: 'Asunto y fecha del oficio son requeridos' },
+        { status: 400 }
+      );
+    }
+
+    if (oficioDirection === 'INCOMING' && !incomingNumber) {
+      return NextResponse.json(
+        { error: 'Los oficios ingresados deben registrar el número original de la institución remitente' },
         { status: 400 }
       );
     }
@@ -214,20 +215,22 @@ async function postHandler(req: AuthenticatedRequest) {
 
     const oficio = await prisma.$transaction(async (tx) => {
       const year = new Date(oficioDate).getFullYear();
-      const number = await getNextOficioNumber(tx, {
-        scope: oficioScope,
-        direction: oficioDirection,
-        year,
-      });
+      const oficioNumber = shouldGenerateOficioNumber(oficioDirection)
+        ? await getNextOficioNumber(tx, {
+            scope: oficioScope,
+            direction: oficioDirection,
+            year,
+          })
+        : incomingNumber!;
 
       return tx.oficio.create({
         data: {
-          number,
+          number: oficioNumber,
           subject,
           type: oficioDirection as any,
           comments,
           oficioDate: new Date(oficioDate),
-          receivedDate: receivedDate ? new Date(receivedDate) : undefined,
+          receivedDate: receivedDate ? new Date(receivedDate) : oficioDirection === 'INCOMING' ? new Date() : undefined,
           sentDate: sentDate ? new Date(sentDate) : oficioDirection === 'OUTGOING' ? new Date(oficioDate) : undefined,
           attachments: attachments || [],
           createdById: req.user!.userId,
