@@ -141,7 +141,7 @@ async function getHandler(req: AuthenticatedRequest) {
     const where: Prisma.OficioWhereInput = {};
     const andConditions: Prisma.OficioWhereInput[] = [];
 
-    if (status) where.status = status;
+    if (status) where.status = status as Prisma.EnumOficioStatusFilter;
 
     if (scopeParam) {
       const scope = normalizeOficioScope(scopeParam);

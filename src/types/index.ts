@@ -64,6 +64,15 @@ export const EQUIPMENT_STATUS_LABELS: Record<EquipmentStatus, string> = {
   LOST: 'Extraviado',
 };
 
+export const OFICIO_STATUS_LABELS: Record<OficioStatus, string> = {
+  DRAFT: 'Borrador',
+  SENT: 'Enviado',
+  RECEIVED: 'Recibido',
+  IN_PROCESS: 'En proceso',
+  COMPLETED: 'Completado',
+  ARCHIVED: 'Archivado',
+};
+
 // ── Usuario de sesión (serializable, sin password) ────────────
 
 export interface SessionUser {
@@ -187,7 +196,7 @@ export interface Oficio {
   institution?: string | null;
   preparedBy?: string | null;
   content?: string;
-  status: string;
+  status: OficioStatus;
   attachmentUrl?: string | null;
   deletedAt?: string | null;
   attachments: OficioAttachment[] | unknown;
@@ -426,7 +435,7 @@ export interface PaginatedResult<T> {
 // type aliases para no romper páginas aún no migradas.
 
 export type TicketCategory = string;
-export type OficioStatus = string;
+export type OficioStatus = 'DRAFT' | 'SENT' | 'RECEIVED' | 'IN_PROCESS' | 'COMPLETED' | 'ARCHIVED';
 export type EntryType = 'CHECK_IN' | 'CHECK_OUT' | 'BREAK_START' | 'BREAK_END';
 export type EquipmentType = string;
 export type AssignmentStatus = 'ACTIVE' | 'RETURNED' | 'REPLACED' | 'LOST' | 'CANCELLED';

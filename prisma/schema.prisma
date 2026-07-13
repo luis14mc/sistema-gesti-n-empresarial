@@ -214,6 +214,15 @@ enum OficioType {
   INTERNAL_MEMO
 }
 
+enum OficioStatus {
+  DRAFT
+  SENT
+  RECEIVED
+  IN_PROCESS
+  COMPLETED
+  ARCHIVED
+}
+
 model Oficio {
   id          String     @id @default(cuid())
   number      String     @unique
@@ -223,7 +232,7 @@ model Oficio {
   recipient   String?
   institution String?
   preparedBy  String?
-  status      String     @default("DRAFT")
+  status      OficioStatus @default(DRAFT)
   attachments Json
   comments    String?    @db.Text
 
