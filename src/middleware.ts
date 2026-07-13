@@ -17,7 +17,8 @@ const ROUTE_ACCESS: Record<string, Role[] | null> = {
   '/assignments':    ['ADMIN', 'IT'],
   '/purchases':      ['ADMIN', 'IT', 'RRHH'],
   '/users':          ['ADMIN', 'RRHH'],
-  '/audit-records':  ['ADMIN'],
+  '/audit/logs':     ['ADMIN'],
+  '/audit-records':  ['ADMIN'],  // legacy → redirige a /audit/logs
   '/settings':       ['ADMIN'],
 };
 

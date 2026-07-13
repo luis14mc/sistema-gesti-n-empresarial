@@ -14,6 +14,7 @@ interface AuditLogFilters {
     userId?: string;
     module?: string;
     action?: string;
+    search?: string;
     page?: number;
     pageSize?: number;
 }

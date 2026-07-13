@@ -61,7 +61,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Empleados',    href: '/employees',     icon: Contact,         module: 'employees' },
   { label: 'Asignaciones', href: '/assignments',   icon: ClipboardList,   module: 'assignments' },
   { label: 'Compras',      href: '/purchases',     icon: ShoppingCart,    module: 'purchases' },
-  { label: 'Auditoría',    href: '/audit-records', icon: ClipboardCheck,  module: 'audit-records' },
+  { label: 'Auditoría',    href: '/audit/logs',    icon: ClipboardCheck,  module: 'audit-records' },
   { label: 'Usuarios',     href: '/users',         icon: Users,           module: 'users' },
   { label: 'Ajustes',      href: '/settings',      icon: Settings,        module: 'settings' },
 ];
