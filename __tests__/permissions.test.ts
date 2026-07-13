@@ -71,9 +71,9 @@ describe('RBAC — permissions matrix', () => {
     it('legacy modules (tickets/inventory/time-entries) are no longer in PERMISSIONS', () => {
       // @ts-expect-error - módulos legacy fueron removidos del type
       expect(canAccess('ADMIN', 'tickets', 'read')).toBe(false);
-      // @ts-expect-error
+      // @ts-expect-error - módulos legacy fueron removidos del type
       expect(canAccess('ADMIN', 'inventory', 'read')).toBe(false);
-      // @ts-expect-error
+      // @ts-expect-error - módulos legacy fueron removidos del type
       expect(canAccess('ADMIN', 'time-entries', 'read')).toBe(false);
     });
   });
