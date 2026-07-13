@@ -2,15 +2,62 @@ import { NextRequest, NextResponse } from 'next/server';
 import { routeToAccess } from '@/lib/permissions';
 
 // ============================================
-// NEXT.JS MIDDLEWARE — Protección de rutas + RBAC
-// Sprint 2: la matriz de permisos vive en lib/permissions.ts (única fuente
-// de verdad). Este middleware solo orquesta JWT + redirecciones.
+// NEXT.JS MIDDLEWARE — Protección de rutas + RBAC + CSP nonce
+// Sprint 3: la matriz de permisos vive en lib/permissions.ts (única fuente
+// de verdad). Este middleware orquesta JWT + redirecciones + CSP nonce.
 // ============================================
 
 type Role = 'ADMIN' | 'USER' | 'RRHH' | 'IT';
 
 const TOKEN_COOKIE = 'token';
-const AUTH_ROUTES = ['/login', '/register'];
+const AUTH_ROUTES  = ['/login', '/register'];
+const NONCE_HEADER = 'x-sge-nonce';
+
+function generateNonce(): string {
+  const arr = new Uint8Array(16);
+  crypto.getRandomValues(arr);
+  // Convertir a base64 (seguro para header)
+  let binary = '';
+  arr.forEach((b) => (binary += String.fromCharCode(b)));
+  return btoa(binary);
+}
+
+function buildCspHeader(nonce: string): string {
+  // Política estricta con nonce para scripts.
+  // 'strict-dynamic' permite que scripts cargados por los de confianza
+  // se ejecuten sin necesidad de self en sub-recursos.
+  // Estilos: permitir 'self' + 'unsafe-inline' (Tailwind v4 + shadcn requiere)
+  // Imágenes: self + data: + https: (logos remotos).
+  // Conexiones: self + S3/CloudFront si se define S3_PUBLIC_URL en runtime.
+  const s3Host = process.env.S3_PUBLIC_URL
+    ? ` ${process.env.S3_PUBLIC_URL.replace(/\/$/, '')}`
+    : '';
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https:" + s3Host,
+    "font-src 'self' data:",
+    `connect-src 'self'${s3Host}`,
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "upgrade-insecure-requests",
+  ].join('; ');
+}
+
+function buildExtraSecurityHeaders(): string[] {
+  return [
+    'X-Frame-Options: DENY',
+    'X-Content-Type-Options: nosniff',
+    'Referrer-Policy: strict-origin-when-cross-origin',
+    'Strict-Transport-Security: max-age=63072000; includeSubDomains; preload',
+    'Permissions-Policy: camera=(), microphone=(), geolocation=(), browsing-topics=()',
+    'Cross-Origin-Opener-Policy: same-origin',
+    'Cross-Origin-Embedder-Policy: require-corp',
+  ];
+}
 
 async function decodeAndVerifyJwt(token: string): Promise<{ userId: string; role: Role } | null> {
   try {
@@ -51,42 +98,67 @@ function isAuthRoute(pathname: string): boolean {
   return AUTH_ROUTES.some((r) => pathname === r || pathname.startsWith(`${r}/`));
 }
 
+function applySecurityHeaders(response: NextResponse, nonce: string): void {
+  response.headers.set('Content-Security-Policy', buildCspHeader(nonce));
+  response.headers.set(NONCE_HEADER, nonce);
+  for (const header of buildExtraSecurityHeaders()) {
+    const [k, v] = header.split(': ');
+    response.headers.set(k, v);
+  }
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const token = request.cookies.get(TOKEN_COOKIE)?.value;
 
-  // Resolver acceso via permissions.ts (única fuente de verdad)
+  // Generar nonce único por request para CSP
+  const nonce = generateNonce();
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set(NONCE_HEADER, nonce);
+
+  const token = requestHeaders.get('cookie')?.match(/(?:^|;\s*)token=([^;]+)/)?.[1] ?? null;
+
   const access = routeToAccess(pathname);
   const authRoute = isAuthRoute(pathname);
 
   // 1) Ruta protegida sin token → /login con callback
   if (access && !token) {
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('callbackUrl', pathname);
-    return NextResponse.redirect(loginUrl);
+    const res = NextResponse.redirect(new URL('/login', request.url));
+    applySecurityHeaders(res, nonce);
+    return res;
   }
 
   // 2) Ruta protegida con restricción de rol
   if (access && token && access.roles) {
     const payload = await decodeAndVerifyJwt(token);
     if (!payload || !access.roles.includes(payload.role)) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+      const res = NextResponse.redirect(new URL('/dashboard', request.url));
+      applySecurityHeaders(res, nonce);
+      return res;
     }
   }
 
   // 3) Auth route con sesión activa → dashboard
   if (authRoute && token) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    const res = NextResponse.redirect(new URL('/dashboard', request.url));
+    applySecurityHeaders(res, nonce);
+    return res;
   }
 
   // 4) Raíz "/" → según sesión
   if (pathname === '/') {
-    return NextResponse.redirect(
+    const res = NextResponse.redirect(
       new URL(token ? '/dashboard' : '/login', request.url)
     );
+    applySecurityHeaders(res, nonce);
+    return res;
   }
 
-  return NextResponse.next();
+  // Flujo normal: pasar nonce al request para que el layout/app lo lean
+  const res = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
+  applySecurityHeaders(res, nonce);
+  return res;
 }
 
 export const config = {
