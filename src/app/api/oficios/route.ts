@@ -141,6 +141,16 @@ async function getHandler(req: AuthenticatedRequest) {
     const where: Prisma.OficioWhereInput = {};
     const andConditions: Prisma.OficioWhereInput[] = [];
 
+    // IDOR: USER ve solo oficios donde es creador o destinatario
+    if (req.user!.role === 'USER') {
+      andConditions.push({
+        OR: [
+          { createdById: req.user!.userId },
+          { recipient:  { contains: req.user!.email, mode: 'insensitive' } },
+        ],
+      });
+    }
+
     if (status) where.status = status as Prisma.EnumOficioStatusFilter;
 
     if (scopeParam) {

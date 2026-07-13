@@ -30,6 +30,20 @@ async function getHandler(
       );
     }
 
+    // IDOR: USER solo puede ver oficios donde es creador o destinatario por email
+    if (req.user!.role === 'USER') {
+      const isCreator = oficio.createdById === req.user!.userId;
+      const isRecipient =
+        !!oficio.recipient &&
+        oficio.recipient.toLowerCase().includes(req.user!.email.toLowerCase());
+      if (!isCreator && !isRecipient) {
+        return NextResponse.json(
+          { error: 'Oficio no encontrado' },
+          { status: 404 }
+        );
+      }
+    }
+
     return NextResponse.json({ oficio });
   } catch (error) {
     console.error('Error al obtener oficio:', error);
@@ -54,6 +68,14 @@ async function patchHandler(
     });
 
     if (!currentOficio) {
+      return NextResponse.json(
+        { error: 'Oficio no encontrado' },
+        { status: 404 }
+      );
+    }
+
+    // IDOR: USER solo edita oficios propios
+    if (req.user!.role === 'USER' && currentOficio.createdById !== req.user!.userId) {
       return NextResponse.json(
         { error: 'Oficio no encontrado' },
         { status: 404 }
@@ -122,6 +144,15 @@ async function deleteHandler(
   try {
     const current = await prisma.oficio.findUnique({ where: { id: params.id } });
     if (!current) {
+      return NextResponse.json(
+        { error: 'Oficio no encontrado' },
+        { status: 404 }
+      );
+    }
+
+    // IDOR: USER no elimina oficios ajenos (y de hecho no debería poder
+    // eliminar nada; pero esta salvaguarda evita bypass por role confusion).
+    if (req.user!.role === 'USER' && current.createdById !== req.user!.userId) {
       return NextResponse.json(
         { error: 'Oficio no encontrado' },
         { status: 404 }
