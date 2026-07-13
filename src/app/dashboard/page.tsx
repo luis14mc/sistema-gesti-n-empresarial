@@ -1,52 +1,71 @@
 import { requireSession } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
 import MainLayout from '@/components/layout/MainLayout';
-import type { DashboardStats } from '@/types';
+import type { DashboardStats, DashboardRecentOficio } from '@/types';
 import { DashboardContent } from './_components/DashboardContent';
 
 async function getDashboardStats(): Promise<DashboardStats> {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
   const [
-    totalTickets,
-    openTickets,
     totalOficios,
+    inProcessOficios,
     totalEquipment,
     availableEquipment,
-    todayEntries,
-    activeUsers,
+    activeAssignments,
     pendingPurchases,
+    activeUsers,
   ] = await Promise.all([
-    prisma.ticket.count(),
-    prisma.ticket.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS'] } } }),
     prisma.oficio.count(),
+    prisma.oficio.count({
+      where: { status: { in: ['DRAFT', 'SENT', 'RECEIVED', 'IN_PROCESS'] } },
+    }),
     prisma.equipment.count(),
     prisma.equipment.count({ where: { status: 'AVAILABLE' } }),
-    prisma.timeEntry.count({ where: { date: { gte: today } } }),
-    prisma.user.count({ where: { isActive: true } }),
+    prisma.equipmentAssignment.count({ where: { status: 'ACTIVE' } }),
     prisma.purchaseRequest.count({ where: { status: 'PENDING' } }),
+    prisma.user.count({ where: { isActive: true } }),
   ]);
 
   return {
-    totalTickets,
-    openTickets,
     totalOficios,
+    inProcessOficios,
     totalEquipment,
     availableEquipment,
-    todayEntries,
-    activeUsers,
+    activeAssignments,
     pendingPurchases,
+    activeUsers,
   };
+}
+
+async function getRecentOficios(): Promise<DashboardRecentOficio[]> {
+  return prisma.oficio.findMany({
+    take: 5,
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      number: true,
+      subject: true,
+      status: true,
+      type: true,
+      createdAt: true,
+    },
+  });
 }
 
 export default async function DashboardPage() {
   const { user } = await requireSession();
-  const stats = await getDashboardStats();
+  const [stats, recentOficios] = await Promise.all([
+    getDashboardStats(),
+    getRecentOficios(),
+  ]);
 
   return (
     <MainLayout user={user}>
-      <DashboardContent stats={stats} userName={user.firstName} />
+      <DashboardContent
+        stats={stats}
+        userName={user.firstName}
+        role={user.role}
+        recentOficios={recentOficios}
+      />
     </MainLayout>
   );
 }

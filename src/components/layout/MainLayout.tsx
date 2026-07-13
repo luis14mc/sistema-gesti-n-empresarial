@@ -8,10 +8,12 @@ import {
   FileText,
   Monitor,
   Users,
+  Contact,
   Settings,
   Menu,
   LogOut,
   ChevronLeft,
+  ChevronDown,
   ClipboardList,
   ShoppingCart,
   ClipboardCheck,
@@ -29,17 +31,34 @@ import type { SessionUser, Role } from '@/types';
 
 // ── NAV ITEMS ─────────────────────────────────────────────────
 
+interface NavSubItem {
+  label: string;
+  href: string;
+}
+
 interface NavItem {
   label: string;
   href: string;
   icon: typeof LayoutDashboard;
   module: Module;
+  children?: NavSubItem[];
 }
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard',    href: '/dashboard',     icon: LayoutDashboard, module: 'dashboard' },
-  { label: 'Oficios',      href: '/oficios',       icon: FileText,        module: 'oficios' },
+  {
+    label: 'Oficios',
+    href: '/oficios/internos',
+    icon: FileText,
+    module: 'oficios',
+    children: [
+      { label: 'Internos', href: '/oficios/internos' },
+      { label: 'CNI', href: '/oficios/cni' },
+      { label: 'Despacho', href: '/oficios/despacho' },
+    ],
+  },
   { label: 'Equipos',      href: '/equipment',     icon: Monitor,         module: 'equipment' },
+  { label: 'Empleados',    href: '/employees',     icon: Contact,         module: 'employees' },
   { label: 'Asignaciones', href: '/assignments',   icon: ClipboardList,   module: 'assignments' },
   { label: 'Compras',      href: '/purchases',     icon: ShoppingCart,    module: 'purchases' },
   { label: 'Auditoría',    href: '/audit-records', icon: ClipboardCheck,  module: 'audit-records' },
@@ -59,15 +78,87 @@ function SidebarNav({
   onNavClick?: () => void;
 }) {
   const pathname = usePathname();
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
   const filteredItems = NAV_ITEMS.filter((item) =>
     hasModuleAccess(role, item.module)
   );
 
+  useEffect(() => {
+    NAV_ITEMS.filter((item) => hasModuleAccess(role, item.module)).forEach((item) => {
+      if (!item.children) return;
+      const isGroupActive = item.children.some(
+        (child) => pathname === child.href || pathname.startsWith(child.href + '/')
+      );
+      if (isGroupActive) {
+        setExpandedMenus((prev) => ({ ...prev, [item.href]: true }));
+      }
+    });
+  }, [pathname, role]);
+
+  const toggleMenu = (href: string) => {
+    setExpandedMenus((prev) => ({ ...prev, [href]: !prev[href] }));
+  };
+
   return (
     <nav className="flex flex-col gap-1 px-3">
       {filteredItems.map((item) => {
-        const isActive =
-          pathname === item.href || pathname.startsWith(item.href + '/');
+        const hasChildren = Boolean(item.children?.length);
+        const isGroupActive = hasChildren
+          ? item.children!.some(
+              (child) => pathname === child.href || pathname.startsWith(child.href + '/')
+            )
+          : pathname === item.href || pathname.startsWith(item.href + '/');
+        const isExpanded = hasChildren && (expandedMenus[item.href] ?? isGroupActive);
+
+        if (hasChildren && !collapsed) {
+          return (
+            <div key={item.href} className="flex flex-col gap-0.5">
+              <button
+                type="button"
+                onClick={() => toggleMenu(item.href)}
+                className={cn(
+                  'flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                  isGroupActive
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                )}
+              >
+                <item.icon className="h-5 w-5 shrink-0" />
+                <span className="truncate flex-1 text-left">{item.label}</span>
+                <ChevronDown
+                  className={cn(
+                    'h-4 w-4 shrink-0 transition-transform',
+                    isExpanded && 'rotate-180'
+                  )}
+                />
+              </button>
+              {isExpanded && (
+                <div className="ml-4 flex flex-col gap-0.5 border-l border-border/60 pl-2">
+                  {item.children!.map((child) => {
+                    const isChildActive =
+                      pathname === child.href || pathname.startsWith(child.href + '/');
+                    return (
+                      <Link
+                        key={child.href}
+                        href={child.href}
+                        onClick={onNavClick}
+                        className={cn(
+                          'flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors',
+                          isChildActive
+                            ? 'bg-primary text-primary-foreground shadow-sm font-medium'
+                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        )}
+                      >
+                        <span className="truncate">{child.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        }
+
         return (
           <Link
             key={item.href}
@@ -75,7 +166,7 @@ function SidebarNav({
             onClick={onNavClick}
             className={cn(
               'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-              isActive
+              isGroupActive
                 ? 'bg-primary text-primary-foreground shadow-sm'
                 : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
             )}

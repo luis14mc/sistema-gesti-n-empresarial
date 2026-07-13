@@ -10,10 +10,12 @@ export type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED' | 'CAN
 export type TicketPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
 export type OficioType = 'INCOMING' | 'OUTGOING' | 'INTERNAL_MEMO';
+export type OficioScope = 'INTERNO' | 'CNI' | 'DESPACHO';
+export type OficioDirection = 'INCOMING' | 'OUTGOING' | 'INTERNAL_MEMO';
 
 export type AttendanceStatus = 'ON_TIME' | 'LATE' | 'ABSENT' | 'EXCUSED';
 
-export type EquipmentStatus = 'AVAILABLE' | 'ASSIGNED' | 'IN_MAINTENANCE' | 'DAMAGED' | 'RETIRED';
+export type EquipmentStatus = 'AVAILABLE' | 'ASSIGNED' | 'IN_MAINTENANCE' | 'DAMAGED' | 'RETIRED' | 'LOST';
 
 export type MovementType = 'EXIT' | 'RETURN';
 
@@ -59,6 +61,7 @@ export const EQUIPMENT_STATUS_LABELS: Record<EquipmentStatus, string> = {
   IN_MAINTENANCE: 'En Mantenimiento',
   DAMAGED: 'Dañado',
   RETIRED: 'Dado de Baja',
+  LOST: 'Extraviado',
 };
 
 // ── Usuario de sesión (serializable, sin password) ────────────
@@ -90,14 +93,22 @@ export interface ActionResult<T = unknown> {
 // ── Dashboard ─────────────────────────────────────────────────
 
 export interface DashboardStats {
-  totalTickets: number;
-  openTickets: number;
   totalOficios: number;
+  inProcessOficios: number;
   totalEquipment: number;
   availableEquipment: number;
-  todayEntries: number;
-  activeUsers: number;
+  activeAssignments: number;
   pendingPurchases: number;
+  activeUsers: number;
+}
+
+export interface DashboardRecentOficio {
+  id: string;
+  number: string;
+  subject: string;
+  status: string;
+  type: string;
+  createdAt: Date;
 }
 
 // ── Modelos serializados (para Client Components) ─────────────
@@ -157,27 +168,37 @@ export interface Ticket {
   assignedTo?: Pick<User, 'id' | 'firstName' | 'lastName'> | null;
 }
 
+export interface OficioAttachment {
+  url: string;
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  uploadedAt: string;
+}
+
 export interface Oficio {
   id: string;
   number: string;
   type: OficioType;
+  scope?: OficioScope | string | null;
   subject: string;
-  content: string;
+  recipient?: string | null;
+  institution?: string | null;
+  preparedBy?: string | null;
+  content?: string;
   status: string;
-  attachmentUrl: string | null;
-  deletedAt: string | null;
-  attachments: unknown;
-  comments: string | null;
-  externalRecipient: string | null;
-  recipientId: string | null;
+  attachmentUrl?: string | null;
+  deletedAt?: string | null;
+  attachments: OficioAttachment[] | unknown;
+  comments?: string | null;
   oficioDate: string;
-  receivedDate: string | null;
-  sentDate: string | null;
+  receivedDate?: string | null;
+  sentDate?: string | null;
   createdById: string;
   createdAt: string;
   updatedAt: string;
   createdBy?: Pick<User, 'id' | 'firstName' | 'lastName'>;
-  recipient?: Pick<User, 'id' | 'firstName' | 'lastName'> | null;
 }
 
 export interface TimeEntry {
@@ -200,15 +221,18 @@ export interface TimeEntry {
 export interface Equipment {
   id: string;
   code: string;
+  assetCode?: string;
   inventoryCode: string;
   name: string;
   type: string;
+  category?: string;
+  categoryLabel?: string;
   brand: string;
   model: string;
-  serialNumber: string;
+  serialNumber: string | null;
   status: EquipmentStatus;
   description: string | null;
-  purchaseDate: string;
+  purchaseDate: string | null;
   purchaseCost: number | null;
   warrantyDate: string | null;
   depreciationDate: string | null;
@@ -216,6 +240,10 @@ export interface Equipment {
   processor: string | null;
   storage: string | null;
   os: string | null;
+  location?: string | null;
+  notes?: string | null;
+  assignedTo?: string | null;
+  assignedDepartment?: string | null;
   retirementReason: string | null;
   retiredAt: string | null;
   deletedAt: string | null;
@@ -223,22 +251,67 @@ export interface Equipment {
   updatedAt: string;
   assignments?: EquipmentAssignment[];
   maintenances?: EquipmentMaintenance[];
+  history?: EquipmentHistoryEntry[];
+}
+
+export interface EquipmentHistoryEntry {
+  id: string;
+  equipmentId: string;
+  action: string;
+  title: string;
+  description: string | null;
+  previousData?: Record<string, unknown> | null;
+  newData?: Record<string, unknown> | null;
+  performedById: string | null;
+  createdAt: string;
+}
+
+export interface Employee {
+  id: string;
+  employeeCode: string | null;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  dni: string | null;
+  departmentId: string | null;
+  positionId: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  department?: { id: string; name: string } | null;
+  position?: { id: string; name: string } | null;
+  assignments?: EquipmentAssignment[];
 }
 
 export interface EquipmentAssignment {
   id: string;
   equipmentId: string;
-  userId: string;
+  employeeId?: string | null;
+  userId?: string | null;
   status: string;
   condition: string | null;
   assignedDate: string;
   returnedDate: string | null;
   departmentAtTime: string | null;
   positionAtTime: string | null;
+  employeeNameAtTime?: string | null;
+  employeeEmailAtTime?: string | null;
+  assigneeName?: string | null;
+  assigneeEmail?: string | null;
+  deliveryReason?: string | null;
+  returnReason?: string | null;
+  returnCondition?: string | null;
+  assignmentNotes?: string | null;
+  returnNotes?: string | null;
   notes: string | null;
   urlNotaPdf: string | null;
+  deliveryDocumentUrl?: string | null;
+  returnDocumentUrl?: string | null;
   equipment?: Equipment;
-  user?: Pick<User, 'id' | 'firstName' | 'lastName'>;
+  user?: Pick<User, 'id' | 'firstName' | 'lastName' | 'email'>;
+  employee?: Pick<Employee, 'id' | 'fullName' | 'email' | 'department' | 'position'>;
 }
 
 export interface PromotionalItem {
@@ -356,7 +429,7 @@ export type TicketCategory = string;
 export type OficioStatus = string;
 export type EntryType = 'CHECK_IN' | 'CHECK_OUT' | 'BREAK_START' | 'BREAK_END';
 export type EquipmentType = string;
-export type AssignmentStatus = 'ACTIVE' | 'RETURNED' | 'CANCELLED';
+export type AssignmentStatus = 'ACTIVE' | 'RETURNED' | 'REPLACED' | 'LOST' | 'CANCELLED';
 export type MaintenanceType = 'PREVENTIVE' | 'CORRECTIVE' | 'UPDATE';
 export type MaintenanceStatus = 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 export type PurchaseCategory = string;
@@ -417,16 +490,30 @@ export interface UpdateTicketData extends Partial<CreateTicketData> {
 }
 
 export interface CreateOficioData {
+  number?: string;
+  externalNumber?: string;
+  scope: OficioScope;
+  direction: OficioDirection;
+  recipient: string;
+  institution: string;
   subject: string;
-  content: string;
-  type: OficioType;
-  recipientId?: string;
-  externalRecipient?: string;
-  attachmentUrl: string;
+  preparedBy: string;
+  oficioDate: string;
+  receivedDate?: string;
+  sentDate?: string;
+  attachments: OficioAttachment[];
 }
 
-export interface UpdateOficioData extends Partial<CreateOficioData> {
+export interface UpdateOficioData {
+  subject?: string;
+  recipient?: string;
+  institution?: string;
+  preparedBy?: string;
   status?: string;
+  attachments?: OficioAttachment[];
+  oficioDate?: string;
+  receivedDate?: string;
+  sentDate?: string;
 }
 
 export interface CreateTimeEntryData {
@@ -440,6 +527,8 @@ export interface CreateTimeEntryData {
 export interface CreateEquipmentData {
   code?: string;
   inventoryCode?: string;
+  assetCode?: string;
+  category?: string;
   name?: string;
   type: string;
   brand?: string;
@@ -448,6 +537,11 @@ export interface CreateEquipmentData {
   purchaseDate?: string;
   purchaseCost?: number;
   description?: string;
+  notes?: string;
+  ram?: string;
+  processor?: string;
+  storage?: string;
+  os?: string;
 }
 
 export interface UpdateEquipmentData extends Partial<CreateEquipmentData> {
@@ -495,6 +589,8 @@ export interface OficioFilters extends PaginationParams {
   search?: string;
   status?: string;
   type?: OficioType;
+  scope?: OficioScope;
+  direction?: OficioDirection;
 }
 
 export interface TimeEntryFilters extends PaginationParams {
@@ -525,6 +621,7 @@ export interface AssignmentFilters extends PaginationParams {
   status?: string;
   equipmentId?: string;
   userId?: string;
+  employeeId?: string;
 }
 
 // ── Data types para mutaciones ────────────────────────────────
@@ -604,14 +701,71 @@ export interface UpdateUserData {
 
 export interface CreateAssignmentData {
   equipmentId: string;
-  userId: string;
+  employeeId?: string;
+  userId?: string;
+  deliveryReason?: string;
   condition?: string;
+  accessories?: string;
+  assignmentNotes?: string;
   notes?: string;
 }
 
 export interface ReturnAssignmentData {
   returnCondition?: string;
+  returnReason?: string;
+  returnNotes?: string;
   notes?: string;
+  equipmentStatusAfter?: EquipmentStatus;
+  accessoriesReturned?: string;
+}
+
+export interface SwapEquipmentData {
+  oldAssignmentId: string;
+  newEquipmentId: string;
+  employeeId?: string;
+  userId?: string;
+  returnReason?: string;
+  returnCondition?: string;
+  equipmentStatusAfter?: EquipmentStatus;
+  deliveryReason?: string;
+  assignmentNotes?: string;
+  accessories?: string;
+}
+
+export interface CreateEmployeeData {
+  employeeCode?: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  dni?: string;
+  departmentId?: string;
+  positionId?: string;
+}
+
+export interface UpdateEmployeeData extends Partial<CreateEmployeeData> {
+  isActive?: boolean;
+}
+
+export interface EmployeeFilters extends PaginationParams {
+  search?: string;
+  departmentId?: string;
+  isActive?: boolean;
+}
+
+export interface EquipmentStats {
+  total: number;
+  available: number;
+  assigned: number;
+  inMaintenance: number;
+  damaged: number;
+  retired: number;
+  lost: number;
+  withoutSerial: number;
+  warrantyExpiring: number;
+  unassigned: number;
+  byCategory: { category: string; label: string; count: number }[];
+  byDepartment: { department: string; count: number }[];
 }
 
 // ── Tipos legacy de Auditoría ─────────────────────────────────
