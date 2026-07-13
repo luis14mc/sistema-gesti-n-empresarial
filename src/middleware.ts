@@ -8,10 +8,8 @@ type Role = 'ADMIN' | 'USER' | 'RRHH' | 'IT';
 
 const TOKEN_COOKIE = 'token';
 
-// Rutas legacy fuera del alcance funcional actual.
-const DISABLED_ROUTES = ['/tickets', '/inventory', '/time-entries'];
-
 // Rutas protegidas y qué roles las pueden acceder (null = cualquier rol autenticado)
+// Sprint 1: Módulos tickets/inventory/time-entries deprecados en frontend — eliminados del sidebar.
 const ROUTE_ACCESS: Record<string, Role[] | null> = {
   '/dashboard':      null,
   '/oficios':        null,
@@ -71,19 +69,9 @@ function matchRoute(pathname: string): { prefix: string; roles: Role[] | null } 
   return null;
 }
 
-function isDisabledRoute(pathname: string): boolean {
-  return DISABLED_ROUTES.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
-  );
-}
-
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(TOKEN_COOKIE)?.value;
-
-  if (isDisabledRoute(pathname)) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
-  }
 
   const routeMatch = matchRoute(pathname);
   const isAuthRoute = AUTH_ROUTES.some(

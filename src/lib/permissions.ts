@@ -3,17 +3,15 @@ import { type Role } from '@/types';
 // ============================================
 // RBAC — Permisos basados en rol
 // Roles: ADMIN, USER, RRHH, IT
+// Sprint 1: tickets/inventory/time-entries deprecados
 // ============================================
 
 export type Module =
   | 'dashboard'
-  // Módulos legacy deshabilitados: se mantienen en el tipo para no romper imports existentes.
-  | 'tickets'
-  | 'inventory'
-  | 'time-entries'
   | 'oficios'
   | 'equipment'
   | 'assignments'
+  | 'employees'
   | 'users'
   | 'purchases'
   | 'audit-records'
@@ -27,6 +25,7 @@ const PERMISSIONS: Record<Role, Partial<Record<Module, Action[]>>> = {
     oficios:         ['read', 'create', 'update', 'delete'],
     equipment:       ['read', 'create', 'update', 'delete'],
     assignments:     ['read', 'create', 'update', 'delete'],
+    employees:       ['read', 'create', 'update', 'delete'],
     purchases:       ['read', 'create', 'update', 'delete'],
     users:           ['read', 'create', 'update', 'delete'],
     'audit-records': ['read', 'create', 'update', 'delete'],
@@ -37,6 +36,7 @@ const PERMISSIONS: Record<Role, Partial<Record<Module, Action[]>>> = {
     dashboard:       ['read'],
     equipment:       ['read', 'create', 'update'],
     assignments:     ['read', 'create', 'update'],
+    employees:       ['read', 'create', 'update'],
     purchases:       ['read', 'create'],
     'audit-records': ['read'],
   },
@@ -44,6 +44,7 @@ const PERMISSIONS: Record<Role, Partial<Record<Module, Action[]>>> = {
   RRHH: {
     dashboard:       ['read'],
     users:           ['read', 'create', 'update'],
+    employees:       ['read', 'create', 'update'],
     oficios:         ['read', 'create', 'update'],
     purchases:       ['read', 'create'],
     'audit-records': ['read'],
