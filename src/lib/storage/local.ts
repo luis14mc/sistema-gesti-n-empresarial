@@ -57,8 +57,9 @@ export class LocalStorageAdapter implements StorageAdapter {
     const absolutePath = path.join(absoluteDir, desired);
     await writeFile(absolutePath, input.buffer);
 
-    const url = `/${path.join(relativeDir, desired).replace(/\\/g, '/')}`;
-    const key = `${input.prefix}/${year}/${month}/${desired}`;
+    const relativePath = path.join(relativeDir, desired).replace(/\\/g, '/');
+    const url = `/${relativePath}`;
+    const key = relativePath;
 
     return {
       key,
