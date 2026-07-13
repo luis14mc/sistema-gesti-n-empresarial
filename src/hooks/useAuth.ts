@@ -143,6 +143,11 @@ export function useAuth() {
     router.push('/login');
   }, [storeLogout, queryClient, router]);
 
+  // Refrescar manualmente la query de /me tras updateProfile, etc.
+  const refresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: authKeys.me() });
+  }, [queryClient]);
+
   // ========================================
   // RETURN
   // ========================================
@@ -176,6 +181,7 @@ export function useAuth() {
     register: registerMutation.mutate,
     registerAsync: registerMutation.mutateAsync,
     logout,
+    refresh,
 
     // --- Reset de errores ---
     resetLoginError: loginMutation.reset,

@@ -16,6 +16,20 @@ export interface MeResponse {
   user: User;
 }
 
+/** Payload para editar el perfil propio */
+export interface UpdateProfilePayload {
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  email?: string;
+}
+
+/** Payload para cambio de contraseña */
+export interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+}
+
 export const authService = {
   /** Iniciar sesión → { user, token } */
   login: (credentials: LoginCredentials) =>
@@ -27,4 +41,12 @@ export const authService = {
 
   /** Obtener usuario autenticado actual → { user } */
   me: () => apiHelpers.get<MeResponse>(`${BASE}/me`),
+
+  /** Actualizar perfil propio → { user } */
+  updateProfile: (payload: UpdateProfilePayload) =>
+    apiHelpers.patch<MeResponse>(`${BASE}/me`, payload),
+
+  /** Cambiar contraseña propia → { success: true } */
+  changePassword: (payload: ChangePasswordPayload) =>
+    apiHelpers.post<{ success: boolean }>(`${BASE}/password`, payload),
 };
