@@ -1,25 +1,21 @@
 import { prisma } from '@/lib/prisma';
 
-export function formatCompraCodigo(sequence: number, year: number): string {
-  return `SC-${sequence.toString().padStart(4, '0')}-${year}`;
-}
-
-export async function generateCompraCodigo(fechaSolicitud: Date): Promise<string> {
-  const year = fechaSolicitud.getFullYear();
+export async function generateCompraNumero(): Promise<string> {
+  const year = new Date().getFullYear();
   const prefix = `SC-`;
   const suffix = `-${year}`;
 
-  const latest = await prisma.compraSolicitud.findFirst({
-    where: { codigoSolicitud: { endsWith: suffix } },
-    orderBy: { codigoSolicitud: 'desc' },
-    select: { codigoSolicitud: true },
+  const last = await prisma.compraSolicitud.findFirst({
+    where: { numero: { endsWith: suffix } },
+    orderBy: { numero: 'desc' },
+    select: { numero: true },
   });
 
-  let next = 1;
-  if (latest?.codigoSolicitud) {
-    const match = latest.codigoSolicitud.match(/SC-(\d{4})-/);
-    if (match) next = Number.parseInt(match[1], 10) + 1;
+  let seq = 1;
+  if (last?.numero) {
+    const match = last.numero.match(/SC-(\d+)-/);
+    if (match) seq = Number.parseInt(match[1], 10) + 1;
   }
 
-  return formatCompraCodigo(next, year);
+  return `${prefix}${String(seq).padStart(4, '0')}${suffix}`;
 }

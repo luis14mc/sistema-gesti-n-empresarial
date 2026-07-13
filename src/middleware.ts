@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { routeToAccess } from '@/lib/permissions';
+import { isDeprecatedFrontendPath } from '@/lib/deprecated-api';
 
 // ============================================
 // NEXT.JS MIDDLEWARE — Protección de rutas + RBAC + CSP nonce
@@ -125,9 +126,15 @@ function applySecurityHeaders(response: NextResponse, nonce: string): void {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-
-  // Generar nonce único por request para CSP
   const nonce = generateNonce();
+
+  // Rutas frontend legacy fuera de alcance → dashboard
+  if (isDeprecatedFrontendPath(pathname)) {
+    const res = NextResponse.redirect(new URL('/dashboard', request.url));
+    applySecurityHeaders(res, nonce);
+    return res;
+  }
+
   const requestHeaders = new Headers(request.headers);
   applyCspToRequest(requestHeaders, nonce);
 

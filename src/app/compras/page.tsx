@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/table';
 import { Pagination } from '@/components/shared/Pagination';
 import { CompraStatusBadge } from '@/components/compras/CompraStatusBadge';
-import { CompraDocumentoBadge } from '@/components/compras/CompraDocumentoBadge';
 import { useComprasSolicitudes } from '@/hooks/useCompras';
 import { useAuth } from '@/hooks/useAuth';
 import { useState } from 'react';
@@ -22,15 +21,19 @@ export default function ComprasPage() {
   const { user } = useAuth();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const { solicitudes, totalPages, isLoading } = useComprasSolicitudes({ page, pageSize: 10, search: search || undefined });
+  const { solicitudes, totalPages, isLoading } = useComprasSolicitudes({
+    page,
+    pageSize: 10,
+    search: search || undefined,
+  });
 
   if (!user) return null;
 
   return (
     <MainLayout>
       <PageHeader
-        title="Solicitudes de Compra"
-        description="Solicitud y Orden de Compra — Bienes y Servicios"
+        title="Solicitudes y Órdenes de Compra"
+        description="Ficha digital — Borrador → Autorización → Aprobación → Orden → Recepción"
       >
         <Button asChild>
           <Link href="/compras/nueva"><Plus className="h-4 w-4 mr-2" /> Nueva solicitud</Link>
@@ -40,7 +43,7 @@ export default function ComprasPage() {
       <Card className="mb-4">
         <CardContent className="pt-6">
           <Input
-            placeholder="Buscar por código, justificación o proveedor..."
+            placeholder="Buscar por número, proveedor o justificación..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
@@ -52,12 +55,12 @@ export default function ComprasPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Código</TableHead>
+                <TableHead>Número</TableHead>
+                <TableHead>Proveedor</TableHead>
                 <TableHead>Fecha</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Prioridad</TableHead>
                 <TableHead>Estado</TableHead>
-                <TableHead>Documento</TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead />
               </TableRow>
@@ -69,21 +72,16 @@ export default function ComprasPage() {
                 <TableRow><TableCell colSpan={8}>No hay solicitudes registradas.</TableCell></TableRow>
               ) : solicitudes.map((s) => (
                 <TableRow key={s.id}>
-                  <TableCell className="font-medium">{s.codigoSolicitud}</TableCell>
+                  <TableCell className="font-medium">{s.numero}</TableCell>
+                  <TableCell>{s.proveedorNombre ?? '—'}</TableCell>
                   <TableCell>{new Date(s.fechaSolicitud).toLocaleDateString('es-HN')}</TableCell>
                   <TableCell>{COMPRA_TIPO_LABELS[s.tipoCompra]}</TableCell>
                   <TableCell>{COMPRA_PRIORIDAD_LABELS[s.prioridad]}</TableCell>
                   <TableCell><CompraStatusBadge estado={s.estado} /></TableCell>
-                  <TableCell>
-                    <CompraDocumentoBadge
-                      estado={
-                        s.documentoEstado ??
-                        (s.documentos?.some((d) => d.activo) ? 'generado' : 'pendiente')
-                      }
-                    />
-                  </TableCell>
-                  <TableCell className="text-right">L. {s.total.toFixed(2)}</TableCell>
                   <TableCell className="text-right">
+                    L. {s.total.toLocaleString('es-HN', { minimumFractionDigits: 2 })}
+                  </TableCell>
+                  <TableCell>
                     <Button variant="ghost" size="sm" asChild>
                       <Link href={`/compras/${s.id}`}><Eye className="h-4 w-4" /></Link>
                     </Button>

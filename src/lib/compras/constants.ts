@@ -3,14 +3,13 @@ import type {
   CompraFormaPago,
   CompraPrioridad,
   CompraTipo,
-  CompraTipoAdjunto,
   CompraUnidad,
 } from '@prisma/client';
 
 export const COMPRA_TIPO_LABELS: Record<CompraTipo, string> = {
   BIENES: 'Bienes',
   SERVICIOS: 'Servicios',
-  BIENES_SERVICIOS: 'Bienes y servicios',
+  BIENES_SERVICIOS: 'Bienes y Servicios',
 };
 
 export const COMPRA_PRIORIDAD_LABELS: Record<CompraPrioridad, string> = {
@@ -24,7 +23,7 @@ export const COMPRA_FORMA_PAGO_LABELS: Record<CompraFormaPago, string> = {
   CONTADO: 'Contado',
   CREDITO: 'Crédito',
   ANTICIPO: 'Anticipo',
-  CONTRA_ENTREGA: 'Contra entrega',
+  CONTRA_ENTREGA: 'Contra Entrega',
 };
 
 export const COMPRA_UNIDAD_LABELS: Record<CompraUnidad, string> = {
@@ -41,35 +40,20 @@ export const COMPRA_UNIDAD_LABELS: Record<CompraUnidad, string> = {
 export const COMPRA_ESTADO_LABELS: Record<CompraEstado, string> = {
   BORRADOR: 'Borrador',
   ENVIADA: 'Enviada',
-  PENDIENTE_AUTORIZACION_JEFE: 'Pendiente autorización jefe',
-  AUTORIZADA_JEFE: 'Autorizada por jefe',
-  RECHAZADA_JEFE: 'Rechazada por jefe',
-  PENDIENTE_APROBACION_GERENCIA: 'Pendiente aprobación gerencia',
-  APROBADA_GERENCIA: 'Aprobada por gerencia',
-  RECHAZADA_GERENCIA: 'Rechazada por gerencia',
-  PENDIENTE_COMPRAS: 'Pendiente compras',
+  AUTORIZADA: 'Autorizada',
+  APROBADA: 'Aprobada',
+  RECHAZADA: 'Rechazada',
   ORDEN_EMITIDA: 'Orden emitida',
   RECIBIDA: 'Recibida',
   CERRADA: 'Cerrada',
   ANULADA: 'Anulada',
 };
 
-export const COMPRA_ADJUNTO_LABELS: Record<CompraTipoAdjunto, string> = {
-  COTIZACION: 'Cotización',
-  FACTURA: 'Factura',
-  PROFORMA: 'Proforma',
-  CORREO_AUTORIZACION: 'Correo de autorización',
-  SOPORTE_TECNICO: 'Soporte técnico',
-  OTRO: 'Otro',
-};
-
-export const COMPRA_ESTADOS_TERMINALES: CompraEstado[] = [
-  'RECHAZADA_JEFE',
-  'RECHAZADA_GERENCIA',
-  'CERRADA',
-  'ANULADA',
-];
-
-export const COMPRA_ESTADOS_EDITABLES: CompraEstado[] = ['BORRADOR'];
+export const COMPRA_NOTA_IMPORTANTE = `Esta orden de compra es válida únicamente con las firmas autorizadas correspondientes.
+El proveedor debe confirmar la recepción de esta orden dentro de las 24 horas siguientes.
+Cualquier modificación a esta orden debe ser autorizada por escrito por el área de compras.
+La factura debe emitirse con los datos fiscales de la empresa y entregarse junto con la mercancía o al finalizar el servicio.`;
 
 export const COMPRA_IMPUESTO_TASA = 0.15;
+
+export const COMPRA_ESTADOS_EDITABLES: CompraEstado[] = ['BORRADOR'];

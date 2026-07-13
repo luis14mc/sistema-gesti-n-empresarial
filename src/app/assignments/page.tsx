@@ -555,7 +555,7 @@ export default function AssignmentsPage() {
                     )}
                     {returnedForNote && (
                         <EquipmentFileUpload
-                            subfolder="returns"
+                            tipoDocumento="ACTA_DEVOLUCION"
                             label="Subir formato firmado"
                             onUploaded={async (url) => {
                                 await attachDocument({ id: returnedForNote.id, documentType: 'return', documentUrl: url });

@@ -1,37 +1,23 @@
-let browserPromise: Promise<import('puppeteer').Browser> | null = null;
-
-async function getBrowser() {
-  if (!browserPromise) {
-    const puppeteer = await import('puppeteer');
-    browserPromise = puppeteer.default.launch({
-      headless: true,
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-    });
-  }
-  return browserPromise;
-}
+import puppeteer from 'puppeteer';
 
 export async function renderHtmlToPdf(html: string): Promise<Buffer> {
-  const browser = await getBrowser();
-  const page = await browser.newPage();
+  const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+  const browser = await puppeteer.launch({
+    headless: true,
+    executablePath: executablePath || undefined,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+
   try {
+    const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'load' });
     const pdf = await page.pdf({
       format: 'letter',
       printBackground: true,
-      margin: { top: '12mm', right: '10mm', bottom: '12mm', left: '10mm' },
+      margin: { top: '18mm', right: '14mm', bottom: '18mm', left: '14mm' },
     });
     return Buffer.from(pdf);
   } finally {
-    await page.close();
-  }
-}
-
-export async function closePdfBrowser(): Promise<void> {
-  if (browserPromise) {
-    const browser = await browserPromise;
     await browser.close();
-    browserPromise = null;
   }
 }

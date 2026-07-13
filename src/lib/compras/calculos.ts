@@ -1,43 +1,22 @@
 import { COMPRA_IMPUESTO_TASA } from './constants';
 
-export interface CompraItemCalculoInput {
-  cantidad: number;
-  precioUnitario: number;
+export function calcularLineaTotal(cantidad: number, precioUnitario: number): number {
+  return Math.round(cantidad * precioUnitario * 100) / 100;
 }
 
-export interface CompraTotalesInput {
-  items: CompraItemCalculoInput[];
+export function calcularTotalesCompra(params: {
+  items: Array<{ cantidad: number; precioUnitario: number }>;
   descuento?: number;
   impuestoTasa?: number;
-}
-
-export interface CompraTotalesResult {
-  subtotal: number;
-  descuento: number;
-  impuesto: number;
-  total: number;
-  lineTotals: number[];
-}
-
-export function calcularLineaTotal(cantidad: number, precioUnitario: number): number {
-  return roundMoney(cantidad * precioUnitario);
-}
-
-export function calcularTotalesCompra(input: CompraTotalesInput): CompraTotalesResult {
-  const descuento = input.descuento ?? 0;
-  const impuestoTasa = input.impuestoTasa ?? COMPRA_IMPUESTO_TASA;
-
-  const lineTotals = input.items.map((item) =>
+}) {
+  const lineTotals = params.items.map((item) =>
     calcularLineaTotal(item.cantidad, item.precioUnitario)
   );
-  const subtotal = roundMoney(lineTotals.reduce((sum, value) => sum + value, 0));
-  const baseImponible = Math.max(subtotal - descuento, 0);
-  const impuesto = roundMoney(baseImponible * impuestoTasa);
-  const total = roundMoney(baseImponible + impuesto);
-
-  return { subtotal, descuento, impuesto, total, lineTotals };
-}
-
-export function roundMoney(value: number): number {
-  return Math.round(value * 100) / 100;
+  const subtotal = Math.round(lineTotals.reduce((sum, t) => sum + t, 0) * 100) / 100;
+  const descuento = Math.min(Math.max(params.descuento ?? 0, 0), subtotal);
+  const base = subtotal - descuento;
+  const tasa = params.impuestoTasa ?? COMPRA_IMPUESTO_TASA;
+  const impuesto = Math.round(base * tasa * 100) / 100;
+  const total = Math.round((base + impuesto) * 100) / 100;
+  return { lineTotals, subtotal, descuento, impuesto, total };
 }

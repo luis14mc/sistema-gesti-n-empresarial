@@ -1,12 +1,18 @@
 /**
  * Almacenamiento de documentos de Equipos TI.
- * SPRINT 1: usa StorageAdapter (Local en dev, S3 en prod).
+ * Usa StorageAdapter (Local en dev, S3 en prod).
  */
 
 import { sanitizeOriginalName, validateEquipmentUploadFile } from '@/lib/equipment-attachments';
+import {
+  equipmentDocumentStoragePrefix,
+  resolveEquipmentDocumentType,
+  type EquipmentDocumentType,
+} from '@/lib/equipment-document-types';
 import { getStorage } from '@/lib/storage';
 
 export interface EquipmentDocumentMeta {
+  tipoDocumento: EquipmentDocumentType;
   url: string;
   filename: string;
   originalName: string;
@@ -17,8 +23,12 @@ export interface EquipmentDocumentMeta {
 
 export async function saveEquipmentDocument(
   file: File,
-  subfolder: 'assignments' | 'returns' | 'maintenance' | 'general' = 'general'
+  options: {
+    tipoDocumento?: string | null;
+    subfolder?: string | null;
+  }
 ): Promise<EquipmentDocumentMeta> {
+  const tipoDocumento = resolveEquipmentDocumentType(options);
   const originalName = sanitizeOriginalName(file.name);
   const { extension, mimeType } = validateEquipmentUploadFile({
     name: file.name,
@@ -33,7 +43,7 @@ export async function saveEquipmentDocument(
   const desiredName = file.name.replace(/[^a-zA-Z0-9-_.]/g, '_').replace(/\s+/g, '_');
 
   const stored = await storage.put({
-    prefix: `equipment/${subfolder}`,
+    prefix: equipmentDocumentStoragePrefix(tipoDocumento),
     originalName: `${baseName}${extension}`,
     mimeType,
     size: file.size,
@@ -42,6 +52,7 @@ export async function saveEquipmentDocument(
   });
 
   return {
+    tipoDocumento,
     url: stored.url,
     filename: stored.filename,
     originalName,

@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server';
-import type { CompraTipoAdjunto } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
 import { canAccess } from '@/lib/permissions';
 import type { Role } from '@/types';
 import { saveCompraDocument } from '@/lib/compras/storage';
-import { logCompraAudit } from '@/lib/compras/audit';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -22,7 +20,7 @@ async function postHandler(req: AuthenticatedRequest, context: RouteContext) {
 
     const formData = await req.formData();
     const file = formData.get('file');
-    const tipoAdjunto = (formData.get('tipoAdjunto') as CompraTipoAdjunto | null) ?? 'OTRO';
+    const tipo = (formData.get('tipo') as string | null) ?? 'SOPORTE';
 
     if (!(file instanceof File)) {
       return NextResponse.json({ error: 'Archivo requerido' }, { status: 400 });
@@ -32,7 +30,7 @@ async function postHandler(req: AuthenticatedRequest, context: RouteContext) {
     const adjunto = await prisma.compraAdjunto.create({
       data: {
         solicitudCompraId: id,
-        tipoAdjunto,
+        tipo,
         nombre: stored.nombre,
         mimeType: stored.mimeType,
         size: stored.size,
@@ -43,14 +41,6 @@ async function postHandler(req: AuthenticatedRequest, context: RouteContext) {
       include: {
         uploadedBy: { select: { id: true, firstName: true, lastName: true } },
       },
-    });
-
-    await logCompraAudit({
-      userId: req.user!.userId,
-      solicitudId: id,
-      action: 'ADJUNTO_SUBIDO',
-      detalles: `${tipoAdjunto}: ${stored.nombre}`,
-      newData: adjunto,
     });
 
     return NextResponse.json({ adjunto }, { status: 201 });

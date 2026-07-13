@@ -1,73 +1,77 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { calcularTotalesCompra } from './calculos';
-import { generateCompraCodigo } from './numbering';
-import type { CreateCompraSolicitudInput, UpdateCompraSolicitudInput } from './schemas';
-import {
-  normalizeDescuento,
-  normalizeRtn,
-  resolveDescuentoForRole,
-  validateFechas,
-} from './validation';
-import {
-  assertCompraSolicitudUpdateScope,
-  resolveCompraSolicitudScope,
-} from './scope';
+import { generateCompraNumero } from './numbering';
+import type { CreateCompraSolicitudInput, UpdateCompraSolicitudInput, BorradorCompraSolicitudInput } from './schemas';
+import { getNextEstado, type CompraWorkflowAction } from './workflow';
 import type { Role } from '@/types';
+import { construirHtmlSolicitudCompra } from './pdf-template';
+import { renderHtmlToPdf } from './pdf-renderer';
+import { getStorage } from '@/lib/storage';
 
 export const compraInclude = {
   departamentoSolicitante: { select: { id: true, name: true } },
   centroCosto: { select: { id: true, code: true, name: true } },
-  solicitadoPor: { select: { id: true, firstName: true, lastName: true, email: true, departmentId: true } },
+  solicitadoPor: {
+    select: { id: true, firstName: true, lastName: true, email: true, departmentId: true, position: { select: { name: true } } },
+  },
   proveedor: true,
   autorizadoPor: { select: { id: true, firstName: true, lastName: true } },
   aprobadoPor: { select: { id: true, firstName: true, lastName: true } },
-  emitidoPor: { select: { id: true, firstName: true, lastName: true } },
+  rechazadoPor: { select: { id: true, firstName: true, lastName: true } },
   items: { orderBy: { item: 'asc' as const } },
   adjuntos: {
-    include: {
-      uploadedBy: { select: { id: true, firstName: true, lastName: true } },
-    },
+    include: { uploadedBy: { select: { id: true, firstName: true, lastName: true } } },
     orderBy: { uploadedAt: 'desc' as const },
-  },
-  documentos: {
-    include: {
-      generadoPor: { select: { id: true, firstName: true, lastName: true } },
-    },
-    orderBy: { version: 'desc' as const },
   },
 } satisfies Prisma.CompraSolicitudInclude;
 
-function parseDate(value: string | undefined, fallback?: Date): Date {
-  if (!value) return fallback ?? new Date();
-  return new Date(value);
+async function resolveProveedorFields(data: {
+  proveedorId?: string | null;
+  proveedorNombre?: string;
+  proveedorIdentificacion?: string | null;
+  proveedorTelefono?: string | null;
+  proveedorEmail?: string | null;
+  proveedorContacto?: string | null;
+  proveedorDireccion?: string | null;
+}) {
+  if (!data.proveedorId) return data;
+  const proveedor = await prisma.proveedor.findUnique({ where: { id: data.proveedorId } });
+  if (!proveedor) return data;
+  return {
+    ...data,
+    proveedorNombre: data.proveedorNombre || proveedor.nombreRazonSocial,
+    proveedorIdentificacion: data.proveedorIdentificacion ?? proveedor.rtn,
+    proveedorTelefono: data.proveedorTelefono ?? proveedor.telefono,
+    proveedorEmail: data.proveedorEmail ?? proveedor.email,
+    proveedorContacto: data.proveedorContacto ?? proveedor.personaContacto,
+    proveedorDireccion: data.proveedorDireccion ?? proveedor.direccion,
+  };
 }
 
-export function buildItemsWithTotals(
-  items: CreateCompraSolicitudInput['items'],
-  descuento?: number
-) {
-  const subtotalPreview = items.reduce(
-    (sum, item) => sum + item.cantidad * item.precioUnitario,
-    0
-  );
-  const normalizedDescuento = normalizeDescuento(subtotalPreview, descuento);
-
+function buildItems(items: BorradorCompraSolicitudInput['items'] = [], descuento = 0) {
+  const safeItems = items.filter((i) => i.descripcion?.trim());
+  if (!safeItems.length) {
+    return {
+      mapped: [],
+      totales: { lineTotals: [], subtotal: 0, descuento: 0, impuesto: 0, total: 0 },
+    };
+  }
   const totales = calcularTotalesCompra({
-    items: items.map((item) => ({
-      cantidad: item.cantidad,
-      precioUnitario: item.precioUnitario,
+    items: safeItems.map((i) => ({
+      cantidad: i.cantidad,
+      precioUnitario: i.precioUnitario ?? 0,
     })),
-    descuento: normalizedDescuento,
+    descuento,
   });
 
-  const mapped = items.map((item, index) => ({
+  const mapped = safeItems.map((item, index) => ({
     item: item.item ?? index + 1,
     codigo: item.codigo,
     descripcion: item.descripcion,
     unidad: item.unidad,
     cantidad: item.cantidad,
-    precioUnitario: item.precioUnitario,
+    precioUnitario: item.precioUnitario ?? 0,
     total: totales.lineTotals[index],
   }));
 
@@ -75,135 +79,197 @@ export function buildItemsWithTotals(
 }
 
 export async function createCompraSolicitud(
-  data: CreateCompraSolicitudInput,
+  data: BorradorCompraSolicitudInput,
   solicitadoPorId: string,
-  role: Role = 'IT'
+  _role: Role
 ) {
-  const scoped = await resolveCompraSolicitudScope(data, solicitadoPorId, role);
-  const fechaSolicitud = parseDate(scoped.fechaSolicitud);
-  const fechaRequerida = parseDate(scoped.fechaRequerida);
-  const fechaError = validateFechas(fechaSolicitud, fechaRequerida);
-  if (fechaError) throw new Error(fechaError);
+  const numero = await generateCompraNumero();
+  const resolved = await resolveProveedorFields(data);
+  const { mapped, totales } = buildItems(data.items, data.descuento ?? 0);
 
-  const descuento = resolveDescuentoForRole(
-    scoped.items.reduce((sum, item) => sum + item.cantidad * item.precioUnitario, 0),
-    scoped.descuento,
-    role
-  );
-  const { mapped, totales } = buildItemsWithTotals(scoped.items, descuento);
-  const codigoSolicitud = await generateCompraCodigo(fechaSolicitud);
+  let departamentoId = data.departamentoSolicitanteId;
+  let cargo = data.cargoSolicitante;
+  if (!departamentoId || !cargo) {
+    const user = await prisma.user.findUnique({
+      where: { id: solicitadoPorId },
+      include: { position: { select: { name: true } } },
+    });
+    if (!departamentoId) departamentoId = user?.departmentId ?? undefined;
+    if (!cargo) cargo = user?.position?.name ?? undefined;
+  }
 
   return prisma.compraSolicitud.create({
     data: {
-      codigoSolicitud,
-      fechaSolicitud,
-      fechaRequerida,
-      departamentoSolicitanteId: scoped.departamentoSolicitanteId,
-      centroCostoId: scoped.centroCostoId,
+      numero,
+      fechaSolicitud: data.fechaSolicitud ? new Date(data.fechaSolicitud) : undefined,
+      fechaRequerida: data.fechaRequerida ? new Date(data.fechaRequerida) : null,
+      departamentoSolicitanteId: departamentoId ?? null,
+      centroCostoId: data.centroCostoId ?? null,
       solicitadoPorId,
-      cargoSolicitante: scoped.cargoSolicitante,
-      tipoCompra: scoped.tipoCompra,
-      prioridad: scoped.prioridad,
-      proveedorId: scoped.proveedorId || undefined,
-      justificacionCompra: scoped.justificacionCompra,
-      condicionesEntrega: scoped.condicionesEntrega,
-      observacionesAdicionales: scoped.observacionesAdicionales,
-      formaPago: scoped.formaPago,
-      plazoPagoDias: scoped.plazoPagoDias ?? undefined,
-      detallesPago: scoped.detallesPago,
+      cargoSolicitante: cargo ?? null,
+      tipoCompra: data.tipoCompra ?? 'BIENES',
+      prioridad: data.prioridad ?? 'NORMAL',
+      proveedorId: resolved.proveedorId ?? null,
+      proveedorNombre: resolved.proveedorNombre ?? null,
+      proveedorIdentificacion: resolved.proveedorIdentificacion ?? null,
+      proveedorTelefono: resolved.proveedorTelefono ?? null,
+      proveedorEmail: resolved.proveedorEmail ?? null,
+      proveedorContacto: resolved.proveedorContacto ?? null,
+      proveedorDireccion: resolved.proveedorDireccion ?? null,
+      justificacionCompra: data.justificacionCompra ?? '',
+      condicionesEntrega: data.condicionesEntrega ?? null,
+      observacionesAdicionales: data.observacionesAdicionales ?? null,
+      formaPago: data.formaPago ?? 'CONTADO',
+      plazoPagoDias: data.plazoPagoDias ?? null,
+      detallesPago: data.detallesPago ?? null,
       subtotal: totales.subtotal,
       descuento: totales.descuento,
       impuesto: totales.impuesto,
       total: totales.total,
-      items: { create: mapped },
+      items: mapped.length ? { create: mapped } : undefined,
     },
     include: compraInclude,
   });
 }
 
-export async function updateCompraSolicitud(
-  id: string,
-  data: UpdateCompraSolicitudInput,
-  userId: string,
-  role: Role = 'IT'
-) {
-  const scoped = await assertCompraSolicitudUpdateScope(data, userId, role);
-  const existing = await prisma.compraSolicitud.findUnique({ where: { id } });
-  if (!existing || existing.deletedAt) throw new Error('Solicitud no encontrada');
+export async function updateCompraSolicitud(id: string, data: UpdateCompraSolicitudInput) {
+  const resolved =
+    data.proveedorId || data.proveedorNombre
+      ? await resolveProveedorFields(data)
+      : data;
 
-  const fechaSolicitud = scoped.fechaSolicitud
-    ? parseDate(scoped.fechaSolicitud)
-    : existing.fechaSolicitud;
-  const fechaRequerida = scoped.fechaRequerida
-    ? parseDate(scoped.fechaRequerida)
-    : existing.fechaRequerida;
-  const fechaError = validateFechas(fechaSolicitud, fechaRequerida);
-  if (fechaError) throw new Error(fechaError);
+  const updateData: Prisma.CompraSolicitudUpdateInput = {
+    fechaRequerida: data.fechaRequerida ? new Date(data.fechaRequerida) : undefined,
+    departamentoSolicitante: data.departamentoSolicitanteId
+      ? { connect: { id: data.departamentoSolicitanteId } }
+      : undefined,
+    centroCosto: data.centroCostoId ? { connect: { id: data.centroCostoId } } : undefined,
+    cargoSolicitante: data.cargoSolicitante,
+    tipoCompra: data.tipoCompra,
+    prioridad: data.prioridad,
+    proveedor: resolved.proveedorId ? { connect: { id: resolved.proveedorId } } : undefined,
+    proveedorNombre: resolved.proveedorNombre,
+    proveedorIdentificacion: resolved.proveedorIdentificacion,
+    proveedorTelefono: resolved.proveedorTelefono,
+    proveedorEmail: resolved.proveedorEmail,
+    proveedorContacto: resolved.proveedorContacto,
+    proveedorDireccion: resolved.proveedorDireccion,
+    justificacionCompra: data.justificacionCompra,
+    condicionesEntrega: data.condicionesEntrega,
+    observacionesAdicionales: data.observacionesAdicionales,
+    formaPago: data.formaPago,
+    plazoPagoDias: data.plazoPagoDias,
+    detallesPago: data.detallesPago,
+  };
 
-  let totalsUpdate: Partial<{
-    subtotal: number;
-    descuento: number;
-    impuesto: number;
-    total: number;
-  }> = {};
-
-  if (scoped.items) {
-    const descuento = resolveDescuentoForRole(
-      scoped.items.reduce((sum, item) => sum + item.cantidad * item.precioUnitario, 0),
-      scoped.descuento,
-      role
-    );
-    const { mapped, totales } = buildItemsWithTotals(scoped.items, descuento);
-    await prisma.compraSolicitudItem.deleteMany({ where: { solicitudCompraId: id } });
-    await prisma.compraSolicitudItem.createMany({
-      data: mapped.map((item) => ({ ...item, solicitudCompraId: id })),
+  if (data.items) {
+    const { mapped, totales } = buildItems(data.items, data.descuento ?? 0);
+    updateData.subtotal = totales.subtotal;
+    updateData.descuento = totales.descuento;
+    updateData.impuesto = totales.impuesto;
+    updateData.total = totales.total;
+    updateData.items = { deleteMany: {}, create: mapped };
+  } else if (data.descuento != null) {
+    const existing = await prisma.compraSolicitud.findUnique({
+      where: { id },
+      include: { items: true },
     });
-    totalsUpdate = {
-      subtotal: totales.subtotal,
-      descuento: totales.descuento,
-      impuesto: totales.impuesto,
-      total: totales.total,
-    };
-  } else if (scoped.descuento !== undefined) {
-    const items = await prisma.compraSolicitudItem.findMany({
-      where: { solicitudCompraId: id },
-      select: { cantidad: true, precioUnitario: true },
-    });
-    const descuento = resolveDescuentoForRole(
-      items.reduce((sum, item) => sum + item.cantidad * item.precioUnitario, 0),
-      scoped.descuento,
-      role
-    );
-    const totales = calcularTotalesCompra({ items, descuento });
-    totalsUpdate = {
-      subtotal: totales.subtotal,
-      descuento: totales.descuento,
-      impuesto: totales.impuesto,
-      total: totales.total,
-    };
+    if (existing) {
+      const { totales } = buildItems(
+        existing.items.map((i) => ({
+          descripcion: i.descripcion,
+          unidad: i.unidad,
+          cantidad: i.cantidad,
+          precioUnitario: i.precioUnitario,
+        })),
+        data.descuento
+      );
+      updateData.descuento = totales.descuento;
+      updateData.impuesto = totales.impuesto;
+      updateData.total = totales.total;
+    }
   }
 
   return prisma.compraSolicitud.update({
     where: { id },
-    data: {
-      fechaSolicitud: scoped.fechaSolicitud ? fechaSolicitud : undefined,
-      fechaRequerida: scoped.fechaRequerida ? fechaRequerida : undefined,
-      departamentoSolicitanteId: scoped.departamentoSolicitanteId,
-      centroCostoId: scoped.centroCostoId,
-      cargoSolicitante: scoped.cargoSolicitante,
-      tipoCompra: scoped.tipoCompra,
-      prioridad: scoped.prioridad,
-      proveedorId: scoped.proveedorId === null ? null : scoped.proveedorId,
-      justificacionCompra: scoped.justificacionCompra,
-      condicionesEntrega: scoped.condicionesEntrega,
-      observacionesAdicionales: scoped.observacionesAdicionales,
-      formaPago: scoped.formaPago,
-      plazoPagoDias: scoped.plazoPagoDias === null ? null : scoped.plazoPagoDias,
-      detallesPago: scoped.detallesPago,
-      ...totalsUpdate,
-    },
+    data: updateData,
     include: compraInclude,
   });
+}
+
+export async function applyWorkflowAction(
+  id: string,
+  action: CompraWorkflowAction,
+  userId: string,
+  extra?: { motivoRechazo?: string }
+) {
+  const solicitud = await prisma.compraSolicitud.findUnique({ where: { id } });
+  if (!solicitud) throw new Error('Solicitud no encontrada');
+
+  const next = getNextEstado(action, solicitud.estado);
+  if (!next) throw new Error('Transición no permitida');
+
+  const now = new Date();
+  const data: Prisma.CompraSolicitudUpdateInput = { estado: next };
+
+  if (action === 'autorizar') {
+    data.autorizadoPor = { connect: { id: userId } };
+    data.autorizadoEn = now;
+  }
+  if (action === 'aprobar') {
+    data.aprobadoPor = { connect: { id: userId } };
+    data.aprobadoEn = now;
+  }
+  if (action === 'rechazar') {
+    data.rechazadoPor = { connect: { id: userId } };
+    data.rechazadoEn = now;
+    data.motivoRechazo = extra?.motivoRechazo ?? 'Sin motivo';
+  }
+  if (action === 'emitir_orden') {
+    data.emitidoPorId = userId;
+    data.emitidoEn = now;
+  }
+
+  const updated = await prisma.compraSolicitud.update({
+    where: { id },
+    data,
+    include: compraInclude,
+  });
+
+  if (action === 'emitir_orden') {
+    const pdfUrl = await generarPdfSolicitud(id);
+    return prisma.compraSolicitud.update({
+      where: { id },
+      data: { documentoPdfUrl: pdfUrl },
+      include: compraInclude,
+    });
+  }
+
+  return updated;
+}
+
+export async function generarPdfSolicitud(solicitudId: string): Promise<string> {
+  const solicitud = await prisma.compraSolicitud.findUnique({
+    where: { id: solicitudId },
+    include: compraInclude,
+  });
+  if (!solicitud) throw new Error('Solicitud no encontrada');
+
+  const html = await construirHtmlSolicitudCompra(solicitud);
+  const buffer = await renderHtmlToPdf(html);
+  const storage = getStorage();
+  const filename = `orden-compra-${solicitud.numero.replace(/[^a-zA-Z0-9-]/g, '_')}.pdf`;
+
+  const stored = await storage.put({
+    prefix: `compras/solicitudes/${solicitudId}`,
+    originalName: filename,
+    mimeType: 'application/pdf',
+    size: buffer.length,
+    buffer,
+    desiredName: filename,
+  });
+
+  return stored.url;
 }
 
 export async function createProveedor(data: {
@@ -214,14 +280,5 @@ export async function createProveedor(data: {
   personaContacto?: string | null;
   direccion?: string | null;
 }) {
-  return prisma.proveedor.create({
-    data: {
-      nombreRazonSocial: data.nombreRazonSocial,
-      rtn: normalizeRtn(data.rtn),
-      telefono: data.telefono ?? undefined,
-      email: data.email || undefined,
-      personaContacto: data.personaContacto ?? undefined,
-      direccion: data.direccion ?? undefined,
-    },
-  });
+  return prisma.proveedor.create({ data });
 }

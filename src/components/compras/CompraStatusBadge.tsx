@@ -2,15 +2,18 @@
 
 import { Badge } from '@/components/ui/badge';
 import { COMPRA_ESTADO_LABELS } from '@/lib/compras/constants';
-import type { CompraEstado } from '@prisma/client';
+import type { CompraEstado } from '@/types/compras';
 
 const VARIANTS: Partial<Record<CompraEstado, 'default' | 'secondary' | 'destructive' | 'outline'>> = {
   BORRADOR: 'secondary',
-  RECHAZADA_JEFE: 'destructive',
-  RECHAZADA_GERENCIA: 'destructive',
-  ANULADA: 'destructive',
+  ENVIADA: 'outline',
+  AUTORIZADA: 'outline',
+  APROBADA: 'default',
+  RECHAZADA: 'destructive',
   ORDEN_EMITIDA: 'default',
+  RECIBIDA: 'default',
   CERRADA: 'outline',
+  ANULADA: 'destructive',
 };
 
 export function CompraStatusBadge({ estado }: { estado: CompraEstado }) {

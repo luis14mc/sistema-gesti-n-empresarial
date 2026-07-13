@@ -1,10 +1,13 @@
 export const COMPRA_AUDIT = {
   SOLICITUD_CREADA: 'compra_solicitud_creada',
-  DOCUMENTO_GENERADO: 'compra_documento_generado',
-  DOCUMENTO_REGENERADO: 'compra_documento_regenerado',
-  DOCUMENTO_DESCARGADO: 'compra_documento_descargado',
-  DOCUMENTO_VISUALIZADO: 'compra_documento_visualizado',
-  DOCUMENTO_ERROR: 'compra_documento_error_generacion',
+  SOLICITUD_ENVIADA: 'compra_solicitud_enviada',
+  SOLICITUD_REVISADA: 'compra_solicitud_revisada',
+  SOLICITUD_APROBADA: 'compra_solicitud_aprobada',
+  SOLICITUD_RECHAZADA: 'compra_solicitud_rechazada',
+  ORDEN_GENERADA: 'compra_orden_generada',
+  RECEPCION_REGISTRADA: 'compra_recepcion_registrada',
+  SOLICITUD_CERRADA: 'compra_solicitud_cerrada',
+  ADJUNTO_SUBIDO: 'compra_adjunto_subido',
+  COTIZACION_AGREGADA: 'compra_cotizacion_agregada',
+  EQUIPOS_CREADOS: 'compra_equipos_creados',
 } as const;
-
-export type CompraAuditAction = (typeof COMPRA_AUDIT)[keyof typeof COMPRA_AUDIT];

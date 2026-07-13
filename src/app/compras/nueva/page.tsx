@@ -8,7 +8,7 @@ import { CompraForm } from '@/components/compras/CompraForm';
 import { useCentrosCosto, useComprasSolicitudes, useProveedores } from '@/hooks/useCompras';
 import { useDepartments } from '@/hooks/useDepartments';
 import { useAuth } from '@/hooks/useAuth';
-import type { CreateCompraSolicitudInput } from '@/lib/compras/schemas';
+import type { BorradorCompraSolicitudInput } from '@/lib/compras/schemas';
 
 export default function NuevaCompraPage() {
   const { user } = useAuth();
@@ -20,21 +20,14 @@ export default function NuevaCompraPage() {
 
   if (!user) return null;
 
-  const handleSubmit = async (data: CreateCompraSolicitudInput) => {
+  const handleSubmit = async (data: BorradorCompraSolicitudInput) => {
     try {
-      const result = await createSolicitud(data);
-      if (result.warning) {
-        sileo.warning({
-          title: 'Solicitud creada sin PDF',
-          description: result.warning,
-        });
-      } else {
-        sileo.success({
-          title: 'Solicitud creada',
-          description: `${result.solicitud.codigoSolicitud} · PDF generado`,
-        });
-      }
-      router.push(`/compras/${result.solicitud.id}`);
+      const solicitud = await createSolicitud(data);
+      sileo.success({
+        title: 'Solicitud creada',
+        description: solicitud.numero,
+      });
+      router.push(`/compras/${solicitud.id}`);
     } catch (error) {
       sileo.error({
         title: 'Error',
@@ -46,13 +39,18 @@ export default function NuevaCompraPage() {
   return (
     <MainLayout>
       <PageHeader
-        title="Nueva Solicitud de Compra"
-        description="Formulario institucional — Solicitud y Orden de Compra"
+        title="Nueva Solicitud y Orden de Compra"
+        description="Complete la ficha institucional y guarde como borrador"
       />
       <CompraForm
         departments={departments}
         centros={centros}
         proveedores={proveedores}
+        solicitante={{
+          nombre: `${user.firstName} ${user.lastName}`,
+          cargo: user.position?.name,
+          departmentId: user.departmentId ?? undefined,
+        }}
         onSubmit={handleSubmit}
         isSubmitting={isSaving}
       />

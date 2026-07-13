@@ -702,7 +702,7 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
                                                     Acta entrega
                                                 </Button>
                                                 <EquipmentFileUpload
-                                                    subfolder="assignments"
+                                                    tipoDocumento="ACTA_ASIGNACION"
                                                     label=""
                                                     currentUrl={a.deliveryDocumentUrl || a.urlNotaPdf}
                                                     onUploaded={(url) => handleAttachDocument(a.id, 'delivery', url)}

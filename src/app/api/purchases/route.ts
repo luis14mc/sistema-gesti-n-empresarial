@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/middleware';
+import {
+  DEPRECATED_API_MESSAGES,
+  deprecatedApiHandler,
+} from '@/lib/deprecated-api';
 
-const DEPRECATED = {
-  error: 'El módulo /api/purchases fue reemplazado por /api/compras/solicitudes',
-};
+const handler = deprecatedApiHandler(DEPRECATED_API_MESSAGES.purchases);
 
-export const GET = withAuth(async () => NextResponse.json(DEPRECATED, { status: 410 }));
-export const POST = withAuth(async () => NextResponse.json(DEPRECATED, { status: 410 }));
+export const GET = handler;
+export const POST = handler;

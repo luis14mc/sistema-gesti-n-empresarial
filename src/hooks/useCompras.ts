@@ -7,7 +7,6 @@ import type {
   CreateCompraSolicitudData,
   UpdateCompraSolicitudData,
   CreateProveedorData,
-  CompraDocumento,
 } from '@/types/compras';
 
 export const compraKeys = {
@@ -20,6 +19,16 @@ export const compraKeys = {
   reportes: (year?: number) => [...compraKeys.all, 'reportes', year] as const,
 };
 
+export type CompraWorkflowActionName =
+  | 'enviar'
+  | 'autorizar'
+  | 'aprobar'
+  | 'rechazar'
+  | 'emitir_orden'
+  | 'recibir'
+  | 'cerrar'
+  | 'anular';
+
 export function useComprasSolicitudes(filters?: CompraSolicitudFilters) {
   const queryClient = useQueryClient();
 
@@ -29,14 +38,8 @@ export function useComprasSolicitudes(filters?: CompraSolicitudFilters) {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: CreateCompraSolicitudData) => {
-      const { data: body } = await comprasService.createSolicitud(data);
-      return {
-        solicitud: body.data.solicitud,
-        documento: body.data.documento,
-        warning: body.warning,
-      };
-    },
+    mutationFn: async (data: CreateCompraSolicitudData) =>
+      (await comprasService.createSolicitud(data)).data.solicitud,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: compraKeys.lists() }),
   });
 
@@ -56,38 +59,31 @@ export function useComprasSolicitudes(filters?: CompraSolicitudFilters) {
       body,
     }: {
       id: string;
-      action: 'enviar' | 'autorizar' | 'rechazar' | 'aprobar' | 'emitirOrden' | 'cerrar';
+      action: CompraWorkflowActionName;
       body?: Record<string, unknown>;
     }) => {
       switch (action) {
         case 'enviar':
           return (await comprasService.enviar(id)).data.solicitud;
         case 'autorizar':
-          return (await comprasService.autorizar(id, body)).data.solicitud;
-        case 'rechazar':
-          return (await comprasService.rechazar(id, body as { motivoRechazo: string })).data.solicitud;
+          return (await comprasService.autorizar(id)).data.solicitud;
         case 'aprobar':
           return (await comprasService.aprobar(id)).data.solicitud;
-        case 'emitirOrden':
-          return (await comprasService.emitirOrden(id, body)).data.solicitud;
+        case 'rechazar':
+          return (await comprasService.rechazar(id, body as { motivoRechazo: string })).data.solicitud;
+        case 'emitir_orden':
+          return (await comprasService.emitirOrden(id)).data.solicitud;
+        case 'recibir':
+          return (await comprasService.recibir(id)).data.solicitud;
         case 'cerrar':
           return (await comprasService.cerrar(id)).data.solicitud;
+        case 'anular':
+          return (await comprasService.anular(id)).data.solicitud;
       }
     },
     onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: compraKeys.lists() });
       queryClient.invalidateQueries({ queryKey: compraKeys.detail(vars.id) });
-    },
-  });
-
-  const regenerateDocumentMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { data: body } = await comprasService.regenerarDocumento(id);
-      return body.data.documento;
-    },
-    onSuccess: (_d, id) => {
-      queryClient.invalidateQueries({ queryKey: compraKeys.detail(id) });
-      queryClient.invalidateQueries({ queryKey: compraKeys.lists() });
     },
   });
 
@@ -100,9 +96,10 @@ export function useComprasSolicitudes(filters?: CompraSolicitudFilters) {
     createSolicitud: createMutation.mutateAsync,
     updateSolicitud: updateMutation.mutateAsync,
     runWorkflow: workflowMutation.mutateAsync,
-    regenerateDocument: regenerateDocumentMutation.mutateAsync,
-    isSaving: createMutation.isPending || updateMutation.isPending || workflowMutation.isPending,
-    isRegeneratingDocument: regenerateDocumentMutation.isPending,
+    isSaving:
+      createMutation.isPending ||
+      updateMutation.isPending ||
+      workflowMutation.isPending,
   };
 }
 

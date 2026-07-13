@@ -5,9 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Upload, FileText, ExternalLink } from 'lucide-react';
 import { sileo } from 'sileo';
+import {
+  EQUIPMENT_DOCUMENT_TYPE_LABELS,
+  type EquipmentDocumentType,
+} from '@/lib/equipment-document-types';
 
 interface EquipmentFileUploadProps {
-  subfolder?: 'assignments' | 'returns' | 'maintenance' | 'general';
+  tipoDocumento: EquipmentDocumentType;
+  /** @deprecated Usar tipoDocumento */
+  subfolder?: never;
   label?: string;
   currentUrl?: string | null;
   onUploaded: (url: string) => void;
@@ -15,21 +21,23 @@ interface EquipmentFileUploadProps {
 }
 
 export function EquipmentFileUpload({
-  subfolder = 'general',
-  label = 'Subir documento firmado (PDF o imagen)',
+  tipoDocumento,
+  label,
   currentUrl,
   onUploaded,
   disabled,
 }: EquipmentFileUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const resolvedLabel =
+    label ?? `Subir ${EQUIPMENT_DOCUMENT_TYPE_LABELS[tipoDocumento]} (PDF o imagen)`;
 
   const handleFile = async (file: File) => {
     setUploading(true);
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('subfolder', subfolder);
+      formData.append('tipoDocumento', tipoDocumento);
 
       const res = await fetch('/api/uploads/equipment', {
         method: 'POST',
@@ -55,7 +63,7 @@ export function EquipmentFileUpload({
 
   return (
     <div className="space-y-2">
-      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-xs text-muted-foreground">{resolvedLabel}</p>
       <div className="flex flex-wrap gap-2 items-center">
         <Input
           ref={inputRef}

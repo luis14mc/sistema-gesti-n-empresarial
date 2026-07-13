@@ -8,15 +8,14 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
-  Ticket, FileText, Monitor, Package, Clock, Shield,
+  FileText, Monitor, ClipboardList, ShoppingCart, Shield,
 } from 'lucide-react';
 
 const features = [
-  { icon: Ticket, title: 'Tickets de Soporte', desc: 'Gestión de solicitudes técnicas' },
   { icon: FileText, title: 'Oficios', desc: 'Control de correspondencia oficial' },
   { icon: Monitor, title: 'Equipos IT', desc: 'Catálogo de activos tecnológicos' },
-  { icon: Package, title: 'Inventario', desc: 'Artículos promocionales' },
-  { icon: Clock, title: 'Asistencia', desc: 'Control de entradas y salidas' },
+  { icon: ClipboardList, title: 'Asignaciones', desc: 'Entrega y devolución de equipos' },
+  { icon: ShoppingCart, title: 'Compras', desc: 'Solicitudes y órdenes de compra' },
   { icon: Shield, title: 'Seguridad RBAC', desc: 'Permisos basados en roles' },
 ];
 

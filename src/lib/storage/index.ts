@@ -63,6 +63,13 @@ export function resetStorageForTests(): void {
   _instance = null;
 }
 
+/**
+ * Inyecta un adapter concreto (util en tests).
+ */
+export function setStorageForTests(adapter: StorageAdapter): void {
+  _instance = adapter;
+}
+
 export type { StorageAdapter, PutObjectInput, PutObjectResult } from './types';
 export { LocalStorageAdapter } from './local';
 export { S3StorageAdapter } from './s3';

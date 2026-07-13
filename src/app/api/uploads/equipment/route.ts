@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { canAccess } from '@/lib/permissions';
+import { EQUIPMENT_DOCUMENT_TYPES } from '@/lib/equipment-document-types';
 import { saveEquipmentDocument } from '@/lib/equipment-storage';
 import type { Role } from '@/types';
 
@@ -14,24 +15,29 @@ async function postHandler(req: AuthenticatedRequest) {
 
     const formData = await req.formData();
     const file = formData.get('file');
-    const subfolder = (formData.get('subfolder') as string) || 'general';
+    const tipoDocumento = formData.get('tipoDocumento');
+    const subfolder = formData.get('subfolder');
 
     if (!file || !(file instanceof File)) {
       return NextResponse.json({ error: 'Debes seleccionar un archivo' }, { status: 400 });
     }
 
-    const allowed = ['assignments', 'returns', 'maintenance', 'general'];
-    const folder = allowed.includes(subfolder)
-      ? (subfolder as 'assignments' | 'returns' | 'maintenance' | 'general')
-      : 'general';
-
-    const document = await saveEquipmentDocument(file, folder);
+    const document = await saveEquipmentDocument(file, {
+      tipoDocumento: typeof tipoDocumento === 'string' ? tipoDocumento : null,
+      subfolder: typeof subfolder === 'string' ? subfolder : null,
+    });
 
     return NextResponse.json({ document }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Error al subir el archivo';
     console.error('Error en upload de equipos:', error);
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json(
+      {
+        error: message,
+        tiposPermitidos: EQUIPMENT_DOCUMENT_TYPES,
+      },
+      { status: 400 }
+    );
   }
 }
 

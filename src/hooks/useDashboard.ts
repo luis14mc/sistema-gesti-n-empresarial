@@ -47,7 +47,7 @@ export function useDashboard() {
       const equipment = equipmentRes.data.equipment;
       const solicitudes = comprasRes.data.solicitudes;
       const pendientes = solicitudes.filter((s) =>
-        ['PENDIENTE_AUTORIZACION_JEFE', 'PENDIENTE_APROBACION_GERENCIA', 'PENDIENTE_COMPRAS'].includes(s.estado)
+        ['ENVIADA', 'AUTORIZADA'].includes(s.estado)
       ).length;
 
       return {

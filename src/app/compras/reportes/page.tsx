@@ -33,7 +33,7 @@ export default function ComprasReportesPage() {
             <CardHeader><CardTitle>Resumen operativo</CardTitle></CardHeader>
             <CardContent className="space-y-2 text-sm">
               <p>Órdenes emitidas: <strong>{reportes.ordenesEmitidas}</strong></p>
-              <p>Órdenes pendientes: <strong>{reportes.ordenesPendientes}</strong></p>
+              <p>Pendientes de aprobación: <strong>{reportes.pendientesAprobacion}</strong></p>
               <p>Compras cerradas: <strong>{reportes.cerradas}</strong></p>
             </CardContent>
           </Card>
@@ -64,7 +64,7 @@ export default function ComprasReportesPage() {
             <CardHeader><CardTitle>Por departamento</CardTitle></CardHeader>
             <CardContent className="space-y-1 text-sm">
               {reportes.porDepartamento.map((row) => (
-                <p key={row.departamentoSolicitanteId}>
+                <p key={row.departamentoSolicitanteId ?? 'none'}>
                   {row.departamento}: {row._count._all}
                 </p>
               ))}
@@ -75,7 +75,7 @@ export default function ComprasReportesPage() {
             <CardHeader><CardTitle>Por centro de costo</CardTitle></CardHeader>
             <CardContent className="space-y-1 text-sm">
               {reportes.porCentroCosto.map((row) => (
-                <p key={row.centroCostoId}>
+                <p key={row.centroCostoId ?? 'none'}>
                   {row.centroCosto}: {row._count._all}
                 </p>
               ))}

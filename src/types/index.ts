@@ -359,6 +359,10 @@ export interface PromotionalMovement {
   user?: Pick<User, 'id' | 'firstName' | 'lastName'>;
 }
 
+/**
+ * @deprecated Usar `CompraSolicitudItem` desde `@/types/compras`.
+ * Solo para `purchases.service` / `usePurchases` legacy (API 410).
+ */
 export interface PurchaseItem {
   id: string;
   purchaseRequestId: string;
@@ -370,6 +374,10 @@ export interface PurchaseItem {
   received: boolean;
 }
 
+/**
+ * @deprecated Usar `CompraSolicitud` desde `@/types/compras`.
+ * Solo para `purchases.service` / `usePurchases` legacy (API 410).
+ */
 export interface PurchaseRequest {
   id: string;
   number: string;
@@ -608,6 +616,9 @@ export interface TimeEntryFilters extends PaginationParams {
   endDate?: string;
 }
 
+/**
+ * @deprecated Usar `CompraSolicitudFilters` desde `@/types/compras`.
+ */
 export interface PurchaseFilters extends PaginationParams {
   search?: string;
   status?: string;
@@ -639,6 +650,9 @@ export interface CreateCommentData {
   content: string;
 }
 
+/**
+ * @deprecated Usar `CreateCompraSolicitudData` desde `@/types/compras`.
+ */
 export interface CreatePurchaseData {
   title: string;
   justification: string;
@@ -649,12 +663,18 @@ export interface CreatePurchaseData {
   notes?: string;
 }
 
+/**
+ * @deprecated Usar `UpdateCompraSolicitudData` desde `@/types/compras`.
+ */
 export interface UpdatePurchaseData extends Partial<CreatePurchaseData> {
   status?: string;
   rejectionReason?: string;
   approvedBudget?: number;
 }
 
+/**
+ * @deprecated Usar `CreateCompraSolicitudItemData` desde `@/types/compras`.
+ */
 export interface CreatePurchaseItemData {
   description: string;
   quantity: number;
@@ -906,3 +926,6 @@ export interface SelectOption {
   label: string;
   value: string;
 }
+
+// ── Módulo Compras (modelo institucional) ─────────────────────
+export * from './compras';

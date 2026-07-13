@@ -13,11 +13,7 @@ import { CompraStatusBadge } from '@/components/compras/CompraStatusBadge';
 import { useComprasSolicitudes } from '@/hooks/useCompras';
 import { useAuth } from '@/hooks/useAuth';
 
-const BANDEJA_ESTADOS = [
-  'PENDIENTE_AUTORIZACION_JEFE',
-  'PENDIENTE_APROBACION_GERENCIA',
-  'PENDIENTE_COMPRAS',
-] as const;
+const PENDIENTES = ['ENVIADA', 'AUTORIZADA'] as const;
 
 export default function ComprasAprobacionesPage() {
   const { user } = useAuth();
@@ -25,24 +21,25 @@ export default function ComprasAprobacionesPage() {
 
   if (!user) return null;
 
-  const pendientes = solicitudes.filter((s) => BANDEJA_ESTADOS.includes(s.estado as typeof BANDEJA_ESTADOS[number]));
+  const pendientes = solicitudes.filter((s) =>
+    (PENDIENTES as readonly string[]).includes(s.estado)
+  );
 
   return (
     <MainLayout>
       <PageHeader
-        title="Bandeja de aprobaciones"
-        description="Autorizaciones y aprobaciones pendientes"
+        title="Autorización y aprobación"
+        description="Solicitudes enviadas o autorizadas pendientes de acción"
       />
-
       <Card>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Código</TableHead>
+                <TableHead>Número</TableHead>
+                <TableHead>Proveedor</TableHead>
                 <TableHead>Solicitante</TableHead>
                 <TableHead>Estado</TableHead>
-                <TableHead className="text-right">Total</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
@@ -50,14 +47,18 @@ export default function ComprasAprobacionesPage() {
               {isLoading ? (
                 <TableRow><TableCell colSpan={5}>Cargando...</TableCell></TableRow>
               ) : pendientes.length === 0 ? (
-                <TableRow><TableCell colSpan={5}>No hay solicitudes pendientes de aprobación.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5}>No hay solicitudes pendientes.</TableCell></TableRow>
               ) : pendientes.map((s) => (
                 <TableRow key={s.id}>
-                  <TableCell>{s.codigoSolicitud}</TableCell>
-                  <TableCell>{s.solicitadoPor?.firstName} {s.solicitadoPor?.lastName}</TableCell>
+                  <TableCell>{s.numero}</TableCell>
+                  <TableCell>{s.proveedorNombre ?? '—'}</TableCell>
+                  <TableCell>
+                    {s.solicitadoPor
+                      ? `${s.solicitadoPor.firstName} ${s.solicitadoPor.lastName}`
+                      : '—'}
+                  </TableCell>
                   <TableCell><CompraStatusBadge estado={s.estado} /></TableCell>
-                  <TableCell className="text-right">L {s.total.toFixed(2)}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell>
                     <Button variant="ghost" size="sm" asChild>
                       <Link href={`/compras/${s.id}`}><Eye className="h-4 w-4" /></Link>
                     </Button>

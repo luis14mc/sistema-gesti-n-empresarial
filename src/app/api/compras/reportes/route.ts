@@ -26,13 +26,12 @@ async function getHandler(req: AuthenticatedRequest) {
 
     const [
       porEstado,
-      porProveedor,
       porDepartamento,
       porCentroCosto,
       porPrioridad,
       montoPorMes,
       ordenesEmitidas,
-      ordenesPendientes,
+      pendientesAprobacion,
       cerradas,
     ] = await Promise.all([
       prisma.compraSolicitud.groupBy({
@@ -42,20 +41,14 @@ async function getHandler(req: AuthenticatedRequest) {
         _sum: { total: true },
       }),
       prisma.compraSolicitud.groupBy({
-        by: ['proveedorId'],
-        where: { ...where, proveedorId: { not: null } },
-        _count: { _all: true },
-        _sum: { total: true },
-      }),
-      prisma.compraSolicitud.groupBy({
         by: ['departamentoSolicitanteId'],
-        where,
+        where: { ...where, departamentoSolicitanteId: { not: null } },
         _count: { _all: true },
         _sum: { total: true },
       }),
       prisma.compraSolicitud.groupBy({
         by: ['centroCostoId'],
-        where,
+        where: { ...where, centroCostoId: { not: null } },
         _count: { _all: true },
         _sum: { total: true },
       }),
@@ -78,38 +71,31 @@ async function getHandler(req: AuthenticatedRequest) {
       `,
       prisma.compraSolicitud.count({ where: { ...where, estado: 'ORDEN_EMITIDA' } }),
       prisma.compraSolicitud.count({
-        where: {
-          ...where,
-          estado: { in: ['PENDIENTE_COMPRAS', 'APROBADA_GERENCIA', 'AUTORIZADA_JEFE'] },
-        },
+        where: { ...where, estado: { in: ['ENVIADA', 'AUTORIZADA'] } },
       }),
       prisma.compraSolicitud.count({ where: { ...where, estado: 'CERRADA' } }),
     ]);
 
-    const [departamentos, centros, proveedores] = await Promise.all([
+    const [departamentos, centros] = await Promise.all([
       prisma.department.findMany({ select: { id: true, name: true } }),
       prisma.costCenter.findMany({ select: { id: true, code: true, name: true } }),
-      prisma.proveedor.findMany({ select: { id: true, nombreRazonSocial: true } }),
     ]);
 
     const deptMap = Object.fromEntries(departamentos.map((d) => [d.id, d.name]));
     const centroMap = Object.fromEntries(centros.map((c) => [c.id, `${c.code} - ${c.name}`]));
-    const provMap = Object.fromEntries(proveedores.map((p) => [p.id, p.nombreRazonSocial]));
 
     return NextResponse.json({
       year,
       porEstado,
-      porProveedor: porProveedor.map((row) => ({
-        ...row,
-        proveedor: row.proveedorId ? provMap[row.proveedorId] : 'Sin proveedor',
-      })),
       porDepartamento: porDepartamento.map((row) => ({
         ...row,
-        departamento: deptMap[row.departamentoSolicitanteId],
+        departamento: row.departamentoSolicitanteId
+          ? deptMap[row.departamentoSolicitanteId]
+          : 'Sin departamento',
       })),
       porCentroCosto: porCentroCosto.map((row) => ({
         ...row,
-        centroCosto: centroMap[row.centroCostoId],
+        centroCosto: row.centroCostoId ? centroMap[row.centroCostoId] : 'Sin centro',
       })),
       porPrioridad,
       montoPorMes: montoPorMes.map((row) => ({
@@ -118,7 +104,7 @@ async function getHandler(req: AuthenticatedRequest) {
         cantidad: Number(row.cantidad),
       })),
       ordenesEmitidas,
-      ordenesPendientes,
+      pendientesAprobacion,
       cerradas,
     });
   } catch (error) {

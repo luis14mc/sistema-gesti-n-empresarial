@@ -85,12 +85,11 @@ model User {
   timeEntries         TimeEntry[]
   equipmentAssigned   EquipmentAssignment[]
   employeeProfile     Employee?
-  purchaseRequests    CompraSolicitud[]     @relation("CompraSolicitante")
-  comprasAutorizadas  CompraSolicitud[]     @relation("CompraAutorizador")
-  comprasAprobadas    CompraSolicitud[]     @relation("CompraAprobador")
-  comprasEmitidas     CompraSolicitud[]     @relation("CompraEmisor")
-  comprasAdjuntos     CompraAdjunto[]       @relation("CompraAdjuntoUploader")
-  comprasDocumentos   CompraDocumento[]     @relation("CompraDocumentoGenerator")
+  comprasSolicitadas  CompraSolicitud[] @relation("CompraSolicitante")
+  comprasAutorizadas  CompraSolicitud[] @relation("CompraAutorizador")
+  comprasAprobadas    CompraSolicitud[] @relation("CompraAprobador")
+  comprasRechazadas   CompraSolicitud[] @relation("CompraRechazador")
+  comprasAdjuntos     CompraAdjunto[]   @relation("CompraAdjuntoUploader")
   auditRecords        AuditRecord[]         @relation("AuditUser")
   auditsLed           Audit[]               @relation("AuditLeadAuditor")
   auditsCreated       Audit[]               @relation("AuditCreator")
@@ -483,7 +482,7 @@ model PromotionalMovement {
 }
 
 // ============================================
-// MÓDULO DE COMPRAS — Solicitud y Orden de Compra
+// MÓDULO DE COMPRAS — Ficha Solicitud y Orden de Compra (formato Excel)
 // ============================================
 
 enum CompraTipo {
@@ -520,26 +519,13 @@ enum CompraUnidad {
 enum CompraEstado {
   BORRADOR
   ENVIADA
-  PENDIENTE_AUTORIZACION_JEFE
-  AUTORIZADA_JEFE
-  RECHAZADA_JEFE
-  PENDIENTE_APROBACION_GERENCIA
-  APROBADA_GERENCIA
-  RECHAZADA_GERENCIA
-  PENDIENTE_COMPRAS
+  AUTORIZADA
+  APROBADA
+  RECHAZADA
   ORDEN_EMITIDA
   RECIBIDA
   CERRADA
   ANULADA
-}
-
-enum CompraTipoAdjunto {
-  COTIZACION
-  FACTURA
-  PROFORMA
-  CORREO_AUTORIZACION
-  SOPORTE_TECNICO
-  OTRO
 }
 
 model CostCenter {
@@ -557,17 +543,17 @@ model CostCenter {
 }
 
 model Proveedor {
-  id               String    @id @default(cuid())
+  id                String    @id @default(cuid())
   nombreRazonSocial String
-  rtn              String?
-  telefono         String?
-  email            String?
-  personaContacto  String?
-  direccion        String?   @db.Text
-  activo           Boolean   @default(true)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  deletedAt        DateTime?
+  rtn               String?
+  telefono          String?
+  email             String?
+  personaContacto   String?
+  direccion         String?   @db.Text
+  activo            Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
 
   comprasSolicitudes CompraSolicitud[]
 
@@ -577,73 +563,89 @@ model Proveedor {
 }
 
 model CompraSolicitud {
-  id                       String          @id @default(cuid())
-  codigoSolicitud          String          @unique
-  fechaSolicitud           DateTime        @default(now()) @db.Date
-  fechaRequerida           DateTime        @db.Date
-  departamentoSolicitanteId String
-  centroCostoId            String
-  solicitadoPorId          String
-  cargoSolicitante         String?
-  tipoCompra               CompraTipo
-  prioridad                CompraPrioridad @default(NORMAL)
-  estado                   CompraEstado    @default(BORRADOR)
-  proveedorId              String?
-  justificacionCompra      String          @db.Text
-  condicionesEntrega       String?         @db.Text
-  observacionesAdicionales String?         @db.Text
-  formaPago                CompraFormaPago
-  plazoPagoDias            Int?
-  detallesPago             String?         @db.Text
-  subtotal                 Float           @default(0)
-  descuento                Float           @default(0)
-  impuesto                 Float           @default(0)
-  total                    Float           @default(0)
-  autorizadoPorId          String?
-  autorizadoEn             DateTime?
-  aprobadoPorId            String?
-  aprobadoEn               DateTime?
-  emitidoPorId             String?
-  emitidoEn                DateTime?
-  motivoRechazo            String?         @db.Text
-  createdAt                DateTime        @default(now())
-  updatedAt                DateTime        @updatedAt
-  deletedAt                DateTime?
+  id                        String          @id @default(cuid())
+  numero                    String          @unique
 
-  departamentoSolicitante Department  @relation(fields: [departamentoSolicitanteId], references: [id], onDelete: Restrict)
-  centroCosto             CostCenter  @relation(fields: [centroCostoId], references: [id], onDelete: Restrict)
+  fechaSolicitud            DateTime        @default(now()) @db.Date
+  fechaRequerida            DateTime?       @db.Date
+
+  departamentoSolicitanteId String?
+  centroCostoId             String?
+  solicitadoPorId           String
+  cargoSolicitante          String?
+
+  tipoCompra                CompraTipo
+  prioridad                 CompraPrioridad @default(NORMAL)
+  estado                    CompraEstado    @default(BORRADOR)
+
+  proveedorId               String?
+  proveedorNombre           String?
+  proveedorIdentificacion   String?
+  proveedorTelefono         String?
+  proveedorEmail            String?
+  proveedorContacto         String?
+  proveedorDireccion        String?         @db.Text
+
+  justificacionCompra       String          @db.Text
+  condicionesEntrega        String?         @db.Text
+  observacionesAdicionales  String?         @db.Text
+
+  formaPago                 CompraFormaPago
+  plazoPagoDias             Int?
+  detallesPago              String?         @db.Text
+
+  subtotal                  Float           @default(0)
+  descuento                 Float           @default(0)
+  impuesto                  Float           @default(0)
+  total                     Float           @default(0)
+
+  autorizadoPorId           String?
+  autorizadoEn              DateTime?
+  aprobadoPorId             String?
+  aprobadoEn                DateTime?
+  rechazadoPorId            String?
+  rechazadoEn               DateTime?
+  motivoRechazo             String?         @db.Text
+  emitidoPorId              String?
+  emitidoEn                 DateTime?
+
+  documentoPdfUrl           String?
+
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
+  deletedAt                 DateTime?
+
+  departamentoSolicitante Department? @relation(fields: [departamentoSolicitanteId], references: [id], onDelete: SetNull)
+  centroCosto             CostCenter? @relation(fields: [centroCostoId], references: [id], onDelete: SetNull)
   solicitadoPor           User        @relation("CompraSolicitante", fields: [solicitadoPorId], references: [id], onDelete: Restrict)
   proveedor               Proveedor?  @relation(fields: [proveedorId], references: [id], onDelete: SetNull)
   autorizadoPor           User?       @relation("CompraAutorizador", fields: [autorizadoPorId], references: [id], onDelete: SetNull)
   aprobadoPor             User?       @relation("CompraAprobador", fields: [aprobadoPorId], references: [id], onDelete: SetNull)
-  emitidoPor              User?       @relation("CompraEmisor", fields: [emitidoPorId], references: [id], onDelete: SetNull)
-  items                   CompraSolicitudItem[]
-  adjuntos                CompraAdjunto[]
-  documentos              CompraDocumento[]
+  rechazadoPor            User?       @relation("CompraRechazador", fields: [rechazadoPorId], references: [id], onDelete: SetNull)
+
+  items    CompraSolicitudItem[]
+  adjuntos CompraAdjunto[]
 
   @@index([estado])
   @@index([prioridad])
   @@index([tipoCompra])
-  @@index([departamentoSolicitanteId])
-  @@index([centroCostoId])
-  @@index([proveedorId])
   @@index([solicitadoPorId])
   @@index([fechaSolicitud])
   @@map("compras_solicitudes")
 }
 
 model CompraSolicitudItem {
-  id               String       @id @default(cuid())
+  id                String       @id @default(cuid())
   solicitudCompraId String
-  item             Int
-  codigo           String?
-  descripcion      String
-  unidad           CompraUnidad @default(UNIDAD)
-  cantidad         Float
-  precioUnitario   Float
-  total            Float
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  item              Int
+  codigo            String?
+  descripcion       String
+  unidad            CompraUnidad @default(UNIDAD)
+  cantidad          Float
+  precioUnitario    Float        @default(0)
+  total             Float        @default(0)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
 
   solicitud CompraSolicitud @relation(fields: [solicitudCompraId], references: [id], onDelete: Cascade)
 
@@ -652,48 +654,22 @@ model CompraSolicitudItem {
 }
 
 model CompraAdjunto {
-  id                String            @id @default(cuid())
+  id                String   @id @default(cuid())
   solicitudCompraId String
-  tipoAdjunto       CompraTipoAdjunto @default(OTRO)
+  tipo              String
   nombre            String
   mimeType          String
   size              Int
-  storagePath       String
+  storagePath       String?
   url               String
   uploadedById      String
-  uploadedAt        DateTime          @default(now())
+  uploadedAt        DateTime @default(now())
 
   solicitud  CompraSolicitud @relation(fields: [solicitudCompraId], references: [id], onDelete: Cascade)
   uploadedBy User            @relation("CompraAdjuntoUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
 
   @@index([solicitudCompraId])
   @@map("compras_adjuntos")
-}
-
-enum CompraTipoDocumento {
-  ORDEN_COMPRA_PDF
-}
-
-model CompraDocumento {
-  id                String              @id @default(cuid())
-  solicitudCompraId String
-  tipoDocumento     CompraTipoDocumento @default(ORDEN_COMPRA_PDF)
-  nombreArchivo     String
-  mimeType          String              @default("application/pdf")
-  storagePath       String
-  url               String
-  version           Int                 @default(1)
-  activo            Boolean             @default(true)
-  generadoEn        DateTime            @default(now())
-  generadoPorId     String
-
-  solicitud   CompraSolicitud @relation(fields: [solicitudCompraId], references: [id], onDelete: Cascade)
-  generadoPor User            @relation("CompraDocumentoGenerator", fields: [generadoPorId], references: [id], onDelete: Restrict)
-
-  @@index([solicitudCompraId])
-  @@index([solicitudCompraId, activo])
-  @@index([solicitudCompraId, tipoDocumento])
-  @@map("compras_documentos")
 }
 
 // ============================================
