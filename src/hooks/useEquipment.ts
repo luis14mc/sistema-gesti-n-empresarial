@@ -13,6 +13,7 @@ import type {
     CreateEquipmentData,
     UpdateEquipmentData,
     CreateMaintenanceData,
+    EquipmentStats,
 } from '@/types';
 
 // ============================================
@@ -24,6 +25,7 @@ export const equipmentKeys = {
     lists: () => [...equipmentKeys.all, 'list'] as const,
     list: (filters?: EquipmentFilters) => [...equipmentKeys.lists(), filters] as const,
     detail: (id: string) => [...equipmentKeys.all, 'detail', id] as const,
+    stats: () => [...equipmentKeys.all, 'stats'] as const,
 };
 
 // ============================================
@@ -72,13 +74,16 @@ export function useEquipment(filters?: EquipmentFilters) {
     });
 
     const addMaintenanceMutation = useMutation({
-        mutationFn: async ({ equipmentId, data }: { equipmentId: string; data: CreateMaintenanceData }) => {
-            const response = await equipmentService.addMaintenance(equipmentId, data);
+        mutationFn: async ({ data }: { data: CreateMaintenanceData }) => {
+            const response = await equipmentService.addMaintenance(data);
             return response.data.maintenance;
         },
         onSuccess: (_data, variables) => {
-            queryClient.invalidateQueries({ queryKey: equipmentKeys.detail(variables.equipmentId) });
+            if (variables.data.equipmentId) {
+                queryClient.invalidateQueries({ queryKey: equipmentKeys.detail(variables.data.equipmentId) });
+            }
             queryClient.invalidateQueries({ queryKey: equipmentKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: equipmentKeys.stats() });
         },
     });
 
@@ -141,6 +146,19 @@ export function useEquipmentDetail(id: string | null) {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: equipmentKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: equipmentKeys.stats() });
+        },
+    });
+
+    const addMaintenanceMutation = useMutation({
+        mutationFn: async (data: CreateMaintenanceData) => {
+            const response = await equipmentService.addMaintenance(data);
+            return response.data.maintenance;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: equipmentKeys.detail(id!) });
+            queryClient.invalidateQueries({ queryKey: equipmentKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: equipmentKeys.stats() });
         },
     });
 
@@ -155,6 +173,25 @@ export function useEquipmentDetail(id: string | null) {
         deleteEquipment: deleteMutation.mutateAsync,
         isDeleting: deleteMutation.isPending,
 
+        addMaintenance: addMaintenanceMutation.mutateAsync,
+        isAddingMaintenance: addMaintenanceMutation.isPending,
+
         refetch: detailQuery.refetch,
+    };
+}
+
+export function useEquipmentStats() {
+    const statsQuery = useQuery({
+        queryKey: equipmentKeys.stats(),
+        queryFn: async () => {
+            const response = await equipmentService.stats();
+            return response.data.stats;
+        },
+    });
+
+    return {
+        stats: statsQuery.data as EquipmentStats | undefined,
+        isLoading: statsQuery.isLoading,
+        refetch: statsQuery.refetch,
     };
 }

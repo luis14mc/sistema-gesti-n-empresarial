@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
 
+import { logEquipmentHistory } from '@/lib/equipment-history';
+
 // GET /api/maintenance - Listar mantenimientos
 async function getHandler(req: AuthenticatedRequest) {
   try {
@@ -101,6 +103,7 @@ async function postHandler(req: AuthenticatedRequest) {
         technician,
         notes,
         status: status || 'SCHEDULED',
+        performedById: req.user!.userId,
       },
       include: {
         equipment: {
@@ -114,13 +117,23 @@ async function postHandler(req: AuthenticatedRequest) {
       },
     });
 
-    // Si el mantenimiento es correctivo, marcar equipo en mantenimiento
-    if (type === 'CORRECTIVE' && status === 'IN_PROGRESS') {
+    // Marcar equipo en mantenimiento si aplica
+    const maintenanceStatuses = ['SCHEDULED', 'IN_PROGRESS'];
+    if (maintenanceStatuses.includes(maintenance.status)) {
       await prisma.equipment.update({
         where: { id: equipmentId },
         data: { status: 'IN_MAINTENANCE' },
       });
     }
+
+    await logEquipmentHistory({
+      equipmentId,
+      action: 'MAINTENANCE',
+      title: 'Mantenimiento registrado',
+      description: `${type || 'PREVENTIVE'}: ${description}`,
+      newData: { maintenanceId: maintenance.id, type, status: maintenance.status },
+      performedById: req.user!.userId,
+    });
 
     await createAuditRecord({
       title: 'Mantenimiento registrado',

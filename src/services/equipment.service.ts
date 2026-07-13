@@ -12,6 +12,7 @@ import type {
   EquipmentMaintenance,
   CreateMaintenanceData,
   UpdateMaintenanceData,
+  EquipmentStats,
 } from '@/types';
 
 const BASE = '/api/equipment';
@@ -56,23 +57,17 @@ export const equipmentService = {
   delete: (id: string) =>
     apiHelpers.delete(`${BASE}/${id}`),
 
+  /** Estadísticas del módulo de equipos */
+  stats: () =>
+    apiHelpers.get<{ stats: EquipmentStats }>(`${BASE}/stats`),
+
   // --- Mantenimientos ---
 
   /** Registrar mantenimiento para un equipo */
-  addMaintenance: (equipmentId: string, data: CreateMaintenanceData) =>
-    apiHelpers.post<MaintenanceResponse>(
-      `${BASE}/${equipmentId}/maintenances`,
-      data
-    ),
+  addMaintenance: (data: CreateMaintenanceData) =>
+    apiHelpers.post<MaintenanceResponse>('/api/maintenance', data),
 
   /** Actualizar mantenimiento existente */
-  updateMaintenance: (
-    equipmentId: string,
-    maintenanceId: string,
-    data: UpdateMaintenanceData
-  ) =>
-    apiHelpers.patch<MaintenanceResponse>(
-      `${BASE}/${equipmentId}/maintenances/${maintenanceId}`,
-      data
-    ),
+  updateMaintenance: (maintenanceId: string, data: UpdateMaintenanceData) =>
+    apiHelpers.patch<MaintenanceResponse>(`/api/maintenance/${maintenanceId}`, data),
 };

@@ -1,83 +1,110 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
+import { logEquipmentHistory, mapReturnConditionToStatus } from '@/lib/equipment-history';
+import { mapAssignmentResponse } from '@/lib/equipment-mapper';
 
-// PATCH - Devolver equipo (cerrar asignación)
 async function patchHandler(
   req: AuthenticatedRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { returnCondition, notes } = await req.json();
+    const { id } = await params;
+    const {
+      returnCondition,
+      returnReason,
+      returnNotes,
+      notes,
+      equipmentStatusAfter,
+      accessoriesReturned,
+      status: assignmentStatus,
+    } = await req.json();
 
-    // Obtener asignación actual
     const assignment = await prisma.equipmentAssignment.findUnique({
-      where: { id: params.id },
+      where: { id },
+      include: { equipment: true },
     });
 
     if (!assignment) {
-      return NextResponse.json(
-        { error: 'Asignación no encontrada' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Asignación no encontrada' }, { status: 404 });
     }
 
     if (assignment.status !== 'ACTIVE') {
-      return NextResponse.json(
-        { error: 'La asignación ya está cerrada' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'La asignación ya está cerrada' }, { status: 400 });
     }
 
-    // Actualizar asignación y estado del equipo
-    const result = await prisma.$transaction([
-      prisma.equipmentAssignment.update({
-        where: { id: params.id },
+    const nextEquipmentStatus = mapReturnConditionToStatus(returnCondition, equipmentStatusAfter);
+    const finalStatus = assignmentStatus === 'REPLACED' ? 'REPLACED' : 'RETURNED';
+
+    const combinedReturnNotes = [
+      returnNotes || notes,
+      returnCondition ? `Estado físico: ${returnCondition}` : null,
+      accessoriesReturned ? `Accesorios devueltos: ${accessoriesReturned}` : null,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    const result = await prisma.$transaction(async (tx) => {
+      const updatedAssignment = await tx.equipmentAssignment.update({
+        where: { id },
         data: {
-          status: 'RETURNED',
+          status: finalStatus,
           returnedDate: new Date(),
-          notes: returnCondition
-            ? `Condición devolución: ${returnCondition}. ${notes || assignment.notes || ''}`
-            : (notes || assignment.notes),
+          returnedById: req.user!.userId,
+          returnReason: returnReason || returnCondition,
+          returnCondition,
+          returnNotes: combinedReturnNotes || undefined,
+          notes: combinedReturnNotes || assignment.notes,
         },
         include: {
           equipment: true,
-          user: {
+          user: { select: { id: true, firstName: true, lastName: true, email: true } },
+          employee: {
             select: {
               id: true,
-              firstName: true,
-              lastName: true,
+              fullName: true,
               email: true,
+              department: { select: { name: true } },
             },
           },
         },
-      }),
-      prisma.equipment.update({
-        where: { id: assignment.equipmentId },
-        data: { status: 'AVAILABLE' },
-      }),
-    ]);
+      });
 
-    // Registrar en auditoría
+      await tx.equipment.update({
+        where: { id: assignment.equipmentId },
+        data: { status: nextEquipmentStatus },
+      });
+
+      return updatedAssignment;
+    });
+
+    const historyAction = finalStatus === 'REPLACED' ? 'REPLACED' : 'RETURNED';
+    await logEquipmentHistory({
+      equipmentId: assignment.equipmentId,
+      action: historyAction,
+      title: finalStatus === 'REPLACED' ? 'Equipo reemplazado' : 'Equipo devuelto',
+      description: `${assignment.equipment.inventoryCode} devuelto. Motivo: ${returnReason || returnCondition || 'No especificado'}. Nuevo estado: ${nextEquipmentStatus}.`,
+      previousData: { assignmentStatus: 'ACTIVE', equipmentStatus: assignment.equipment.status },
+      newData: { assignmentStatus: finalStatus, equipmentStatus: nextEquipmentStatus, returnReason },
+      performedById: req.user!.userId,
+    });
+
     await createAuditRecord({
       title: 'Devolución de equipo',
-      description: `Se registró devolución de equipo ${assignment.equipmentId}`,
+      description: `Devolución de ${assignment.equipment.inventoryCode}`,
       module: 'EQUIPOS',
       category: 'UPDATE',
       userId: req.user!.userId,
-      entityId: params.id,
+      entityId: id,
       previousData: { status: 'ACTIVE' },
-      newData: { status: 'RETURNED', returnCondition },
+      newData: { status: finalStatus, returnCondition, equipmentStatus: nextEquipmentStatus },
     });
 
-    return NextResponse.json({ assignment: result[0] });
+    return NextResponse.json({ assignment: mapAssignmentResponse(result) });
   } catch (error) {
     console.error('Error al devolver equipo:', error);
-    return NextResponse.json(
-      { error: 'Error al devolver equipo' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Error al devolver equipo' }, { status: 500 });
   }
 }
 

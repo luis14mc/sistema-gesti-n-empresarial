@@ -9,6 +9,7 @@ import type {
   AssignmentFilters,
   CreateAssignmentData,
   ReturnAssignmentData,
+  SwapEquipmentData,
 } from '@/types';
 
 const BASE = '/api/equipment-assignments';
@@ -46,4 +47,15 @@ export const equipmentAssignmentsService = {
   /** Registrar devolución de equipo */
   return: (id: string, data: ReturnAssignmentData) =>
     apiHelpers.patch<AssignmentResponse>(`${BASE}/${id}/return`, data),
+
+  /** Adjuntar documento a asignación */
+  attachDocument: (id: string, documentType: 'delivery' | 'return', documentUrl: string) =>
+    apiHelpers.patch<AssignmentResponse>(`${BASE}/${id}/document`, { documentType, documentUrl }),
+
+  /** Cambio de equipo (devolución + nueva asignación) */
+  swap: (data: SwapEquipmentData) =>
+    apiHelpers.post<{ closedAssignment: EquipmentAssignment; newAssignment: EquipmentAssignment }>(
+      `${BASE}/swap`,
+      data
+    ),
 };

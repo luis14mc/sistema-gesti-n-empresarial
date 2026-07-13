@@ -1,22 +1,26 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
+import { resolveEmployeeSnapshot } from '@/lib/employees';
+import { logEquipmentHistory } from '@/lib/equipment-history';
+import { mapAssignmentResponse } from '@/lib/equipment-mapper';
 
-// GET - Listar asignaciones
 async function getHandler(req: AuthenticatedRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
     const userId = searchParams.get('userId');
+    const employeeId = searchParams.get('employeeId');
     const equipmentId = searchParams.get('equipmentId');
     const page = parseInt(searchParams.get('page') || '1');
     const pageSize = parseInt(searchParams.get('pageSize') || '100');
     const skip = (page - 1) * pageSize;
 
-    const where: any = {};
+    const where: Record<string, unknown> = {};
     if (status) where.status = status;
     if (userId) where.userId = userId;
+    if (employeeId) where.employeeId = employeeId;
     if (equipmentId) where.equipmentId = equipmentId;
 
     const [assignments, total] = await Promise.all([
@@ -26,80 +30,120 @@ async function getHandler(req: AuthenticatedRequest) {
         take: pageSize,
         include: {
           equipment: true,
-          user: {
-            select: { id: true, firstName: true, lastName: true, email: true },
+          user: { select: { id: true, firstName: true, lastName: true, email: true } },
+          employee: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              department: { select: { name: true } },
+              position: { select: { name: true } },
+            },
           },
         },
         orderBy: { assignedDate: 'desc' },
       }),
-      prisma.equipmentAssignment.count({ where })
+      prisma.equipmentAssignment.count({ where }),
     ]);
 
-    return NextResponse.json({ 
-      assignments, 
-      total, 
-      page, 
-      pageSize, 
-      totalPages: Math.ceil(total / pageSize) 
+    return NextResponse.json({
+      assignments: assignments.map(mapAssignmentResponse),
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
     });
   } catch (error) {
     console.error('Error al obtener asignaciones:', error);
-    return NextResponse.json(
-      { error: 'Error al obtener asignaciones' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Error al obtener asignaciones' }, { status: 500 });
   }
 }
 
-// POST - Crear asignación
 async function postHandler(req: AuthenticatedRequest) {
   try {
-    const { equipmentId, userId, condition, notes } = await req.json();
+    const {
+      equipmentId,
+      employeeId,
+      userId,
+      deliveryReason,
+      assignmentNotes,
+      condition,
+      notes,
+      accessories,
+    } = await req.json();
 
-    if (!equipmentId || !userId) {
+    if (!equipmentId || (!employeeId && !userId)) {
       return NextResponse.json(
-        { error: 'ID de equipo y usuario son requeridos' },
+        { error: 'Equipo y empleado son requeridos' },
         { status: 400 }
       );
     }
 
-    // Usar transacción interactiva para evitar asignaciones dobles (Race condition)
+    let snapshot;
+    try {
+      snapshot = await resolveEmployeeSnapshot(employeeId, userId);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'ASSIGNEE_ERROR';
+      const errors: Record<string, string> = {
+        EMPLOYEE_NOT_FOUND: 'Empleado no encontrado',
+        EMPLOYEE_INACTIVE: 'El empleado está inactivo',
+        EMPLOYEE_NO_EMAIL: 'El empleado no tiene correo registrado',
+        USER_NOT_FOUND: 'Usuario no encontrado',
+        USER_INACTIVE: 'El usuario está inactivo',
+        USER_NO_EMAIL: 'El usuario no tiene correo registrado',
+        ASSIGNEE_REQUIRED: 'Debe seleccionar un empleado',
+      };
+      return NextResponse.json({ error: errors[message] || 'Empleado inválido' }, { status: 400 });
+    }
+
+    const combinedNotes = [
+      assignmentNotes || notes,
+      condition ? `Condición de entrega: ${condition}` : null,
+      accessories ? `Accesorios: ${accessories}` : null,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
     const result = await prisma.$transaction(async (tx) => {
-      // Verificar que el equipo esté disponible
       const equipment = await tx.equipment.findUnique({
         where: { id: equipmentId },
-        include: {
-          assignments: {
-            where: { status: 'ACTIVE' },
-          },
-        },
+        include: { assignments: { where: { status: 'ACTIVE' } } },
       });
 
-      if (!equipment) {
-        throw new Error('NOT_FOUND');
-      }
+      if (!equipment) throw new Error('NOT_FOUND');
+      if (equipment.status !== 'AVAILABLE') throw new Error('NOT_AVAILABLE');
+      if (equipment.assignments.length > 0) throw new Error('ALREADY_ASSIGNED');
 
-      if (equipment.assignments.length > 0) {
-        throw new Error('ALREADY_ASSIGNED');
-      }
-
-      // Crear asignación
       const assignment = await tx.equipmentAssignment.create({
         data: {
           equipmentId,
-          userId,
-          notes: condition ? `Condición: ${condition}. ${notes || ''}` : notes,
+          employeeId: snapshot.employeeId,
+          userId: userId || undefined,
+          assignedById: req.user!.userId,
           status: 'ACTIVE',
+          departmentAtTime: snapshot.departmentAtTime,
+          positionAtTime: snapshot.positionAtTime,
+          employeeEmailAtTime: snapshot.employeeEmailAtTime,
+          employeeNameAtTime: snapshot.employeeNameAtTime,
+          deliveryReason,
+          assignmentNotes: combinedNotes || undefined,
+          notes: combinedNotes || undefined,
         },
         include: {
           equipment: true,
-          user: {
-            select: { id: true, firstName: true, lastName: true, email: true },
+          employee: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              department: { select: { name: true } },
+              position: { select: { name: true } },
+            },
           },
+          user: { select: { id: true, firstName: true, lastName: true, email: true } },
         },
       });
 
-      // Actualizar estado del equipo
       await tx.equipment.update({
         where: { id: equipmentId },
         data: { status: 'ASSIGNED' },
@@ -108,36 +152,42 @@ async function postHandler(req: AuthenticatedRequest) {
       return assignment;
     });
 
-    // Registrar en auditoría (fuera de la transacción para no revertir si falla el log)
+    await logEquipmentHistory({
+      equipmentId: result.equipmentId,
+      action: 'ASSIGNED',
+      title: 'Equipo asignado',
+      description: `${result.equipment.inventoryCode} asignado a ${snapshot.employeeNameAtTime}, ${snapshot.departmentAtTime}, ${snapshot.positionAtTime}.`,
+      newData: {
+        assignmentId: result.id,
+        employeeName: snapshot.employeeNameAtTime,
+        deliveryReason,
+      },
+      performedById: req.user!.userId,
+    });
+
     await createAuditRecord({
       title: 'Asignación de equipo',
-      description: `Se asignó equipo ${result.equipment.inventoryCode} al usuario ${result.user.firstName} ${result.user.lastName}`,
+      description: `Se asignó equipo ${result.equipment.inventoryCode} a ${snapshot.employeeNameAtTime}`,
       module: 'EQUIPOS',
       category: 'CREATE',
       userId: req.user!.userId,
       entityId: result.id,
       newData: {
         equipmentId: result.equipmentId,
-        userId: result.userId,
+        employeeId: snapshot.employeeId,
         equipmentCode: result.equipment.inventoryCode,
       },
     });
 
-    return NextResponse.json({ assignment: result }, { status: 201 });
-  } catch (error: any) {
+    return NextResponse.json({ assignment: mapAssignmentResponse(result) }, { status: 201 });
+  } catch (error: unknown) {
     console.error('Error al crear asignación:', error);
-    
-    if (error.message === 'NOT_FOUND') {
-      return NextResponse.json({ error: 'Equipo no encontrado' }, { status: 404 });
+    const message = error instanceof Error ? error.message : '';
+    if (message === 'NOT_FOUND') return NextResponse.json({ error: 'Equipo no encontrado' }, { status: 404 });
+    if (message === 'NOT_AVAILABLE' || message === 'ALREADY_ASSIGNED') {
+      return NextResponse.json({ error: 'El equipo no está disponible para asignación' }, { status: 400 });
     }
-    if (error.message === 'ALREADY_ASSIGNED') {
-      return NextResponse.json({ error: 'El equipo ya está asignado' }, { status: 400 });
-    }
-
-    return NextResponse.json(
-      { error: 'Error al crear asignación' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Error al crear asignación' }, { status: 500 });
   }
 }
 

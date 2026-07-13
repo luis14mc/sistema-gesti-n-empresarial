@@ -34,17 +34,21 @@ import {
     History
 } from 'lucide-react';
 import Link from 'next/link';
-import { useEquipment, useEquipmentDetail } from '@/hooks/useEquipment';
+import { useEquipment, useEquipmentDetail, useEquipmentStats } from '@/hooks/useEquipment';
 import { useAuth } from '@/hooks/useAuth';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Pagination } from '@/components/shared/Pagination';
 import { AssignmentNoteContent } from '@/components/equipment/AssignmentNoteContent';
+import { ReturnNoteContent } from '@/components/equipment/ReturnNoteContent';
+import { EquipmentFileUpload } from '@/components/equipment/EquipmentFileUpload';
+import { equipmentAssignmentsService } from '@/services/equipment-assignments.service';
 import { canAccess } from '@/lib/permissions';
 import { sileo } from 'sileo';
 import { swalConfirm } from '@/lib/swal';
 import { formatRelativeDate } from '@/utils/helpers';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Textarea } from '@/components/ui/textarea';
 import type { Role, EquipmentType, EquipmentStatus, Equipment } from '@/types';
 
 // ============================================
@@ -57,22 +61,55 @@ const statusColors: Record<string, string> = {
     IN_MAINTENANCE: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-900',
     DAMAGED: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900',
     RETIRED: 'bg-muted text-muted-foreground border-border',
+    LOST: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-900',
 };
 
 const statusLabels: Record<string, string> = {
     AVAILABLE: 'Disponible', ASSIGNED: 'Asignado', IN_MAINTENANCE: 'En Mantenimiento',
-    DAMAGED: 'Dañado', RETIRED: 'Dado de baja',
+    DAMAGED: 'Dañado', RETIRED: 'Dado de baja', LOST: 'Extraviado',
 };
 
 const typeLabels: Record<string, string> = {
-    LAPTOP: 'Laptop', DESKTOP: 'Desktop', MONITOR: 'Monitor', PRINTER: 'Impresora',
-    PHONE: 'Teléfono', TABLET: 'Tablet', ACCESSORY: 'Accesorio', OTHER: 'Otro',
+    LAPTOP: 'Laptop',
+    DESKTOP_PC: 'PC de escritorio',
+    DESKTOP: 'PC de escritorio',
+    MONITOR: 'Monitor',
+    PRINTER: 'Impresora',
+    PHONE: 'Teléfono',
+    UPS: 'UPS',
+    ACCESSORY: 'Accesorio',
+    OTHER: 'Otro',
 };
 
 const typeIcons: Record<string, typeof Monitor> = {
-    LAPTOP: Laptop, DESKTOP: Monitor, MONITOR: Monitor, PRINTER: Printer,
-    PHONE: Phone, TABLET: Tablet, ACCESSORY: HardDrive, OTHER: Package,
+    LAPTOP: Laptop,
+    DESKTOP_PC: Monitor,
+    DESKTOP: Monitor,
+    MONITOR: Monitor,
+    PRINTER: Printer,
+    PHONE: Phone,
+    UPS: Package,
+    ACCESSORY: HardDrive,
+    OTHER: Package,
 };
+
+const EMPTY_EQUIPMENT_FORM = {
+    type: 'LAPTOP',
+    inventoryCode: '',
+    brand: '',
+    model: '',
+    serialNumber: '',
+    purchaseDate: '',
+    ram: '',
+    processor: '',
+    storage: '',
+    os: '',
+    notes: '',
+};
+
+function isComputerType(type: string) {
+    return ['LAPTOP', 'DESKTOP', 'DESKTOP_PC'].includes(type);
+}
 
 // ============================================
 // PAGE
@@ -109,30 +146,32 @@ export default function EquipmentPage() {
     const role = (user?.role ?? 'USER') as Role;
     const canCreate = canAccess(role, 'equipment', 'create');
     const canDelete = canAccess(role, 'equipment', 'delete');
+    const { stats, isLoading: statsLoading } = useEquipmentStats();
 
-    const [form, setForm] = useState({
-        type: 'LAPTOP', brand: '', model: '',
-        serialNumber: '', purchaseDate: '',
-        ram: '', processor: '', storage: '', os: '',
-    });
+    const [form, setForm] = useState({ ...EMPTY_EQUIPMENT_FORM });
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
+        const isComputer = isComputerType(form.type);
         try {
             await createEquipment({
                 type: form.type as EquipmentType,
+                category: form.type,
+                inventoryCode: form.inventoryCode.trim() || undefined,
+                assetCode: form.inventoryCode.trim() || undefined,
                 brand: form.brand,
                 model: form.model,
-                serialNumber: form.serialNumber,
-                purchaseDate: form.purchaseDate,
-                ram: form.ram || undefined,
-                processor: form.processor || undefined,
-                storage: form.storage || undefined,
-                os: form.os || undefined,
+                serialNumber: form.serialNumber || undefined,
+                purchaseDate: form.purchaseDate || undefined,
+                ram: isComputer ? form.ram || undefined : undefined,
+                processor: isComputer ? form.processor || undefined : undefined,
+                storage: isComputer ? form.storage || undefined : undefined,
+                os: isComputer ? form.os || undefined : undefined,
+                notes: !isComputer ? form.notes || undefined : undefined,
             } as any);
             sileo.success({ title: 'Equipo creado', description: 'Se registró correctamente' });
             setDialogOpen(false);
-            setForm({ type: 'LAPTOP', brand: '', model: '', serialNumber: '', purchaseDate: '', ram: '', processor: '', storage: '', os: '' });
+            setForm({ ...EMPTY_EQUIPMENT_FORM });
         } catch {
             sileo.error({ title: 'Error', description: 'No se pudo crear el equipo' });
         }
@@ -168,16 +207,29 @@ export default function EquipmentPage() {
                                     <div className="grid grid-cols-2 gap-3">
                                         <div className="space-y-2">
                                             <Label>Tipo *</Label>
-                                            <Select value={form.type} onValueChange={(v) => setForm(f => ({ ...f, type: v }))}>
+                                            <Select
+                                                value={form.type}
+                                                onValueChange={(v) => setForm((f) => ({
+                                                    ...f,
+                                                    type: v,
+                                                    ram: '', processor: '', storage: '', os: '', notes: '',
+                                                }))}
+                                            >
                                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                                 <SelectContent>
-                                                    {Object.entries(typeLabels).map(([k, v]) => (<SelectItem key={k} value={k}>{v}</SelectItem>))}
+                                                    {Object.entries(typeLabels).filter(([k]) => k !== 'DESKTOP').map(([k, v]) => (
+                                                        <SelectItem key={k} value={k}>{v}</SelectItem>
+                                                    ))}
                                                 </SelectContent>
                                             </Select>
                                         </div>
                                         <div className="space-y-2">
-                                            <Label>Número de Serie *</Label>
-                                            <Input placeholder="SN123456789" value={form.serialNumber} onChange={(e) => setForm(f => ({ ...f, serialNumber: e.target.value }))} required />
+                                            <Label>Número de inventario</Label>
+                                            <Input
+                                                placeholder="Ej: TI-LAP-0005 (auto si vacío)"
+                                                value={form.inventoryCode}
+                                                onChange={(e) => setForm((f) => ({ ...f, inventoryCode: e.target.value }))}
+                                            />
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
@@ -187,35 +239,56 @@ export default function EquipmentPage() {
                                         </div>
                                         <div className="space-y-2">
                                             <Label>Modelo *</Label>
-                                            <Input placeholder="MBP14-2024" value={form.model} onChange={(e) => setForm(f => ({ ...f, model: e.target.value }))} required />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Fecha de Compra *</Label>
-                                        <Input type="date" value={form.purchaseDate} onChange={(e) => setForm(f => ({ ...f, purchaseDate: e.target.value }))} required />
-                                    </div>
-                                    <Separator />
-                                    <p className="text-xs text-muted-foreground font-medium">Especificaciones (opcional)</p>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="space-y-2">
-                                            <Label>RAM</Label>
-                                            <Input placeholder="16 GB" value={form.ram} onChange={(e) => setForm(f => ({ ...f, ram: e.target.value }))} />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Procesador</Label>
-                                            <Input placeholder="Intel i7 / M3 Pro" value={form.processor} onChange={(e) => setForm(f => ({ ...f, processor: e.target.value }))} />
+                                            <Input placeholder="Latitude 5440" value={form.model} onChange={(e) => setForm(f => ({ ...f, model: e.target.value }))} required />
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
                                         <div className="space-y-2">
-                                            <Label>Almacenamiento</Label>
-                                            <Input placeholder="512 GB SSD" value={form.storage} onChange={(e) => setForm(f => ({ ...f, storage: e.target.value }))} />
+                                            <Label>Número de serie</Label>
+                                            <Input placeholder="SN123456789" value={form.serialNumber} onChange={(e) => setForm(f => ({ ...f, serialNumber: e.target.value }))} />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label>Sistema Operativo</Label>
-                                            <Input placeholder="Windows 11 / macOS" value={form.os} onChange={(e) => setForm(f => ({ ...f, os: e.target.value }))} />
+                                            <Label>Fecha de compra</Label>
+                                            <Input type="date" value={form.purchaseDate} onChange={(e) => setForm(f => ({ ...f, purchaseDate: e.target.value }))} />
                                         </div>
                                     </div>
+
+                                    {isComputerType(form.type) ? (
+                                        <>
+                                            <Separator />
+                                            <p className="text-xs text-muted-foreground font-medium">Especificaciones del equipo</p>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="space-y-2">
+                                                    <Label>Procesador</Label>
+                                                    <Input placeholder="Intel i7 / Apple M3" value={form.processor} onChange={(e) => setForm(f => ({ ...f, processor: e.target.value }))} />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label>RAM</Label>
+                                                    <Input placeholder="16 GB" value={form.ram} onChange={(e) => setForm(f => ({ ...f, ram: e.target.value }))} />
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="space-y-2">
+                                                    <Label>Almacenamiento</Label>
+                                                    <Input placeholder="512 GB SSD" value={form.storage} onChange={(e) => setForm(f => ({ ...f, storage: e.target.value }))} />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label>Sistema operativo</Label>
+                                                    <Input placeholder="Windows 11 / macOS" value={form.os} onChange={(e) => setForm(f => ({ ...f, os: e.target.value }))} />
+                                                </div>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            <Label>Comentarios / detalles</Label>
+                                            <Textarea
+                                                placeholder="Describe características relevantes: resolución, conectividad, accesorios incluidos, ubicación, etc."
+                                                rows={4}
+                                                value={form.notes}
+                                                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                                            />
+                                        </div>
+                                    )}
                                     <DialogFooter>
                                         <Button type="submit" disabled={isCreating}>{isCreating ? 'Creando...' : 'Crear Equipo'}</Button>
                                     </DialogFooter>
@@ -224,6 +297,31 @@ export default function EquipmentPage() {
                         </Dialog>
                     )}
                 </PageHeader>
+
+                {/* Dashboard stats */}
+                {statsLoading ? (
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                        {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
+                    </div>
+                ) : stats && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                        {[
+                            { label: 'Total', value: stats.total },
+                            { label: 'Disponibles', value: stats.available },
+                            { label: 'Asignados', value: stats.assigned },
+                            { label: 'Mantenimiento', value: stats.inMaintenance },
+                            { label: 'Dañados', value: stats.damaged },
+                            { label: 'Sin serie', value: stats.withoutSerial },
+                        ].map((item) => (
+                            <Card key={item.label} className="border-border/60">
+                                <CardContent className="p-4">
+                                    <p className="text-xs text-muted-foreground">{item.label}</p>
+                                    <p className="text-2xl font-semibold mt-1">{item.value}</p>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                )}
 
                 {/* Filters */}
                 <div className="flex flex-col sm:flex-row gap-3">
@@ -261,8 +359,10 @@ export default function EquipmentPage() {
                                     <TableHead>Código</TableHead>
                                     <TableHead>Equipo</TableHead>
                                     <TableHead className="hidden sm:table-cell">Tipo</TableHead>
+                                    <TableHead className="hidden md:table-cell">Serie</TableHead>
                                     <TableHead>Estado</TableHead>
-                                    <TableHead className="hidden lg:table-cell">Marca/Modelo</TableHead>
+                                    <TableHead className="hidden md:table-cell">Asignado a</TableHead>
+                                    <TableHead className="hidden lg:table-cell">Departamento</TableHead>
                                     {canDelete && <TableHead className="w-10" />}
                                 </TableRow>
                             </TableHeader>
@@ -301,15 +401,21 @@ export default function EquipmentPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell className="hidden sm:table-cell">
-                                                <span className="text-xs">{typeLabels[eq.type]}</span>
+                                                <span className="text-xs">{typeLabels[eq.type] || eq.categoryLabel}</span>
+                                            </TableCell>
+                                            <TableCell className="hidden md:table-cell font-mono text-xs">
+                                                {eq.serialNumber || '—'}
                                             </TableCell>
                                             <TableCell>
                                                 <Badge variant="outline" className={statusColors[eq.status]}>
                                                     {statusLabels[eq.status]}
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell className="hidden lg:table-cell">
-                                                <p className="text-xs text-muted-foreground">{eq.brand} {eq.model}</p>
+                                            <TableCell className="hidden md:table-cell text-sm">
+                                                {(eq as Equipment & { assignedTo?: string }).assignedTo ?? '—'}
+                                            </TableCell>
+                                            <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
+                                                {(eq as Equipment & { assignedDepartment?: string }).assignedDepartment ?? '—'}
                                             </TableCell>
                                             {canDelete && (
                                                 <TableCell onClick={(e) => e.stopPropagation()}>
@@ -361,14 +467,44 @@ export default function EquipmentPage() {
 // ============================================
 
 function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: string; role: Role; onClose: () => void }) {
-    const { equipment: eq, isLoading, updateEquipment, isUpdating, deleteEquipment, isDeleting } = useEquipmentDetail(equipmentId);
+    const { equipment: eq, isLoading, updateEquipment, isUpdating, deleteEquipment, isDeleting, addMaintenance, isAddingMaintenance, refetch } = useEquipmentDetail(equipmentId);
     const canUpdate = canAccess(role, 'equipment', 'update');
     const canDelete = canAccess(role, 'equipment', 'delete');
     const [editing, setEditing] = useState(false);
     const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
-    const [editForm, setEditForm] = useState({
-        name: '', type: '', brand: '', model: '', serialNumber: '', description: '', status: '',
+    const [returnPreviewAssignment, setReturnPreviewAssignment] = useState<any>(null);
+    const [maintenanceOpen, setMaintenanceOpen] = useState(false);
+    const [maintenanceForm, setMaintenanceForm] = useState({
+        type: 'CORRECTIVE', description: '', scheduledDate: '', technician: '',
     });
+    const [editForm, setEditForm] = useState({
+        inventoryCode: '', type: '', brand: '', model: '', serialNumber: '',
+        description: '', status: '',
+        ram: '', processor: '', storage: '', os: '', notes: '',
+    });
+
+    const handleAttachDocument = async (assignmentId: string, documentType: 'delivery' | 'return', url: string) => {
+        await equipmentAssignmentsService.attachDocument(assignmentId, documentType, url);
+        await refetch();
+        sileo.success({ title: 'Documento vinculado a la asignación' });
+    };
+
+    const handleAddMaintenance = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            await addMaintenance({
+                equipmentId,
+                type: maintenanceForm.type,
+                description: maintenanceForm.description,
+                scheduledDate: maintenanceForm.scheduledDate || undefined,
+            });
+            sileo.success({ title: 'Mantenimiento registrado' });
+            setMaintenanceOpen(false);
+            setMaintenanceForm({ type: 'CORRECTIVE', description: '', scheduledDate: '', technician: '' });
+        } catch {
+            sileo.error({ title: 'Error', description: 'No se pudo registrar el mantenimiento' });
+        }
+    };
 
     if (isLoading || !eq) {
         return (
@@ -405,21 +541,38 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
 
     const startEditing = () => {
         setEditForm({
-            name: eq.name, type: eq.type, brand: eq.brand || '', model: eq.model || '',
-            serialNumber: eq.serialNumber || '', description: eq.description || '', status: eq.status,
+            inventoryCode: eq.code || eq.inventoryCode,
+            type: eq.type,
+            brand: eq.brand || '',
+            model: eq.model || '',
+            serialNumber: eq.serialNumber || '',
+            description: eq.description || '',
+            status: eq.status,
+            ram: eq.ram || '',
+            processor: eq.processor || '',
+            storage: eq.storage || '',
+            os: eq.os || '',
+            notes: eq.notes || eq.description || '',
         });
         setEditing(true);
     };
 
     const handleEdit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const isComputer = isComputerType(editForm.type);
         try {
             await updateEquipment({
-                name: editForm.name, type: editForm.type as EquipmentType,
-                brand: editForm.brand || undefined, model: editForm.model || undefined,
-                serialNumber: editForm.serialNumber || undefined, description: editForm.description || undefined,
+                type: editForm.type as EquipmentType,
+                brand: editForm.brand || undefined,
+                model: editForm.model || undefined,
+                serialNumber: editForm.serialNumber || undefined,
                 status: editForm.status as EquipmentStatus,
-            });
+                ram: isComputer ? editForm.ram || undefined : null,
+                processor: isComputer ? editForm.processor || undefined : null,
+                storage: isComputer ? editForm.storage || undefined : null,
+                os: isComputer ? editForm.os || undefined : null,
+                notes: !isComputer ? editForm.notes || undefined : undefined,
+            } as any);
             setEditing(false);
             sileo.success({ title: 'Equipo actualizado' });
         } catch {
@@ -477,25 +630,39 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
                 <div><p className="text-xs text-muted-foreground">Registrado</p><p className="font-medium">{formatRelativeDate(eq.createdAt)}</p></div>
             </div>
 
-            {eq.description && (
+            {eq.description && !isComputerType(eq.type) && (
                 <div>
-                    <p className="text-xs text-muted-foreground mb-1">Descripción</p>
-                    <p className="text-sm leading-relaxed bg-muted/30 rounded-lg p-3">{eq.description}</p>
+                    <p className="text-xs text-muted-foreground mb-1">Comentarios / detalles</p>
+                    <p className="text-sm leading-relaxed bg-muted/30 rounded-lg p-3 whitespace-pre-wrap">{eq.description}</p>
+                </div>
+            )}
+
+            {isComputerType(eq.type) && (eq.processor || eq.ram || eq.storage || eq.os) && (
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                    {eq.processor && <div><p className="text-xs text-muted-foreground">Procesador</p><p className="font-medium">{eq.processor}</p></div>}
+                    {eq.ram && <div><p className="text-xs text-muted-foreground">RAM</p><p className="font-medium">{eq.ram}</p></div>}
+                    {eq.storage && <div><p className="text-xs text-muted-foreground">Almacenamiento</p><p className="font-medium">{eq.storage}</p></div>}
+                    {eq.os && <div><p className="text-xs text-muted-foreground">Sistema operativo</p><p className="font-medium">{eq.os}</p></div>}
                 </div>
             )}
 
             <Separator />
 
-            {/* Change status */}
+            {/* Change status + maintenance */}
             {canUpdate && (
-                <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Cambiar estado</Label>
-                    <Select value={eq.status} onValueChange={(v) => handleStatusChange(v as EquipmentStatus)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            {Object.entries(statusLabels).map(([k, v]) => (<SelectItem key={k} value={k}>{v}</SelectItem>))}
-                        </SelectContent>
-                    </Select>
+                <div className="space-y-3">
+                    <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">Cambiar estado</Label>
+                        <Select value={eq.status} onValueChange={(v) => handleStatusChange(v as EquipmentStatus)}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                {Object.entries(statusLabels).map(([k, v]) => (<SelectItem key={k} value={k}>{v}</SelectItem>))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => setMaintenanceOpen(true)}>
+                        Registrar mantenimiento
+                    </Button>
                 </div>
             )}
 
@@ -508,7 +675,15 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
                             <div key={a.id} className="rounded-lg border p-3 text-sm">
                                 <div className="flex justify-between items-start">
                                     <div>
-                                        <p className="font-medium">{a.user?.firstName} {a.user?.lastName}</p>
+                                        <p className="font-medium">
+                                            {a.employeeNameAtTime || a.assigneeName ||
+                                                (a.user ? `${a.user.firstName} ${a.user.lastName}` : '—')}
+                                        </p>
+                                        {(a.departmentAtTime || a.positionAtTime) && (
+                                            <p className="text-xs text-muted-foreground">
+                                                {a.departmentAtTime}{a.positionAtTime ? ` · ${a.positionAtTime}` : ''}
+                                            </p>
+                                        )}
                                         <p className="text-xs text-muted-foreground mt-1">{format(new Date(a.assignedDate), "dd/MM/yyyy", { locale: es })}</p>
                                     </div>
                                     <div className="flex flex-col items-end gap-2">
@@ -516,14 +691,33 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
                                             {a.status === 'ACTIVE' ? 'Activa' : a.status === 'RETURNED' ? 'Devuelta' : 'Cancelada'}
                                         </Badge>
                                         {a.status === 'ACTIVE' && (
+                                            <div className="flex flex-col items-end gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-7 text-[10px] px-2"
+                                                    onClick={() => setSelectedAssignment(a)}
+                                                >
+                                                    <FileText className="h-3 w-3 mr-1" />
+                                                    Acta entrega
+                                                </Button>
+                                                <EquipmentFileUpload
+                                                    subfolder="assignments"
+                                                    label=""
+                                                    currentUrl={a.deliveryDocumentUrl || a.urlNotaPdf}
+                                                    onUploaded={(url) => handleAttachDocument(a.id, 'delivery', url)}
+                                                />
+                                            </div>
+                                        )}
+                                        {a.status !== 'ACTIVE' && (a.returnDocumentUrl || a.status === 'RETURNED' || a.status === 'REPLACED') && (
                                             <Button
-                                                variant="outline"
+                                                variant="ghost"
                                                 size="sm"
                                                 className="h-7 text-[10px] px-2"
-                                                onClick={() => setSelectedAssignment(a)}
+                                                onClick={() => setReturnPreviewAssignment(a)}
                                             >
                                                 <FileText className="h-3 w-3 mr-1" />
-                                                Generar Acta
+                                                Acta devolución
                                             </Button>
                                         )}
                                     </div>
@@ -548,9 +742,8 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
                         <div id="assignment-note-print" className="bg-white">
                             {selectedAssignment && (
                                 <AssignmentNoteContent
-                                    equipment={eq as any}
+                                    equipment={eq as Equipment}
                                     assignment={selectedAssignment}
-                                    user={selectedAssignment.user}
                                 />
                             )}
                         </div>
@@ -568,6 +761,96 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
                 </DialogContent>
             </Dialog>
 
+            {/* Return note preview */}
+            <Dialog open={!!returnPreviewAssignment} onOpenChange={(open) => !open && setReturnPreviewAssignment(null)}>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Acta de Devolución</DialogTitle>
+                    </DialogHeader>
+                    <div className="border rounded-xl bg-muted/20 p-4">
+                        <div id="return-note-print" className="bg-white">
+                            {returnPreviewAssignment && (
+                                <ReturnNoteContent equipment={eq as Equipment} assignment={returnPreviewAssignment} />
+                            )}
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setReturnPreviewAssignment(null)}>Cerrar</Button>
+                        <Button onClick={() => setTimeout(() => window.print(), 100)}>
+                            <PrintIcon className="h-4 w-4 mr-2" /> Imprimir / PDF
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Maintenance dialog */}
+            <Dialog open={maintenanceOpen} onOpenChange={setMaintenanceOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Registrar mantenimiento</DialogTitle>
+                        <DialogDescription>El equipo pasará a estado En mantenimiento.</DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleAddMaintenance} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Tipo</Label>
+                            <Select value={maintenanceForm.type} onValueChange={(v) => setMaintenanceForm((f) => ({ ...f, type: v }))}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="PREVENTIVE">Preventivo</SelectItem>
+                                    <SelectItem value="CORRECTIVE">Correctivo</SelectItem>
+                                    <SelectItem value="UPDATE">Actualización</SelectItem>
+                                    <SelectItem value="INSPECTION">Inspección</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Descripción *</Label>
+                            <Input
+                                required
+                                value={maintenanceForm.description}
+                                onChange={(e) => setMaintenanceForm((f) => ({ ...f, description: e.target.value }))}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Fecha programada</Label>
+                            <Input
+                                type="date"
+                                value={maintenanceForm.scheduledDate}
+                                onChange={(e) => setMaintenanceForm((f) => ({ ...f, scheduledDate: e.target.value }))}
+                            />
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setMaintenanceOpen(false)}>Cancelar</Button>
+                            <Button type="submit" disabled={isAddingMaintenance}>
+                                {isAddingMaintenance ? 'Guardando...' : 'Registrar'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Historial del activo */}
+            {eq.history && eq.history.length > 0 && (
+                <div className="space-y-2">
+                    <p className="text-sm font-semibold">Historial del activo</p>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {eq.history.map((h) => (
+                            <div key={h.id} className="rounded-lg border p-3 text-sm">
+                                <div className="flex justify-between gap-2">
+                                    <p className="font-medium">{h.title}</p>
+                                    <span className="text-xs text-muted-foreground shrink-0">
+                                        {format(new Date(h.createdAt), 'dd/MM/yyyy', { locale: es })}
+                                    </span>
+                                </div>
+                                {h.description && (
+                                    <p className="text-xs text-muted-foreground mt-1">{h.description}</p>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Maintenances */}
             {eq.maintenances && eq.maintenances.length > 0 && (
                 <div className="space-y-2">
@@ -581,7 +864,9 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
                                 </div>
                                 <p className="text-xs mt-1">{m.description}</p>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    Programado: {format(new Date(m.scheduledDate), "dd/MM/yyyy", { locale: es })}
+                                    {m.scheduledDate
+                                        ? `Programado: ${format(new Date(m.scheduledDate), 'dd/MM/yyyy', { locale: es })}`
+                                        : 'Sin fecha programada'}
                                 </p>
                             </div>
                         ))}
@@ -597,17 +882,35 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
                         <DialogDescription>Modifica la información del equipo.</DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleEdit} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Número de inventario</Label>
+                            <Input value={editForm.inventoryCode} disabled className="font-mono bg-muted" />
+                        </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-2">
-                                <Label>Nombre</Label>
-                                <Input value={editForm.name} onChange={(e) => setEditForm(f => ({ ...f, name: e.target.value }))} required />
-                            </div>
-                            <div className="space-y-2">
                                 <Label>Tipo</Label>
-                                <Select value={editForm.type} onValueChange={(v) => setEditForm(f => ({ ...f, type: v }))}>
+                                <Select
+                                    value={editForm.type}
+                                    onValueChange={(v) => setEditForm((f) => ({
+                                        ...f,
+                                        type: v,
+                                        ram: '', processor: '', storage: '', os: '', notes: '',
+                                    }))}
+                                >
                                     <SelectTrigger><SelectValue /></SelectTrigger>
                                     <SelectContent>
-                                        {Object.entries(typeLabels).map(([k, v]) => (<SelectItem key={k} value={k}>{v}</SelectItem>))}
+                                        {Object.entries(typeLabels).filter(([k]) => k !== 'DESKTOP').map(([k, v]) => (
+                                            <SelectItem key={k} value={k}>{v}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Estado</Label>
+                                <Select value={editForm.status} onValueChange={(v) => setEditForm(f => ({ ...f, status: v }))}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        {Object.entries(statusLabels).map(([k, v]) => (<SelectItem key={k} value={k}>{v}</SelectItem>))}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -623,22 +926,45 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <Label>Número de Serie</Label>
+                            <Label>Número de serie</Label>
                             <Input value={editForm.serialNumber} onChange={(e) => setEditForm(f => ({ ...f, serialNumber: e.target.value }))} />
                         </div>
-                        <div className="space-y-2">
-                            <Label>Estado</Label>
-                            <Select value={editForm.status} onValueChange={(v) => setEditForm(f => ({ ...f, status: v }))}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    {Object.entries(statusLabels).map(([k, v]) => (<SelectItem key={k} value={k}>{v}</SelectItem>))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Descripción</Label>
-                            <Input value={editForm.description} onChange={(e) => setEditForm(f => ({ ...f, description: e.target.value }))} />
-                        </div>
+
+                        {isComputerType(editForm.type) ? (
+                            <>
+                                <Separator />
+                                <p className="text-xs text-muted-foreground font-medium">Especificaciones</p>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-2">
+                                        <Label>Procesador</Label>
+                                        <Input value={editForm.processor} onChange={(e) => setEditForm(f => ({ ...f, processor: e.target.value }))} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>RAM</Label>
+                                        <Input value={editForm.ram} onChange={(e) => setEditForm(f => ({ ...f, ram: e.target.value }))} />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-2">
+                                        <Label>Almacenamiento</Label>
+                                        <Input value={editForm.storage} onChange={(e) => setEditForm(f => ({ ...f, storage: e.target.value }))} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Sistema operativo</Label>
+                                        <Input value={editForm.os} onChange={(e) => setEditForm(f => ({ ...f, os: e.target.value }))} />
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="space-y-2">
+                                <Label>Comentarios / detalles</Label>
+                                <Textarea
+                                    rows={4}
+                                    value={editForm.notes}
+                                    onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}
+                                />
+                            </div>
+                        )}
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setEditing(false)}>Cancelar</Button>
                             <Button type="submit" disabled={isUpdating}>{isUpdating ? 'Guardando...' : 'Guardar cambios'}</Button>

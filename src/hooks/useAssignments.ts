@@ -13,6 +13,7 @@ import type {
     AssignmentFilters,
     CreateAssignmentData,
     ReturnAssignmentData,
+    SwapEquipmentData,
 } from '@/types';
 
 // ============================================
@@ -64,6 +65,38 @@ export function useAssignments(filters?: AssignmentFilters) {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: assignmentKeys.lists() });
             queryClient.invalidateQueries({ queryKey: equipmentKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: equipmentKeys.stats() });
+        },
+    });
+
+    const swapMutation = useMutation({
+        mutationFn: async (data: SwapEquipmentData) => {
+            const response = await equipmentAssignmentsService.swap(data);
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: assignmentKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: equipmentKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: equipmentKeys.stats() });
+        },
+    });
+
+    const attachDocumentMutation = useMutation({
+        mutationFn: async ({
+            id,
+            documentType,
+            documentUrl,
+        }: {
+            id: string;
+            documentType: 'delivery' | 'return';
+            documentUrl: string;
+        }) => {
+            const response = await equipmentAssignmentsService.attachDocument(id, documentType, documentUrl);
+            return response.data.assignment;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: assignmentKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: equipmentKeys.lists() });
         },
     });
 
@@ -84,6 +117,12 @@ export function useAssignments(filters?: AssignmentFilters) {
 
         returnAssignment: returnMutation.mutate,
         isReturning: returnMutation.isPending,
+
+        swapEquipment: swapMutation.mutateAsync,
+        isSwapping: swapMutation.isPending,
+
+        attachDocument: attachDocumentMutation.mutateAsync,
+        isAttachingDocument: attachDocumentMutation.isPending,
 
         // --- Refetch manual ---
         refetch: assignmentsQuery.refetch,
