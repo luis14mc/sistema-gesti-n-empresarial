@@ -4,6 +4,8 @@ import {
   hasModuleAccess,
   getAccessibleModules,
   getModuleActions,
+  routeToAccess,
+  canAccessRoute,
 } from '../src/lib/permissions';
 
 describe('RBAC — permissions matrix', () => {
@@ -94,6 +96,69 @@ describe('RBAC — permissions matrix', () => {
     it('getModuleActions returns the actions list or empty array', () => {
       expect(getModuleActions('ADMIN', 'settings')).toEqual(['read', 'update']);
       expect(getModuleActions('USER', 'purchases')).toEqual([]);
+    });
+  });
+
+  describe('routeToAccess (URL → module + roles)', () => {
+    it('resolves /dashboard to module dashboard (null = any role)', () => {
+      const access = routeToAccess('/dashboard');
+      expect(access?.module).toBe('dashboard');
+      expect(access?.roles).toBeNull();
+    });
+
+    it('resolves /oficios/sub-routes to the oficios module', () => {
+      const access = routeToAccess('/oficios/cni');
+      expect(access?.module).toBe('oficios');
+      expect(access?.roles).toBeNull();
+    });
+
+    it('resolves /equipment to any authenticated role (read-only)', () => {
+      const access = routeToAccess('/equipment');
+      expect(access?.module).toBe('equipment');
+      expect(access?.roles).toBeNull();
+    });
+
+    it('resolves legacy /audit-records AND new /audit/logs to audit-records module', () => {
+      expect(routeToAccess('/audit-records')?.module).toBe('audit-records');
+      expect(routeToAccess('/audit/logs')?.module).toBe('audit-records');
+      expect(routeToAccess('/audit/logs')?.roles).toEqual(['ADMIN']);
+    });
+
+    it('returns null for unprotected routes', () => {
+      expect(routeToAccess('/login')).toBeNull();
+      expect(routeToAccess('/some/unknown/path')).toBeNull();
+    });
+  });
+
+  describe('canAccessRoute (role can navigate to path)', () => {
+    it('ADMIN can access any module path', () => {
+      expect(canAccessRoute('ADMIN', '/dashboard')).toBe(true);
+      expect(canAccessRoute('ADMIN', '/equipment')).toBe(true);
+      expect(canAccessRoute('ADMIN', '/settings')).toBe(true);
+      expect(canAccessRoute('ADMIN', '/audit/logs')).toBe(true);
+    });
+
+    it('USER can only access dashboard and read-only oficios/equipment/assignments', () => {
+      expect(canAccessRoute('USER', '/dashboard')).toBe(true);
+      expect(canAccessRoute('USER', '/oficios')).toBe(true);
+      expect(canAccessRoute('USER', '/oficios/cni')).toBe(true);
+      expect(canAccessRoute('USER', '/equipment')).toBe(true);
+      expect(canAccessRoute('USER', '/settings')).toBe(false);
+      expect(canAccessRoute('USER', '/audit/logs')).toBe(false);
+    });
+
+    it('IT cannot access /users or /settings', () => {
+      expect(canAccessRoute('IT', '/users')).toBe(false);
+      expect(canAccessRoute('IT', '/settings')).toBe(false);
+    });
+
+    it('RRHH can access employees/users/purchases and view equipment (read)', () => {
+      expect(canAccessRoute('RRHH', '/employees')).toBe(true);
+      expect(canAccessRoute('RRHH', '/users')).toBe(true);
+      expect(canAccessRoute('RRHH', '/purchases')).toBe(true);
+      // RRHH no tiene módulo equipment en PERMISSIONS → sidebar lo oculta,
+      // pero el middleware es permisivo. La acción final la decide API+UI.
+      expect(canAccessRoute('RRHH', '/equipment')).toBe(true);
     });
   });
 });

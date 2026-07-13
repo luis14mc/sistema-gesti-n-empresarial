@@ -4,6 +4,7 @@ import { type Role } from '@/types';
 // RBAC — Permisos basados en rol
 // Roles: ADMIN, USER, RRHH, IT
 // Sprint 1: tickets/inventory/time-entries deprecados
+// Sprint 2: ROUTE_ACCESS_BY_MODULE añadido como única fuente para rutas
 // ============================================
 
 export type Module =
@@ -76,4 +77,65 @@ export function getAccessibleModules(role: Role): Module[] {
 
 export function getModuleActions(role: Role, module: Module): Action[] {
   return PERMISSIONS[role]?.[module] ?? [];
+}
+
+// =====================================================
+// RBAC por ruta URL — única fuente de verdad compartida
+// por middleware (Edge) y por el sidebar (cliente).
+// =====================================================
+
+/**
+ * Path raíz por módulo. El middleware matchea por prefijo.
+ * null = cualquier rol autenticado.
+ */
+export const ROUTE_ACCESS_BY_MODULE: Record<Module, Role[] | null> = {
+  'dashboard':       null,
+  'oficios':         null,
+  'equipment':       null,
+  'assignments':     ['ADMIN', 'IT'],
+  'employees':       ['ADMIN', 'IT', 'RRHH'],
+  'purchases':       ['ADMIN', 'IT', 'RRHH'],
+  'users':           ['ADMIN', 'RRHH'],
+  'audit-records':   ['ADMIN'],
+  'settings':        ['ADMIN'],
+};
+
+/** Mapa URL explicitado para el middleware (sin acoplar módulos↔paths). */
+export const ROUTE_PATH_TO_MODULE: Record<string, Module> = {
+  '/dashboard':      'dashboard',
+  '/oficios':        'oficios',
+  '/equipment':      'equipment',
+  '/assignments':    'assignments',
+  '/employees':      'employees',
+  '/purchases':      'purchases',
+  '/users':          'users',
+  '/audit/logs':     'audit-records',
+  '/audit-records':  'audit-records',
+  '/settings':       'settings',
+};
+
+/**
+ * Resuelve el módulo para una ruta y roles permitidos.
+ * Retorna null si la ruta no es protegida.
+ */
+export function routeToAccess(pathname: string): { module: Module; roles: Role[] | null } | null {
+  // Match exacto primero
+  if (pathname in ROUTE_PATH_TO_MODULE) {
+    const mod = ROUTE_PATH_TO_MODULE[pathname];
+    return { module: mod, roles: ROUTE_ACCESS_BY_MODULE[mod] };
+  }
+  // Match por prefijo (para subrutas /equipos/[id])
+  for (const [prefix, mod] of Object.entries(ROUTE_PATH_TO_MODULE)) {
+    if (pathname === prefix || pathname.startsWith(`${prefix}/`)) {
+      return { module: mod, roles: ROUTE_ACCESS_BY_MODULE[mod] };
+    }
+  }
+  return null;
+}
+
+export function canAccessRoute(role: Role, pathname: string): boolean {
+  const access = routeToAccess(pathname);
+  if (!access) return false;
+  if (!access.roles) return true; // cualquier autenticado
+  return access.roles.includes(role);
 }

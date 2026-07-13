@@ -1,27 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { routeToAccess } from '@/lib/permissions';
 
 // ============================================
 // NEXT.JS MIDDLEWARE — Protección de rutas + RBAC
+// Sprint 2: la matriz de permisos vive en lib/permissions.ts (única fuente
+// de verdad). Este middleware solo orquesta JWT + redirecciones.
 // ============================================
 
 type Role = 'ADMIN' | 'USER' | 'RRHH' | 'IT';
 
 const TOKEN_COOKIE = 'token';
-
-// Rutas protegidas y qué roles las pueden acceder (null = cualquier rol autenticado)
-// Sprint 1: Módulos tickets/inventory/time-entries deprecados en frontend — eliminados del sidebar.
-const ROUTE_ACCESS: Record<string, Role[] | null> = {
-  '/dashboard':      null,
-  '/oficios':        null,
-  '/equipment':      ['ADMIN', 'IT'],
-  '/assignments':    ['ADMIN', 'IT'],
-  '/purchases':      ['ADMIN', 'IT', 'RRHH'],
-  '/users':          ['ADMIN', 'RRHH'],
-  '/audit/logs':     ['ADMIN'],
-  '/audit-records':  ['ADMIN'],  // legacy → redirige a /audit/logs
-  '/settings':       ['ADMIN'],
-};
-
 const AUTH_ROUTES = ['/login', '/register'];
 
 async function decodeAndVerifyJwt(token: string): Promise<{ userId: string; role: Role } | null> {
@@ -29,7 +17,6 @@ async function decodeAndVerifyJwt(token: string): Promise<{ userId: string; role
     const parts = token.split('.');
     if (parts.length !== 3) return null;
 
-    // Verificar firma usando Web Crypto API (Edge Runtime compatible)
     const secret = process.env.JWT_SECRET || '';
     if (!secret) return null;
 
@@ -48,7 +35,6 @@ async function decodeAndVerifyJwt(token: string): Promise<{ userId: string; role
     const dataBytes = encoder.encode(parts[0] + '.' + parts[1]);
 
     const isValid = await crypto.subtle.verify('HMAC', key, signatureBytes, dataBytes);
-
     if (!isValid) return null;
 
     const payloadStr = parts[1].replace(/-/g, '+').replace(/_/g, '/');
@@ -61,45 +47,39 @@ async function decodeAndVerifyJwt(token: string): Promise<{ userId: string; role
   }
 }
 
-function matchRoute(pathname: string): { prefix: string; roles: Role[] | null } | null {
-  for (const [prefix, roles] of Object.entries(ROUTE_ACCESS)) {
-    if (pathname === prefix || pathname.startsWith(`${prefix}/`)) {
-      return { prefix, roles };
-    }
-  }
-  return null;
+function isAuthRoute(pathname: string): boolean {
+  return AUTH_ROUTES.some((r) => pathname === r || pathname.startsWith(`${r}/`));
 }
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(TOKEN_COOKIE)?.value;
 
-  const routeMatch = matchRoute(pathname);
-  const isAuthRoute = AUTH_ROUTES.some(
-    (r) => pathname === r || pathname.startsWith(`${r}/`)
-  );
+  // Resolver acceso via permissions.ts (única fuente de verdad)
+  const access = routeToAccess(pathname);
+  const authRoute = isAuthRoute(pathname);
 
-  // Ruta protegida sin token → Login
-  if (routeMatch && !token) {
+  // 1) Ruta protegida sin token → /login con callback
+  if (access && !token) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // Ruta protegida con restricción de rol
-  if (routeMatch && token && routeMatch.roles) {
+  // 2) Ruta protegida con restricción de rol
+  if (access && token && access.roles) {
     const payload = await decodeAndVerifyJwt(token);
-    if (!payload || !routeMatch.roles.includes(payload.role)) {
+    if (!payload || !access.roles.includes(payload.role)) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
   }
 
-  // Ruta de auth con token → Dashboard
-  if (isAuthRoute && token) {
+  // 3) Auth route con sesión activa → dashboard
+  if (authRoute && token) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
-  // Raíz "/" → Redirigir según sesión
+  // 4) Raíz "/" → según sesión
   if (pathname === '/') {
     return NextResponse.redirect(
       new URL(token ? '/dashboard' : '/login', request.url)
