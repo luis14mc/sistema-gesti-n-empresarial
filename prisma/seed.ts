@@ -32,7 +32,10 @@ async function main() {
   await prisma.promotionalItem.deleteMany();
   await prisma.purchaseRequest.deleteMany();
   await prisma.equipmentAssignment.deleteMany();
+  await prisma.equipmentHistory.deleteMany();
+  await prisma.equipmentMaintenance.deleteMany();
   await prisma.equipment.deleteMany();
+  await prisma.employee.deleteMany();
   await prisma.timeEntry.deleteMany();
   await prisma.oficio.deleteMany();
   await prisma.ticket.deleteMany();
@@ -170,6 +173,46 @@ async function main() {
 
   console.log('   ✅ 5 usuarios creados');
 
+  // ── Empleados (para asignación de equipos) ───────────────────
+  console.log('👥 Creando empleados...');
+  const empJuan = await prisma.employee.create({
+    data: {
+      employeeCode: 'EMP-004',
+      firstName: 'Juan',
+      lastName: 'Pérez',
+      fullName: 'Juan Pérez',
+      email: 'juan@empresa.com',
+      userId: user1.id,
+      departmentId: deptOps.id,
+      positionId: posAnalista.id,
+    },
+  });
+  await prisma.employee.create({
+    data: {
+      employeeCode: 'EMP-005',
+      firstName: 'Lucía',
+      lastName: 'González',
+      fullName: 'Lucía González',
+      email: 'lucia@empresa.com',
+      userId: user2.id,
+      departmentId: deptTI.id,
+      positionId: posSoporteTI.id,
+    },
+  });
+  await prisma.employee.create({
+    data: {
+      employeeCode: 'EMP-002',
+      firstName: 'Carlos',
+      lastName: 'Ramírez',
+      fullName: 'Carlos Ramírez',
+      email: 'ti@empresa.com',
+      userId: jefeTI.id,
+      departmentId: deptTI.id,
+      positionId: posJefeTI.id,
+    },
+  });
+  console.log('   ✅ 3 empleados creados');
+
   // ── Tickets ─────────────────────────────────────────────────
   console.log('🎫 Creando tickets...');
   await prisma.ticket.create({
@@ -269,7 +312,8 @@ async function main() {
   console.log('💻 Creando equipos...');
   const laptop1 = await prisma.equipment.create({
     data: {
-      inventoryCode: 'CNI-2024L001',
+      inventoryCode: 'TI-LAP-0001',
+      category: 'LAPTOP',
       type: 'LAPTOP',
       brand: 'Dell',
       model: 'Latitude 5440',
@@ -286,7 +330,8 @@ async function main() {
 
   const laptop2 = await prisma.equipment.create({
     data: {
-      inventoryCode: 'CNI-2024L002',
+      inventoryCode: 'TI-LAP-0002',
+      category: 'LAPTOP',
       type: 'LAPTOP',
       brand: 'HP',
       model: 'ProBook 450 G10',
@@ -303,7 +348,8 @@ async function main() {
 
   await prisma.equipment.create({
     data: {
-      inventoryCode: 'CNI-2024M001',
+      inventoryCode: 'TI-MON-0001',
+      category: 'MONITOR',
       type: 'MONITOR',
       brand: 'LG',
       model: '27MP59G',
@@ -315,7 +361,8 @@ async function main() {
 
   await prisma.equipment.create({
     data: {
-      inventoryCode: 'CNI-2024P001',
+      inventoryCode: 'TI-IMP-0001',
+      category: 'PRINTER',
       type: 'PRINTER',
       brand: 'HP',
       model: 'LaserJet Pro M404dn',
@@ -331,12 +378,25 @@ async function main() {
   await prisma.equipmentAssignment.create({
     data: {
       equipmentId: laptop1.id,
+      employeeId: empJuan.id,
       userId: user1.id,
       status: 'ACTIVE',
       assignedDate: new Date('2024-02-01'),
       departmentAtTime: 'Operaciones',
       positionAtTime: 'Analista de Operaciones',
+      employeeNameAtTime: 'Juan Pérez',
+      employeeEmailAtTime: 'juan@empresa.com',
+      deliveryReason: 'Nuevo ingreso',
       notes: 'Equipo asignado para trabajo remoto',
+    },
+  });
+
+  await prisma.equipmentHistory.create({
+    data: {
+      equipmentId: laptop1.id,
+      action: 'ASSIGNED',
+      title: 'Equipo asignado',
+      description: 'TI-LAP-0001 asignado a Juan Pérez, Operaciones, Analista de Operaciones.',
     },
   });
   console.log('   ✅ 1 asignación creada');

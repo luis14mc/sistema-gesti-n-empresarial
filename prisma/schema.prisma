@@ -24,8 +24,10 @@ model Department {
   description String?
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
 
   users     User[]
+  employees Employee[]
   positions JobPosition[]
 
   @@map("departments")
@@ -36,9 +38,12 @@ model JobPosition {
   name         String     @unique
   departmentId String
   isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @default(now()) @updatedAt
 
   department Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
   users      User[]
+  employees  Employee[]
 
   @@index([departmentId])
   @@map("job_positions")
@@ -78,6 +83,7 @@ model User {
   oficiosCreated      Oficio[]              @relation("OficioCreator")
   timeEntries         TimeEntry[]
   equipmentAssigned   EquipmentAssignment[]
+  employeeProfile     Employee?
   purchaseRequests    PurchaseRequest[]     @relation("PurchaseRequester")
   auditRecords        AuditRecord[]         @relation("AuditUser")
   auditsLed           Audit[]               @relation("AuditLeadAuditor")
@@ -212,7 +218,11 @@ model Oficio {
   id          String     @id @default(cuid())
   number      String     @unique
   type        OficioType
+  scope       String?
   subject     String
+  recipient   String?
+  institution String?
+  preparedBy  String?
   status      String     @default("DRAFT")
   attachments Json
   comments    String?    @db.Text
@@ -229,6 +239,8 @@ model Oficio {
 
   @@index([createdById])
   @@index([status])
+  @@index([type])
+  @@index([scope])
   @@map("oficios")
 }
 
@@ -236,31 +248,97 @@ model Oficio {
 // MÓDULO DE EQUIPOS Y ASIGNACIÓN
 // ============================================
 
+enum EquipmentCategory {
+  DESKTOP_PC
+  LAPTOP
+  PRINTER
+  PHONE
+  MONITOR
+  UPS
+  ACCESSORY
+  OTHER
+}
+
 enum EquipmentStatus {
   AVAILABLE
   ASSIGNED
   IN_MAINTENANCE
   DAMAGED
   RETIRED
+  LOST
+}
+
+enum AssignmentStatus {
+  ACTIVE
+  RETURNED
+  REPLACED
+  LOST
+  CANCELLED
+}
+
+enum EquipmentHistoryAction {
+  CREATED
+  ASSIGNED
+  RETURNED
+  REPLACED
+  MAINTENANCE
+  STATUS_CHANGED
+  RETIRED
+  UPDATED
+}
+
+model Employee {
+  id           String   @id @default(cuid())
+  employeeCode String?  @unique
+  firstName    String
+  lastName     String
+  fullName     String
+  email        String   @unique
+  phone        String?
+  dni          String?
+  userId       String?  @unique
+  departmentId String?
+  positionId   String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user        User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+  department  Department?           @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  position    JobPosition?          @relation(fields: [positionId], references: [id], onDelete: SetNull)
+  assignments EquipmentAssignment[]
+
+  @@index([departmentId])
+  @@index([positionId])
+  @@index([email])
+  @@map("employees")
 }
 
 model Equipment {
-  id            String          @id @default(cuid())
-  inventoryCode String          @unique
+  id            String            @id @default(cuid())
+  inventoryCode String            @unique
+  category      EquipmentCategory @default(OTHER)
   type          String
   brand         String
   model         String
-  serialNumber  String          @unique
-  status        EquipmentStatus @default(AVAILABLE)
+  serialNumber  String?           @unique
+  status        EquipmentStatus   @default(AVAILABLE)
 
-  purchaseDate     DateTime  @db.Date
+  purchaseDate     DateTime? @db.Date
+  purchaseOrder    String?
+  supplier         String?
   warrantyDate     DateTime? @db.Date
   depreciationDate DateTime? @db.Date
+  cost             Float?
 
-  ram       String?
-  processor String?
-  storage   String?
-  os        String?
+  ram         String?
+  processor   String?
+  storage     String?
+  os          String?
+  ipAddress   String?
+  macAddress  String?
+  location    String?
+  notes       String? @db.Text
 
   retirementReason String?   @db.Text
   retiredAt        DateTime?
@@ -270,33 +348,76 @@ model Equipment {
 
   assignments  EquipmentAssignment[]
   maintenances EquipmentMaintenance[]
+  history      EquipmentHistory[]
 
   @@index([status])
+  @@index([category])
   @@index([type])
+  @@index([inventoryCode])
+  @@index([serialNumber])
   @@map("equipment")
 }
 
 model EquipmentAssignment {
-  id           String    @id @default(cuid())
+  id           String           @id @default(cuid())
   equipmentId  String
-  userId       String
-  status       String    @default("ACTIVE")
-  assignedDate DateTime  @default(now())
+  employeeId   String?
+  userId       String?
+  assignedById String?
+  status       AssignmentStatus @default(ACTIVE)
+  assignedDate DateTime         @default(now())
   returnedDate DateTime?
 
-  departmentAtTime String?
-  positionAtTime   String?
+  departmentAtTime    String?
+  positionAtTime      String?
+  employeeEmailAtTime String?
+  employeeNameAtTime  String?
+
+  deliveryReason      String?
+  assignmentNotes     String? @db.Text
+  deliveryDocumentUrl String?
+  returnDocumentUrl   String?
+
+  returnedById    String?
+  returnReason    String?
+  returnNotes     String? @db.Text
+  returnCondition String?
 
   notes      String? @db.Text
   urlNotaPdf String?
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
   equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Restrict)
-  user      User      @relation(fields: [userId], references: [id])
+  employee  Employee? @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([equipmentId])
+  @@index([employeeId])
   @@index([userId])
   @@index([status])
+  @@index([assignedDate])
   @@map("equipment_assignments")
+}
+
+model EquipmentHistory {
+  id            String                 @id @default(cuid())
+  equipmentId   String
+  action        EquipmentHistoryAction
+  title         String
+  description   String?                @db.Text
+  previousData  Json?
+  newData       Json?
+  performedById String?
+  createdAt     DateTime               @default(now())
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@index([equipmentId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("equipment_history")
 }
 
 // ============================================
@@ -406,6 +527,7 @@ model EquipmentMaintenance {
   cost            Float?
   technician      String?
   notes           String?           @db.Text
+  documentUrl     String?
   performedById   String?
 
   createdAt DateTime @default(now())

@@ -33,5 +33,11 @@ next-env.d.ts
 .env.test.local
 .env.production.local
 
-# Prisma
-prisma/migrations/
+# Uploads locales de oficios (runtime)
+public/uploads/oficios/**
+!public/uploads/oficios/.gitkeep
+
+# Uploads locales de equipos (runtime)
+public/uploads/equipment/**
+!public/uploads/equipment/.gitkeep
+
