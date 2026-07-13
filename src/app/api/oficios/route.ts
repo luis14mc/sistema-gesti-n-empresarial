@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Prisma } from '@prisma/client';
+import { Prisma, OficioType as PrismaOficioType } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
@@ -12,27 +12,60 @@ import {
   type OficioDirection,
   type OficioScope,
 } from '@/lib/oficios-numbering';
+import { buildMetaScopeFilter } from '@/lib/oficios-meta';
+import { parseOficioAttachments } from '@/lib/oficios-attachments';
 
-function buildScopeWhere(scope: OficioScope): Prisma.OficioWhereInput {
+function buildScopeWhere(scope: OficioScope, direction?: OficioDirection): Prisma.OficioWhereInput {
   if (scope === 'INTERNO') {
-    return { type: 'INTERNAL_MEMO' };
+    return {
+      OR: [{ type: 'INTERNAL_MEMO' }, { scope: 'INTERNO' }],
+    };
   }
 
   if (scope === 'DESPACHO') {
+    if (direction === 'INCOMING') {
+      return {
+        OR: [
+          { type: 'INCOMING', scope: 'DESPACHO' },
+          { type: 'INCOMING', comments: { contains: buildMetaScopeFilter('DESPACHO') } },
+        ],
+      };
+    }
+    if (direction === 'OUTGOING') {
+      return { type: 'OUTGOING', number: { startsWith: 'DPICP-' } };
+    }
     return {
       OR: [
-        { number: { startsWith: 'DPICP-' } },
-        { type: 'INCOMING' },
+        { type: 'OUTGOING', number: { startsWith: 'DPICP-' } },
+        { type: 'INCOMING', scope: 'DESPACHO' },
+        { type: 'INCOMING', comments: { contains: buildMetaScopeFilter('DESPACHO') } },
       ],
     };
   }
 
+  // CNI
+  if (direction === 'INCOMING') {
+    return {
+      OR: [
+        { type: 'INCOMING', scope: 'CNI' },
+        { type: 'INCOMING', comments: { contains: buildMetaScopeFilter('CNI') } },
+      ],
+    };
+  }
+  if (direction === 'OUTGOING') {
+    return { type: 'OUTGOING', number: { contains: '-CNI-' } };
+  }
   return {
     OR: [
-      { number: { contains: '-CNI-' } },
-      { type: 'INCOMING' },
+      { type: 'OUTGOING', number: { contains: '-CNI-' } },
+      { type: 'INCOMING', scope: 'CNI' },
+      { type: 'INCOMING', comments: { contains: buildMetaScopeFilter('CNI') } },
     ],
   };
+}
+
+function toPrismaOficioType(direction: OficioDirection): PrismaOficioType {
+  return direction as PrismaOficioType;
 }
 
 function buildNumberSequenceWhere(params: {
@@ -112,12 +145,18 @@ async function getHandler(req: AuthenticatedRequest) {
 
     if (scopeParam) {
       const scope = normalizeOficioScope(scopeParam);
-      andConditions.push(buildScopeWhere(scope));
+      const direction = directionParam
+        ? normalizeOficioDirection(directionParam, scope)
+        : type
+          ? normalizeOficioDirection(type, scope)
+          : undefined;
+      andConditions.push(buildScopeWhere(scope, direction));
     }
 
-    if (directionParam || type) {
-      const scope = scopeParam ? normalizeOficioScope(scopeParam) : undefined;
-      where.type = normalizeOficioDirection(directionParam ?? type, scope) as any;
+    if ((directionParam || type) && !scopeParam) {
+      where.type = toPrismaOficioType(
+        normalizeOficioDirection(directionParam ?? type, undefined)
+      );
     }
 
     if (search) {
@@ -125,7 +164,9 @@ async function getHandler(req: AuthenticatedRequest) {
         OR: [
           { subject: { contains: search, mode: 'insensitive' } },
           { number: { contains: search, mode: 'insensitive' } },
-          { comments: { contains: search, mode: 'insensitive' } },
+          { recipient: { contains: search, mode: 'insensitive' } },
+          { institution: { contains: search, mode: 'insensitive' } },
+          { preparedBy: { contains: search, mode: 'insensitive' } },
         ],
       });
     }
@@ -181,7 +222,9 @@ async function postHandler(req: AuthenticatedRequest) {
       direction,
       scope,
       origin,
-      comments,
+      recipient,
+      institution,
+      preparedBy,
       oficioDate,
       receivedDate,
       sentDate,
@@ -191,26 +234,68 @@ async function postHandler(req: AuthenticatedRequest) {
     const oficioScope = normalizeOficioScope(scope ?? origin);
     const oficioDirection = normalizeOficioDirection(direction ?? type, oficioScope);
     const incomingNumber = (externalNumber ?? number)?.toString().trim();
+    const motivo = subject?.toString().trim();
+    const destinatario = recipient?.toString().trim();
+    const institucion = institution?.toString().trim();
+    const elaboradoPor = preparedBy?.toString().trim();
 
-    if (!subject || !oficioDate) {
+    if (!motivo || !oficioDate) {
       return NextResponse.json(
-        { error: 'Asunto y fecha del oficio son requeridos' },
+        { error: 'Motivo y fecha del oficio son requeridos' },
+        { status: 400 }
+      );
+    }
+
+    if (!destinatario) {
+      return NextResponse.json(
+        { error: 'El destinatario es obligatorio' },
+        { status: 400 }
+      );
+    }
+
+    if (!institucion) {
+      return NextResponse.json(
+        { error: 'La institución es obligatoria' },
+        { status: 400 }
+      );
+    }
+
+    if (!elaboradoPor) {
+      return NextResponse.json(
+        { error: 'El campo Elaborado Por es obligatorio' },
         { status: 400 }
       );
     }
 
     if (oficioDirection === 'INCOMING' && !incomingNumber) {
       return NextResponse.json(
-        { error: 'Los oficios ingresados deben registrar el número original de la institución remitente' },
+        { error: 'Los oficios ingresados deben registrar el No. de Oficio original' },
         { status: 400 }
       );
     }
 
     if (!attachments || (Array.isArray(attachments) && attachments.length === 0)) {
       return NextResponse.json(
-        { error: 'Es obligatorio subir el documento PDF para crear el oficio' },
+        { error: 'Es obligatorio adjuntar el documento oficial para crear el oficio' },
         { status: 400 }
       );
+    }
+
+    const parsedAttachments = parseOficioAttachments(attachments);
+    if (parsedAttachments.length === 0) {
+      return NextResponse.json(
+        { error: 'El documento adjunto no tiene un formato válido' },
+        { status: 400 }
+      );
+    }
+
+    for (const att of parsedAttachments) {
+      if (!att.url?.startsWith('/uploads/oficios/') && !att.url?.startsWith('http')) {
+        return NextResponse.json(
+          { error: 'URL de documento adjunto no válida' },
+          { status: 400 }
+        );
+      }
     }
 
     const oficio = await prisma.$transaction(async (tx) => {
@@ -226,13 +311,16 @@ async function postHandler(req: AuthenticatedRequest) {
       return tx.oficio.create({
         data: {
           number: oficioNumber,
-          subject,
-          type: oficioDirection as any,
-          comments,
+          subject: motivo,
+          scope: oficioScope,
+          recipient: destinatario,
+          institution: institucion,
+          preparedBy: elaboradoPor,
+          type: toPrismaOficioType(oficioDirection),
           oficioDate: new Date(oficioDate),
           receivedDate: receivedDate ? new Date(receivedDate) : oficioDirection === 'INCOMING' ? new Date() : undefined,
           sentDate: sentDate ? new Date(sentDate) : oficioDirection === 'OUTGOING' ? new Date(oficioDate) : undefined,
-          attachments: attachments || [],
+          attachments: parsedAttachments as unknown as Prisma.InputJsonValue,
           createdById: req.user!.userId,
         },
         include: {

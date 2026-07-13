@@ -70,3 +70,24 @@ export function parseOficioSequence(number: string): number {
   const parsed = Number.parseInt(match[1], 10);
   return Number.isNaN(parsed) ? 0 : parsed;
 }
+
+export const OFICIO_SCOPE_PATHS: Record<OficioScope, string> = {
+  INTERNO: '/oficios/internos',
+  CNI: '/oficios/cni',
+  DESPACHO: '/oficios/despacho',
+};
+
+export const OFICIO_PATH_TO_SCOPE: Record<string, OficioScope> = {
+  internos: 'INTERNO',
+  cni: 'CNI',
+  despacho: 'DESPACHO',
+};
+
+/** Texto informativo cuando el número se genera automáticamente. */
+export function getAutoNumberHint(scope: OficioScope, direction: OficioDirection): string | null {
+  if (direction === 'INCOMING') return null;
+  if (direction === 'INTERNAL_MEMO') return 'Se generará automáticamente: MEMO-0001-2026';
+  if (scope === 'CNI') return 'Se generará automáticamente: 0001-CNI-2026';
+  if (scope === 'DESPACHO') return 'Se generará automáticamente: DPICP-0001-2026';
+  return null;
+}

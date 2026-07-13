@@ -60,7 +60,7 @@ async function patchHandler(
       );
     }
 
-    const allowedFields = ['subject', 'status', 'comments', 'attachments', 'oficioDate', 'receivedDate', 'sentDate'];
+    const allowedFields = ['subject', 'recipient', 'institution', 'preparedBy', 'status', 'attachments', 'oficioDate', 'receivedDate', 'sentDate'];
 
     const updateData: any = {};
     allowedFields.forEach(field => {

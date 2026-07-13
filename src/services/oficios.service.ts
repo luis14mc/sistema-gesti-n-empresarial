@@ -28,7 +28,7 @@ export interface OficioResponse {
 }
 
 export const oficiosService = {
-  /** Listar oficios con filtros opcionales (type, status) */
+  /** Listar oficios con filtros (scope, direction, status, search) */
   list: (filters?: OficioFilters) =>
     apiHelpers.get<OficiosListResponse>(BASE, filters as Record<string, unknown>),
 
