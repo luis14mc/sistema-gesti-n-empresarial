@@ -21,7 +21,18 @@ async function getDashboardStats(): Promise<DashboardStats> {
     prisma.equipment.count(),
     prisma.equipment.count({ where: { status: 'AVAILABLE' } }),
     prisma.equipmentAssignment.count({ where: { status: 'ACTIVE' } }),
-    prisma.purchaseRequest.count({ where: { status: 'PENDING' } }),
+    prisma.compraSolicitud.count({
+      where: {
+        estado: {
+          in: [
+            'PENDIENTE_AUTORIZACION_JEFE',
+            'PENDIENTE_APROBACION_GERENCIA',
+            'PENDIENTE_COMPRAS',
+          ],
+        },
+        deletedAt: null,
+      },
+    }),
     prisma.user.count({ where: { isActive: true } }),
   ]);
 

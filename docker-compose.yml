@@ -42,6 +42,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
+      # Persiste adjuntos y PDFs de compras: public/uploads/compras/solicitudes/{id}/
       - uploads:/app/public/uploads
 
   minio:

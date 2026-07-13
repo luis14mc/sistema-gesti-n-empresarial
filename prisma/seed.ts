@@ -30,7 +30,11 @@ async function main() {
   await prisma.auditRecord.deleteMany();
   await prisma.promotionalMovement.deleteMany();
   await prisma.promotionalItem.deleteMany();
-  await prisma.purchaseRequest.deleteMany();
+  await prisma.compraAdjunto.deleteMany();
+  await prisma.compraSolicitudItem.deleteMany();
+  await prisma.compraSolicitud.deleteMany();
+  await prisma.proveedor.deleteMany();
+  await prisma.costCenter.deleteMany();
   await prisma.equipmentAssignment.deleteMany();
   await prisma.equipmentHistory.deleteMany();
   await prisma.equipmentMaintenance.deleteMany();
@@ -451,20 +455,65 @@ async function main() {
   });
   console.log('   ✅ 3 items + 1 movimiento creados');
 
-  // ── Solicitudes de compra ───────────────────────────────────
-  console.log('🛒 Creando solicitudes de compra...');
-  await prisma.purchaseRequest.create({
+  // ── Centros de costo y proveedores ──────────────────────────
+  console.log('🏷️  Creando centros de costo y proveedores...');
+  const ccTI = await prisma.costCenter.create({
+    data: { code: 'CC-TI-001', name: 'Infraestructura TI', description: 'Equipos y licencias' },
+  });
+  const ccOps = await prisma.costCenter.create({
+    data: { code: 'CC-OPS-001', name: 'Operaciones de campo', description: 'Logística y operaciones' },
+  });
+  const proveedorTech = await prisma.proveedor.create({
     data: {
-      title: 'Compra de 5 laptops para nuevo personal',
-      description: 'Se requieren 5 laptops Dell Latitude para los nuevos ingresos del área de Operaciones.',
-      justification: 'Expansión del equipo de campo según plan estratégico 2026.',
-      category: 'EQUIPO_COMPUTO',
-      priority: 'ALTA',
-      status: 'PENDING',
-      requestedById: jefeTI.id,
+      nombreRazonSocial: 'Tecnología Empresarial S.A.',
+      rtn: '08011990123456',
+      telefono: '2234-5678',
+      email: 'ventas@tecnologia.hn',
+      personaContacto: 'María López',
+      direccion: 'Blvd. Morazán, Tegucigalpa',
     },
   });
-  console.log('   ✅ 1 solicitud creada');
+  console.log('   ✅ 2 centros de costo + 1 proveedor creados');
+
+  // ── Solicitudes de compra ───────────────────────────────────
+  console.log('🛒 Creando solicitudes de compra...');
+  await prisma.compraSolicitud.create({
+    data: {
+      codigoSolicitud: 'SC-0001-2026',
+      fechaSolicitud: new Date('2026-07-01'),
+      fechaRequerida: new Date('2026-07-20'),
+      departamentoSolicitanteId: deptTI.id,
+      centroCostoId: ccTI.id,
+      solicitadoPorId: jefeTI.id,
+      cargoSolicitante: 'Jefe de TI',
+      tipoCompra: 'BIENES',
+      prioridad: 'ALTA',
+      estado: 'PENDIENTE_AUTORIZACION_JEFE',
+      proveedorId: proveedorTech.id,
+      justificacionCompra: 'Adquisición de laptops para nuevo personal de operaciones según plan 2026.',
+      condicionesEntrega: 'Entrega en oficinas centrales en 10 días hábiles.',
+      formaPago: 'CREDITO',
+      plazoPagoDias: 30,
+      subtotal: 125000,
+      descuento: 0,
+      impuesto: 18750,
+      total: 143750,
+      items: {
+        create: [
+          {
+            item: 1,
+            codigo: 'LT-DELL-01',
+            descripcion: 'Laptop Dell Latitude 5540',
+            unidad: 'UNIDAD',
+            cantidad: 5,
+            precioUnitario: 25000,
+            total: 125000,
+          },
+        ],
+      },
+    },
+  });
+  console.log('   ✅ 1 solicitud de compra creada');
 
   // ── Registro de auditoría ───────────────────────────────────
   console.log('📋 Creando registros de auditoría...');

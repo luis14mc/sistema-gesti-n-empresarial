@@ -155,7 +155,8 @@ describe('RBAC — permissions matrix', () => {
     it('RRHH can access employees/users/purchases and view equipment (read)', () => {
       expect(canAccessRoute('RRHH', '/employees')).toBe(true);
       expect(canAccessRoute('RRHH', '/users')).toBe(true);
-      expect(canAccessRoute('RRHH', '/purchases')).toBe(true);
+      expect(canAccessRoute('RRHH', '/compras')).toBe(true);
+      expect(canAccessRoute('RRHH', '/compras/nueva')).toBe(true);
       // RRHH no tiene módulo equipment en PERMISSIONS → sidebar lo oculta,
       // pero el middleware es permisivo. La acción final la decide API+UI.
       expect(canAccessRoute('RRHH', '/equipment')).toBe(true);

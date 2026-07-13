@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Montserrat } from 'next/font/google';
+import { connection } from 'next/server';
 import { headers } from 'next/headers';
 import './globals.css';
 import { Toaster } from 'sileo';
@@ -17,23 +18,26 @@ export const metadata: Metadata = {
 };
 
 /**
- * Layout raíz — pasa el nonce CSP al atributo nonce del <html>.
+ * Layout raíz — pasa el nonce CSP al script inline de tema.
  * El middleware genera un nonce único por request (ver src/middleware.ts)
- * y lo expone en el header `x-sge-nonce`. Next.js aplica automáticamente
- * el nonce a sus scripts y chunks.
+ * vía `x-nonce` + Content-Security-Policy. Next.js aplica automáticamente
+ * el nonce a sus scripts y chunks de hidratación.
  */
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const nonce = (await headers()).get('x-sge-nonce') ?? undefined;
+  // Fuerza render dinámico para que el nonce del middleware esté disponible en SSR.
+  await connection();
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
 
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
         <script
           nonce={nonce}
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')}}catch(e){}})();`,
           }}

@@ -11,7 +11,8 @@ type Role = 'ADMIN' | 'USER' | 'RRHH' | 'IT';
 
 const TOKEN_COOKIE = 'token';
 const AUTH_ROUTES  = ['/login', '/register'];
-const NONCE_HEADER = 'x-sge-nonce';
+// Next.js espera 'x-nonce' y parsea el nonce desde Content-Security-Policy del request.
+const NONCE_HEADER = 'x-nonce';
 
 function generateNonce(): string {
   const arr = new Uint8Array(16);
@@ -26,15 +27,22 @@ function buildCspHeader(nonce: string): string {
   // Política estricta con nonce para scripts.
   // 'strict-dynamic' permite que scripts cargados por los de confianza
   // se ejecuten sin necesidad de self en sub-recursos.
+  // En desarrollo, React Refresh (HMR) requiere 'unsafe-eval'; en producción se omite.
   // Estilos: permitir 'self' + 'unsafe-inline' (Tailwind v4 + shadcn requiere)
   // Imágenes: self + data: + https: (logos remotos).
   // Conexiones: self + S3/CloudFront si se define S3_PUBLIC_URL en runtime.
   const s3Host = process.env.S3_PUBLIC_URL
     ? ` ${process.env.S3_PUBLIC_URL.replace(/\/$/, '')}`
     : '';
+  const scriptSrc = [
+    "'self'",
+    `'nonce-${nonce}'`,
+    "'strict-dynamic'",
+    ...(process.env.NODE_ENV === 'development' ? ["'unsafe-eval'"] : []),
+  ].join(' ');
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    `script-src ${scriptSrc}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:" + s3Host,
     "font-src 'self' data:",
@@ -98,8 +106,16 @@ function isAuthRoute(pathname: string): boolean {
   return AUTH_ROUTES.some((r) => pathname === r || pathname.startsWith(`${r}/`));
 }
 
+function applyCspToRequest(requestHeaders: Headers, nonce: string): void {
+  const csp = buildCspHeader(nonce);
+  requestHeaders.set(NONCE_HEADER, nonce);
+  // Next.js extrae el nonce del CSP del request para inyectarlo en scripts de hidratación.
+  requestHeaders.set('Content-Security-Policy', csp);
+}
+
 function applySecurityHeaders(response: NextResponse, nonce: string): void {
-  response.headers.set('Content-Security-Policy', buildCspHeader(nonce));
+  const csp = buildCspHeader(nonce);
+  response.headers.set('Content-Security-Policy', csp);
   response.headers.set(NONCE_HEADER, nonce);
   for (const header of buildExtraSecurityHeaders()) {
     const [k, v] = header.split(': ');
@@ -113,7 +129,7 @@ export async function middleware(request: NextRequest) {
   // Generar nonce único por request para CSP
   const nonce = generateNonce();
   const requestHeaders = new Headers(request.headers);
-  requestHeaders.set(NONCE_HEADER, nonce);
+  applyCspToRequest(requestHeaders, nonce);
 
   const token = requestHeaders.get('cookie')?.match(/(?:^|;\s*)token=([^;]+)/)?.[1] ?? null;
 

@@ -8,7 +8,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { oficiosService } from '@/services/oficios.service';
 import { equipmentService } from '@/services/equipment.service';
-import { purchasesService } from '@/services/purchases.service';
+import { comprasService } from '@/services/compras.service';
 
 export const dashboardKeys = {
   all: ['dashboard'] as const,
@@ -37,22 +37,25 @@ export function useDashboard() {
   const summaryQuery = useQuery({
     queryKey: dashboardKeys.summary(),
     queryFn: async (): Promise<DashboardSummary> => {
-      const [oficiosRes, equipmentRes, purchasesRes] = await Promise.all([
+      const [oficiosRes, equipmentRes, comprasRes] = await Promise.all([
         oficiosService.list({ pageSize: 20 }),
         equipmentService.list(),
-        purchasesService.list(),
+        comprasService.listSolicitudes({ pageSize: 50 }),
       ]);
 
       const oficios = oficiosRes.data.oficios;
       const equipment = equipmentRes.data.equipment;
-      const purchases = purchasesRes.data.purchases;
+      const solicitudes = comprasRes.data.solicitudes;
+      const pendientes = solicitudes.filter((s) =>
+        ['PENDIENTE_AUTORIZACION_JEFE', 'PENDIENTE_APROBACION_GERENCIA', 'PENDIENTE_COMPRAS'].includes(s.estado)
+      ).length;
 
       return {
         totalOficios: oficiosRes.data.total,
         inProcessOficios: oficios.filter((o) => IN_PROCESS_STATUSES.includes(o.status)).length,
         totalEquipment: equipment.length,
         availableEquipment: equipment.filter((e) => e.status === 'AVAILABLE').length,
-        pendingPurchases: purchases.filter((p) => p.status === 'PENDING').length,
+        pendingPurchases: pendientes,
         recentOficios: oficios.slice(0, 5).map((o) => ({
           id: o.id,
           number: o.number,

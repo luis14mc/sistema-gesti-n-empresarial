@@ -108,6 +108,7 @@ export const ROUTE_PATH_TO_MODULE: Record<string, Module> = {
   '/assignments':    'assignments',
   '/employees':      'employees',
   '/purchases':      'purchases',
+  '/compras':        'purchases',
   '/users':          'users',
   '/audit/logs':     'audit-records',
   '/audit-records':  'audit-records',
