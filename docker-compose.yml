@@ -1,0 +1,64 @@
+# =====================================================
+# SGE — Desarrollo local con Docker
+# Levanta Postgres + App + (opcional) MinIO para simular S3
+# =====================================================
+# Uso:
+#   docker compose up app db
+#   docker compose --profile s3 up app db minio
+# =====================================================
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: sge-db
+    environment:
+      POSTGRES_USER: sge
+      POSTGRES_PASSWORD: sge_dev_password
+      POSTGRES_DB: sge
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sge -d sge"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sge-app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://sge:sge_dev_password@db:5432/sge?schema=public
+      DIRECT_URL:   postgresql://sge:sge_dev_password@db:5432/sge?schema=public
+      JWT_SECRET: dev-jwt-secret-change-in-production-min-32-chars-aaaaaaaaa
+      STORAGE_DRIVER: local
+      NEXT_TELEMETRY_DISABLED: "1"
+    ports:
+      - "3000:3000"
+    volumes:
+      - uploads:/app/public/uploads
+
+  minio:
+    image: minio/minio:latest
+    container_name: sge-minio
+    profiles: ["s3"]
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+
+volumes:
+  pgdata:
+  uploads:
+  miniodata:

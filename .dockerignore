@@ -1,0 +1,23 @@
+# =====================================================
+# .dockerignore — excluir del contexto de Docker
+# =====================================================
+**/node_modules
+**/.next
+**/.git
+**/.env
+**/.env.*
+!**/.env.example
+**/coverage
+**/tsconfig.tsbuildinfo
+**/mockups
+**/*.log
+**/docs
+**/.github
+**/.vscode
+**/.idea
+README.md
+CHANGELOG.md
+CONTRIBUTING.md
+SECURITY.md
+hallazgoz.md
+implementation_plan.md

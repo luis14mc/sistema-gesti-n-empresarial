@@ -73,4 +73,10 @@ export interface StorageAdapter {
    * En S3 con archivos privados, generar signed URL on-demand.
    */
   getUrl(key: string): Promise<string>;
+
+  /**
+   * Chequeo barato de disponibilidad del backend (no escribe).
+   * Para healthchecks: errores deben propagarse como throw.
+   */
+  ping?(): Promise<void>;
 }
