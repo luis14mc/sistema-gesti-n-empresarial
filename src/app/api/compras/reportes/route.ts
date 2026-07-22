@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
 import { canAccess } from '@/lib/permissions';
+import { COMPRA_ESTADOS_PENDIENTES } from '@/lib/compras/constants';
 import type { Role } from '@/types';
 
 async function getHandler(req: AuthenticatedRequest) {
@@ -24,36 +25,9 @@ async function getHandler(req: AuthenticatedRequest) {
       fechaSolicitud: { gte: start, lt: end },
     };
 
-    const [
-      porEstado,
-      porDepartamento,
-      porCentroCosto,
-      porPrioridad,
-      montoPorMes,
-      ordenesEmitidas,
-      pendientesAprobacion,
-      cerradas,
-    ] = await Promise.all([
+    const [porEstado, montoPorMes, ordenesEmitidas, enProceso, cerradas, anuladas] = await Promise.all([
       prisma.compraSolicitud.groupBy({
         by: ['estado'],
-        where,
-        _count: { _all: true },
-        _sum: { total: true },
-      }),
-      prisma.compraSolicitud.groupBy({
-        by: ['departamentoSolicitanteId'],
-        where: { ...where, departamentoSolicitanteId: { not: null } },
-        _count: { _all: true },
-        _sum: { total: true },
-      }),
-      prisma.compraSolicitud.groupBy({
-        by: ['centroCostoId'],
-        where: { ...where, centroCostoId: { not: null } },
-        _count: { _all: true },
-        _sum: { total: true },
-      }),
-      prisma.compraSolicitud.groupBy({
-        by: ['prioridad'],
         where,
         _count: { _all: true },
         _sum: { total: true },
@@ -69,43 +43,26 @@ async function getHandler(req: AuthenticatedRequest) {
         GROUP BY 1
         ORDER BY 1
       `,
-      prisma.compraSolicitud.count({ where: { ...where, estado: 'ORDEN_EMITIDA' } }),
+      prisma.compraSolicitud.count({ where: { ...where, estado: 'EMITIDA' } }),
       prisma.compraSolicitud.count({
-        where: { ...where, estado: { in: ['ENVIADA', 'AUTORIZADA'] } },
+        where: { ...where, estado: { in: [...COMPRA_ESTADOS_PENDIENTES] } },
       }),
       prisma.compraSolicitud.count({ where: { ...where, estado: 'CERRADA' } }),
+      prisma.compraSolicitud.count({ where: { ...where, estado: 'ANULADA' } }),
     ]);
-
-    const [departamentos, centros] = await Promise.all([
-      prisma.department.findMany({ select: { id: true, name: true } }),
-      prisma.costCenter.findMany({ select: { id: true, code: true, name: true } }),
-    ]);
-
-    const deptMap = Object.fromEntries(departamentos.map((d) => [d.id, d.name]));
-    const centroMap = Object.fromEntries(centros.map((c) => [c.id, `${c.code} - ${c.name}`]));
 
     return NextResponse.json({
       year,
       porEstado,
-      porDepartamento: porDepartamento.map((row) => ({
-        ...row,
-        departamento: row.departamentoSolicitanteId
-          ? deptMap[row.departamentoSolicitanteId]
-          : 'Sin departamento',
-      })),
-      porCentroCosto: porCentroCosto.map((row) => ({
-        ...row,
-        centroCosto: row.centroCostoId ? centroMap[row.centroCostoId] : 'Sin centro',
-      })),
-      porPrioridad,
       montoPorMes: montoPorMes.map((row) => ({
         mes: row.mes,
         total: Number(row.total),
         cantidad: Number(row.cantidad),
       })),
       ordenesEmitidas,
-      pendientesAprobacion,
+      enProceso,
       cerradas,
+      anuladas,
     });
   } catch (error) {
     console.error('Error generating compras reportes:', error);

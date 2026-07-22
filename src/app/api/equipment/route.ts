@@ -10,19 +10,39 @@ import {
 } from '@/lib/equipment-asset-code';
 import { logEquipmentHistory } from '@/lib/equipment-history';
 import { mapEquipmentResponse } from '@/lib/equipment-mapper';
+import { isOrganizationContextError, requireOrganizationContext } from '@/modules/organizations/application/context';
+import { apiFailure, apiSuccess } from '@/platform/api/response';
+import { z } from 'zod';
+
+const equipmentListQuerySchema = z.object({
+  status: z.string().optional(),
+  type: z.string().optional(),
+  category: z.string().optional(),
+  search: z.string().trim().optional(),
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(10),
+});
+
+function organizationFailure(error: unknown, requestId: string) {
+  if (!isOrganizationContextError(error)) return null;
+  const message = error.code === 'ORGANIZATION_SELECTION_REQUIRED'
+    ? 'Seleccione la organización con la que desea trabajar.'
+    : error.code === 'AUTHENTICATION_REQUIRED'
+      ? 'Debe iniciar sesión para continuar.'
+      : 'No existe una organización activa para este usuario.';
+  return apiFailure(error.code, message, { requestId, status: error.status, details: [], stage: 'RESOLVE_ORGANIZATION_CONTEXT' });
+}
 
 async function getHandler(req: AuthenticatedRequest) {
+  const requestId = crypto.randomUUID();
   try {
-    const { searchParams } = new URL(req.url);
-    const status = searchParams.get('status');
-    const type = searchParams.get('type');
-    const category = searchParams.get('category');
-    const search = searchParams.get('search');
-    const page = parseInt(searchParams.get('page') || '1');
-    const pageSize = parseInt(searchParams.get('pageSize') || '10');
+    const organization = await requireOrganizationContext(req, requestId);
+    const { status, type, category, search, page, pageSize } = equipmentListQuerySchema.parse(
+      Object.fromEntries(req.nextUrl.searchParams),
+    );
     const skip = (page - 1) * pageSize;
 
-    const where: Prisma.EquipmentWhereInput = {};
+    const where: Prisma.EquipmentWhereInput = { organizationId: organization.organizationId };
     const andConditions: Prisma.EquipmentWhereInput[] = [];
 
     if (req.user!.role === 'USER') {
@@ -87,21 +107,25 @@ async function getHandler(req: AuthenticatedRequest) {
 
     const equipment = rows.map(mapEquipmentResponse);
 
-    return NextResponse.json({
-      equipment,
-      total,
-      page,
-      pageSize,
-      totalPages: Math.ceil(total / pageSize),
-    });
+    return apiSuccess({
+      items: equipment,
+      meta: { total, page, pageSize, totalPages: Math.ceil(total / pageSize) },
+    }, { requestId });
   } catch (error) {
-    console.error('Error al obtener equipos:', error);
-    return NextResponse.json({ error: 'Error al obtener equipos' }, { status: 500 });
+    const failure = organizationFailure(error, requestId);
+    if (failure) return failure;
+    if (error instanceof z.ZodError) {
+      return apiFailure('INVALID_EQUIPMENT_QUERY', 'Los filtros de equipos son inválidos.', { requestId, status: 400, details: error.issues, stage: 'VALIDATE_QUERY' });
+    }
+    console.error('[EQUIPMENT LIST ERROR]', { requestId, error });
+    return apiFailure('EQUIPMENT_LIST_FAILED', 'No se pudieron cargar los equipos.', { requestId, status: 500, details: [], stage: 'LIST_EQUIPMENT' });
   }
 }
 
 async function postHandler(req: AuthenticatedRequest) {
+  const requestId = crypto.randomUUID();
   try {
+    const organization = await requireOrganizationContext(req, requestId);
     const body = await req.json();
     const {
       type,
@@ -137,6 +161,7 @@ async function postHandler(req: AuthenticatedRequest) {
     const equipment = await prisma.equipment.create({
       data: {
         inventoryCode: code,
+        organizationId: organization.organizationId,
         category: resolvedCategory,
         type: displayType,
         brand,
@@ -174,16 +199,21 @@ async function postHandler(req: AuthenticatedRequest) {
       category: 'CREATE',
       userId: req.user!.userId,
       entityId: equipment.id,
+      entityType: 'Equipment',
+      organizationId: organization.organizationId,
+      action: 'EQUIPMENT_CREATED',
       newData: { inventoryCode: code, category: resolvedCategory, brand, model },
     });
 
     return NextResponse.json({ equipment: mapEquipmentResponse(equipment) }, { status: 201 });
   } catch (error) {
+    const failure = organizationFailure(error, requestId);
+    if (failure) return failure;
     console.error('Error al crear equipo:', error);
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return NextResponse.json({ error: 'Código de activo o número de serie duplicado' }, { status: 409 });
     }
-    return NextResponse.json({ error: 'Error al crear equipo' }, { status: 500 });
+    return apiFailure('EQUIPMENT_CREATE_FAILED', 'No se pudo crear el equipo.', { requestId, status: 500, details: [], stage: 'CREATE_EQUIPMENT' });
   }
 }
 

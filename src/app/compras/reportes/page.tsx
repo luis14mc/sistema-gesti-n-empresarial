@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useComprasReportes } from '@/hooks/useCompras';
 import { useAuth } from '@/hooks/useAuth';
-import { COMPRA_ESTADO_LABELS, COMPRA_PRIORIDAD_LABELS } from '@/lib/compras/constants';
+import { COMPRA_ESTADO_LABELS } from '@/lib/compras/constants';
 
 export default function ComprasReportesPage() {
   const { user } = useAuth();
@@ -33,8 +33,9 @@ export default function ComprasReportesPage() {
             <CardHeader><CardTitle>Resumen operativo</CardTitle></CardHeader>
             <CardContent className="space-y-2 text-sm">
               <p>Órdenes emitidas: <strong>{reportes.ordenesEmitidas}</strong></p>
-              <p>Pendientes de aprobación: <strong>{reportes.pendientesAprobacion}</strong></p>
-              <p>Compras cerradas: <strong>{reportes.cerradas}</strong></p>
+              <p>En proceso: <strong>{reportes.enProceso}</strong></p>
+              <p>Cerradas: <strong>{reportes.cerradas}</strong></p>
+              <p>Anuladas: <strong>{reportes.anuladas}</strong></p>
             </CardContent>
           </Card>
 
@@ -50,44 +51,11 @@ export default function ComprasReportesPage() {
           </Card>
 
           <Card>
-            <CardHeader><CardTitle>Por prioridad</CardTitle></CardHeader>
-            <CardContent className="space-y-1 text-sm">
-              {reportes.porPrioridad.map((row) => (
-                <p key={row.prioridad}>
-                  {COMPRA_PRIORIDAD_LABELS[row.prioridad]}: {row._count._all}
-                </p>
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader><CardTitle>Por departamento</CardTitle></CardHeader>
-            <CardContent className="space-y-1 text-sm">
-              {reportes.porDepartamento.map((row) => (
-                <p key={row.departamentoSolicitanteId ?? 'none'}>
-                  {row.departamento}: {row._count._all}
-                </p>
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader><CardTitle>Por centro de costo</CardTitle></CardHeader>
-            <CardContent className="space-y-1 text-sm">
-              {reportes.porCentroCosto.map((row) => (
-                <p key={row.centroCostoId ?? 'none'}>
-                  {row.centroCosto}: {row._count._all}
-                </p>
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card>
             <CardHeader><CardTitle>Monto por mes</CardTitle></CardHeader>
             <CardContent className="space-y-1 text-sm">
               {reportes.montoPorMes.map((row) => (
                 <p key={row.mes}>
-                  Mes {row.mes}: L {row.total.toFixed(2)} ({row.cantidad} solicitudes)
+                  Mes {row.mes}: L {row.total.toFixed(2)} ({row.cantidad} órdenes)
                 </p>
               ))}
             </CardContent>

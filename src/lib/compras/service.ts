@@ -1,56 +1,76 @@
 import type { Prisma } from '@prisma/client';
+import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { calcularTotalesCompra } from './calculos';
-import { generateCompraNumero } from './numbering';
-import type { CreateCompraSolicitudInput, UpdateCompraSolicitudInput, BorradorCompraSolicitudInput } from './schemas';
+import { allocateNumeroOrden } from './numbering';
+import type { BorradorOrdenInput, UpdateOrdenInput } from './schemas';
+import { validarOrdenParaGenerar } from './schemas';
 import { getNextEstado, type CompraWorkflowAction } from './workflow';
 import type { Role } from '@/types';
-import { construirHtmlSolicitudCompra } from './pdf-template';
+import { construirHtmlOrdenCompra } from './pdf-template';
 import { renderHtmlToPdf } from './pdf-renderer';
 import { getStorage } from '@/lib/storage';
 
 export const compraInclude = {
-  departamentoSolicitante: { select: { id: true, name: true } },
-  centroCosto: { select: { id: true, code: true, name: true } },
   solicitadoPor: {
-    select: { id: true, firstName: true, lastName: true, email: true, departmentId: true, position: { select: { name: true } } },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      position: { select: { name: true } },
+    },
   },
   proveedor: true,
-  autorizadoPor: { select: { id: true, firstName: true, lastName: true } },
-  aprobadoPor: { select: { id: true, firstName: true, lastName: true } },
-  rechazadoPor: { select: { id: true, firstName: true, lastName: true } },
   items: { orderBy: { item: 'asc' as const } },
   adjuntos: {
     include: { uploadedBy: { select: { id: true, firstName: true, lastName: true } } },
     orderBy: { uploadedAt: 'desc' as const },
   },
+  documentos: {
+    where: { activo: true },
+    orderBy: { version: 'desc' as const },
+    take: 1,
+    include: { generadoPor: { select: { id: true, firstName: true, lastName: true } } },
+  },
 } satisfies Prisma.CompraSolicitudInclude;
 
-async function resolveProveedorFields(data: {
+async function resolveProveedorSnapshot(data: {
   proveedorId?: string | null;
-  proveedorNombre?: string;
+  proveedorNombre?: string | null;
   proveedorIdentificacion?: string | null;
   proveedorTelefono?: string | null;
   proveedorEmail?: string | null;
   proveedorContacto?: string | null;
   proveedorDireccion?: string | null;
 }) {
-  if (!data.proveedorId) return data;
-  const proveedor = await prisma.proveedor.findUnique({ where: { id: data.proveedorId } });
-  if (!proveedor) return data;
+  if (data.proveedorId) {
+    const proveedor = await prisma.proveedor.findUnique({ where: { id: data.proveedorId } });
+    if (proveedor) {
+      return {
+        proveedorId: data.proveedorId,
+        proveedorNombre: proveedor.nombreRazonSocial,
+        proveedorIdentificacion: proveedor.rtn,
+        proveedorTelefono: proveedor.telefono,
+        proveedorEmail: proveedor.email,
+        proveedorContacto: proveedor.personaContacto,
+        proveedorDireccion: proveedor.direccion,
+      };
+    }
+  }
   return {
-    ...data,
-    proveedorNombre: data.proveedorNombre || proveedor.nombreRazonSocial,
-    proveedorIdentificacion: data.proveedorIdentificacion ?? proveedor.rtn,
-    proveedorTelefono: data.proveedorTelefono ?? proveedor.telefono,
-    proveedorEmail: data.proveedorEmail ?? proveedor.email,
-    proveedorContacto: data.proveedorContacto ?? proveedor.personaContacto,
-    proveedorDireccion: data.proveedorDireccion ?? proveedor.direccion,
+    proveedorId: data.proveedorId ?? null,
+    proveedorNombre: data.proveedorNombre ?? null,
+    proveedorIdentificacion: data.proveedorIdentificacion ?? null,
+    proveedorTelefono: data.proveedorTelefono ?? null,
+    proveedorEmail: data.proveedorEmail ?? null,
+    proveedorContacto: data.proveedorContacto ?? null,
+    proveedorDireccion: data.proveedorDireccion ?? null,
   };
 }
 
-function buildItems(items: BorradorCompraSolicitudInput['items'] = [], descuento = 0) {
-  const safeItems = items.filter((i) => i.descripcion?.trim());
+function buildItems(items: BorradorOrdenInput['items'] = [], descuento = 0) {
+  const safeItems = (items ?? []).filter((i) => i.descripcion?.trim());
   if (!safeItems.length) {
     return {
       mapped: [],
@@ -64,64 +84,39 @@ function buildItems(items: BorradorCompraSolicitudInput['items'] = [], descuento
     })),
     descuento,
   });
-
   const mapped = safeItems.map((item, index) => ({
     item: item.item ?? index + 1,
-    codigo: item.codigo,
     descripcion: item.descripcion,
     unidad: item.unidad,
     cantidad: item.cantidad,
     precioUnitario: item.precioUnitario ?? 0,
     total: totales.lineTotals[index],
   }));
-
   return { mapped, totales };
 }
 
 export async function createCompraSolicitud(
-  data: BorradorCompraSolicitudInput,
+  data: BorradorOrdenInput,
   solicitadoPorId: string,
   _role: Role
 ) {
-  const numero = await generateCompraNumero();
-  const resolved = await resolveProveedorFields(data);
+  const user = await prisma.user.findUnique({
+    where: { id: solicitadoPorId },
+    include: { position: { select: { name: true } } },
+  });
+  const snapshot = await resolveProveedorSnapshot(data);
   const { mapped, totales } = buildItems(data.items, data.descuento ?? 0);
-
-  let departamentoId = data.departamentoSolicitanteId;
-  let cargo = data.cargoSolicitante;
-  if (!departamentoId || !cargo) {
-    const user = await prisma.user.findUnique({
-      where: { id: solicitadoPorId },
-      include: { position: { select: { name: true } } },
-    });
-    if (!departamentoId) departamentoId = user?.departmentId ?? undefined;
-    if (!cargo) cargo = user?.position?.name ?? undefined;
-  }
 
   return prisma.compraSolicitud.create({
     data: {
-      numero,
       fechaSolicitud: data.fechaSolicitud ? new Date(data.fechaSolicitud) : undefined,
       fechaRequerida: data.fechaRequerida ? new Date(data.fechaRequerida) : null,
-      departamentoSolicitanteId: departamentoId ?? null,
-      centroCostoId: data.centroCostoId ?? null,
+      referenciaCompra: data.referenciaCompra ?? null,
       solicitadoPorId,
-      cargoSolicitante: cargo ?? null,
-      tipoCompra: data.tipoCompra ?? 'BIENES',
-      prioridad: data.prioridad ?? 'NORMAL',
-      proveedorId: resolved.proveedorId ?? null,
-      proveedorNombre: resolved.proveedorNombre ?? null,
-      proveedorIdentificacion: resolved.proveedorIdentificacion ?? null,
-      proveedorTelefono: resolved.proveedorTelefono ?? null,
-      proveedorEmail: resolved.proveedorEmail ?? null,
-      proveedorContacto: resolved.proveedorContacto ?? null,
-      proveedorDireccion: resolved.proveedorDireccion ?? null,
+      cargoSolicitante: data.cargoSolicitante ?? user?.position?.name ?? null,
+      ...snapshot,
       justificacionCompra: data.justificacionCompra ?? '',
-      condicionesEntrega: data.condicionesEntrega ?? null,
       observacionesAdicionales: data.observacionesAdicionales ?? null,
-      formaPago: data.formaPago ?? 'CONTADO',
-      plazoPagoDias: data.plazoPagoDias ?? null,
-      detallesPago: data.detallesPago ?? null,
       subtotal: totales.subtotal,
       descuento: totales.descuento,
       impuesto: totales.impuesto,
@@ -132,34 +127,21 @@ export async function createCompraSolicitud(
   });
 }
 
-export async function updateCompraSolicitud(id: string, data: UpdateCompraSolicitudInput) {
-  const resolved =
-    data.proveedorId || data.proveedorNombre
-      ? await resolveProveedorFields(data)
-      : data;
-
+export async function updateCompraSolicitud(id: string, data: UpdateOrdenInput) {
+  const snapshot = await resolveProveedorSnapshot(data);
   const updateData: Prisma.CompraSolicitudUpdateInput = {
     fechaRequerida: data.fechaRequerida ? new Date(data.fechaRequerida) : undefined,
-    departamentoSolicitante: data.departamentoSolicitanteId
-      ? { connect: { id: data.departamentoSolicitanteId } }
-      : undefined,
-    centroCosto: data.centroCostoId ? { connect: { id: data.centroCostoId } } : undefined,
+    referenciaCompra: data.referenciaCompra,
     cargoSolicitante: data.cargoSolicitante,
-    tipoCompra: data.tipoCompra,
-    prioridad: data.prioridad,
-    proveedor: resolved.proveedorId ? { connect: { id: resolved.proveedorId } } : undefined,
-    proveedorNombre: resolved.proveedorNombre,
-    proveedorIdentificacion: resolved.proveedorIdentificacion,
-    proveedorTelefono: resolved.proveedorTelefono,
-    proveedorEmail: resolved.proveedorEmail,
-    proveedorContacto: resolved.proveedorContacto,
-    proveedorDireccion: resolved.proveedorDireccion,
+    proveedor: snapshot.proveedorId ? { connect: { id: snapshot.proveedorId } } : undefined,
+    proveedorNombre: snapshot.proveedorNombre,
+    proveedorIdentificacion: snapshot.proveedorIdentificacion,
+    proveedorTelefono: snapshot.proveedorTelefono,
+    proveedorEmail: snapshot.proveedorEmail,
+    proveedorContacto: snapshot.proveedorContacto,
+    proveedorDireccion: snapshot.proveedorDireccion,
     justificacionCompra: data.justificacionCompra,
-    condicionesEntrega: data.condicionesEntrega,
     observacionesAdicionales: data.observacionesAdicionales,
-    formaPago: data.formaPago,
-    plazoPagoDias: data.plazoPagoDias,
-    detallesPago: data.detallesPago,
   };
 
   if (data.items) {
@@ -197,71 +179,21 @@ export async function updateCompraSolicitud(id: string, data: UpdateCompraSolici
   });
 }
 
-export async function applyWorkflowAction(
-  id: string,
-  action: CompraWorkflowAction,
-  userId: string,
-  extra?: { motivoRechazo?: string }
-) {
-  const solicitud = await prisma.compraSolicitud.findUnique({ where: { id } });
-  if (!solicitud) throw new Error('Solicitud no encontrada');
-
-  const next = getNextEstado(action, solicitud.estado);
-  if (!next) throw new Error('Transición no permitida');
-
-  const now = new Date();
-  const data: Prisma.CompraSolicitudUpdateInput = { estado: next };
-
-  if (action === 'autorizar') {
-    data.autorizadoPor = { connect: { id: userId } };
-    data.autorizadoEn = now;
-  }
-  if (action === 'aprobar') {
-    data.aprobadoPor = { connect: { id: userId } };
-    data.aprobadoEn = now;
-  }
-  if (action === 'rechazar') {
-    data.rechazadoPor = { connect: { id: userId } };
-    data.rechazadoEn = now;
-    data.motivoRechazo = extra?.motivoRechazo ?? 'Sin motivo';
-  }
-  if (action === 'emitir_orden') {
-    data.emitidoPorId = userId;
-    data.emitidoEn = now;
-  }
-
-  const updated = await prisma.compraSolicitud.update({
-    where: { id },
-    data,
-    include: compraInclude,
-  });
-
-  if (action === 'emitir_orden') {
-    const pdfUrl = await generarPdfSolicitud(id);
-    return prisma.compraSolicitud.update({
-      where: { id },
-      data: { documentoPdfUrl: pdfUrl },
-      include: compraInclude,
-    });
-  }
-
-  return updated;
-}
-
-export async function generarPdfSolicitud(solicitudId: string): Promise<string> {
+async function guardarPdfOrden(solicitudId: string, userId: string, version: number) {
   const solicitud = await prisma.compraSolicitud.findUnique({
     where: { id: solicitudId },
     include: compraInclude,
   });
-  if (!solicitud) throw new Error('Solicitud no encontrada');
+  if (!solicitud) throw new Error('Orden no encontrada');
 
-  const html = await construirHtmlSolicitudCompra(solicitud);
+  const html = await construirHtmlOrdenCompra(solicitud, version);
   const buffer = await renderHtmlToPdf(html);
   const storage = getStorage();
-  const filename = `orden-compra-${solicitud.numero.replace(/[^a-zA-Z0-9-]/g, '_')}.pdf`;
+  const slug = (solicitud.numeroOrden ?? solicitud.id).replace(/[^a-zA-Z0-9-]/g, '_');
+  const filename = `orden-compra-${slug}-v${version}.pdf`;
 
   const stored = await storage.put({
-    prefix: `compras/solicitudes/${solicitudId}`,
+    prefix: `compras/ordenes/${solicitudId}`,
     originalName: filename,
     mimeType: 'application/pdf',
     size: buffer.length,
@@ -269,7 +201,98 @@ export async function generarPdfSolicitud(solicitudId: string): Promise<string> 
     desiredName: filename,
   });
 
-  return stored.url;
+  await prisma.compraDocumento.updateMany({
+    where: { solicitudCompraId: solicitudId, activo: true },
+    data: { activo: false },
+  });
+
+  await prisma.compraDocumento.create({
+    data: {
+      id: randomUUID(),
+      solicitudCompraId: solicitudId,
+      nombreArchivo: filename,
+      storagePath: stored.key,
+      url: stored.url,
+      version,
+      generadoPorId: userId,
+    },
+  });
+
+  return stored;
+}
+
+export async function applyWorkflowAction(
+  id: string,
+  action: CompraWorkflowAction,
+  userId: string
+) {
+  const solicitud = await prisma.compraSolicitud.findUnique({
+    where: { id },
+    include: { items: true },
+  });
+  if (!solicitud) throw new Error('Orden no encontrada');
+
+  const next = getNextEstado(action, solicitud.estado);
+  if (!next) throw new Error('Transición no permitida');
+
+  if (action === 'generar_orden') {
+    const errors = validarOrdenParaGenerar(solicitud);
+    if (errors.length) throw new Error(errors.join('. '));
+
+    return prisma.$transaction(async (tx) => {
+      const numeroOrden = await allocateNumeroOrden(tx);
+      return tx.compraSolicitud.update({
+        where: { id },
+        data: { estado: 'GENERADA', numeroOrden },
+        include: compraInclude,
+      });
+    });
+  }
+
+  if (action === 'emitir' || action === 'regenerar_pdf') {
+    const lastDoc = await prisma.compraDocumento.findFirst({
+      where: { solicitudCompraId: id },
+      orderBy: { version: 'desc' },
+    });
+    const version = action === 'regenerar_pdf' ? (lastDoc?.version ?? 0) + 1 : (lastDoc?.version ?? 0) + 1;
+
+    await guardarPdfOrden(id, userId, version);
+
+    if (action === 'emitir') {
+      return prisma.compraSolicitud.update({
+        where: { id },
+        data: { estado: 'EMITIDA' },
+        include: compraInclude,
+      });
+    }
+
+    return prisma.compraSolicitud.findUnique({
+      where: { id },
+      include: compraInclude,
+    });
+  }
+
+  return prisma.compraSolicitud.update({
+    where: { id },
+    data: { estado: next },
+    include: compraInclude,
+  });
+}
+
+export async function getOrdenHtmlPreview(solicitudId: string): Promise<string> {
+  const solicitud = await prisma.compraSolicitud.findUnique({
+    where: { id: solicitudId },
+    include: compraInclude,
+  });
+  if (!solicitud) throw new Error('Orden no encontrada');
+
+  const lastVersion = await prisma.compraDocumento.findFirst({
+    where: { solicitudCompraId: solicitudId },
+    orderBy: { version: 'desc' },
+    select: { version: true },
+  });
+
+  return construirHtmlOrdenCompra(solicitud, (lastVersion?.version ?? 0) + 1);
 }
 
 export async function createProveedor(data: {
@@ -282,3 +305,6 @@ export async function createProveedor(data: {
 }) {
   return prisma.proveedor.create({ data });
 }
+
+// Legacy alias
+export const generarPdfSolicitud = getOrdenHtmlPreview;

@@ -4,7 +4,7 @@
 // Sprint 2: usar S3StorageAdapter en producción AWS.
 // =====================================================
 
-import { mkdir, writeFile, unlink } from 'fs/promises';
+import { mkdir, writeFile, unlink, readFile } from 'fs/promises';
 import path from 'path';
 import { randomUUID } from 'crypto';
 import type { PutObjectInput, PutObjectResult, StorageAdapter } from './types';
@@ -82,8 +82,31 @@ export class LocalStorageAdapter implements StorageAdapter {
   async getUrl(key: string): Promise<string> {
     return `/${key.replace(/^\/+/, '')}`;
   }
+
+  async get(key: string, mimeTypeHint?: string): Promise<import('./types').GetObjectResult> {
+    const relative = key.replace(/^\/+/, '');
+    const absolute = path.join(this.baseDir, relative);
+    const buffer = await readFile(absolute);
+    const ext = this.getExtension(key);
+    const mimeType = mimeTypeHint ?? mimeFromExtension(ext);
+    return { buffer, mimeType, size: buffer.length };
+  }
 }
 
 function prefixSlug(prefix: string): string {
   return prefix.replace(/[^a-zA-Z0-9-_]/g, '-').replace(/-+/g, '-');
+}
+
+function mimeFromExtension(ext: string): string {
+  switch (ext) {
+    case '.pdf':
+      return 'application/pdf';
+    case '.jpg':
+    case '.jpeg':
+      return 'image/jpeg';
+    case '.png':
+      return 'image/png';
+    default:
+      return 'application/octet-stream';
+  }
 }

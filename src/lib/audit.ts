@@ -1,4 +1,5 @@
 import { prisma } from './prisma';
+import type { Prisma } from '@prisma/client';
 
 export type AuditModule =
   | 'TICKETS'
@@ -20,8 +21,14 @@ interface CreateAuditRecordParams {
   status?: string;
   userId?: string;
   entityId?: string;
+  entityType?: string;
+  organizationId?: string;
+  action?: string;
+  metadata?: unknown;
+  requestId?: string;
   previousData?: unknown;
   newData?: unknown;
+  tx?: Prisma.TransactionClient;
 }
 
 export async function createAuditRecord({
@@ -33,11 +40,17 @@ export async function createAuditRecord({
   status = 'COMPLETADO',
   userId,
   entityId,
+  entityType,
+  organizationId,
+  action,
+  metadata,
+  requestId,
   previousData,
   newData,
+  tx,
 }: CreateAuditRecordParams) {
   try {
-    return await prisma.auditRecord.create({
+    return await (tx ?? prisma).auditRecord.create({
       data: {
         title,
         description,
@@ -47,6 +60,11 @@ export async function createAuditRecord({
         status,
         userId,
         entityId,
+        entityType,
+        organizationId,
+        action,
+        metadata: metadata ? JSON.parse(JSON.stringify(metadata)) : undefined,
+        requestId,
         previousData: previousData ? JSON.parse(JSON.stringify(previousData)) : undefined,
         newData: newData ? JSON.parse(JSON.stringify(newData)) : undefined,
       },

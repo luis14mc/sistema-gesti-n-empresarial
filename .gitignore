@@ -41,3 +41,9 @@ public/uploads/oficios/**
 public/uploads/equipment/**
 !public/uploads/equipment/.gitkeep
 
+# Uploads locales de compras e identidad institucional (runtime)
+public/uploads/compras/**
+!public/uploads/compras/.gitkeep
+public/uploads/institution/**
+!public/uploads/institution/.gitkeep
+

@@ -18,6 +18,10 @@ import {
   ShoppingCart,
   ClipboardCheck,
   Loader2,
+  Inbox,
+  Building2,
+  BarChart3,
+  Plus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -26,7 +30,10 @@ import { Separator } from '@/components/ui/separator';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { logoutAction } from '@/actions/auth';
 import { hasModuleAccess, type Module } from '@/lib/permissions';
+import { useBandejaContador } from '@/hooks/useBandejaContador';
 import { cn } from '@/lib/utils';
+import { BrandLogo } from '@/components/shared/BrandLogo';
+import { BRAND_APP_NAME } from '@/lib/brand';
 import type { SessionUser, Role } from '@/types';
 
 // ── NAV ITEMS ─────────────────────────────────────────────────
@@ -34,6 +41,8 @@ import type { SessionUser, Role } from '@/types';
 interface NavSubItem {
   label: string;
   href: string;
+  /** Clave opcional para badge (ej: 'compras-bandeja'). */
+  badgeKey?: string;
 }
 
 interface NavItem {
@@ -45,36 +54,63 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard',    href: '/dashboard',     icon: LayoutDashboard, module: 'dashboard' },
+  { label: 'Dashboard',    href: '/dashboard',                icon: LayoutDashboard, module: 'dashboard' },
   {
     label: 'Oficios',
-    href: '/oficios/internos',
+    href: '/oficios/todos',
     icon: FileText,
     module: 'oficios',
     children: [
-      { label: 'Internos', href: '/oficios/internos' },
-      { label: 'CNI', href: '/oficios/cni' },
-      { label: 'Despacho', href: '/oficios/despacho' },
+      { label: 'Todos los oficios',      href: '/oficios/todos' },
+      { label: 'Internos / Memos',       href: '/oficios/internos' },
+      { label: 'Externos CNI',           href: '/oficios/cni' },
+      { label: 'Externos Despacho',      href: '/oficios/despacho' },
+      { label: 'Importar oficios',       href: '/oficios/importar' },
     ],
   },
-  { label: 'Equipos',      href: '/equipment',     icon: Monitor,         module: 'equipment' },
-  { label: 'Empleados',    href: '/employees',     icon: Contact,         module: 'employees' },
-  { label: 'Asignaciones', href: '/assignments',   icon: ClipboardList,   module: 'assignments' },
-  { label: 'Compras',      href: '/compras',       icon: ShoppingCart,    module: 'purchases',
+  {
+    label: 'Equipos',
+    href: '/equipment',
+    icon: Monitor,
+    module: 'equipment',
     children: [
-      { label: 'Solicitudes', href: '/compras' },
-      { label: 'Nueva', href: '/compras/nueva' },
-      { label: 'Aprobaciones', href: '/compras/aprobaciones' },
-      { label: 'Proveedores', href: '/compras/proveedores' },
-      { label: 'Reportes', href: '/compras/reportes' },
+      { label: 'Inventario', href: '/equipment' },
+      { label: 'Dictámenes de baja', href: '/equipment-disposal' },
     ],
   },
-  { label: 'Auditoría',    href: '/audit/logs',    icon: ClipboardCheck,  module: 'audit-records' },
-  { label: 'Usuarios',     href: '/users',         icon: Users,           module: 'users' },
-  { label: 'Ajustes',      href: '/settings',      icon: Settings,        module: 'settings' },
+  { label: 'Empleados',    href: '/employees',                icon: Contact,         module: 'employees' },
+  { label: 'Asignaciones', href: '/assignments',              icon: ClipboardList,   module: 'assignments' },
+  {
+    label: 'Compras',
+    href: '/compras/solicitudes',
+    icon: ShoppingCart,
+    module: 'purchases',
+    children: [
+      { label: 'Órdenes de compra',   href: '/compras/solicitudes' },
+      { label: 'Nueva orden',         href: '/compras/nueva' },
+      { label: 'Formato CNI',         href: '/compras/configuracion' },
+      { label: 'Reportes',             href: '/compras/reportes' },
+    ],
+  },
+  { label: 'Auditoría',    href: '/audit/logs',               icon: ClipboardCheck,  module: 'audit-records' },
+  { label: 'Usuarios',     href: '/users',                    icon: Users,           module: 'users' },
+  { label: 'Ajustes',      href: '/settings',                 icon: Settings,        module: 'settings' },
 ];
 
 // ── SIDEBAR NAV ───────────────────────────────────────────────
+
+function NavBadge({ badgeKey }: { badgeKey: string }) {
+  const { data } = useBandejaContador(badgeKey);
+  if (!data || data.count <= 0) return null;
+  return (
+    <span
+      className="ml-auto inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold leading-none"
+      aria-label={`${data.count} pendientes`}
+    >
+      {data.count > 99 ? '99+' : data.count}
+    </span>
+  );
+}
 
 function SidebarNav({
   role,
@@ -91,15 +127,30 @@ function SidebarNav({
     hasModuleAccess(role, item.module)
   );
 
+  // Expandir automáticamente el grupo cuando una subruta coincide.
+  // Depende solo de `pathname` y `role` (no de `filteredItems`, que cambia
+  // de referencia en cada render). Si no hay cambios reales, retorna `prev`
+  // para no provocar un re-render y evitar un loop infinito.
   useEffect(() => {
-    NAV_ITEMS.filter((item) => hasModuleAccess(role, item.module)).forEach((item) => {
-      if (!item.children) return;
-      const isGroupActive = item.children.some(
-        (child) => pathname === child.href || pathname.startsWith(child.href + '/')
-      );
-      if (isGroupActive) {
-        setExpandedMenus((prev) => ({ ...prev, [item.href]: true }));
-      }
+    setExpandedMenus((prev) => {
+      let changed = false;
+      const next = { ...prev };
+
+      NAV_ITEMS.forEach((item) => {
+        if (!hasModuleAccess(role, item.module)) return;
+        if (!item.children?.length) return;
+
+        const isGroupActive = item.children.some(
+          (child) => pathname === child.href || pathname.startsWith(`${child.href}/`)
+        );
+
+        if (isGroupActive && next[item.href] !== true) {
+          next[item.href] = true;
+          changed = true;
+        }
+      });
+
+      return changed ? next : prev;
     });
   }, [pathname, role]);
 
@@ -111,35 +162,54 @@ function SidebarNav({
     <nav className="flex flex-col gap-1 px-3">
       {filteredItems.map((item) => {
         const hasChildren = Boolean(item.children?.length);
-        const isGroupActive = hasChildren
+        const childrenActive = hasChildren
           ? item.children!.some(
               (child) => pathname === child.href || pathname.startsWith(child.href + '/')
             )
-          : pathname === item.href || pathname.startsWith(item.href + '/');
-        const isExpanded = hasChildren && (expandedMenus[item.href] ?? isGroupActive);
+          : false;
+        const selfActive = !hasChildren
+          && (pathname === item.href || pathname.startsWith(item.href + '/'));
+        const isParentActive = childrenActive;
+        const isExpanded = hasChildren && (expandedMenus[item.href] ?? childrenActive);
 
         if (hasChildren && !collapsed) {
           return (
             <div key={item.href} className="flex flex-col gap-0.5">
-              <button
-                type="button"
-                onClick={() => toggleMenu(item.href)}
-                className={cn(
-                  'flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                  isGroupActive
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                )}
-              >
-                <item.icon className="h-5 w-5 shrink-0" />
-                <span className="truncate flex-1 text-left">{item.label}</span>
-                <ChevronDown
+              <div className="flex items-stretch gap-0.5">
+                <Link
+                  href={item.children![0].href}
+                  onClick={onNavClick}
                   className={cn(
-                    'h-4 w-4 shrink-0 transition-transform',
-                    isExpanded && 'rotate-180'
+                    'flex flex-1 items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                    isParentActive
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                   )}
-                />
-              </button>
+                  title={item.label}
+                >
+                  <item.icon className="h-5 w-5 shrink-0" />
+                  <span className="truncate flex-1 text-left">{item.label}</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => toggleMenu(item.href)}
+                  aria-label={isExpanded ? `Contraer ${item.label}` : `Expandir ${item.label}`}
+                  aria-expanded={isExpanded}
+                  className={cn(
+                    'flex items-center justify-center w-8 rounded-lg text-sm transition-colors',
+                    isParentActive
+                      ? 'text-primary hover:bg-primary/10'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                  )}
+                >
+                  <ChevronDown
+                    className={cn(
+                      'h-4 w-4 transition-transform',
+                      isExpanded && 'rotate-180'
+                    )}
+                  />
+                </button>
+              </div>
               {isExpanded && (
                 <div className="ml-4 flex flex-col gap-0.5 border-l border-border/60 pl-2">
                   {item.children!.map((child) => {
@@ -154,10 +224,11 @@ function SidebarNav({
                           'flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors',
                           isChildActive
                             ? 'bg-primary text-primary-foreground shadow-sm font-medium'
-                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
                         )}
                       >
-                        <span className="truncate">{child.label}</span>
+                        <span className="truncate flex-1">{child.label}</span>
+                        {child.badgeKey && <NavBadge badgeKey={child.badgeKey} />}
                       </Link>
                     );
                   })}
@@ -174,11 +245,12 @@ function SidebarNav({
             onClick={onNavClick}
             className={cn(
               'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-              isGroupActive
+              selfActive
                 ? 'bg-primary text-primary-foreground shadow-sm'
                 : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
             )}
             title={collapsed ? item.label : undefined}
+            aria-current={selfActive ? 'page' : undefined}
           >
             <item.icon className="h-5 w-5 shrink-0" />
             {!collapsed && <span className="truncate">{item.label}</span>}
@@ -264,13 +336,11 @@ export default function MainLayout({ children, user: propUser }: MainLayoutProps
           collapsed ? 'w-[72px]' : 'w-64'
         )}
       >
-        <div className="flex items-center gap-3 px-4 h-16 border-b border-sidebar-border shrink-0">
-          <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center shrink-0">
-            <span className="text-primary-foreground font-bold text-sm">SG</span>
-          </div>
+        <div className="flex items-center gap-3 px-4 h-16 border-b border-sidebar-border shrink-0 overflow-hidden">
+          <BrandLogo height={collapsed ? 28 : 36} hideAlt={collapsed} className="shrink-0" />
           {!collapsed && (
-            <span className="font-heading font-bold text-sm text-sidebar-foreground truncate">
-              SGE
+            <span className="font-heading font-bold text-xs text-sidebar-foreground truncate leading-tight">
+              {BRAND_APP_NAME}
             </span>
           )}
         </div>
@@ -338,11 +408,9 @@ export default function MainLayout({ children, user: propUser }: MainLayoutProps
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-72 p-0">
-              <div className="flex items-center gap-3 px-4 h-16 border-b border-border">
-                <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center">
-                  <span className="text-primary-foreground font-bold text-sm">SG</span>
-                </div>
-                <span className="font-heading font-bold text-sm">SGE</span>
+              <div className="flex items-center gap-3 px-4 h-16 border-b border-border overflow-hidden">
+                <BrandLogo height={36} className="shrink-0" />
+                <span className="font-heading font-bold text-xs leading-tight">{BRAND_APP_NAME}</span>
               </div>
               <div className="py-4">
                 <SidebarNav

@@ -74,7 +74,7 @@ const QUICK_ACTIONS: {
     title: 'Compras',
     description: 'Solicitudes y adquisiciones',
     icon: ShoppingCart,
-    href: '/compras',
+    href: '/compras/solicitudes',
     module: 'purchases',
     color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
   },

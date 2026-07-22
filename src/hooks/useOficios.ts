@@ -8,8 +8,12 @@
 //   - Numeración automática en backend
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { oficiosService } from '@/services/oficios.service';
+import {
+  oficiosService,
+  type OficioSearchFilters,
+} from '@/services/oficios.service';
 import type {
+    Oficio,
     OficioFilters,
     CreateOficioData,
     UpdateOficioData,
@@ -143,4 +147,92 @@ export function useOficioDetail(id: string | null) {
 
         refetch: detailQuery.refetch,
     };
+}
+
+// ============================================
+// HOOK SEARCH — Búsqueda global (/oficios/todos)
+// ============================================
+
+interface OficiosSearchResult {
+    oficios: Oficio[];
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+}
+
+export function useOficiosSearch(filters?: OficioSearchFilters) {
+    const query = useQuery<OficiosSearchResult>({
+        queryKey: [...oficioKeys.lists(), 'search', filters] as const,
+        queryFn: async () => {
+            const response = await oficiosService.search(filters);
+            return response.data as OficiosSearchResult;
+        },
+        placeholderData: (prev) => prev,
+        staleTime: 30_000,
+    });
+
+    return {
+        oficios: query.data?.oficios ?? [],
+        total: query.data?.total ?? 0,
+        page: query.data?.page ?? 1,
+        pageSize: query.data?.pageSize ?? 25,
+        totalPages: query.data?.totalPages ?? 1,
+        isLoading: query.isLoading || query.isFetching,
+        isError: query.isError,
+        refetch: query.refetch,
+    };
+}
+
+// ============================================
+// HOOK IMPORT — Importación individual
+// ============================================
+
+export function useImportOficio() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (formData: FormData) => {
+            const response = await oficiosService.importIndividual(formData);
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: oficioKeys.lists() });
+        },
+    });
+}
+
+// ============================================
+// HOOK STATUS — Cambio de estado
+// ============================================
+
+export function useUpdateOficioStatus(id: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (status: string) => {
+            const response = await oficiosService.updateStatus(id, status);
+            return response.data.oficio;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: oficioKeys.detail(id) });
+            queryClient.invalidateQueries({ queryKey: oficioKeys.lists() });
+        },
+    });
+}
+
+// ============================================
+// HOOK DOCUMENT — Agregar documento
+// ============================================
+
+export function useAddOficioDocument(id: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (formData: FormData) => {
+            const response = await oficiosService.addDocument(id, formData);
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: oficioKeys.detail(id) });
+            queryClient.invalidateQueries({ queryKey: oficioKeys.lists() });
+        },
+    });
 }

@@ -166,6 +166,24 @@ export class S3StorageAdapter implements StorageAdapter {
     });
   }
 
+  async get(key: string, mimeTypeHint?: string): Promise<import('./types').GetObjectResult> {
+    const fullKey = this.fullKey(key);
+    const response = await this.client.send(
+      new GetObjectCommand({
+        Bucket: this.config.bucket,
+        Key: fullKey,
+      })
+    );
+    if (!response.Body) throw new Error('Archivo no encontrado');
+    const bytes = await response.Body.transformToByteArray();
+    const buffer = Buffer.from(bytes);
+    return {
+      buffer,
+      mimeType: mimeTypeHint ?? response.ContentType ?? 'application/octet-stream',
+      size: buffer.length,
+    };
+  }
+
   /**
    * Chequeo barato: HEAD sobre el bucket no es trivial en S3, así que
    * usamos ListBuckets (autorización) como ping. Si falla, propagar.

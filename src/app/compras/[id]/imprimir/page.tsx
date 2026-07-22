@@ -1,34 +1,19 @@
-'use client';
+import { notFound } from 'next/navigation';
+import { requireSession } from '@/lib/session';
+import { getCompraOrden } from '@/lib/compras/orden/service';
+import { canOrdenAction } from '@/lib/compras/orden/permissions';
+import { buildPreviewDataFromSerializedOrder } from '@/lib/compras/orden/preview-data';
+import { PurchaseOrderPrintDocument } from '@/components/compras/PurchaseOrderPrintDocument';
+import type { Role } from '@/types';
 
-import { use, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { comprasService } from '@/services/compras.service';
+export const dynamic = 'force-dynamic';
 
-export default function CompraImprimirPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
-  const { user } = useAuth();
-
-  useEffect(() => {
-    if (!user) return;
-    const url = comprasService.getImprimirUrl(id);
-    window.open(url, '_blank');
-  }, [id, user]);
-
-  return (
-    <div className="p-8 text-center text-muted-foreground">
-      <p>Abriendo vista de impresión...</p>
-      <p className="text-sm mt-2">
-        Si no se abre automáticamente,{' '}
-        <a
-          href={comprasService.getImprimirUrl(id)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline"
-        >
-          haga clic aquí
-        </a>
-        .
-      </p>
-    </div>
-  );
+export default async function CompraImprimirPage({ params }: { params: Promise<{ id: string }> }) {
+  const { user } = await requireSession();
+  const { id } = await params;
+  const orden = await getCompraOrden(id);
+  if (!orden?.format) notFound();
+  if (!canOrdenAction(user.role as Role, 'read', { isCreator: orden.createdById === user.id })) notFound();
+  const document = buildPreviewDataFromSerializedOrder(orden, orden.format);
+  return <main className="mx-auto w-[816px] bg-white px-[45px] py-[45px]"><PurchaseOrderPrintDocument order={document} format={orden.format} draft={document.isDraft} autoPrint /></main>;
 }

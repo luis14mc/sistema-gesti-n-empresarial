@@ -31,10 +31,11 @@ async function main() {
   await prisma.promotionalMovement.deleteMany();
   await prisma.promotionalItem.deleteMany();
   await prisma.compraAdjunto.deleteMany();
+  await prisma.compraDocumento.deleteMany();
   await prisma.compraSolicitudItem.deleteMany();
   await prisma.compraSolicitud.deleteMany();
+  await prisma.compraSequence.deleteMany();
   await prisma.proveedor.deleteMany();
-  await prisma.costCenter.deleteMany();
   await prisma.equipmentAssignment.deleteMany();
   await prisma.equipmentHistory.deleteMany();
   await prisma.equipmentMaintenance.deleteMany();
@@ -103,6 +104,17 @@ async function main() {
     },
   });
   console.log('   ✅ 2 políticas creadas');
+
+  const organization = await prisma.organization.upsert({
+    where: { slug: 'cni' },
+    update: {},
+    create: {
+      id: 'org_cni_default',
+      name: 'Consejo Nacional de Inversiones',
+      legalName: 'Consejo Nacional de Inversiones',
+      slug: 'cni',
+    },
+  });
 
   // ── Usuarios ────────────────────────────────────────────────
   console.log('👤 Creando usuarios...');
@@ -176,6 +188,21 @@ async function main() {
   });
 
   console.log('   ✅ 5 usuarios creados');
+  await prisma.organizationMembership.createMany({
+    data: [
+      { organizationId: organization.id, userId: admin.id, role: 'ADMIN' },
+      { organizationId: organization.id, userId: jefeTI.id, role: 'IT_MANAGER' },
+      { organizationId: organization.id, userId: jefeRRHH.id, role: 'HR' },
+      { organizationId: organization.id, userId: user1.id, role: 'USER' },
+      { organizationId: organization.id, userId: user2.id, role: 'IT_TECHNICIAN' },
+    ],
+    skipDuplicates: true,
+  });
+  await prisma.disposalPolicy.upsert({
+    where: { organizationId: organization.id },
+    update: {},
+    create: { organizationId: organization.id },
+  });
 
   // ── Empleados (para asignación de equipos) ───────────────────
   console.log('👥 Creando empleados...');
@@ -316,6 +343,7 @@ async function main() {
   console.log('💻 Creando equipos...');
   const laptop1 = await prisma.equipment.create({
     data: {
+      organizationId: organization.id,
       inventoryCode: 'TI-LAP-0001',
       category: 'LAPTOP',
       type: 'LAPTOP',
@@ -334,6 +362,7 @@ async function main() {
 
   const laptop2 = await prisma.equipment.create({
     data: {
+      organizationId: organization.id,
       inventoryCode: 'TI-LAP-0002',
       category: 'LAPTOP',
       type: 'LAPTOP',
@@ -352,6 +381,7 @@ async function main() {
 
   await prisma.equipment.create({
     data: {
+      organizationId: organization.id,
       inventoryCode: 'TI-MON-0001',
       category: 'MONITOR',
       type: 'MONITOR',
@@ -365,6 +395,7 @@ async function main() {
 
   await prisma.equipment.create({
     data: {
+      organizationId: organization.id,
       inventoryCode: 'TI-IMP-0001',
       category: 'PRINTER',
       type: 'PRINTER',
@@ -455,14 +486,8 @@ async function main() {
   });
   console.log('   ✅ 3 items + 1 movimiento creados');
 
-  // ── Centros de costo y proveedores ──────────────────────────
-  console.log('🏷️  Creando centros de costo y proveedores...');
-  const ccTI = await prisma.costCenter.create({
-    data: { code: 'CC-TI-001', name: 'Infraestructura TI', description: 'Equipos y licencias' },
-  });
-  const ccOps = await prisma.costCenter.create({
-    data: { code: 'CC-OPS-001', name: 'Operaciones de campo', description: 'Logística y operaciones' },
-  });
+  // ── Proveedores ─────────────────────────────────────────────
+  console.log('🏷️  Creando proveedores...');
   const proveedorTech = await prisma.proveedor.create({
     data: {
       nombreRazonSocial: 'Tecnología Empresarial S.A.',
@@ -473,22 +498,19 @@ async function main() {
       direccion: 'Blvd. Morazán, Tegucigalpa',
     },
   });
-  console.log('   ✅ 2 centros de costo + 1 proveedor creados');
+  console.log('   ✅ 1 proveedor creado');
 
-  // ── Solicitudes de compra ───────────────────────────────────
-  console.log('🛒 Creando solicitudes de compra...');
+  // ── Órdenes de compra ───────────────────────────────────────
+  console.log('🛒 Creando órdenes de compra...');
   await prisma.compraSolicitud.create({
     data: {
-      numero: 'SC-0001-2026',
+      numeroOrden: 'OC-CNI-0001-2026',
+      referenciaCompra: 'REF-TI-2026-001',
       fechaSolicitud: new Date('2026-07-01'),
       fechaRequerida: new Date('2026-07-15'),
-      departamentoSolicitanteId: deptTI.id,
-      centroCostoId: ccTI.id,
       solicitadoPorId: jefeTI.id,
       cargoSolicitante: 'Jefe de TI',
-      tipoCompra: 'BIENES',
-      prioridad: 'ALTA',
-      estado: 'AUTORIZADA',
+      estado: 'GENERADA',
       proveedorId: proveedorTech.id,
       proveedorNombre: proveedorTech.nombreRazonSocial,
       proveedorIdentificacion: proveedorTech.rtn,
@@ -497,9 +519,6 @@ async function main() {
       proveedorContacto: proveedorTech.personaContacto,
       proveedorDireccion: proveedorTech.direccion,
       justificacionCompra: 'Adquisición de laptops para nuevo personal de operaciones según plan 2026.',
-      condicionesEntrega: 'Entrega en oficinas centrales en un plazo de 15 días.',
-      formaPago: 'CREDITO',
-      plazoPagoDias: 30,
       subtotal: 125000,
       impuesto: 18750,
       total: 143750,
@@ -507,7 +526,6 @@ async function main() {
         create: [
           {
             item: 1,
-            codigo: 'LT-5540',
             descripcion: 'Laptop Dell Latitude 5540',
             unidad: 'UNIDAD',
             cantidad: 5,
@@ -518,7 +536,10 @@ async function main() {
       },
     },
   });
-  console.log('   ✅ 1 solicitud de compra creada');
+  await prisma.compraSequence.create({
+    data: { year: 2026, prefix: 'OC-CNI', lastValue: 1 },
+  });
+  console.log('   ✅ 1 orden de compra creada');
 
   // ── Registro de auditoría ───────────────────────────────────
   console.log('📋 Creando registros de auditoría...');

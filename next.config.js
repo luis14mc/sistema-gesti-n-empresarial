@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  async rewrites() {
+    return [{ source: '/favicon.ico', destination: '/icon' }];
+  },
   // Cabeceras de seguridad aplicadas por src/middleware.ts en cada request:
   //   - Content-Security-Policy con nonce dinámico
   //   - X-Frame-Options DENY

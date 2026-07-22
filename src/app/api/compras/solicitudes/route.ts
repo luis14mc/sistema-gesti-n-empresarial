@@ -3,15 +3,11 @@ import type { CompraEstado, Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
 import { canAccess } from '@/lib/permissions';
-import {
-  applyWorkflowAction,
-  compraInclude,
-  createCompraSolicitud,
-  updateCompraSolicitud,
-} from '@/lib/compras/service';
-import { borradorCompraSolicitudSchema } from '@/lib/compras/schemas';
+import { compraInclude, createCompraSolicitud } from '@/lib/compras/service';
+import { borradorOrdenSchema } from '@/lib/compras/schemas';
 import { logCompraAudit } from '@/lib/compras/audit';
 import { COMPRA_AUDIT } from '@/lib/compras/audit-actions';
+import { deprecatedComprasResponse } from '@/lib/compras/deprecated-response';
 import type { Role } from '@/types';
 
 async function getHandler(req: AuthenticatedRequest) {
@@ -23,26 +19,19 @@ async function getHandler(req: AuthenticatedRequest) {
 
     const { searchParams } = new URL(req.url);
     const estado = searchParams.get('estado') as CompraEstado | null;
-    const prioridad = searchParams.get('prioridad');
-    const tipo = searchParams.get('tipo');
-    const departamentoId = searchParams.get('departamentoId');
     const search = searchParams.get('search');
     const mine = searchParams.get('mine') === 'true';
     const page = Number.parseInt(searchParams.get('page') || '1', 10);
     const pageSize = Number.parseInt(searchParams.get('pageSize') || '10', 10);
     const skip = (page - 1) * pageSize;
 
-    const where: Prisma.CompraSolicitudWhereInput = {
-      deletedAt: null,
-    };
+    const where: Prisma.CompraSolicitudWhereInput = { deletedAt: null };
     if (estado) where.estado = estado;
-    if (prioridad) where.prioridad = prioridad as typeof where.prioridad;
-    if (tipo) where.tipoCompra = tipo as typeof where.tipoCompra;
-    if (departamentoId) where.departamentoSolicitanteId = departamentoId;
     if (mine) where.solicitadoPorId = req.user!.userId;
     if (search) {
       where.OR = [
-        { numero: { contains: search, mode: 'insensitive' } },
+        { numeroOrden: { contains: search, mode: 'insensitive' } },
+        { referenciaCompra: { contains: search, mode: 'insensitive' } },
         { proveedorNombre: { contains: search, mode: 'insensitive' } },
         { justificacionCompra: { contains: search, mode: 'insensitive' } },
       ];
@@ -59,7 +48,7 @@ async function getHandler(req: AuthenticatedRequest) {
       prisma.compraSolicitud.count({ where }),
     ]);
 
-    return NextResponse.json({
+    return deprecatedComprasResponse({
       solicitudes,
       total,
       page,
@@ -67,8 +56,8 @@ async function getHandler(req: AuthenticatedRequest) {
       totalPages: Math.ceil(total / pageSize),
     });
   } catch (error) {
-    console.error('Error listing compras solicitudes:', error);
-    return NextResponse.json({ error: 'Error al listar solicitudes' }, { status: 500 });
+    console.error('Error listing ordenes:', error);
+    return NextResponse.json({ error: 'Error al listar órdenes' }, { status: 500 });
   }
 }
 
@@ -80,29 +69,25 @@ async function postHandler(req: AuthenticatedRequest) {
     }
 
     const body = await req.json();
-    const parsed = borradorCompraSolicitudSchema.safeParse(body);
+    const parsed = borradorOrdenSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
-    const solicitud = await createCompraSolicitud(
-      parsed.data,
-      req.user!.userId,
-      role
-    );
+    const solicitud = await createCompraSolicitud(parsed.data, req.user!.userId, role);
 
     await logCompraAudit({
       userId: req.user!.userId,
       solicitudId: solicitud.id,
       action: COMPRA_AUDIT.SOLICITUD_CREADA,
       estadoNuevo: solicitud.estado,
-      newData: { numero: solicitud.numero, estado: solicitud.estado },
+      newData: { id: solicitud.id, estado: solicitud.estado },
     });
 
-    return NextResponse.json({ solicitud }, { status: 201 });
+    return deprecatedComprasResponse({ solicitud }, { status: 201 });
   } catch (error) {
-    console.error('Error creating compra solicitud:', error);
-    return NextResponse.json({ error: 'Error al crear solicitud' }, { status: 500 });
+    console.error('Error creating orden:', error);
+    return NextResponse.json({ error: 'Error al crear orden' }, { status: 500 });
   }
 }
 

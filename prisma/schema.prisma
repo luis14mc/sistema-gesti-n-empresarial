@@ -7,29 +7,60 @@ datasource db {
   provider = "postgresql"
 }
 
-// ============================================
-// MÓDULO DE USUARIOS Y AJUSTES
-// ============================================
+model Organization {
+  id                     String                     @id @default(cuid())
+  name                   String
+  slug                   String                     @unique
+  legalName              String?
+  rtn                    String?
+  logoKey                String?
+  status                 OrganizationStatus         @default(ACTIVE)
+  settings               Json?
+  createdAt              DateTime                   @default(now())
+  updatedAt              DateTime                   @updatedAt
+  memberships            OrganizationMembership[]
+  equipment              Equipment[]
+  disposals              EquipmentDisposal[]
+  disposalPolicies       DisposalPolicy[]
+  disposalDocuments      DisposalDocument[]
+  disposalHistory        EquipmentDisposalHistory[]
+  documentSequences      DocumentSequence[]
+  replacementProjections ReplacementProjection[]
+  purchaseOrders         CompraOrden[]
+  auditRecords           AuditRecord[]
+  equipmentAssignments   EquipmentAssignment[]
+  tickets                Ticket[]
 
-enum Role {
-  ADMIN
-  USER
-  RRHH
-  IT
+  @@map("organizations")
+}
+
+model OrganizationMembership {
+  id             String           @id @default(cuid())
+  organizationId String
+  userId         String
+  role           OrganizationRole
+  status         MembershipStatus @default(ACTIVE)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@index([organizationId, role])
+  @@map("organization_memberships")
 }
 
 model Department {
-  id          String   @id @default(cuid())
-  name        String   @unique
+  id          String        @id @default(cuid())
+  name        String        @unique
   description String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now()) @updatedAt
-
-  users     User[]
-  employees Employee[]
-  positions JobPosition[]
-  comprasSolicitudes CompraSolicitud[]
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @default(now()) @updatedAt
+  employees   Employee[]
+  positions   JobPosition[]
+  users       User[]
 
   @@map("departments")
 }
@@ -41,10 +72,9 @@ model JobPosition {
   isActive     Boolean    @default(true)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @default(now()) @updatedAt
-
-  department Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
-  users      User[]
-  employees  Employee[]
+  employees    Employee[]
+  department   Department @relation(fields: [departmentId], references: [id])
+  users        User[]
 
   @@index([departmentId])
   @@map("job_positions")
@@ -53,8 +83,8 @@ model JobPosition {
 model AttendancePolicy {
   id               String  @id @default(cuid())
   name             String
-  officialCheckIn  String // ej: "08:00"
-  officialCheckOut String // ej: "17:00"
+  officialCheckIn  String
+  officialCheckOut String
   toleranceMinutes Int     @default(15)
   isActive         Boolean @default(true)
 
@@ -62,38 +92,53 @@ model AttendancePolicy {
 }
 
 model User {
-  id             String       @id @default(cuid())
-  employeeNumber String       @unique
-  email          String       @unique
-  password       String
-  firstName      String
-  lastName       String
-  phone          String?
-  role           Role         @default(USER)
-  isActive       Boolean      @default(true)
-  departmentId   String?
-  positionId     String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  department Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-  position   JobPosition? @relation(fields: [positionId], references: [id], onDelete: SetNull)
-
-  ticketsCreated      Ticket[]              @relation("TicketCreator")
-  ticketsAssigned     Ticket[]              @relation("TicketAssignee")
-  oficiosCreated      Oficio[]              @relation("OficioCreator")
-  timeEntries         TimeEntry[]
-  equipmentAssigned   EquipmentAssignment[]
-  employeeProfile     Employee?
-  comprasSolicitadas  CompraSolicitud[] @relation("CompraSolicitante")
-  comprasAutorizadas  CompraSolicitud[] @relation("CompraAutorizador")
-  comprasAprobadas    CompraSolicitud[] @relation("CompraAprobador")
-  comprasRechazadas   CompraSolicitud[] @relation("CompraRechazador")
-  comprasAdjuntos     CompraAdjunto[]   @relation("CompraAdjuntoUploader")
-  auditRecords        AuditRecord[]         @relation("AuditUser")
-  auditsLed           Audit[]               @relation("AuditLeadAuditor")
-  auditsCreated       Audit[]               @relation("AuditCreator")
-  correctiveActions   CorrectiveAction[]   @relation("CorrectiveActionResponsible")
+  id                           String                       @id @default(cuid())
+  employeeNumber               String                       @unique
+  email                        String                       @unique
+  password                     String
+  firstName                    String
+  lastName                     String
+  phone                        String?
+  role                         Role                         @default(USER)
+  isActive                     Boolean                      @default(true)
+  departmentId                 String?
+  positionId                   String?
+  createdAt                    DateTime                     @default(now())
+  updatedAt                    DateTime                     @updatedAt
+  auditRecords                 AuditRecord[]                @relation("AuditUser")
+  auditsCreated                Audit[]                      @relation("AuditCreator")
+  auditsLed                    Audit[]                      @relation("AuditLeadAuditor")
+  comprasAdjuntos              CompraAdjunto[]              @relation("CompraAdjuntoUploader")
+  comprasDocumentos            CompraDocumento[]
+  comprasSolicitadas           CompraSolicitud[]            @relation("CompraSolicitante")
+  comprasOrdenesCreadas        CompraOrden[]                @relation("CompraOrdenCreatedBy")
+  comprasOrdenesGeneradas      CompraOrden[]                @relation("CompraOrdenGeneratedBy")
+  comprasOrdenesEmitidas       CompraOrden[]                @relation("CompraOrdenIssuedBy")
+  comprasOrdenesAnuladas       CompraOrden[]                @relation("CompraOrdenCancelledBy")
+  comprasOrdenesCerradas       CompraOrden[]                @relation("CompraOrdenClosedBy")
+  comprasOrdenDocumentos       CompraOrdenDocumento[]       @relation("CompraOrdenDocumentoUploader")
+  comprasOrdenHistorial        CompraOrdenHistorial[]       @relation("CompraOrdenHistorialPerformer")
+  comprasOrdenTemplates        CompraOrdenTemplate[]        @relation("CompraOrdenTemplateCreator")
+  comprasOrdenDocumentosLegacy CompraOrdenDocumentoLegacy[] @relation("CompraOrdenDocumentoLegacy")
+  comprasOrdenHistorialLegacy  CompraOrdenHistorialLegacy[] @relation("CompraOrdenHistorialLegacy")
+  correctiveActions            CorrectiveAction[]           @relation("CorrectiveActionResponsible")
+  employeeProfile              Employee?
+  equipmentAssigned            EquipmentAssignment[]
+  oficioDocuments              OficioDocument[]             @relation("OficioDocumentUploader")
+  oficioTrackingEntries        OficioTracking[]             @relation("OficioTrackingPerformer")
+  oficioImportBatches          OficioImportBatch[]          @relation("OficioImportBatchPerformer")
+  oficiosCreated               Oficio[]                     @relation("OficioCreator")
+  oficiosImported              Oficio[]                     @relation("OficioImporter")
+  ticketsAssigned              Ticket[]                     @relation("TicketAssignee")
+  ticketsCreated               Ticket[]                     @relation("TicketCreator")
+  timeEntries                  TimeEntry[]
+  department                   Department?                  @relation(fields: [departmentId], references: [id])
+  position                     JobPosition?                 @relation(fields: [positionId], references: [id])
+  organizationMemberships      OrganizationMembership[]
+  disposalsEvaluated           EquipmentDisposal[]          @relation("DisposalEvaluator")
+  disposalsApproved            EquipmentDisposal[]          @relation("DisposalApprover")
+  disposalDocumentsUploaded    DisposalDocument[]           @relation("DisposalDocumentUploader")
+  disposalHistory              EquipmentDisposalHistory[]   @relation("DisposalHistoryPerformer")
 
   @@index([departmentId])
   @@index([positionId])
@@ -101,50 +146,42 @@ model User {
   @@map("users")
 }
 
-// ============================================
-// MÓDULO DE AUDITORÍAS (TRANSVERSAL E INTERNA)
-// ============================================
-
 model AuditRecord {
-  id            String    @id @default(cuid())
-  title         String
-  description   String    @db.Text
-  justification String?   @db.Text
-  module        String // TICKETS, OFICIOS, EQUIPOS, ASISTENCIA, MANUAL
-  category      String
-  priority      String // BAJA, MEDIA, ALTA, URGENTE
-  status        String
-  deliveryDate  DateTime?
-  receptionDate DateTime?
-  closingDate   DateTime?
-  attachments   Json?
-  comments      String?   @db.Text
-
-  entityId     String?
-  previousData Json?
-  newData      Json?
-
-  userId String?
-  user   User?   @relation("AuditUser", fields: [userId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
+  id             String        @id @default(cuid())
+  title          String
+  description    String
+  justification  String?
+  module         String
+  category       String
+  priority       String
+  status         String
+  deliveryDate   DateTime?
+  receptionDate  DateTime?
+  closingDate    DateTime?
+  attachments    Json?
+  comments       String?
+  entityId       String?
+  previousData   Json?
+  newData        Json?
+  userId         String?
+  organizationId String?
+  entityType     String?
+  action         String?
+  metadata       Json?
+  ipAddress      String?
+  userAgent      String?
+  requestId      String?
+  createdAt      DateTime      @default(now())
+  user           User?         @relation("AuditUser", fields: [userId], references: [id])
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
   @@index([userId])
   @@index([module])
   @@index([entityId])
   @@index([createdAt])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, entityType, entityId])
   @@map("audit_records")
-}
-
-// ============================================
-// MÓDULO DE ASISTENCIA
-// ============================================
-
-enum AttendanceStatus {
-  ON_TIME
-  LATE
-  ABSENT
-  EXCUSED
 }
 
 model TimeEntry {
@@ -158,8 +195,7 @@ model TimeEntry {
   status    AttendanceStatus @default(ON_TIME)
   notes     String?
   createdAt DateTime         @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
   @@index([userId])
@@ -167,9 +203,1139 @@ model TimeEntry {
   @@map("time_entries")
 }
 
-// ============================================
-// MÓDULO DE TICKETS DE SOPORTE
-// ============================================
+model Ticket {
+  id             String         @id @default(cuid())
+  title          String
+  description    String
+  type           String
+  priority       TicketPriority @default(MEDIUM)
+  status         TicketStatus   @default(OPEN)
+  attachments    Json?
+  comments       Json?
+  createdById    String
+  assignedToId   String?
+  closedAt       DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  organizationId String?
+  organization   Organization?  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  assignedTo     User?          @relation("TicketAssignee", fields: [assignedToId], references: [id])
+  createdBy      User           @relation("TicketCreator", fields: [createdById], references: [id])
+
+  @@index([createdById])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([organizationId, status])
+  @@map("tickets")
+}
+
+model Oficio {
+  id           String             @id @default(cuid())
+  number       String
+  systemNumber String?            @unique
+  type         OficioType
+  subject      String
+  status       OficioStatus       @default(DRAFT)
+  attachments  Json?
+  comments     String?
+  oficioDate   DateTime           @db.Date
+  receivedDate DateTime?          @db.Date
+  sentDate     DateTime?          @db.Date
+  recordSource OficioRecordSource @default(SYSTEM_CREATED)
+
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  institution String?
+  preparedBy  String?
+  recipient   String?
+  scope       String?
+
+  importedById String?
+  importedAt   DateTime?
+
+  createdBy  User  @relation("OficioCreator", fields: [createdById], references: [id])
+  importedBy User? @relation("OficioImporter", fields: [importedById], references: [id])
+
+  documents              OficioDocument[]
+  tracking               OficioTracking[]
+  importBatches          OficioImportBatch[]
+  oficioImportBatchItems OficioImportBatchItem[]
+
+  @@index([number])
+  @@index([institution, number])
+  @@index([createdById])
+  @@index([status])
+  @@index([type])
+  @@index([scope])
+  @@index([recordSource])
+  @@index([oficioDate])
+  @@map("oficios")
+}
+
+model OficioDocument {
+  id           String   @id @default(cuid())
+  oficioId     String
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  storageKey   String
+  url          String
+  fileHash     String?
+  documentType String   @default("OFICIO_PRINCIPAL")
+  isPrimary    Boolean  @default(false)
+  version      Int      @default(1)
+  uploadedById String
+  uploadedAt   DateTime @default(now())
+
+  oficio     Oficio @relation(fields: [oficioId], references: [id], onDelete: Cascade)
+  uploadedBy User   @relation("OficioDocumentUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
+
+  @@index([oficioId])
+  @@index([fileHash])
+  @@index([documentType])
+  @@map("oficio_documents")
+}
+
+model OficioTracking {
+  id            String               @id @default(cuid())
+  oficioId      String
+  action        OficioTrackingAction
+  title         String
+  description   String?
+  previousData  Json?
+  newData       Json?
+  performedById String
+  createdAt     DateTime             @default(now())
+
+  oficio      Oficio @relation(fields: [oficioId], references: [id], onDelete: Cascade)
+  performedBy User   @relation("OficioTrackingPerformer", fields: [performedById], references: [id], onDelete: Restrict)
+
+  @@index([oficioId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("oficio_tracking")
+}
+
+model OficioImportBatch {
+  id            String                  @id @default(cuid())
+  source        OficioRecordSource      @default(HISTORICAL_IMPORT)
+  status        OficioImportBatchStatus @default(PENDING)
+  totalFiles    Int                     @default(0)
+  imported      Int                     @default(0)
+  skipped       Int                     @default(0)
+  errors        Int                     @default(0)
+  notes         String?
+  performedById String
+  startedAt     DateTime                @default(now())
+  finishedAt    DateTime?
+
+  performedBy User                    @relation("OficioImportBatchPerformer", fields: [performedById], references: [id], onDelete: Restrict)
+  items       OficioImportBatchItem[]
+  oficio      Oficio?                 @relation(fields: [oficioId], references: [id])
+  oficioId    String?
+
+  @@index([performedById])
+  @@index([status])
+  @@map("oficio_import_batches")
+}
+
+model OficioImportBatchItem {
+  id           String                      @id @default(cuid())
+  batchId      String
+  rowIndex     Int
+  status       OficioImportBatchItemStatus @default(PENDING)
+  originalName String?
+  number       String?
+  institution  String?
+  oficioDate   DateTime?                   @db.Date
+  fileHash     String?
+  errorMessage String?
+  oficioId     String?
+
+  batch  OficioImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  oficio Oficio?           @relation(fields: [oficioId], references: [id], onDelete: SetNull)
+
+  @@index([batchId])
+  @@index([status])
+  @@map("oficio_import_batch_items")
+}
+
+model Employee {
+  id           String                @id @default(cuid())
+  employeeCode String?               @unique
+  firstName    String
+  lastName     String
+  fullName     String
+  email        String                @unique
+  phone        String?
+  dni          String?
+  userId       String?               @unique
+  departmentId String?
+  positionId   String?
+  isActive     Boolean               @default(true)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  department   Department?           @relation(fields: [departmentId], references: [id])
+  position     JobPosition?          @relation(fields: [positionId], references: [id])
+  user         User?                 @relation(fields: [userId], references: [id])
+  assignments  EquipmentAssignment[]
+
+  @@index([departmentId])
+  @@index([positionId])
+  @@index([email])
+  @@map("employees")
+}
+
+model Equipment {
+  id                     String                  @id @default(cuid())
+  inventoryCode          String                  @unique
+  type                   String
+  brand                  String
+  model                  String
+  serialNumber           String?                 @unique
+  status                 EquipmentStatus         @default(AVAILABLE)
+  purchaseDate           DateTime?               @db.Date
+  warrantyDate           DateTime?               @db.Date
+  depreciationDate       DateTime?               @db.Date
+  ram                    String?
+  processor              String?
+  storage                String?
+  os                     String?
+  retirementReason       String?
+  retiredAt              DateTime?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  category               EquipmentCategory       @default(OTHER)
+  cost                   Float?
+  ipAddress              String?
+  location               String?
+  macAddress             String?
+  notes                  String?
+  purchaseOrder          String?
+  supplier               String?
+  organizationId         String?
+  organization           Organization?           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  assignments            EquipmentAssignment[]
+  history                EquipmentHistory[]
+  maintenances           EquipmentMaintenance[]
+  disposals              EquipmentDisposal[]
+  replacementProjections ReplacementProjection[]
+
+  @@index([status])
+  @@index([category])
+  @@index([type])
+  @@index([inventoryCode])
+  @@index([serialNumber])
+  @@index([organizationId, status])
+  @@map("equipment")
+}
+
+model EquipmentAssignment {
+  id                  String           @id @default(cuid())
+  equipmentId         String
+  userId              String?
+  assignedDate        DateTime         @default(now())
+  returnedDate        DateTime?
+  departmentAtTime    String?
+  positionAtTime      String?
+  notes               String?
+  urlNotaPdf          String?
+  assignedById        String?
+  assignmentNotes     String?
+  createdAt           DateTime         @default(now())
+  deliveryDocumentUrl String?
+  deliveryReason      String?
+  employeeEmailAtTime String?
+  employeeId          String?
+  employeeNameAtTime  String?
+  returnCondition     String?
+  returnDocumentUrl   String?
+  returnNotes         String?
+  returnReason        String?
+  returnedById        String?
+  updatedAt           DateTime         @default(now()) @updatedAt
+  status              AssignmentStatus @default(ACTIVE)
+  organizationId      String?
+  organization        Organization?    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  employee            Employee?        @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  equipment           Equipment        @relation(fields: [equipmentId], references: [id])
+  user                User?            @relation(fields: [userId], references: [id])
+
+  @@index([equipmentId])
+  @@index([employeeId])
+  @@index([userId])
+  @@index([status])
+  @@index([assignedDate])
+  @@index([organizationId, status])
+  @@map("equipment_assignments")
+}
+
+model EquipmentHistory {
+  id            String                 @id @default(cuid())
+  equipmentId   String
+  action        EquipmentHistoryAction
+  title         String
+  description   String?
+  previousData  Json?
+  newData       Json?
+  performedById String?
+  createdAt     DateTime               @default(now())
+  equipment     Equipment              @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@index([equipmentId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("equipment_history")
+}
+
+model PromotionalItem {
+  id            String                @id @default(cuid())
+  inventoryCode String                @unique
+  name          String
+  description   String?
+  quantity      Int                   @default(0)
+  unitPrice     Float
+  purchaseDate  DateTime              @db.Date
+  status        String                @default("ACTIVE")
+  createdAt     DateTime              @default(now())
+  movements     PromotionalMovement[]
+
+  @@map("promotional_items")
+}
+
+model PromotionalMovement {
+  id             String          @id @default(cuid())
+  itemId         String
+  type           MovementType
+  quantityOut    Int
+  quantityReturn Int?            @default(0)
+  movementDate   DateTime        @db.Date
+  returnDate     DateTime?       @db.Date
+  eventName      String?
+  eventLocation  String?
+  eventDate      DateTime?       @db.Date
+  responsible    String?
+  comments       String?
+  createdAt      DateTime        @default(now())
+  item           PromotionalItem @relation(fields: [itemId], references: [id])
+
+  @@index([itemId])
+  @@map("promotional_movements")
+}
+
+model CostCenter {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("cost_centers")
+}
+
+model Proveedor {
+  id                 String            @id @default(cuid())
+  nombreRazonSocial  String
+  rtn                String?
+  telefono           String?
+  email              String?
+  personaContacto    String?
+  direccion          String?
+  activo             Boolean           @default(true)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  deletedAt          DateTime?
+  comprasSolicitudes CompraSolicitud[]
+  comprasOrdenes     CompraOrden[]
+
+  @@index([activo])
+  @@index([nombreRazonSocial])
+  @@map("proveedores")
+}
+
+model CompraSequence {
+  id        String @id @default(cuid())
+  year      Int
+  prefix    String @default("OC-CNI")
+  lastValue Int    @default(0)
+
+  @@unique([year, prefix])
+  @@map("compras_sequences")
+}
+
+model CompraSolicitud {
+  id               String       @id @default(cuid())
+  numeroOrden      String?      @unique
+  referenciaCompra String?
+  fechaSolicitud   DateTime     @default(now()) @db.Date
+  fechaRequerida   DateTime?    @db.Date
+  solicitadoPorId  String
+  cargoSolicitante String?
+  estado           CompraEstado @default(BORRADOR)
+
+  proveedorId             String?
+  proveedorNombre         String?
+  proveedorIdentificacion String?
+  proveedorTelefono       String?
+  proveedorEmail          String?
+  proveedorContacto       String?
+  proveedorDireccion      String? @db.Text
+
+  justificacionCompra      String  @default("")
+  observacionesAdicionales String?
+
+  subtotal  Float @default(0)
+  descuento Float @default(0)
+  impuesto  Float @default(0)
+  total     Float @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  adjuntos      CompraAdjunto[]
+  documentos    CompraDocumento[]
+  items         CompraSolicitudItem[]
+  proveedor     Proveedor?            @relation(fields: [proveedorId], references: [id], onDelete: SetNull)
+  solicitadoPor User                  @relation("CompraSolicitante", fields: [solicitadoPorId], references: [id], onDelete: Restrict)
+
+  @@index([estado])
+  @@index([solicitadoPorId])
+  @@index([fechaSolicitud])
+  @@index([numeroOrden])
+  @@index([proveedorId])
+  @@map("compras_solicitudes")
+}
+
+model CompraSolicitudItem {
+  id                String          @id @default(cuid())
+  solicitudCompraId String
+  item              Int
+  codigo            String?
+  descripcion       String
+  unidad            CompraUnidad    @default(UNIDAD)
+  cantidad          Float
+  precioUnitario    Float
+  total             Float
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  solicitud         CompraSolicitud @relation(fields: [solicitudCompraId], references: [id], onDelete: Cascade)
+
+  @@index([solicitudCompraId])
+  @@map("compras_solicitud_items")
+}
+
+model CompraAdjunto {
+  id                String            @id @default(cuid())
+  solicitudCompraId String
+  tipoAdjunto       CompraTipoAdjunto @default(OTRO)
+  nombre            String
+  mimeType          String
+  size              Int
+  storagePath       String
+  url               String
+  uploadedById      String
+  uploadedAt        DateTime          @default(now())
+  solicitud         CompraSolicitud   @relation(fields: [solicitudCompraId], references: [id], onDelete: Cascade)
+  uploadedBy        User              @relation("CompraAdjuntoUploader", fields: [uploadedById], references: [id])
+
+  @@index([solicitudCompraId])
+  @@map("compras_adjuntos")
+}
+
+model EquipmentMaintenance {
+  id            String            @id @default(cuid())
+  equipmentId   String
+  type          MaintenanceType   @default(PREVENTIVE)
+  status        MaintenanceStatus @default(SCHEDULED)
+  description   String
+  scheduledDate DateTime?         @db.Date
+  completedDate DateTime?         @db.Date
+  cost          Float?
+  technician    String?
+  notes         String?
+  performedById String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  documentUrl   String?
+  equipment     Equipment         @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@index([equipmentId])
+  @@index([status])
+  @@index([scheduledDate])
+  @@map("equipment_maintenances")
+}
+
+model Audit {
+  id              String               @id @default(cuid())
+  code            String               @unique
+  title           String
+  description     String?
+  type            AuditType            @default(INTERNAL)
+  status          AuditStatus          @default(PLANNED)
+  standard        String?
+  scope           String?
+  objectives      String?
+  criteria        String?
+  department      String?
+  conclusions     String?
+  recommendations String?
+  auditeeContact  String?
+  plannedDate     DateTime?            @db.Date
+  startDate       DateTime?
+  endDate         DateTime?
+  leadAuditorId   String?
+  createdById     String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  checklist       AuditChecklistItem[]
+  findings        AuditFinding[]
+  createdBy       User?                @relation("AuditCreator", fields: [createdById], references: [id])
+  leadAuditor     User?                @relation("AuditLeadAuditor", fields: [leadAuditorId], references: [id])
+
+  @@index([status])
+  @@index([leadAuditorId])
+  @@index([plannedDate])
+  @@map("audits")
+}
+
+model AuditFinding {
+  id          String               @id @default(cuid())
+  auditId     String
+  code        String?
+  description String
+  evidence    String?
+  severity    AuditFindingSeverity
+  clause      String?
+  status      String               @default("OPEN")
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  audit       Audit                @relation(fields: [auditId], references: [id], onDelete: Cascade)
+
+  @@index([auditId])
+  @@index([severity])
+  @@map("audit_findings")
+}
+
+model AuditChecklistItem {
+  id          String           @id @default(cuid())
+  auditId     String
+  description String?
+  requirement String
+  clause      String?
+  sortOrder   Int              @default(0)
+  completed   Boolean          @default(false)
+  result      ChecklistResult?
+  notes       String?
+  evidence    String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  audit       Audit            @relation(fields: [auditId], references: [id], onDelete: Cascade)
+
+  @@index([auditId])
+  @@index([sortOrder])
+  @@map("audit_checklist_items")
+}
+
+model CorrectiveAction {
+  id            String                 @id @default(cuid())
+  findingId     String?
+  auditId       String?
+  description   String
+  responsibleId String?
+  dueDate       DateTime?              @db.Date
+  completedDate DateTime?
+  status        CorrectiveActionStatus @default(PENDING)
+  evidence      String?
+  notes         String?
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  responsible   User?                  @relation("CorrectiveActionResponsible", fields: [responsibleId], references: [id])
+
+  @@index([findingId])
+  @@index([auditId])
+  @@index([status])
+  @@index([responsibleId])
+  @@map("corrective_actions")
+}
+
+model CompraDocumento {
+  id                String              @id
+  solicitudCompraId String
+  tipoDocumento     CompraTipoDocumento @default(ORDEN_COMPRA_PDF)
+  nombreArchivo     String
+  mimeType          String              @default("application/pdf")
+  storagePath       String
+  url               String
+  version           Int                 @default(1)
+  activo            Boolean             @default(true)
+  generadoEn        DateTime            @default(now())
+  generadoPorId     String
+  generadoPor       User                @relation(fields: [generadoPorId], references: [id])
+  solicitud         CompraSolicitud     @relation(fields: [solicitudCompraId], references: [id], onDelete: Cascade)
+
+  @@index([solicitudCompraId, activo])
+  @@index([solicitudCompraId])
+  @@index([solicitudCompraId, tipoDocumento])
+  @@map("compras_documentos")
+}
+
+// ── Órdenes de compra — flujo administrativo (tabla activa) ───
+
+model CompraOrden {
+  id                    String              @id @default(cuid())
+  orderNumber           String?             @unique
+  sequenceNumber        Int?
+  sequenceYear          Int?
+  purchaseReference     String
+  requestDate           DateTime            @default(now()) @db.Date
+  requiredDate          DateTime            @db.Date
+  requestedByName       String
+  requesterJobTitle     String
+  supplierId            String?
+  supplierName          String
+  supplierRtn           String
+  supplierPhone         String
+  purchaseJustification String              @db.Text
+  subtotal              Decimal             @default(0) @db.Decimal(14, 2)
+  discountType          TipoDescuento       @default(NINGUNO)
+  discountValue         Decimal             @default(0) @db.Decimal(14, 2)
+  discount              Decimal             @default(0) @db.Decimal(14, 2)
+  taxRate               Decimal             @default(15) @db.Decimal(5, 2)
+  tax                   Decimal             @default(0) @db.Decimal(14, 2)
+  total                 Decimal             @default(0) @db.Decimal(14, 2)
+  status                PurchaseOrderStatus @default(DRAFT)
+  createdById           String
+  generatedById         String?
+  generatedAt           DateTime?
+  issuedById            String?
+  issuedAt              DateTime?
+  cancelledById         String?
+  cancelledAt           DateTime?
+  cancellationReason    String?             @db.Text
+  closedById            String?
+  closedAt              DateTime?
+  templateId            String?
+  templateVersion       Int?
+  templateSnapshot      Json?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  deletedAt             DateTime?
+  organizationId        String?
+
+  createdBy              User                    @relation("CompraOrdenCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  generatedBy            User?                   @relation("CompraOrdenGeneratedBy", fields: [generatedById], references: [id], onDelete: SetNull)
+  issuedBy               User?                   @relation("CompraOrdenIssuedBy", fields: [issuedById], references: [id], onDelete: SetNull)
+  cancelledBy            User?                   @relation("CompraOrdenCancelledBy", fields: [cancelledById], references: [id], onDelete: SetNull)
+  closedBy               User?                   @relation("CompraOrdenClosedBy", fields: [closedById], references: [id], onDelete: SetNull)
+  supplier               Proveedor?              @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  template               CompraOrdenTemplate?    @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  items                  CompraOrdenItem[]
+  documentos             CompraOrdenDocumento[]
+  historial              CompraOrdenHistorial[]
+  organization           Organization?           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  replacementProjections ReplacementProjection[]
+
+  @@unique([sequenceYear, sequenceNumber])
+  @@index([orderNumber])
+  @@index([status])
+  @@index([requestDate])
+  @@index([requiredDate])
+  @@index([supplierId])
+  @@index([createdById])
+  @@index([sequenceYear])
+  @@index([organizationId, status])
+  @@map("purchase_orders")
+}
+
+model DocumentSequence {
+  id             String       @id @default(cuid())
+  organizationId String
+  documentType   DocumentType
+  year           Int
+  lastValue      Int          @default(0)
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, documentType, year])
+  @@index([organizationId, year])
+  @@map("document_sequences")
+}
+
+model DisposalPolicy {
+  id                     String             @id @default(cuid())
+  organizationId         String             @unique
+  maxAgeYears            Decimal            @default(5) @db.Decimal(5, 2)
+  repairThresholdPct     Decimal            @default(50) @db.Decimal(5, 2)
+  ageWeight              Int                @default(25)
+  repairWeight           Int                @default(30)
+  conditionWeight        Int                @default(30)
+  securityWeight         Int                @default(15)
+  approvalScoreThreshold Int                @default(60)
+  reviewScoreThreshold   Int                @default(35)
+  folioPrefix            String             @default("DICT-BAJA")
+  footerText             String?
+  signatureTitle         String             @default("APROBACIÓN INSTITUCIONAL")
+  approverRoles          OrganizationRole[] @default([OWNER, ADMIN, IT_MANAGER])
+  updatedAt              DateTime           @updatedAt
+  organization           Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("disposal_policies")
+}
+
+model EquipmentDisposal {
+  id                        String                     @id @default(cuid())
+  organizationId            String
+  folio                     String
+  equipmentId               String
+  previousEquipmentStatus   EquipmentStatus
+  serialNumber              String
+  category                  String
+  brand                     String
+  model                     String
+  department                String
+  custodianName             String?
+  purchaseDate              DateTime                   @db.Date
+  purchasePrice             Decimal                    @db.Decimal(14, 2)
+  estimatedRepairCost       Decimal                    @default(0) @db.Decimal(14, 2)
+  estimatedReplacementPrice Decimal                    @db.Decimal(14, 2)
+  physicalCondition         PhysicalCondition
+  functionalCondition       FunctionalCondition
+  securitySupportStatus     SecuritySupportStatus
+  technicalNotes            String?                    @db.Text
+  evaluationScore           Int
+  disposalResult            DisposalResult
+  evaluationRationales      Json?
+  status                    DisposalStatus             @default(DRAFT)
+  evaluatedById             String
+  approvedById              String?
+  approvedAt                DateTime?
+  submittedAt               DateTime?
+  rejectedAt                DateTime?
+  rejectionReason           String?                    @db.Text
+  cancelledAt               DateTime?
+  cancellationReason        String?                    @db.Text
+  pdfStorageKey             String?
+  templateSnapshot          Json?
+  dataSnapshot              Json?
+  version                   Int                        @default(1)
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  organization              Organization               @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  equipment                 Equipment                  @relation(fields: [equipmentId], references: [id], onDelete: Restrict)
+  evaluatedBy               User                       @relation("DisposalEvaluator", fields: [evaluatedById], references: [id], onDelete: Restrict)
+  approvedBy                User?                      @relation("DisposalApprover", fields: [approvedById], references: [id], onDelete: Restrict)
+  documents                 DisposalDocument[]
+  history                   EquipmentDisposalHistory[]
+  replacementProjection     ReplacementProjection?
+
+  @@unique([organizationId, folio])
+  @@index([organizationId, status])
+  @@index([organizationId, equipmentId])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, disposalResult])
+  @@index([organizationId, evaluatedById])
+  @@map("equipment_disposals")
+}
+
+model DisposalDocument {
+  id             String            @id @default(cuid())
+  organizationId String
+  disposalId     String
+  storageKey     String
+  fileName       String
+  originalName   String
+  mimeType       String
+  fileSize       Int
+  fileHash       String?
+  uploadedById   String
+  createdAt      DateTime          @default(now())
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  disposal       EquipmentDisposal @relation(fields: [disposalId], references: [id], onDelete: Cascade)
+  uploadedBy     User              @relation("DisposalDocumentUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, disposalId])
+  @@index([organizationId, fileHash])
+  @@map("disposal_documents")
+}
+
+model EquipmentDisposalHistory {
+  id             String                @id @default(cuid())
+  organizationId String
+  disposalId     String
+  action         DisposalHistoryAction
+  previousValues Json?
+  newValues      Json?
+  metadata       Json?
+  requestId      String?
+  performedById  String
+  createdAt      DateTime              @default(now())
+  disposal       EquipmentDisposal     @relation(fields: [disposalId], references: [id], onDelete: Cascade)
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  performedBy    User                  @relation("DisposalHistoryPerformer", fields: [performedById], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, disposalId, createdAt])
+  @@map("equipment_disposal_history")
+}
+
+model ReplacementProjection {
+  id              String                      @id @default(cuid())
+  organizationId  String
+  disposalId      String                      @unique
+  equipmentId     String
+  estimatedAmount Decimal                     @db.Decimal(14, 2)
+  status          ReplacementProjectionStatus @default(PENDING)
+  purchaseOrderId String?
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+  organization    Organization                @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  disposal        EquipmentDisposal           @relation(fields: [disposalId], references: [id], onDelete: Restrict)
+  equipment       Equipment                   @relation(fields: [equipmentId], references: [id], onDelete: Restrict)
+  purchaseOrder   CompraOrden?                @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status])
+  @@index([organizationId, equipmentId])
+  @@map("replacement_projections")
+}
+
+enum TipoDescuento {
+  NINGUNO
+  MONTO
+  PORCENTAJE
+}
+
+model CompraOrdenItem {
+  id          String       @id @default(cuid())
+  orderId     String
+  itemNumber  Int
+  description String
+  unit        PurchaseUnit
+  quantity    Decimal      @db.Decimal(14, 2)
+  unitPrice   Decimal      @db.Decimal(14, 2)
+  total       Decimal      @db.Decimal(14, 2)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  orden       CompraOrden  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, itemNumber])
+  @@index([orderId])
+  @@map("purchase_order_items")
+}
+
+model CompraOrdenDocumento {
+  id           String               @id @default(cuid())
+  orderId      String
+  type         PurchaseDocumentType
+  name         String
+  originalName String
+  mimeType     String
+  size         Int
+  storageKey   String
+  url          String
+  fileHash     String?
+  version      Int                  @default(1)
+  isActive     Boolean              @default(true)
+  uploadedById String
+  uploadedAt   DateTime             @default(now())
+  orden        CompraOrden          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  uploadedBy   User                 @relation("CompraOrdenDocumentoUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([type])
+  @@index([fileHash])
+  @@map("purchase_order_documents")
+}
+
+model CompraOrdenHistorial {
+  id            String                @id @default(cuid())
+  orderId       String
+  action        PurchaseHistoryAction
+  title         String
+  description   String?               @db.Text
+  previousData  Json?
+  newData       Json?
+  performedById String
+  createdAt     DateTime              @default(now())
+  orden         CompraOrden           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  performedBy   User                  @relation("CompraOrdenHistorialPerformer", fields: [performedById], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("purchase_order_history")
+}
+
+model CompraOrdenSequence {
+  id        String   @id @default(cuid())
+  year      Int      @unique
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@map("purchase_order_sequences")
+}
+
+model CompraOrdenTemplate {
+  id                     String        @id @default(cuid())
+  name                   String
+  isActive               Boolean       @default(false)
+  logoUrl                String?
+  institutionName        String        @default("Consejo Nacional de Inversiones")
+  institutionAddress     String?
+  institutionPhone       String?
+  institutionWebsite     String?
+  institutionRtn         String?
+  documentTitle          String        @default("ORDEN DE COMPRA")
+  orderPrefix            String        @default("COM-CNI")
+  footerText             String?
+  signatureTitle         String        @default("ÁREA ADMINISTRATIVA")
+  additionalNote         String?       @db.Text
+  primaryColor           String        @default("#334E88")
+  secondaryColor         String        @default("#32B372")
+  showInstitutionAddress Boolean       @default(true)
+  showInstitutionPhone   Boolean       @default(true)
+  showInstitutionWebsite Boolean       @default(true)
+  showInstitutionRtn     Boolean       @default(false)
+  showReference          Boolean       @default(true)
+  showRequiredDate       Boolean       @default(true)
+  version                Int           @default(1)
+  createdById            String
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  createdBy              User          @relation("CompraOrdenTemplateCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  orders                 CompraOrden[]
+
+  @@index([isActive])
+  @@map("purchase_order_templates")
+}
+
+// Legacy v2 — conservado para respaldo histórico
+model CompraOrdenLegacy {
+  id                  String            @id @default(cuid())
+  numeroOrden         String?           @unique
+  correlativo         Int?
+  anioCorrelativo     Int?
+  referenciaCompra    String
+  fechaSolicitud      DateTime          @default(now()) @db.Date
+  fechaRequerida      DateTime          @db.Date
+  solicitadoPorId     String
+  solicitadoPorNombre String
+  solicitadoPorEmail  String?
+  cargoSolicitante    String
+  proveedorId         String?
+  proveedorNombre     String
+  proveedorRtn        String
+  proveedorTelefono   String
+  proveedorEmail      String?
+  proveedorContacto   String?
+  proveedorDireccion  String?           @db.Text
+  justificacionCompra String            @db.Text
+  observaciones       String?           @db.Text
+  condicionesEntrega  String?           @db.Text
+  formaPago           String?
+  plazoPagoDias       Int?
+  subtotal            Decimal           @default(0) @db.Decimal(14, 2)
+  descuento           Decimal           @default(0) @db.Decimal(14, 2)
+  tasaImpuesto        Decimal           @default(15) @db.Decimal(5, 2)
+  impuesto            Decimal           @default(0) @db.Decimal(14, 2)
+  total               Decimal           @default(0) @db.Decimal(14, 2)
+  estado              CompraOrdenEstado @default(BORRADOR)
+  pdfStorageKey       String?
+  pdfUrl              String?
+  pdfVersion          Int               @default(0)
+  generadoPorId       String?
+  generadoEn          DateTime?
+  emitidoPorId        String?
+  emitidoEn           DateTime?
+  anuladoPorId        String?
+  anuladoEn           DateTime?
+  motivoAnulacion     String?           @db.Text
+  cerradoPorId        String?
+  cerradoEn           DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  deletedAt           DateTime?
+
+  items      CompraOrdenItemLegacy[]
+  documentos CompraOrdenDocumentoLegacy[]
+  historial  CompraOrdenHistorialLegacy[]
+
+  @@unique([anioCorrelativo, correlativo])
+  @@index([numeroOrden])
+  @@index([estado])
+  @@map("compras_ordenes_legacy")
+}
+
+model CompraOrdenItemLegacy {
+  id             String            @id @default(cuid())
+  ordenId        String
+  item           Int
+  descripcion    String
+  unidad         CompraUnidad
+  cantidad       Decimal           @db.Decimal(14, 2)
+  precioUnitario Decimal           @db.Decimal(14, 2)
+  total          Decimal           @db.Decimal(14, 2)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  orden          CompraOrdenLegacy @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+
+  @@unique([ordenId, item])
+  @@index([ordenId])
+  @@map("compras_orden_items")
+}
+
+model CompraOrdenDocumentoLegacy {
+  id           String              @id @default(cuid())
+  ordenId      String
+  tipo         CompraDocumentoTipo
+  nombre       String
+  originalName String
+  mimeType     String
+  size         Int
+  storageKey   String
+  url          String
+  fileHash     String?
+  version      Int                 @default(1)
+  isActive     Boolean             @default(true)
+  uploadedById String
+  uploadedAt   DateTime            @default(now())
+  orden        CompraOrdenLegacy   @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+  uploadedBy   User                @relation("CompraOrdenDocumentoLegacy", fields: [uploadedById], references: [id], onDelete: Restrict)
+
+  @@index([ordenId])
+  @@index([tipo])
+  @@index([fileHash])
+  @@map("compras_orden_documentos")
+}
+
+model CompraOrdenHistorialLegacy {
+  id            String                @id @default(cuid())
+  ordenId       String
+  action        CompraHistorialAccion
+  title         String
+  description   String?               @db.Text
+  previousData  Json?
+  newData       Json?
+  performedById String
+  createdAt     DateTime              @default(now())
+  orden         CompraOrdenLegacy     @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+  performedBy   User                  @relation("CompraOrdenHistorialLegacy", fields: [performedById], references: [id], onDelete: Restrict)
+
+  @@index([ordenId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("compras_orden_historial")
+}
+
+model CompraOrdenSequenceLegacy {
+  id        String   @id @default(cuid())
+  year      Int      @unique
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@map("compras_orden_sequences")
+}
+
+enum Role {
+  ADMIN
+  USER
+  RRHH
+  IT
+}
+
+enum OrganizationStatus {
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
+enum MembershipStatus {
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
+enum OrganizationRole {
+  OWNER
+  ADMIN
+  IT_MANAGER
+  IT_TECHNICIAN
+  PROCUREMENT
+  HR
+  AUDITOR
+  USER
+}
+
+enum DocumentType {
+  EQUIPMENT_DISPOSAL
+  PURCHASE_ORDER
+  OFFICE_DOCUMENT
+}
+
+enum PhysicalCondition {
+  EXCELLENT
+  ACCEPTABLE
+  FAIR
+  POOR
+  CRITICAL
+}
+
+enum FunctionalCondition {
+  OPERATIONAL
+  SLOW
+  FREQUENT_FAILURES
+  INOPERABLE
+}
+
+enum SecuritySupportStatus {
+  SUPPORTED
+  LIMITED_SUPPORT
+  UNSUPPORTED
+  VULNERABLE
+}
+
+enum DisposalStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum DisposalResult {
+  DISPOSAL_JUSTIFIED
+  EVALUATION_REQUIRED
+  KEEP_IN_SERVICE
+}
+
+enum DisposalHistoryAction {
+  DISPOSAL_CREATED
+  DISPOSAL_UPDATED
+  DISPOSAL_SUBMITTED
+  DISPOSAL_APPROVED
+  DISPOSAL_REJECTED
+  DISPOSAL_CANCELLED
+  DISPOSAL_DOCUMENT_UPLOADED
+  DISPOSAL_DOCUMENT_DELETED
+  DISPOSAL_PDF_GENERATED
+  EQUIPMENT_STATUS_CHANGED
+}
+
+enum ReplacementProjectionStatus {
+  PENDING
+  CONVERTED
+  CANCELLED
+}
+
+enum AttendanceStatus {
+  ON_TIME
+  LATE
+  ABSENT
+  EXCUSED
+}
 
 enum TicketPriority {
   LOW
@@ -184,34 +1350,6 @@ enum TicketStatus {
   RESOLVED
   CLOSED
 }
-
-model Ticket {
-  id           String         @id @default(cuid())
-  title        String
-  description  String         @db.Text
-  type         String
-  priority     TicketPriority @default(MEDIUM)
-  status       TicketStatus   @default(OPEN)
-  attachments  Json?
-  comments     Json?
-  createdById  String
-  assignedToId String?
-  closedAt     DateTime?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-
-  createdBy  User  @relation("TicketCreator", fields: [createdById], references: [id])
-  assignedTo User? @relation("TicketAssignee", fields: [assignedToId], references: [id])
-
-  @@index([createdById])
-  @@index([assignedToId])
-  @@index([status])
-  @@map("tickets")
-}
-
-// ============================================
-// MÓDULO DE OFICIOS Y MEMOS
-// ============================================
 
 enum OficioType {
   INCOMING
@@ -228,39 +1366,42 @@ enum OficioStatus {
   ARCHIVED
 }
 
-model Oficio {
-  id          String     @id @default(cuid())
-  number      String     @unique
-  type        OficioType
-  scope       String?
-  subject     String
-  recipient   String?
-  institution String?
-  preparedBy  String?
-  status      OficioStatus @default(DRAFT)
-  attachments Json
-  comments    String?    @db.Text
-
-  oficioDate   DateTime  @db.Date
-  receivedDate DateTime? @db.Date
-  sentDate     DateTime? @db.Date
-
-  createdById String
-  createdBy   User   @relation("OficioCreator", fields: [createdById], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([createdById])
-  @@index([status])
-  @@index([type])
-  @@index([scope])
-  @@map("oficios")
+enum OficioRecordSource {
+  SYSTEM_CREATED
+  HISTORICAL_IMPORT
+  MANUAL_REGISTRATION
 }
 
-// ============================================
-// MÓDULO DE EQUIPOS Y ASIGNACIÓN
-// ============================================
+enum OficioTrackingAction {
+  CREATED
+  IMPORTED
+  RECEIVED
+  SENT
+  ASSIGNED
+  IN_REVIEW
+  FORWARDED
+  RESPONDED
+  COMPLETED
+  ARCHIVED
+  DOCUMENT_ADDED
+  STATUS_CHANGED
+  COMMENT_ADDED
+}
+
+enum OficioImportBatchStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum OficioImportBatchItemStatus {
+  PENDING
+  IMPORTED
+  SKIPPED
+  ERROR
+}
 
 enum EquipmentCategory {
   DESKTOP_PC
@@ -278,6 +1419,8 @@ enum EquipmentStatus {
   ASSIGNED
   IN_MAINTENANCE
   DAMAGED
+  DISPOSAL_IN_PROGRESS
+  DISPOSED
   RETIRED
   LOST
 }
@@ -301,189 +1444,10 @@ enum EquipmentHistoryAction {
   UPDATED
 }
 
-model Employee {
-  id           String   @id @default(cuid())
-  employeeCode String?  @unique
-  firstName    String
-  lastName     String
-  fullName     String
-  email        String   @unique
-  phone        String?
-  dni          String?
-  userId       String?  @unique
-  departmentId String?
-  positionId   String?
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  user        User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
-  department  Department?           @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-  position    JobPosition?          @relation(fields: [positionId], references: [id], onDelete: SetNull)
-  assignments EquipmentAssignment[]
-
-  @@index([departmentId])
-  @@index([positionId])
-  @@index([email])
-  @@map("employees")
-}
-
-model Equipment {
-  id            String            @id @default(cuid())
-  inventoryCode String            @unique
-  category      EquipmentCategory @default(OTHER)
-  type          String
-  brand         String
-  model         String
-  serialNumber  String?           @unique
-  status        EquipmentStatus   @default(AVAILABLE)
-
-  purchaseDate     DateTime? @db.Date
-  purchaseOrder    String?
-  supplier         String?
-  warrantyDate     DateTime? @db.Date
-  depreciationDate DateTime? @db.Date
-  cost             Float?
-
-  ram         String?
-  processor   String?
-  storage     String?
-  os          String?
-  ipAddress   String?
-  macAddress  String?
-  location    String?
-  notes       String? @db.Text
-
-  retirementReason String?   @db.Text
-  retiredAt        DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  assignments  EquipmentAssignment[]
-  maintenances EquipmentMaintenance[]
-  history      EquipmentHistory[]
-
-  @@index([status])
-  @@index([category])
-  @@index([type])
-  @@index([inventoryCode])
-  @@index([serialNumber])
-  @@map("equipment")
-}
-
-model EquipmentAssignment {
-  id           String           @id @default(cuid())
-  equipmentId  String
-  employeeId   String?
-  userId       String?
-  assignedById String?
-  status       AssignmentStatus @default(ACTIVE)
-  assignedDate DateTime         @default(now())
-  returnedDate DateTime?
-
-  departmentAtTime    String?
-  positionAtTime      String?
-  employeeEmailAtTime String?
-  employeeNameAtTime  String?
-
-  deliveryReason      String?
-  assignmentNotes     String? @db.Text
-  deliveryDocumentUrl String?
-  returnDocumentUrl   String?
-
-  returnedById    String?
-  returnReason    String?
-  returnNotes     String? @db.Text
-  returnCondition String?
-
-  notes      String? @db.Text
-  urlNotaPdf String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Restrict)
-  employee  Employee? @relation(fields: [employeeId], references: [id], onDelete: Restrict)
-  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([equipmentId])
-  @@index([employeeId])
-  @@index([userId])
-  @@index([status])
-  @@index([assignedDate])
-  @@map("equipment_assignments")
-}
-
-model EquipmentHistory {
-  id            String                 @id @default(cuid())
-  equipmentId   String
-  action        EquipmentHistoryAction
-  title         String
-  description   String?                @db.Text
-  previousData  Json?
-  newData       Json?
-  performedById String?
-  createdAt     DateTime               @default(now())
-
-  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
-
-  @@index([equipmentId])
-  @@index([action])
-  @@index([createdAt])
-  @@map("equipment_history")
-}
-
-// ============================================
-// MÓDULO DE INVENTARIO PROMOCIONAL
-// ============================================
-
-model PromotionalItem {
-  id            String @id @default(cuid())
-  inventoryCode String @unique
-  name          String
-  description   String? @db.Text
-  quantity      Int     @default(0)
-  unitPrice     Float
-  purchaseDate  DateTime @db.Date
-  status        String   @default("ACTIVE")
-  createdAt     DateTime @default(now())
-
-  movements PromotionalMovement[]
-
-  @@map("promotional_items")
-}
-
 enum MovementType {
   EXIT
   RETURN
 }
-
-model PromotionalMovement {
-  id             String       @id @default(cuid())
-  itemId         String
-  type           MovementType
-  quantityOut    Int
-  quantityReturn Int?         @default(0)
-  movementDate   DateTime     @db.Date
-  returnDate     DateTime?    @db.Date
-
-  eventName     String?
-  eventLocation String?
-  eventDate     DateTime? @db.Date
-  responsible   String?
-  comments      String?   @db.Text
-
-  createdAt DateTime        @default(now())
-  item      PromotionalItem @relation(fields: [itemId], references: [id], onDelete: Restrict)
-
-  @@index([itemId])
-  @@map("promotional_movements")
-}
-
-// ============================================
-// MÓDULO DE COMPRAS — Ficha Solicitud y Orden de Compra (formato Excel)
-// ============================================
 
 enum CompraTipo {
   BIENES
@@ -498,13 +1462,6 @@ enum CompraPrioridad {
   BAJA
 }
 
-enum CompraFormaPago {
-  CONTADO
-  CREDITO
-  ANTICIPO
-  CONTRA_ENTREGA
-}
-
 enum CompraUnidad {
   UNIDAD
   CAJA
@@ -514,167 +1471,92 @@ enum CompraUnidad {
   MES
   HORA
   DIA
+  OTRO
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  GENERATED
+  ISSUED
+  CANCELLED
+  CLOSED
+}
+
+enum PurchaseUnit {
+  UNIT
+  BOX
+  PACKAGE
+  SERVICE
+  LOT
+  MONTH
+  HOUR
+  DAY
+  OTHER
+}
+
+enum PurchaseDocumentType {
+  ORDER_PDF
+  QUOTATION
+  INVOICE
+  PROFORMA
+  SUPPORT
+  RECEIPT
+  OTHER
+}
+
+enum PurchaseHistoryAction {
+  CREATED
+  UPDATED
+  GENERATED
+  PDF_GENERATED
+  PDF_REGENERATED
+  ISSUED
+  CANCELLED
+  CLOSED
+  DOCUMENT_ADDED
+  DOCUMENT_REMOVED
+  STATUS_CHANGED
+  TEMPLATE_CHANGED
+}
+
+enum CompraOrdenEstado {
+  BORRADOR
+  GENERADA
+  EMITIDA
+  ANULADA
+  CERRADA
+}
+
+enum CompraDocumentoTipo {
+  ORDEN_PDF
+  COTIZACION
+  FACTURA
+  PROFORMA
+  SOPORTE
+  ACTA_RECEPCION
+  OTRO
+}
+
+enum CompraHistorialAccion {
+  CREATED
+  UPDATED
+  GENERATED
+  PDF_GENERATED
+  PDF_REGENERATED
+  ISSUED
+  CANCELLED
+  CLOSED
+  DOCUMENT_ADDED
+  STATUS_CHANGED
 }
 
 enum CompraEstado {
   BORRADOR
-  ENVIADA
-  AUTORIZADA
-  APROBADA
-  RECHAZADA
-  ORDEN_EMITIDA
-  RECIBIDA
-  CERRADA
+  GENERADA
+  EMITIDA
   ANULADA
+  CERRADA
 }
-
-model CostCenter {
-  id          String   @id @default(cuid())
-  code        String   @unique
-  name        String
-  description String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  comprasSolicitudes CompraSolicitud[]
-
-  @@map("cost_centers")
-}
-
-model Proveedor {
-  id                String    @id @default(cuid())
-  nombreRazonSocial String
-  rtn               String?
-  telefono          String?
-  email             String?
-  personaContacto   String?
-  direccion         String?   @db.Text
-  activo            Boolean   @default(true)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  deletedAt         DateTime?
-
-  comprasSolicitudes CompraSolicitud[]
-
-  @@index([activo])
-  @@index([nombreRazonSocial])
-  @@map("proveedores")
-}
-
-model CompraSolicitud {
-  id                        String          @id @default(cuid())
-  numero                    String          @unique
-
-  fechaSolicitud            DateTime        @default(now()) @db.Date
-  fechaRequerida            DateTime?       @db.Date
-
-  departamentoSolicitanteId String?
-  centroCostoId             String?
-  solicitadoPorId           String
-  cargoSolicitante          String?
-
-  tipoCompra                CompraTipo
-  prioridad                 CompraPrioridad @default(NORMAL)
-  estado                    CompraEstado    @default(BORRADOR)
-
-  proveedorId               String?
-  proveedorNombre           String?
-  proveedorIdentificacion   String?
-  proveedorTelefono         String?
-  proveedorEmail            String?
-  proveedorContacto         String?
-  proveedorDireccion        String?         @db.Text
-
-  justificacionCompra       String          @db.Text
-  condicionesEntrega        String?         @db.Text
-  observacionesAdicionales  String?         @db.Text
-
-  formaPago                 CompraFormaPago
-  plazoPagoDias             Int?
-  detallesPago              String?         @db.Text
-
-  subtotal                  Float           @default(0)
-  descuento                 Float           @default(0)
-  impuesto                  Float           @default(0)
-  total                     Float           @default(0)
-
-  autorizadoPorId           String?
-  autorizadoEn              DateTime?
-  aprobadoPorId             String?
-  aprobadoEn                DateTime?
-  rechazadoPorId            String?
-  rechazadoEn               DateTime?
-  motivoRechazo             String?         @db.Text
-  emitidoPorId              String?
-  emitidoEn                 DateTime?
-
-  documentoPdfUrl           String?
-
-  createdAt                 DateTime        @default(now())
-  updatedAt                 DateTime        @updatedAt
-  deletedAt                 DateTime?
-
-  departamentoSolicitante Department? @relation(fields: [departamentoSolicitanteId], references: [id], onDelete: SetNull)
-  centroCosto             CostCenter? @relation(fields: [centroCostoId], references: [id], onDelete: SetNull)
-  solicitadoPor           User        @relation("CompraSolicitante", fields: [solicitadoPorId], references: [id], onDelete: Restrict)
-  proveedor               Proveedor?  @relation(fields: [proveedorId], references: [id], onDelete: SetNull)
-  autorizadoPor           User?       @relation("CompraAutorizador", fields: [autorizadoPorId], references: [id], onDelete: SetNull)
-  aprobadoPor             User?       @relation("CompraAprobador", fields: [aprobadoPorId], references: [id], onDelete: SetNull)
-  rechazadoPor            User?       @relation("CompraRechazador", fields: [rechazadoPorId], references: [id], onDelete: SetNull)
-
-  items    CompraSolicitudItem[]
-  adjuntos CompraAdjunto[]
-
-  @@index([estado])
-  @@index([prioridad])
-  @@index([tipoCompra])
-  @@index([solicitadoPorId])
-  @@index([fechaSolicitud])
-  @@map("compras_solicitudes")
-}
-
-model CompraSolicitudItem {
-  id                String       @id @default(cuid())
-  solicitudCompraId String
-  item              Int
-  codigo            String?
-  descripcion       String
-  unidad            CompraUnidad @default(UNIDAD)
-  cantidad          Float
-  precioUnitario    Float        @default(0)
-  total             Float        @default(0)
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-
-  solicitud CompraSolicitud @relation(fields: [solicitudCompraId], references: [id], onDelete: Cascade)
-
-  @@index([solicitudCompraId])
-  @@map("compras_solicitud_items")
-}
-
-model CompraAdjunto {
-  id                String   @id @default(cuid())
-  solicitudCompraId String
-  tipo              String
-  nombre            String
-  mimeType          String
-  size              Int
-  storagePath       String?
-  url               String
-  uploadedById      String
-  uploadedAt        DateTime @default(now())
-
-  solicitud  CompraSolicitud @relation(fields: [solicitudCompraId], references: [id], onDelete: Cascade)
-  uploadedBy User            @relation("CompraAdjuntoUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
-
-  @@index([solicitudCompraId])
-  @@map("compras_adjuntos")
-}
-
-// ============================================
-// MÓDULO DE MANTENIMIENTO DE EQUIPOS
-// ============================================
 
 enum MaintenanceType {
   PREVENTIVE
@@ -690,35 +1572,6 @@ enum MaintenanceStatus {
   CANCELLED
 }
 
-model EquipmentMaintenance {
-  id              String            @id @default(cuid())
-  equipmentId     String
-  type            MaintenanceType   @default(PREVENTIVE)
-  status          MaintenanceStatus @default(SCHEDULED)
-  description     String            @db.Text
-  scheduledDate   DateTime?         @db.Date
-  completedDate   DateTime?         @db.Date
-  cost            Float?
-  technician      String?
-  notes           String?           @db.Text
-  documentUrl     String?
-  performedById   String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
-
-  @@index([equipmentId])
-  @@index([status])
-  @@index([scheduledDate])
-  @@map("equipment_maintenances")
-}
-
-// ============================================
-// MÓDULO DE AUDITORÍAS ISO 19011
-// ============================================
-
 enum AuditStatus {
   PLANNED
   IN_PROGRESS
@@ -732,42 +1585,6 @@ enum AuditType {
   COMBINED
 }
 
-model Audit {
-  id              String       @id @default(cuid())
-  code            String       @unique
-  title           String
-  description     String?      @db.Text
-  type            AuditType    @default(INTERNAL)
-  status          AuditStatus  @default(PLANNED)
-  standard        String?
-  scope           String?      @db.Text
-  objectives      String?      @db.Text
-  criteria        String?      @db.Text
-  department      String?
-  conclusions     String?      @db.Text
-  recommendations String?      @db.Text
-  auditeeContact  String?
-  plannedDate     DateTime?    @db.Date
-  startDate       DateTime?
-  endDate         DateTime?
-
-  leadAuditorId   String?
-  createdById     String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  leadAuditor User?           @relation("AuditLeadAuditor", fields: [leadAuditorId], references: [id], onDelete: SetNull)
-  createdBy   User?           @relation("AuditCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  findings    AuditFinding[]
-  checklist   AuditChecklistItem[]
-
-  @@index([status])
-  @@index([leadAuditorId])
-  @@index([plannedDate])
-  @@map("audits")
-}
-
 enum AuditFindingSeverity {
   STRENGTH
   CONFORMITY
@@ -776,53 +1593,11 @@ enum AuditFindingSeverity {
   MAJOR_NC
 }
 
-model AuditFinding {
-  id          String               @id @default(cuid())
-  auditId     String
-  code        String?
-  description String              @db.Text
-  evidence    String?             @db.Text
-  severity    AuditFindingSeverity
-  clause      String?
-  status      String              @default("OPEN")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  audit Audit @relation(fields: [auditId], references: [id], onDelete: Cascade)
-
-  @@index([auditId])
-  @@index([severity])
-  @@map("audit_findings")
-}
-
 enum ChecklistResult {
   CONFORMING
   NON_CONFORMING
   OBSERVATION
   NOT_APPLICABLE
-}
-
-model AuditChecklistItem {
-  id          String          @id @default(cuid())
-  auditId     String
-  description String?         @db.Text
-  requirement String          @db.Text
-  clause      String?
-  sortOrder   Int             @default(0)
-  completed   Boolean         @default(false)
-  result      ChecklistResult?
-  notes       String?         @db.Text
-  evidence    String?         @db.Text
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  audit Audit @relation(fields: [auditId], references: [id], onDelete: Cascade)
-
-  @@index([auditId])
-  @@index([sortOrder])
-  @@map("audit_checklist_items")
 }
 
 enum CorrectiveActionStatus {
@@ -833,26 +1608,15 @@ enum CorrectiveActionStatus {
   CANCELLED
 }
 
-model CorrectiveAction {
-  id            String                @id @default(cuid())
-  findingId     String?
-  auditId       String?
-  description   String                @db.Text
-  responsibleId String?
-  dueDate       DateTime?             @db.Date
-  completedDate DateTime?
-  status        CorrectiveActionStatus @default(PENDING)
-  evidence      String?               @db.Text
-  notes         String?               @db.Text
+enum CompraTipoAdjunto {
+  COTIZACION
+  FACTURA
+  PROFORMA
+  CORREO_AUTORIZACION
+  SOPORTE_TECNICO
+  OTRO
+}
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  responsible User? @relation("CorrectiveActionResponsible", fields: [responsibleId], references: [id], onDelete: SetNull)
-
-  @@index([findingId])
-  @@index([auditId])
-  @@index([status])
-  @@index([responsibleId])
-  @@map("corrective_actions")
+enum CompraTipoDocumento {
+  ORDEN_COMPRA_PDF
 }

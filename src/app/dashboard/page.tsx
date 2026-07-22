@@ -23,7 +23,7 @@ async function getDashboardStats(): Promise<DashboardStats> {
     prisma.equipmentAssignment.count({ where: { status: 'ACTIVE' } }),
     prisma.compraSolicitud.count({
       where: {
-        estado: { in: ['ENVIADA', 'AUTORIZADA'] },
+        estado: { in: ['BORRADOR', 'GENERADA'] },
         deletedAt: null,
       },
     }),

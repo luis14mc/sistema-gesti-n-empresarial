@@ -19,11 +19,17 @@ const BASE = '/api/equipment';
 
 /** Forma de la respuesta GET /api/equipment */
 export interface EquipmentListResponse {
-  equipment: Equipment[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
+  success: true;
+  data: {
+    items: Equipment[];
+    meta: {
+      total: number;
+      page: number;
+      pageSize: number;
+      totalPages: number;
+    };
+  };
+  requestId: string;
 }
 
 /** Forma de la respuesta POST/PATCH /api/equipment */

@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { comprasService } from '@/services/compras.service';
+import { getApiErrorMessage } from '@/lib/api-error';
 import type {
   CompraSolicitudFilters,
   CreateCompraSolicitudData,
@@ -15,17 +16,12 @@ export const compraKeys = {
   list: (filters?: CompraSolicitudFilters) => [...compraKeys.lists(), filters] as const,
   detail: (id: string) => [...compraKeys.all, 'detail', id] as const,
   proveedores: (search?: string) => [...compraKeys.all, 'proveedores', search] as const,
-  centros: () => [...compraKeys.all, 'centros'] as const,
-  reportes: (year?: number) => [...compraKeys.all, 'reportes', year] as const,
 };
 
 export type CompraWorkflowActionName =
-  | 'enviar'
-  | 'autorizar'
-  | 'aprobar'
-  | 'rechazar'
-  | 'emitir_orden'
-  | 'recibir'
+  | 'generar_orden'
+  | 'emitir'
+  | 'regenerar_pdf'
   | 'cerrar'
   | 'anular';
 
@@ -38,8 +34,14 @@ export function useComprasSolicitudes(filters?: CompraSolicitudFilters) {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: CreateCompraSolicitudData) =>
-      (await comprasService.createSolicitud(data)).data.solicitud,
+    mutationFn: async (data: CreateCompraSolicitudData) => {
+      try {
+        const response = await comprasService.createSolicitud(data);
+        return response.data.solicitud;
+      } catch (error) {
+        throw new Error(getApiErrorMessage(error, 'No se pudo guardar la orden'));
+      }
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: compraKeys.lists() }),
   });
 
@@ -53,28 +55,14 @@ export function useComprasSolicitudes(filters?: CompraSolicitudFilters) {
   });
 
   const workflowMutation = useMutation({
-    mutationFn: async ({
-      id,
-      action,
-      body,
-    }: {
-      id: string;
-      action: CompraWorkflowActionName;
-      body?: Record<string, unknown>;
-    }) => {
+    mutationFn: async ({ id, action }: { id: string; action: CompraWorkflowActionName }) => {
       switch (action) {
-        case 'enviar':
-          return (await comprasService.enviar(id)).data.solicitud;
-        case 'autorizar':
-          return (await comprasService.autorizar(id)).data.solicitud;
-        case 'aprobar':
-          return (await comprasService.aprobar(id)).data.solicitud;
-        case 'rechazar':
-          return (await comprasService.rechazar(id, body as { motivoRechazo: string })).data.solicitud;
-        case 'emitir_orden':
-          return (await comprasService.emitirOrden(id)).data.solicitud;
-        case 'recibir':
-          return (await comprasService.recibir(id)).data.solicitud;
+        case 'generar_orden':
+          return (await comprasService.generarOrden(id)).data.solicitud;
+        case 'emitir':
+          return (await comprasService.emitir(id)).data.solicitud;
+        case 'regenerar_pdf':
+          return (await comprasService.regenerarPdf(id)).data.solicitud;
         case 'cerrar':
           return (await comprasService.cerrar(id)).data.solicitud;
         case 'anular':
@@ -83,6 +71,14 @@ export function useComprasSolicitudes(filters?: CompraSolicitudFilters) {
     },
     onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: compraKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: compraKeys.detail(vars.id) });
+    },
+  });
+
+  const adjuntoMutation = useMutation({
+    mutationFn: async ({ id, file, tipo }: { id: string; file: File; tipo: string }) =>
+      (await comprasService.uploadAdjunto(id, file, tipo)).data.adjunto,
+    onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: compraKeys.detail(vars.id) });
     },
   });
@@ -96,10 +92,12 @@ export function useComprasSolicitudes(filters?: CompraSolicitudFilters) {
     createSolicitud: createMutation.mutateAsync,
     updateSolicitud: updateMutation.mutateAsync,
     runWorkflow: workflowMutation.mutateAsync,
+    uploadAdjunto: adjuntoMutation.mutateAsync,
     isSaving:
       createMutation.isPending ||
       updateMutation.isPending ||
-      workflowMutation.isPending,
+      workflowMutation.isPending ||
+      adjuntoMutation.isPending,
   };
 }
 
@@ -118,25 +116,25 @@ export function useProveedores(search?: string) {
   });
 }
 
-export function useCentrosCosto() {
-  return useQuery({
-    queryKey: compraKeys.centros(),
-    queryFn: async () => (await comprasService.listCentrosCosto()).data.centros,
-  });
-}
-
-export function useComprasReportes(year?: number) {
-  return useQuery({
-    queryKey: compraKeys.reportes(year),
-    queryFn: async () => (await comprasService.reportes(year)).data,
-  });
-}
-
 export function useCreateProveedor() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: CreateProveedorData) =>
       (await comprasService.createProveedor(data)).data.proveedor,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: compraKeys.proveedores() }),
+  });
+}
+
+export function useComprasReportes(year: number) {
+  return useQuery({
+    queryKey: [...compraKeys.all, 'reportes', year] as const,
+    queryFn: async () => (await comprasService.getReportes(year)).data,
+  });
+}
+
+export function useInstitutionConfig() {
+  return useQuery({
+    queryKey: [...compraKeys.all, 'institucion'] as const,
+    queryFn: async () => (await comprasService.getInstitution()).data,
   });
 }

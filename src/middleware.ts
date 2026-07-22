@@ -62,7 +62,7 @@ function buildExtraSecurityHeaders(): string[] {
     'X-Content-Type-Options: nosniff',
     'Referrer-Policy: strict-origin-when-cross-origin',
     'Strict-Transport-Security: max-age=63072000; includeSubDomains; preload',
-    'Permissions-Policy: camera=(), microphone=(), geolocation=(), browsing-topics=()',
+    'Permissions-Policy: camera=(), microphone=(), geolocation=()',
     'Cross-Origin-Opener-Policy: same-origin',
     'Cross-Origin-Embedder-Policy: require-corp',
   ];
@@ -186,6 +186,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon\\.ico|robots\\.txt|sitemap\\.xml|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|woff2?|ttf|eot)).*)',
+    '/((?!api|_next/static|_next/image|favicon\\.ico|favicon\\.png|robots\\.txt|sitemap\\.xml|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|woff2?|ttf|eot)).*)',
   ],
 };

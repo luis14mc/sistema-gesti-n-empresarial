@@ -1,21 +1,29 @@
+import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 
-export async function generateCompraNumero(): Promise<string> {
+const PREFIX = 'OC-CNI';
+
+export async function allocateNumeroOrden(
+  tx?: Prisma.TransactionClient
+): Promise<string> {
   const year = new Date().getFullYear();
-  const prefix = `SC-`;
-  const suffix = `-${year}`;
+  const client = tx ?? prisma;
 
-  const last = await prisma.compraSolicitud.findFirst({
-    where: { numero: { endsWith: suffix } },
-    orderBy: { numero: 'desc' },
-    select: { numero: true },
-  });
+  const run = async (db: Prisma.TransactionClient) => {
+    const existing = await db.compraSequence.findUnique({
+      where: { year_prefix: { year, prefix: PREFIX } },
+    });
+    const next = (existing?.lastValue ?? 0) + 1;
 
-  let seq = 1;
-  if (last?.numero) {
-    const match = last.numero.match(/SC-(\d+)-/);
-    if (match) seq = Number.parseInt(match[1], 10) + 1;
-  }
+    await db.compraSequence.upsert({
+      where: { year_prefix: { year, prefix: PREFIX } },
+      create: { year, prefix: PREFIX, lastValue: next },
+      update: { lastValue: next },
+    });
 
-  return `${prefix}${String(seq).padStart(4, '0')}${suffix}`;
+    return `${PREFIX}-${String(next).padStart(4, '0')}-${year}`;
+  };
+
+  if (tx) return run(tx);
+  return prisma.$transaction(run);
 }

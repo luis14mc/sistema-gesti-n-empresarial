@@ -186,9 +186,151 @@ export interface OficioAttachment {
   uploadedAt: string;
 }
 
+export type OficioRecordSource =
+  | 'SYSTEM_CREATED'
+  | 'HISTORICAL_IMPORT'
+  | 'MANUAL_REGISTRATION';
+
+export type OficioTrackingAction =
+  | 'CREATED'
+  | 'IMPORTED'
+  | 'RECEIVED'
+  | 'SENT'
+  | 'ASSIGNED'
+  | 'IN_REVIEW'
+  | 'FORWARDED'
+  | 'RESPONDED'
+  | 'COMPLETED'
+  | 'ARCHIVED'
+  | 'DOCUMENT_ADDED'
+  | 'STATUS_CHANGED'
+  | 'COMMENT_ADDED';
+
+export type OficioImportBatchStatus =
+  | 'PENDING'
+  | 'PROCESSING'
+  | 'COMPLETED'
+  | 'FAILED'
+  | 'CANCELLED';
+
+export type OficioImportBatchItemStatus =
+  | 'PENDING'
+  | 'IMPORTED'
+  | 'SKIPPED'
+  | 'ERROR';
+
+export type OficioDocumentType =
+  | 'OFICIO_PRINCIPAL'
+  | 'ANEXO'
+  | 'RESPUESTA'
+  | 'ACUSE_RECIBO'
+  | 'SOPORTE'
+  | 'OTRO';
+
+export const OFICIO_RECORD_SOURCE_LABELS: Record<OficioRecordSource, string> = {
+  SYSTEM_CREATED: 'Creado en sistema',
+  HISTORICAL_IMPORT: 'Importado (histórico)',
+  MANUAL_REGISTRATION: 'Registro manual',
+};
+
+export const OFICIO_TRACKING_ACTION_LABELS: Record<OficioTrackingAction, string> = {
+  CREATED: 'Creado',
+  IMPORTED: 'Importado',
+  RECEIVED: 'Recibido',
+  SENT: 'Enviado',
+  ASSIGNED: 'Asignado',
+  IN_REVIEW: 'En revisión',
+  FORWARDED: 'Reenviado',
+  RESPONDED: 'Respondido',
+  COMPLETED: 'Completado',
+  ARCHIVED: 'Archivado',
+  DOCUMENT_ADDED: 'Documento agregado',
+  STATUS_CHANGED: 'Estado cambiado',
+  COMMENT_ADDED: 'Comentario agregado',
+};
+
+export const OFICIO_DOCUMENT_TYPE_LABELS: Record<OficioDocumentType, string> = {
+  OFICIO_PRINCIPAL: 'Oficio principal',
+  ANEXO: 'Anexo',
+  RESPUESTA: 'Respuesta',
+  ACUSE_RECIBO: 'Acuse de recibo',
+  SOPORTE: 'Soporte',
+  OTRO: 'Otro',
+};
+
+export const OFICIO_IMPORT_BATCH_STATUS_LABELS: Record<OficioImportBatchStatus, string> = {
+  PENDING: 'Pendiente',
+  PROCESSING: 'Procesando',
+  COMPLETED: 'Completado',
+  FAILED: 'Fallido',
+  CANCELLED: 'Cancelado',
+};
+
+export interface OficioDocument {
+  id: string;
+  oficioId: string;
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  storageKey: string;
+  url: string;
+  fileHash: string | null;
+  documentType: string;
+  isPrimary: boolean;
+  version: number;
+  uploadedById: string;
+  uploadedAt: string;
+  uploadedBy?: Pick<User, 'id' | 'firstName' | 'lastName'>;
+}
+
+export interface OficioTracking {
+  id: string;
+  oficioId: string;
+  action: OficioTrackingAction;
+  title: string;
+  description: string | null;
+  previousData: Record<string, unknown> | null;
+  newData: Record<string, unknown> | null;
+  performedById: string;
+  createdAt: string;
+  performedBy?: Pick<User, 'id' | 'firstName' | 'lastName'>;
+}
+
+export interface OficioImportBatchItem {
+  id: string;
+  batchId: string;
+  rowIndex: number;
+  status: OficioImportBatchItemStatus;
+  originalName: string | null;
+  number: string | null;
+  institution: string | null;
+  oficioDate: string | null;
+  fileHash: string | null;
+  errorMessage: string | null;
+  oficioId: string | null;
+}
+
+export interface OficioImportBatch {
+  id: string;
+  source: OficioRecordSource;
+  status: OficioImportBatchStatus;
+  totalFiles: number;
+  imported: number;
+  skipped: number;
+  errors: number;
+  notes: string | null;
+  performedById: string;
+  startedAt: string;
+  finishedAt: string | null;
+  performedBy?: Pick<User, 'id' | 'firstName' | 'lastName'>;
+  items?: OficioImportBatchItem[];
+}
+
 export interface Oficio {
   id: string;
   number: string;
+  systemNumber: string | null;
   type: OficioType;
   scope?: OficioScope | string | null;
   subject: string;
@@ -199,7 +341,10 @@ export interface Oficio {
   status: OficioStatus;
   attachmentUrl?: string | null;
   deletedAt?: string | null;
-  attachments: OficioAttachment[] | unknown;
+  attachments?: OficioAttachment[] | unknown;
+  recordSource: OficioRecordSource;
+  importedById: string | null;
+  importedAt: string | null;
   comments?: string | null;
   oficioDate: string;
   receivedDate?: string | null;
@@ -208,6 +353,9 @@ export interface Oficio {
   createdAt: string;
   updatedAt: string;
   createdBy?: Pick<User, 'id' | 'firstName' | 'lastName'>;
+  importedBy?: Pick<User, 'id' | 'firstName' | 'lastName'> | null;
+  documents?: OficioDocument[];
+  tracking?: OficioTracking[];
 }
 
 export interface TimeEntry {

@@ -4,6 +4,7 @@ import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
 import { logEquipmentHistory } from '@/lib/equipment-history';
 import { mapEquipmentResponse } from '@/lib/equipment-mapper';
+import { requireOrganizationContext } from '@/modules/organizations/application/context';
 
 async function getHandler(
   req: AuthenticatedRequest,
@@ -11,8 +12,9 @@ async function getHandler(
 ) {
   try {
     const { id } = await params;
-    const equipment = await prisma.equipment.findUnique({
-      where: { id },
+    const organization = await requireOrganizationContext(req);
+    const equipment = await prisma.equipment.findFirst({
+      where: { id, organizationId: organization.organizationId },
       include: {
         assignments: {
           include: {
@@ -51,11 +53,18 @@ async function patchHandler(
 ) {
   try {
     const { id } = await params;
+    const organization = await requireOrganizationContext(req);
     const data = await req.json();
-    const current = await prisma.equipment.findUnique({ where: { id } });
+    const current = await prisma.equipment.findFirst({ where: { id, organizationId: organization.organizationId } });
 
     if (!current) {
       return NextResponse.json({ error: 'Equipo no encontrado' }, { status: 404 });
+    }
+    if (data.status === 'RETIRED' || data.status === 'DISPOSED') {
+      return NextResponse.json(
+        { error: 'Use el flujo de dictamen técnico para dar de baja el equipo.' },
+        { status: 409 },
+      );
     }
 
     const allowedFields = [
@@ -68,10 +77,6 @@ async function patchHandler(
     allowedFields.forEach((field) => {
       if (data[field] !== undefined) updateData[field] = data[field];
     });
-
-    if (data.status === 'RETIRED' && !updateData.retiredAt) {
-      updateData.retiredAt = new Date();
-    }
 
     const equipment = await prisma.equipment.update({
       where: { id },
@@ -96,6 +101,9 @@ async function patchHandler(
       category: 'UPDATE',
       userId: req.user!.userId,
       entityId: equipment.id,
+      entityType: 'Equipment',
+      organizationId: organization.organizationId,
+      action: 'EQUIPMENT_UPDATED',
       previousData: { status: current.status },
       newData: { status: equipment.status },
     });
@@ -112,45 +120,12 @@ async function deleteHandler(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
-    const current = await prisma.equipment.findUnique({
-      where: { id },
-      include: { assignments: { where: { status: 'ACTIVE' } } },
-    });
-    if (!current) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
-
-    if (current.assignments.length > 0) {
-      return NextResponse.json(
-        { error: 'No se puede dar de baja un equipo con asignación activa. Registre la devolución primero.' },
-        { status: 400 }
-      );
-    }
-
-    const equipment = await prisma.equipment.update({
-      where: { id },
-      data: { status: 'RETIRED', retiredAt: new Date() },
-    });
-
-    await logEquipmentHistory({
-      equipmentId: equipment.id,
-      action: 'RETIRED',
-      title: 'Equipo dado de baja',
-      description: `Activo ${equipment.inventoryCode} marcado como retirado.`,
-      performedById: req.user!.userId,
-    });
-
-    await createAuditRecord({
-      title: 'Baja de equipo',
-      description: 'Equipo marcado como retirado',
-      module: 'EQUIPOS',
-      category: 'DELETE',
-      userId: req.user!.userId,
-      entityId: id,
-      previousData: { status: current.status },
-      newData: { status: 'RETIRED' },
-    });
-
-    return NextResponse.json({ message: 'Equipo dado de baja correctamente', equipment });
+    await params;
+    await requireOrganizationContext(req);
+    return NextResponse.json(
+      { error: 'Use el flujo de dictamen técnico para dar de baja el equipo.' },
+      { status: 409 },
+    );
   } catch (error) {
     console.error('Error al dar de baja equipo:', error);
     return NextResponse.json({ error: 'Error al dar de baja equipo' }, { status: 500 });

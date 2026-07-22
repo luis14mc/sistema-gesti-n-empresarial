@@ -3,14 +3,17 @@ import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
 
+type RouteContext = { params: Promise<{ id: string }> };
+
 // GET - Obtener oficio por ID
 async function getHandler(
   req: AuthenticatedRequest,
-  { params }: { params: { id: string } }
+  context: RouteContext
 ) {
+  const { id } = await context.params;
   try {
     const oficio = await prisma.oficio.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         createdBy: {
           select: {
@@ -18,6 +21,21 @@ async function getHandler(
             firstName: true,
             lastName: true,
             email: true,
+          },
+        },
+        importedBy: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+        documents: {
+          orderBy: [{ isPrimary: 'desc' }, { uploadedAt: 'desc' }],
+          include: {
+            uploadedBy: { select: { id: true, firstName: true, lastName: true } },
+          },
+        },
+        tracking: {
+          orderBy: { createdAt: 'desc' },
+          include: {
+            performedBy: { select: { id: true, firstName: true, lastName: true } },
           },
         },
       },
@@ -57,14 +75,15 @@ async function getHandler(
 // PATCH - Actualizar oficio
 async function patchHandler(
   req: AuthenticatedRequest,
-  { params }: { params: { id: string } }
+  context: RouteContext
 ) {
+  const { id } = await context.params;
   try {
     const data = await req.json();
 
     // Obtener estado anterior para auditoría
     const currentOficio = await prisma.oficio.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!currentOficio) {
@@ -100,7 +119,7 @@ async function patchHandler(
     }
 
     const oficio = await prisma.oficio.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: {
         createdBy: {
@@ -139,10 +158,11 @@ async function patchHandler(
 // DELETE - Eliminar oficio
 async function deleteHandler(
   req: AuthenticatedRequest,
-  { params }: { params: { id: string } }
+  context: RouteContext
 ) {
+  const { id } = await context.params;
   try {
-    const current = await prisma.oficio.findUnique({ where: { id: params.id } });
+    const current = await prisma.oficio.findUnique({ where: { id } });
     if (!current) {
       return NextResponse.json(
         { error: 'Oficio no encontrado' },
@@ -160,7 +180,7 @@ async function deleteHandler(
     }
 
     await prisma.oficio.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     // Registrar en auditoría
@@ -170,7 +190,7 @@ async function deleteHandler(
       module: 'OFICIOS',
       category: 'DELETE',
       userId: req.user!.userId,
-      entityId: params.id,
+      entityId: id,
       previousData: { number: current.number, subject: current.subject, status: current.status },
     });
 

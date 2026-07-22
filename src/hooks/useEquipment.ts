@@ -32,15 +32,20 @@ export const equipmentKeys = {
 // HOOK PRINCIPAL
 // ============================================
 
-export function useEquipment(filters?: EquipmentFilters) {
+export function useEquipment(
+    filters?: EquipmentFilters,
+    options: { enabled?: boolean; organizationId?: string } = {}
+) {
     const queryClient = useQueryClient();
 
     const equipmentQuery = useQuery({
-        queryKey: equipmentKeys.list(filters),
+        queryKey: [...equipmentKeys.list(filters), options.organizationId],
         queryFn: async () => {
             const response = await equipmentService.list(filters);
-            return response.data;
+            const { items, meta } = response.data.data;
+            return { equipment: items, ...meta };
         },
+        enabled: options.enabled ?? true,
     });
 
     const createMutation = useMutation({

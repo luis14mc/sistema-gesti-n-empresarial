@@ -18,6 +18,13 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "prisma:seed": "tsx prisma/seed.ts",
+    "compras:repair-drafts": "tsx scripts/repair-purchase-order-drafts.ts",
+    "organizations:backfill": "tsx scripts/backfill-default-organization.ts",
+    "saas:bootstrap": "tsx scripts/bootstrap-default-organization.ts",
+    "saas:check": "tsx scripts/check-tenant-bootstrap.ts",
+    "browser:install": "puppeteer browsers install chrome",
+    "browser:list": "puppeteer browsers list",
+    "postinstall": "puppeteer browsers install chrome",
     "docker:up": "docker compose up -d db",
     "docker:up:s3": "docker compose --profile s3 up -d",
     "docker:down": "docker compose down"

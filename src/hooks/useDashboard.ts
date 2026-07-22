@@ -44,10 +44,10 @@ export function useDashboard() {
       ]);
 
       const oficios = oficiosRes.data.oficios;
-      const equipment = equipmentRes.data.equipment;
+      const equipment = equipmentRes.data.data.items;
       const solicitudes = comprasRes.data.solicitudes;
       const pendientes = solicitudes.filter((s) =>
-        ['ENVIADA', 'AUTORIZADA'].includes(s.estado)
+        ['BORRADOR', 'GENERADA'].includes(s.estado)
       ).length;
 
       return {

@@ -18,6 +18,7 @@ export function withAuth(
   allowedRoles?: string[]
 ) {
   return async (req: AuthenticatedRequest, context?: any): Promise<NextResponse> => {
+    const requestId = crypto.randomUUID();
     try {
       const token =
         req.headers.get('authorization')?.replace('Bearer ', '') ||
@@ -25,8 +26,8 @@ export function withAuth(
 
       if (!token) {
         return NextResponse.json(
-          { error: 'No autorizado' },
-          { status: 401 }
+          { success: false, error: { code: 'AUTHENTICATION_REQUIRED', message: 'Debe iniciar sesión para continuar.' }, requestId },
+          { status: 401, headers: { 'x-request-id': requestId } }
         );
       }
 
@@ -34,16 +35,16 @@ export function withAuth(
 
       if (!payload) {
         return NextResponse.json(
-          { error: 'Token inválido' },
-          { status: 401 }
+          { success: false, error: { code: 'AUTHENTICATION_REQUIRED', message: 'La sesión no es válida.' }, requestId },
+          { status: 401, headers: { 'x-request-id': requestId } }
         );
       }
 
       // Verificar roles permitidos
       if (allowedRoles && !allowedRoles.includes(payload.role)) {
         return NextResponse.json(
-          { error: 'No tienes permisos para esta acción' },
-          { status: 403 }
+          { success: false, error: { code: 'FORBIDDEN', message: 'No tiene permisos para esta acción.' }, requestId },
+          { status: 403, headers: { 'x-request-id': requestId } }
         );
       }
 
@@ -52,8 +53,8 @@ export function withAuth(
     } catch (error) {
       console.error('Error en middleware de autenticación:', error);
       return NextResponse.json(
-        { error: 'Error de autenticación' },
-        { status: 401 }
+        { success: false, error: { code: 'AUTHENTICATION_REQUIRED', message: 'No se pudo validar la sesión.' }, requestId },
+        { status: 401, headers: { 'x-request-id': requestId } }
       );
     }
   };

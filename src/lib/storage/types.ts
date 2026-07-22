@@ -47,6 +47,12 @@ export interface PutObjectInput {
   desiredName?: string;
 }
 
+export interface GetObjectResult {
+  buffer: Buffer;
+  mimeType: string;
+  size: number;
+}
+
 /**
  * Adaptador de almacenamiento — contrato que deben cumplir
  * tanto LocalStorageAdapter (dev) como S3StorageAdapter (prod).
@@ -73,6 +79,11 @@ export interface StorageAdapter {
    * En S3 con archivos privados, generar signed URL on-demand.
    */
   getUrl(key: string): Promise<string>;
+
+  /**
+   * Lee el contenido binario de un objeto almacenado.
+   */
+  get(key: string, mimeTypeHint?: string): Promise<GetObjectResult>;
 
   /**
    * Chequeo barato de disponibilidad del backend (no escribe).

@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
 import { canAccess } from '@/lib/permissions';
-import { compraInclude } from '@/lib/compras/service';
-import { construirHtmlSolicitudCompra } from '@/lib/compras/pdf-template';
+import { getOrdenHtmlPreview } from '@/lib/compras/service';
 import type { Role } from '@/types';
 
 async function getHandler(
@@ -17,21 +16,18 @@ async function getHandler(
     }
 
     const { id } = await params;
-    const solicitud = await prisma.compraSolicitud.findFirst({
-      where: { id, deletedAt: null },
-      include: compraInclude,
-    });
-    if (!solicitud) {
-      return NextResponse.json({ error: 'Solicitud no encontrada' }, { status: 404 });
+    const orden = await prisma.compraSolicitud.findFirst({ where: { id, deletedAt: null } });
+    if (!orden) {
+      return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
     }
 
-    const html = await construirHtmlSolicitudCompra(solicitud);
+    const html = await getOrdenHtmlPreview(id);
     return new NextResponse(html, {
       headers: { 'Content-Type': 'text/html; charset=utf-8' },
     });
   } catch (error) {
-    console.error('Error generando vista imprimible:', error);
-    return NextResponse.json({ error: 'Error al generar vista' }, { status: 500 });
+    console.error('Error imprimir:', error);
+    return NextResponse.json({ error: 'Error al generar impresión' }, { status: 500 });
   }
 }
 

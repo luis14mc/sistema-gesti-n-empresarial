@@ -10,7 +10,7 @@ import axios, {
   AxiosResponse,
   InternalAxiosRequestConfig,
 } from 'axios';
-import type { ApiError } from '@/types';
+import type { ApiErrorResponse } from '@/lib/api-error';
 
 // ============================================
 // CONFIGURACIÓN BASE
@@ -107,7 +107,7 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
-  (error: AxiosError<ApiError>) => {
+  (error: AxiosError<ApiErrorResponse>) => {
     if (!error.response) {
       // Error de red / timeout
       console.error('[API] Error de conexión:', error.message);
@@ -115,6 +115,7 @@ api.interceptors.response.use(
     }
 
     const { status } = error.response;
+    const responseData = error.response.data;
 
     switch (status) {
       case 401:
@@ -126,28 +127,53 @@ api.interceptors.response.use(
         break;
 
       case 403:
-        console.error(
-          '[API] Acceso denegado: No tienes permisos para esta acción'
-        );
-        break;
-
+      case 400:
       case 404:
-        console.error('[API] Recurso no encontrado');
-        break;
-
+      case 409:
       case 422:
-        console.error(
-          '[API] Error de validación:',
-          error.response.data?.error || error.response.data?.message
-        );
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[API BUSINESS ERROR]', {
+            status,
+            code: responseData?.error,
+            message: responseData?.message,
+          });
+        }
         break;
 
-      case 500:
-        console.error('[API] Error interno del servidor');
+      case 500: {
+        console.error('[API] Error 500', {
+          url: error.config?.url,
+          method: error.config?.method,
+          error: responseData?.error,
+          message: responseData?.message,
+          stage: responseData?.stage,
+          details: responseData?.details,
+          requestId: responseData?.requestId,
+        });
         break;
+      }
+
+      case 503: {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[API] Servicio no disponible', {
+            url: error.config?.url,
+            method: error.config?.method,
+            error: responseData?.error,
+            message: responseData?.message,
+            stage: responseData?.stage,
+          });
+        }
+        break;
+      }
 
       default:
-        console.error(`[API] Error ${status}:`, error.response.data?.error || error.response.data?.message);
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[API ERROR]', {
+            status,
+            code: responseData?.error,
+            message: responseData?.message,
+          });
+        }
     }
 
     return Promise.reject(error);
@@ -166,6 +192,12 @@ export const apiHelpers = {
   /** POST request tipado */
   post: <T = unknown>(url: string, data?: unknown) =>
     api.post<T>(url, data),
+
+  /** POST con FormData (multipart) */
+  postForm: <T = unknown>(url: string, formData: FormData) =>
+    api.post<T>(url, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
 
   /** PUT request tipado */
   put: <T = unknown>(url: string, data?: unknown) =>

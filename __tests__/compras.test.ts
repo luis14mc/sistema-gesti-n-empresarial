@@ -21,37 +21,30 @@ describe('compras calculos', () => {
   });
 });
 
-describe('compras workflow ficha Excel', () => {
-  it('transiciona de borrador a enviada', () => {
-    expect(getNextEstado('enviar', 'BORRADOR')).toBe('ENVIADA');
+describe('compras workflow orden institucional', () => {
+  it('transiciona de borrador a generada', () => {
+    expect(getNextEstado('generar_orden', 'BORRADOR')).toBe('GENERADA');
   });
 
-  it('transiciona de enviada a autorizada', () => {
-    expect(getNextEstado('autorizar', 'ENVIADA')).toBe('AUTORIZADA');
+  it('transiciona de generada a emitida', () => {
+    expect(getNextEstado('emitir', 'GENERADA')).toBe('EMITIDA');
   });
 
-  it('transiciona de autorizada a aprobada', () => {
-    expect(getNextEstado('aprobar', 'AUTORIZADA')).toBe('APROBADA');
+  it('permite generar orden al solicitante', () => {
+    expect(canPerformCompraAction('IT', 'generar_orden', 'BORRADOR', { isOwner: true })).toBe(true);
   });
 
-  it('transiciona de aprobada a orden emitida', () => {
-    expect(getNextEstado('emitir_orden', 'APROBADA')).toBe('ORDEN_EMITIDA');
+  it('permite emitir PDF al solicitante', () => {
+    expect(canPerformCompraAction('IT', 'emitir', 'GENERADA', { isOwner: true })).toBe(true);
   });
 
-  it('permite enviar al solicitante', () => {
-    expect(canPerformCompraAction('IT', 'enviar', 'BORRADOR', { isOwner: true })).toBe(true);
+  it('permite anular borrador al solicitante', () => {
+    expect(canPerformCompraAction('IT', 'anular', 'BORRADOR', { isOwner: true })).toBe(true);
   });
 
-  it('permite autorizar a RRHH del mismo departamento', () => {
-    expect(
-      canPerformCompraAction('RRHH', 'autorizar', 'ENVIADA', { sameDepartment: true })
-    ).toBe(true);
-  });
-
-  it('permite aprobar solo a ADMIN', () => {
-    expect(canPerformCompraAction('ADMIN', 'aprobar', 'AUTORIZADA')).toBe(true);
-    expect(
-      canPerformCompraAction('RRHH', 'aprobar', 'AUTORIZADA', { sameDepartment: true })
-    ).toBe(false);
+  it('permite cerrar solo a ADMIN', () => {
+    expect(canPerformCompraAction('ADMIN', 'cerrar', 'EMITIDA')).toBe(true);
+    expect(canPerformCompraAction('IT', 'cerrar', 'EMITIDA')).toBe(true);
+    expect(canPerformCompraAction('RRHH', 'cerrar', 'EMITIDA')).toBe(false);
   });
 });

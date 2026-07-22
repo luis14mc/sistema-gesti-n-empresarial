@@ -1,16 +1,15 @@
 /**
- * Tipos frontend — módulo Compras (ficha Solicitud y Orden de Compra).
+ * Tipos frontend — módulo Orden de Compra institucional.
  */
 
 import type {
+  CompraAdjunto as PrismaCompraAdjunto,
   CompraEstado,
-  CompraFormaPago,
-  CompraPrioridad,
-  CompraTipo,
   CompraUnidad,
+  CompraSolicitud as PrismaCompraSolicitud,
 } from '@prisma/client';
 
-export type { CompraEstado, CompraFormaPago, CompraPrioridad, CompraTipo, CompraUnidad };
+export type { CompraEstado, CompraUnidad };
 
 export interface CompraUserRef {
   id: string;
@@ -20,15 +19,7 @@ export interface CompraUserRef {
 
 export interface CompraSolicitanteRef extends CompraUserRef {
   email?: string;
-  departmentId?: string;
   position?: { name: string } | null;
-}
-
-export interface CostCenter {
-  id: string;
-  code: string;
-  name: string;
-  description?: string | null;
 }
 
 export interface Proveedor {
@@ -39,88 +30,47 @@ export interface Proveedor {
   email?: string | null;
   personaContacto?: string | null;
   direccion?: string | null;
-  activo: boolean;
+  activo?: boolean;
 }
 
-export interface CompraSolicitudItem {
+export type CompraSolicitudItem = {
   id: string;
   solicitudCompraId: string;
   item: number;
-  codigo?: string | null;
   descripcion: string;
   unidad: CompraUnidad;
   cantidad: number;
   precioUnitario: number;
   total: number;
-}
+};
 
-export interface CompraAdjunto {
+export type CompraAdjunto = Omit<PrismaCompraAdjunto, 'uploadedBy' | 'solicitud'> & {
+  uploadedBy?: CompraUserRef | null;
+};
+
+export interface CompraDocumento {
   id: string;
-  solicitudCompraId: string;
-  tipo: string;
-  nombre: string;
-  mimeType: string;
-  size: number;
   url: string;
-  uploadedAt: string;
-  uploadedBy?: CompraUserRef;
+  nombreArchivo: string;
+  storagePath: string;
+  version: number;
+  generadoEn?: string | Date;
+  generadoPor?: CompraUserRef | null;
 }
 
-export interface CompraSolicitud {
-  id: string;
-  numero: string;
-  fechaSolicitud: string;
-  fechaRequerida?: string | null;
-  departamentoSolicitanteId?: string | null;
-  centroCostoId?: string | null;
-  solicitadoPorId: string;
-  cargoSolicitante?: string | null;
-  tipoCompra: CompraTipo;
-  prioridad: CompraPrioridad;
-  estado: CompraEstado;
-  proveedorId?: string | null;
-  proveedorNombre?: string | null;
-  proveedorIdentificacion?: string | null;
-  proveedorTelefono?: string | null;
-  proveedorEmail?: string | null;
-  proveedorContacto?: string | null;
-  proveedorDireccion?: string | null;
-  justificacionCompra: string;
-  condicionesEntrega?: string | null;
-  observacionesAdicionales?: string | null;
-  formaPago: CompraFormaPago;
-  plazoPagoDias?: number | null;
-  detallesPago?: string | null;
-  subtotal: number;
-  descuento: number;
-  impuesto: number;
-  total: number;
-  autorizadoPorId?: string | null;
-  autorizadoEn?: string | null;
-  aprobadoPorId?: string | null;
-  aprobadoEn?: string | null;
-  rechazadoPorId?: string | null;
-  rechazadoEn?: string | null;
-  motivoRechazo?: string | null;
-  emitidoPorId?: string | null;
-  emitidoEn?: string | null;
-  documentoPdfUrl?: string | null;
-  solicitadoPor?: CompraSolicitanteRef;
-  departamentoSolicitante?: { id: string; name: string } | null;
-  centroCosto?: CostCenter | null;
+export type CompraSolicitud = Omit<
+  PrismaCompraSolicitud,
+  'items' | 'adjuntos' | 'documentos' | 'solicitadoPor' | 'proveedor'
+> & {
+  solicitadoPor?: CompraSolicitanteRef | null;
   proveedor?: Proveedor | null;
-  autorizadoPor?: CompraUserRef | null;
-  aprobadoPor?: CompraUserRef | null;
-  rechazadoPor?: CompraUserRef | null;
   items: CompraSolicitudItem[];
   adjuntos: CompraAdjunto[];
-}
+  documentos?: CompraDocumento[];
+};
 
 export interface CompraSolicitudFilters {
   estado?: CompraEstado;
-  prioridad?: CompraPrioridad;
-  tipo?: CompraTipo;
-  departamentoId?: string;
   search?: string;
   mine?: boolean;
   page?: number;
@@ -129,7 +79,6 @@ export interface CompraSolicitudFilters {
 
 export interface CreateCompraSolicitudItemData {
   item?: number;
-  codigo?: string;
   descripcion: string;
   unidad: CompraUnidad;
   cantidad: number;
@@ -139,11 +88,8 @@ export interface CreateCompraSolicitudItemData {
 export interface CreateCompraSolicitudData {
   fechaSolicitud?: string;
   fechaRequerida?: string;
-  departamentoSolicitanteId?: string;
-  centroCostoId?: string;
+  referenciaCompra?: string;
   cargoSolicitante?: string;
-  tipoCompra?: CompraTipo;
-  prioridad?: CompraPrioridad;
   proveedorId?: string | null;
   proveedorNombre?: string;
   proveedorIdentificacion?: string | null;
@@ -152,11 +98,7 @@ export interface CreateCompraSolicitudData {
   proveedorContacto?: string | null;
   proveedorDireccion?: string | null;
   justificacionCompra?: string;
-  condicionesEntrega?: string;
   observacionesAdicionales?: string;
-  formaPago?: CompraFormaPago;
-  plazoPagoDias?: number | null;
-  detallesPago?: string;
   descuento?: number;
   items?: CreateCompraSolicitudItemData[];
 }
@@ -170,16 +112,4 @@ export interface CreateProveedorData {
   email?: string | null;
   personaContacto?: string | null;
   direccion?: string | null;
-}
-
-export interface CompraReportes {
-  year: number;
-  porEstado: Array<{ estado: CompraEstado; _count: { _all: number }; _sum: { total: number | null } }>;
-  porDepartamento: Array<{ departamentoSolicitanteId: string | null; departamento: string; _count: { _all: number }; _sum: { total: number | null } }>;
-  porCentroCosto: Array<{ centroCostoId: string | null; centroCosto: string; _count: { _all: number }; _sum: { total: number | null } }>;
-  porPrioridad: Array<{ prioridad: CompraPrioridad; _count: { _all: number }; _sum: { total: number | null } }>;
-  montoPorMes: Array<{ mes: number; total: number; cantidad: number }>;
-  ordenesEmitidas: number;
-  pendientesAprobacion: number;
-  cerradas: number;
 }

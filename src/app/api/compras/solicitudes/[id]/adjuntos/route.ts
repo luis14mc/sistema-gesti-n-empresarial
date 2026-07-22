@@ -20,7 +20,13 @@ async function postHandler(req: AuthenticatedRequest, context: RouteContext) {
 
     const formData = await req.formData();
     const file = formData.get('file');
-    const tipo = (formData.get('tipo') as string | null) ?? 'SOPORTE';
+    const tipoRaw = (formData.get('tipoAdjunto') as string | null)
+      ?? (formData.get('tipo') as string | null)
+      ?? 'OTRO';
+    const TIPOS_VALIDOS = ['COTIZACION', 'FACTURA', 'PROFORMA', 'CORREO_AUTORIZACION', 'SOPORTE_TECNICO', 'OTRO'] as const;
+    const tipoAdjunto = (TIPOS_VALIDOS as readonly string[]).includes(tipoRaw)
+      ? (tipoRaw as (typeof TIPOS_VALIDOS)[number])
+      : 'OTRO';
 
     if (!(file instanceof File)) {
       return NextResponse.json({ error: 'Archivo requerido' }, { status: 400 });
@@ -30,7 +36,7 @@ async function postHandler(req: AuthenticatedRequest, context: RouteContext) {
     const adjunto = await prisma.compraAdjunto.create({
       data: {
         solicitudCompraId: id,
-        tipo,
+        tipoAdjunto,
         nombre: stored.nombre,
         mimeType: stored.mimeType,
         size: stored.size,

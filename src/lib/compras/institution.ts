@@ -1,6 +1,10 @@
-import { access } from 'fs/promises';
-import { readFile } from 'fs/promises';
+import { access, mkdir, readFile, writeFile } from 'fs/promises';
 import path from 'path';
+import {
+  DEFAULT_INSTITUTION_SETTINGS,
+  getInstitutionSettings,
+  type InstitutionSettings,
+} from './institution-store';
 
 const MIME_BY_EXT: Record<string, string> = {
   svg: 'image/svg+xml',
@@ -11,46 +15,82 @@ const MIME_BY_EXT: Record<string, string> = {
   gif: 'image/gif',
 };
 
+const FALLBACK_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect width="120" height="120" fill="#003366"/><text x="60" y="68" text-anchor="middle" fill="#fff" font-family="Arial" font-size="28" font-weight="700">CNI</text></svg>`;
+
+export type { InstitutionSettings };
+
 export function getInstitutionName(): string {
-  return process.env.INSTITUTION_NAME ?? 'Sistema de Gestión Empresarial';
+  return DEFAULT_INSTITUTION_SETTINGS.name;
 }
 
-/**
- * Resolves the institutional logo as a data URI from /public when possible,
- * avoiding network fetches inside Puppeteer (SSRF mitigation).
- */
-const LOGO_CANDIDATES = [
-  process.env.INSTITUTION_LOGO_PATH,
-  '/assets/logo/logo.png',
-  '/assets/logo/logo.svg',
-  '/logo-cni.svg',
-].filter((value): value is string => Boolean(value));
+async function fileToDataUri(absolutePath: string): Promise<string | null> {
+  try {
+    await access(absolutePath);
+    const buffer = await readFile(absolutePath);
+    const ext = path.extname(absolutePath).slice(1).toLowerCase() || 'svg';
+    const mime = MIME_BY_EXT[ext] ?? 'application/octet-stream';
+    return `data:${mime};base64,${buffer.toString('base64')}`;
+  } catch {
+    return null;
+  }
+}
 
-export async function resolveInstitutionLogoDataUri(): Promise<string> {
-  for (const logoPath of LOGO_CANDIDATES) {
-    if (logoPath.startsWith('http://') || logoPath.startsWith('https://')) {
-      continue;
+export async function resolveInstitutionLogoDataUri(logoPath?: string): Promise<string> {
+  const settings = await getInstitutionSettings();
+  const candidates = [
+    logoPath,
+    settings.logoPath,
+    '/Logo_CNI.png',
+    '/assets/logo/logo-cni.png',
+    '/logo-cni.png',
+    '/uploads/institution/logo.png',
+    '/logo-cni.svg',
+    '/assets/logo/logo.svg',
+    '/assets/logo/logo.png',
+  ].filter((value, index, arr): value is string => Boolean(value) && arr.indexOf(value) === index);
+
+  for (const candidate of candidates) {
+    if (candidate.startsWith('http://') || candidate.startsWith('https://')) {
+      return candidate;
+    }
+    if (candidate.startsWith('data:')) {
+      return candidate;
     }
 
-    const relative = logoPath.replace(/^\//, '');
+    const relative = candidate.replace(/^\//, '');
     const absolute = path.join(process.cwd(), 'public', relative);
-    try {
-      await access(absolute);
-      const buffer = await readFile(absolute);
-      const ext = path.extname(relative).slice(1).toLowerCase() || 'svg';
-      const mime = MIME_BY_EXT[ext] ?? 'application/octet-stream';
-      return `data:${mime};base64,${buffer.toString('base64')}`;
-    } catch {
-      continue;
-    }
+    const dataUri = await fileToDataUri(absolute);
+    if (dataUri) return dataUri;
   }
 
-  throw new Error('No se encontró logo institucional en /public');
+  return `data:image/svg+xml;base64,${Buffer.from(FALLBACK_LOGO_SVG).toString('base64')}`;
 }
 
 export async function getInstitutionConfig() {
+  const settings = await getInstitutionSettings();
   return {
-    name: getInstitutionName(),
-    logoUrl: await resolveInstitutionLogoDataUri(),
+    ...settings,
+    logoUrl: await resolveInstitutionLogoDataUri(settings.logoPath),
   };
+}
+
+const LOGO_DIR = path.join(process.cwd(), 'public', 'uploads', 'institution');
+const ALLOWED_LOGO_EXT = new Set(['svg', 'png', 'jpg', 'jpeg', 'webp', 'gif']);
+
+export async function saveInstitutionLogo(file: File): Promise<string> {
+  const ext = path.extname(file.name).slice(1).toLowerCase();
+  if (!ALLOWED_LOGO_EXT.has(ext)) {
+    throw new Error('Formato de logo no permitido. Use SVG, PNG, JPG o WebP.');
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    throw new Error('El logo no puede superar 2 MB.');
+  }
+
+  await mkdir(LOGO_DIR, { recursive: true });
+  const filename = `logo.${ext}`;
+  const absolute = path.join(LOGO_DIR, filename);
+  const buffer = Buffer.from(await file.arrayBuffer());
+  await writeFile(absolute, buffer);
+
+  return `/uploads/institution/${filename}`;
 }

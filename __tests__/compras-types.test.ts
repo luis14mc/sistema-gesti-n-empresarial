@@ -1,20 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import type { CompraSolicitud, CompraSolicitudItem } from '../src/types/compras';
 
-describe('compras frontend types (ficha Excel)', () => {
-  it('modela solicitud con campos institucionales', () => {
+describe('compras frontend types (orden institucional)', () => {
+  it('modela orden con campos institucionales', () => {
     const solicitud: Pick<
       CompraSolicitud,
-      'numero' | 'tipoCompra' | 'prioridad' | 'estado' | 'proveedorNombre' | 'formaPago'
+      'numeroOrden' | 'referenciaCompra' | 'estado' | 'proveedorNombre'
     > = {
-      numero: 'SC-0001-2026',
-      tipoCompra: 'BIENES',
-      prioridad: 'NORMAL',
-      estado: 'AUTORIZADA',
-      proveedorNombre: 'Proveedor SA',
-      formaPago: 'CONTADO',
+      numeroOrden: 'OC-CNI-0001-2026',
+      referenciaCompra: 'REF-2026-001',
+      estado: 'GENERADA',
+      proveedorNombre: 'Proveedor Demo S.A.',
     };
-    expect(solicitud.estado).toBe('AUTORIZADA');
+    expect(solicitud.estado).toBe('GENERADA');
+    expect(solicitud.numeroOrden).toBe('OC-CNI-0001-2026');
   });
 
   it('modela ítems con precio unitario y total', () => {

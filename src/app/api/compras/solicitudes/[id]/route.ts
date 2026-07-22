@@ -5,6 +5,7 @@ import { canAccess } from '@/lib/permissions';
 import { compraInclude, updateCompraSolicitud } from '@/lib/compras/service';
 import { updateCompraSolicitudSchema } from '@/lib/compras/schemas';
 import { isCompraEditable } from '@/lib/compras/workflow';
+import { deprecatedComprasResponse } from '@/lib/compras/deprecated-response';
 import type { Role } from '@/types';
 
 async function getHandler(
@@ -26,7 +27,7 @@ async function getHandler(
       return NextResponse.json({ error: 'Solicitud no encontrada' }, { status: 404 });
     }
 
-    return NextResponse.json({ solicitud });
+    return deprecatedComprasResponse({ solicitud });
   } catch (error) {
     console.error('Error getting compra solicitud:', error);
     return NextResponse.json({ error: 'Error al obtener solicitud' }, { status: 500 });
@@ -61,7 +62,7 @@ async function patchHandler(
     }
 
     const solicitud = await updateCompraSolicitud(id, parsed.data);
-    return NextResponse.json({ solicitud });
+    return deprecatedComprasResponse({ solicitud });
   } catch (error) {
     console.error('Error updating compra solicitud:', error);
     return NextResponse.json({ error: 'Error al actualizar solicitud' }, { status: 500 });

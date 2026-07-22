@@ -1,20 +1,23 @@
 import type { Metadata } from 'next';
-import { Montserrat } from 'next/font/google';
 import { connection } from 'next/server';
 import { headers } from 'next/headers';
 import './globals.css';
 import { Toaster } from 'sileo';
 import Providers from '@/providers/QueryProvider';
 
-const montserrat = Montserrat({
-  subsets: ['latin'],
-  variable: '--font-montserrat',
-  display: 'swap',
-});
+import { BRAND_APP_NAME, BRAND_ORG_SHORT } from '@/lib/brand';
 
 export const metadata: Metadata = {
-  title: 'Sistema de Gestión Empresarial',
-  description: 'Plataforma institucional de gestión integral',
+  title: {
+    default: BRAND_APP_NAME,
+    template: `%s | ${BRAND_ORG_SHORT}`,
+  },
+  description: `Plataforma institucional de gestión integral — ${BRAND_ORG_SHORT}`,
+  icons: {
+    icon: [{ url: '/favicon.ico' }, { url: '/Logo_CNI.png', type: 'image/png' }],
+    shortcut: ['/favicon.ico'],
+    apple: [{ url: '/apple-icon', type: 'image/png' }],
+  },
 };
 
 /**
@@ -43,7 +46,13 @@ export default async function RootLayout({
           }}
         />
       </head>
-      <body className={`${montserrat.variable} antialiased`} suppressHydrationWarning>
+      <body className="antialiased" suppressHydrationWarning>
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:shadow-lg focus:ring-2 focus:ring-ring"
+        >
+          Saltar al contenido principal
+        </a>
         <Providers>
           {children}
         </Providers>
