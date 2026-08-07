@@ -6,6 +6,9 @@ import { canAccess } from '@/lib/permissions';
 import { saveOficioDocument } from '@/lib/oficios-storage';
 import { createAuditRecord } from '@/lib/audit';
 import type { Role } from '@/types';
+import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { oficioOrganizationFailure } from '@/modules/oficios/presentation/http';
+import { oficioDocumentScope, oficioScope } from '@/modules/oficios/infrastructure/tenant-scope';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,14 +17,16 @@ interface RouteContext {
 }
 
 async function postHandler(req: AuthenticatedRequest, context: RouteContext) {
+  const requestId = crypto.randomUUID();
   try {
+    const organization = await requireOrganizationContext(req, requestId);
     const { id } = await context.params;
     const role = req.user!.role as Role;
     if (!canAccess(role, 'oficios', 'create')) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
 
-    const oficio = await prisma.oficio.findUnique({ where: { id }, select: { id: true, createdById: true } });
+    const oficio = await prisma.oficio.findFirst({ where: oficioScope(organization.organizationId, id), select: { id: true, createdById: true } });
     if (!oficio) {
       return NextResponse.json({ error: 'Oficio no encontrado' }, { status: 404 });
     }
@@ -34,9 +39,8 @@ async function postHandler(req: AuthenticatedRequest, context: RouteContext) {
     const documentType = (formData.get('documentType') as string) || 'ANEXO';
     const isPrimary = formData.get('isPrimary') === 'true';
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const fileHash = createHash('sha256').update(buffer).digest('hex');
-    const stored = await saveOficioDocument(file);
+    const stored = await saveOficioDocument(file, organization.organizationId);
+    const fileHash = createHash('sha256').update(Buffer.from(await file.arrayBuffer())).digest('hex');
 
     const document = await prisma.oficioDocument.create({
       data: {
@@ -45,7 +49,7 @@ async function postHandler(req: AuthenticatedRequest, context: RouteContext) {
         originalName: stored.originalName,
         mimeType: stored.mimeType,
         size: stored.size,
-        storageKey: stored.filename,
+        storageKey: stored.storageKey,
         url: stored.url,
         fileHash,
         documentType,
@@ -56,7 +60,7 @@ async function postHandler(req: AuthenticatedRequest, context: RouteContext) {
 
     if (isPrimary) {
       await prisma.oficioDocument.updateMany({
-        where: { oficioId: id, NOT: { id: document.id } },
+        where: { ...oficioDocumentScope(organization.organizationId, id), NOT: { id: document.id } },
         data: { isPrimary: false },
       });
     }
@@ -79,11 +83,14 @@ async function postHandler(req: AuthenticatedRequest, context: RouteContext) {
       category: 'CREATE',
       userId: req.user!.userId,
       entityId: id,
+      organizationId: organization.organizationId,
       newData: { documentId: document.id, documentType },
     });
 
     return NextResponse.json({ document }, { status: 201 });
   } catch (error) {
+    const organizationResponse = oficioOrganizationFailure(error, requestId);
+    if (organizationResponse) return organizationResponse;
     console.error('Error en POST /api/oficios/[id]/documents:', error);
     if (error instanceof Error && error.message.includes('Formato no permitido')) {
       return NextResponse.json({ error: error.message }, { status: 400 });

@@ -1,11 +1,19 @@
 import { NextResponse } from 'next/server';
 import { createHash } from 'crypto';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
 import { canAccess } from '@/lib/permissions';
 import { saveOficioDocument } from '@/lib/oficios-storage';
 import { createAuditRecord } from '@/lib/audit';
 import type { Role } from '@/types';
+import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { oficioOrganizationFailure } from '@/modules/oficios/presentation/http';
+import {
+  oficioBatchScope,
+  oficioDocumentTenantScope,
+  oficioTenantScope,
+} from '@/modules/oficios/infrastructure/tenant-scope';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +45,9 @@ interface BatchItemResult {
 const MAX_FILES = 25;
 
 async function postHandler(req: AuthenticatedRequest) {
+  const requestId = crypto.randomUUID();
   try {
+    const organization = await requireOrganizationContext(req, requestId);
     const role = req.user!.role as Role;
     if (!canAccess(role, 'oficios', 'create')) {
       return NextResponse.json({ error: 'Sin permisos para importar oficios' }, { status: 403 });
@@ -73,6 +83,7 @@ async function postHandler(req: AuthenticatedRequest) {
 
     const batch = await prisma.oficioImportBatch.create({
       data: {
+        organizationId: organization.organizationId,
         source: 'HISTORICAL_IMPORT',
         status: 'PROCESSING',
         totalFiles: files.length,
@@ -81,7 +92,7 @@ async function postHandler(req: AuthenticatedRequest) {
         errors: 0,
         notes: payload.notes?.trim() || null,
         performedById: req.user!.userId,
-      },
+      } as Prisma.OficioImportBatchUncheckedCreateInput,
     });
 
     const results: BatchItemResult[] = [];
@@ -98,6 +109,7 @@ async function postHandler(req: AuthenticatedRequest) {
         file,
         userId: req.user!.userId,
         userEmail: req.user!.email,
+        organizationId: organization.organizationId,
       });
       results.push(row);
     }
@@ -107,8 +119,8 @@ async function postHandler(req: AuthenticatedRequest) {
     const errors = results.filter((r) => r.status === 'ERROR').length;
     const finalStatus = errors === files.length && imported === 0 ? 'FAILED' : 'COMPLETED';
 
-    await prisma.oficioImportBatch.update({
-      where: { id: batch.id },
+    await prisma.oficioImportBatch.updateMany({
+      where: oficioBatchScope(organization.organizationId, batch.id),
       data: {
         status: finalStatus,
         imported,
@@ -125,6 +137,7 @@ async function postHandler(req: AuthenticatedRequest) {
       category: 'CREATE',
       userId: req.user!.userId,
       entityId: batch.id,
+      organizationId: organization.organizationId,
       newData: { batchId: batch.id, imported, skipped, errors, total: files.length },
     });
 
@@ -137,6 +150,8 @@ async function postHandler(req: AuthenticatedRequest) {
       results,
     });
   } catch (error) {
+    const organizationResponse = oficioOrganizationFailure(error, requestId);
+    if (organizationResponse) return organizationResponse;
     console.error('Error en /api/oficios/import/batch:', error);
     return NextResponse.json({ error: 'Error al procesar el batch' }, { status: 500 });
   }
@@ -149,8 +164,9 @@ async function processItem(params: {
   file: File;
   userId: string;
   userEmail: string;
+  organizationId: string;
 }): Promise<BatchItemResult> {
-  const { batchId, rowIndex, item, file, userId } = params;
+  const { batchId, rowIndex, item, file, userId, organizationId } = params;
 
   try {
     const validationErrors = validatePayload(item);
@@ -172,6 +188,7 @@ async function processItem(params: {
     const fileHash = createHash('sha256').update(buffer).digest('hex');
 
     const duplicates = await findDuplicates({
+      organizationId,
       number: item.number,
       institution: item.institution,
       oficioDate: item.oficioDate,
@@ -196,10 +213,11 @@ async function processItem(params: {
       };
     }
 
-    const stored = await saveOficioDocument(file);
+    const stored = await saveOficioDocument(file, organizationId);
 
     const oficio = await prisma.oficio.create({
       data: {
+        organizationId,
         number: item.number.trim(),
         type: item.type ?? 'INCOMING',
         scope: item.scope ?? null,
@@ -238,7 +256,7 @@ async function processItem(params: {
             newData: { batchId, number: item.number, fileHash, originalName: file.name },
           },
         },
-      },
+      } as Prisma.OficioUncheckedCreateInput,
     });
 
     await prisma.oficioImportBatchItem.create({
@@ -287,6 +305,7 @@ function validatePayload(p: BatchItemPayload): string[] {
 }
 
 async function findDuplicates(params: {
+  organizationId: string;
   number: string;
   institution?: string | null;
   oficioDate: string;
@@ -296,7 +315,7 @@ async function findDuplicates(params: {
   const results: Array<{ field: string; reason: string }> = [];
 
   const sameNumber = await prisma.oficio.findFirst({
-    where: { number: { equals: params.number, mode: 'insensitive' } },
+    where: { ...oficioTenantScope(params.organizationId), number: { equals: params.number, mode: 'insensitive' } },
     select: { id: true, number: true },
   });
   if (sameNumber) results.push({ field: 'number', reason: `Mismo número: ${sameNumber.number}` });
@@ -304,6 +323,7 @@ async function findDuplicates(params: {
   if (params.institution) {
     const sameInst = await prisma.oficio.findFirst({
       where: {
+        ...oficioTenantScope(params.organizationId),
         institution: { equals: params.institution, mode: 'insensitive' },
         oficioDate: new Date(params.oficioDate),
       },
@@ -313,13 +333,16 @@ async function findDuplicates(params: {
   }
 
   const sameHash = await prisma.oficioDocument.findFirst({
-    where: { fileHash: params.fileHash },
+    where: { ...oficioDocumentTenantScope(params.organizationId), fileHash: params.fileHash },
     select: { oficioId: true, oficio: { select: { number: true } } },
   });
   if (sameHash) results.push({ field: 'fileHash', reason: `Mismo archivo en oficio ${sameHash.oficio.number}` });
 
   const sameName = await prisma.oficioDocument.findFirst({
-    where: { originalName: { equals: params.originalName, mode: 'insensitive' } },
+    where: {
+      ...oficioDocumentTenantScope(params.organizationId),
+      originalName: { equals: params.originalName, mode: 'insensitive' },
+    },
     select: { oficioId: true, oficio: { select: { number: true } } },
   });
   if (sameName) results.push({ field: 'originalName', reason: `Mismo nombre en oficio ${sameName.oficio.number}` });

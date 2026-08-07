@@ -27,14 +27,17 @@ import {
   OFICIO_TYPE_LABELS,
   type OficioStatus,
 } from '@/types';
+import {
+  OFICIO_STATUS_TRANSITIONS,
+} from '@/lib/oficios-status-transitions';
 
-const STATUS_NEXT: Partial<Record<OficioStatus, OficioStatus[]>> = {
-  DRAFT: ['SENT', 'ARCHIVED'],
-  SENT: ['RECEIVED', 'IN_PROCESS'],
-  RECEIVED: ['IN_PROCESS', 'COMPLETED'],
-  IN_PROCESS: ['COMPLETED', 'ARCHIVED'],
-  COMPLETED: ['ARCHIVED'],
-  ARCHIVED: [],
+const STATUS_NEXT: Record<OficioStatus, OficioStatus[]> = {
+  DRAFT: [...OFICIO_STATUS_TRANSITIONS.DRAFT],
+  SENT: [...OFICIO_STATUS_TRANSITIONS.SENT],
+  RECEIVED: [...OFICIO_STATUS_TRANSITIONS.RECEIVED],
+  IN_PROCESS: [...OFICIO_STATUS_TRANSITIONS.IN_PROCESS],
+  COMPLETED: [...OFICIO_STATUS_TRANSITIONS.COMPLETED],
+  ARCHIVED: [...OFICIO_STATUS_TRANSITIONS.ARCHIVED],
 };
 
 export default function OficioDetallePage({ params }: { params: Promise<{ id: string }> }) {

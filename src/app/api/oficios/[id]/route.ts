@@ -1,7 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
+import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { oficioOrganizationFailure } from '@/modules/oficios/presentation/http';
+import { oficioScope } from '@/modules/oficios/infrastructure/tenant-scope';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -11,9 +14,11 @@ async function getHandler(
   context: RouteContext
 ) {
   const { id } = await context.params;
+  const requestId = crypto.randomUUID();
   try {
-    const oficio = await prisma.oficio.findUnique({
-      where: { id },
+    const organization = await requireOrganizationContext(req, requestId);
+    const oficio = await prisma.oficio.findFirst({
+      where: oficioScope(organization.organizationId, id),
       include: {
         createdBy: {
           select: {
@@ -64,6 +69,8 @@ async function getHandler(
 
     return NextResponse.json({ oficio });
   } catch (error) {
+    const organizationResponse = oficioOrganizationFailure(error, requestId);
+    if (organizationResponse) return organizationResponse;
     console.error('Error al obtener oficio:', error);
     return NextResponse.json(
       { error: 'Error al obtener oficio' },
@@ -78,12 +85,14 @@ async function patchHandler(
   context: RouteContext
 ) {
   const { id } = await context.params;
+  const requestId = crypto.randomUUID();
   try {
+    const organization = await requireOrganizationContext(req, requestId);
     const data = await req.json();
 
     // Obtener estado anterior para auditoría
-    const currentOficio = await prisma.oficio.findUnique({
-      where: { id },
+    const currentOficio = await prisma.oficio.findFirst({
+      where: oficioScope(organization.organizationId, id),
     });
 
     if (!currentOficio) {
@@ -118,9 +127,12 @@ async function patchHandler(
       updateData.sentDate = new Date();
     }
 
-    const oficio = await prisma.oficio.update({
-      where: { id },
+    await prisma.oficio.updateMany({
+      where: oficioScope(organization.organizationId, id),
       data: updateData,
+    });
+    const oficio = await prisma.oficio.findFirstOrThrow({
+      where: oficioScope(organization.organizationId, id),
       include: {
         createdBy: {
           select: {
@@ -141,12 +153,15 @@ async function patchHandler(
       category: 'UPDATE',
       userId: req.user!.userId,
       entityId: oficio.id,
+      organizationId: organization.organizationId,
       previousData: { status: currentOficio.status, subject: currentOficio.subject },
       newData: { status: oficio.status, subject: oficio.subject },
     });
 
     return NextResponse.json({ oficio });
   } catch (error) {
+    const organizationResponse = oficioOrganizationFailure(error, requestId);
+    if (organizationResponse) return organizationResponse;
     console.error('Error al actualizar oficio:', error);
     return NextResponse.json(
       { error: 'Error al actualizar oficio' },
@@ -161,8 +176,10 @@ async function deleteHandler(
   context: RouteContext
 ) {
   const { id } = await context.params;
+  const requestId = crypto.randomUUID();
   try {
-    const current = await prisma.oficio.findUnique({ where: { id } });
+    const organization = await requireOrganizationContext(req, requestId);
+    const current = await prisma.oficio.findFirst({ where: oficioScope(organization.organizationId, id) });
     if (!current) {
       return NextResponse.json(
         { error: 'Oficio no encontrado' },
@@ -179,8 +196,8 @@ async function deleteHandler(
       );
     }
 
-    await prisma.oficio.delete({
-      where: { id },
+    await prisma.oficio.deleteMany({
+      where: oficioScope(organization.organizationId, id),
     });
 
     // Registrar en auditoría
@@ -191,11 +208,14 @@ async function deleteHandler(
       category: 'DELETE',
       userId: req.user!.userId,
       entityId: id,
+      organizationId: organization.organizationId,
       previousData: { number: current.number, subject: current.subject, status: current.status },
     });
 
     return NextResponse.json({ message: 'Oficio eliminado' });
   } catch (error) {
+    const organizationResponse = oficioOrganizationFailure(error, requestId);
+    if (organizationResponse) return organizationResponse;
     console.error('Error al eliminar oficio:', error);
     return NextResponse.json(
       { error: 'Error al eliminar oficio' },

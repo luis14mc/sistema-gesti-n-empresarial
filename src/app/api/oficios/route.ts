@@ -1,19 +1,34 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { Prisma, OficioType as PrismaOficioType } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
+import { canAccess } from '@/lib/permissions';
 import {
-  formatOficioNumber,
+  createRateLimiter,
+  RATE_LIMIT_RULES,
+  rateLimitHeaders,
+} from '@/lib/rate-limit';
+import type { Role } from '@/types';
+import {
   normalizeOficioDirection,
   normalizeOficioScope,
-  parseOficioSequence,
   shouldGenerateOficioNumber,
   type OficioDirection,
   type OficioScope,
 } from '@/lib/oficios-numbering';
 import { buildMetaScopeFilter } from '@/lib/oficios-meta';
-import { parseOficioAttachments } from '@/lib/oficios-attachments';
+import { parseOficioAttachments, isOficioAttachmentUrlAllowed } from '@/lib/oficios-attachments';
+import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { oficioOrganizationFailure } from '@/modules/oficios/presentation/http';
+import { oficioTenantScope, oficioUserAccessScope } from '@/modules/oficios/infrastructure/tenant-scope';
+import { allocateOficioNumber } from '@/modules/oficios/infrastructure/numbering';
+
+/** Rate-limit por usuario para creación de oficios: 30/min. */
+const oficioCreateLimiter = createRateLimiter({
+  ...RATE_LIMIT_RULES.MUTATION,
+  max: 30,
+});
 
 function buildScopeWhere(scope: OficioScope, direction?: OficioDirection): Prisma.OficioWhereInput {
   if (scope === 'INTERNO') {
@@ -68,87 +83,27 @@ function toPrismaOficioType(direction: OficioDirection): PrismaOficioType {
   return direction as PrismaOficioType;
 }
 
-function buildNumberSequenceWhere(params: {
-  scope: OficioScope;
-  direction: OficioDirection;
-  year: number;
-}): Prisma.OficioWhereInput {
-  const { scope, direction, year } = params;
-
-  if (direction === 'OUTGOING' && scope === 'DESPACHO') {
-    return {
-      type: 'OUTGOING',
-      number: {
-        startsWith: 'DPICP-',
-        endsWith: `-${year}`,
-      },
-    };
-  }
-
-  if (direction === 'OUTGOING' && scope === 'CNI') {
-    return {
-      type: 'OUTGOING',
-      number: {
-        contains: '-CNI-',
-        endsWith: `-${year}`,
-      },
-    };
-  }
-
-  return {
-    type: 'INTERNAL_MEMO',
-    number: {
-      startsWith: 'MEMO-',
-      endsWith: `-${year}`,
-    },
-  };
-}
-
-async function getNextOficioNumber(tx: Prisma.TransactionClient, params: {
-  scope: OficioScope;
-  direction: OficioDirection;
-  year: number;
-}) {
-  const lastOficio = await tx.oficio.findFirst({
-    where: buildNumberSequenceWhere(params),
-    orderBy: { createdAt: 'desc' },
-    select: { number: true },
-  });
-
-  const nextSequence = lastOficio ? parseOficioSequence(lastOficio.number) + 1 : 1;
-
-  return formatOficioNumber({
-    scope: params.scope,
-    direction: params.direction,
-    sequence: nextSequence,
-    year: params.year,
-  });
-}
-
 // GET - Listar oficios
 async function getHandler(req: AuthenticatedRequest) {
+  const requestId = crypto.randomUUID();
   try {
+    const organization = await requireOrganizationContext(req, requestId);
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
     const type = searchParams.get('type');
     const scopeParam = searchParams.get('scope');
     const directionParam = searchParams.get('direction');
     const search = searchParams.get('search');
-    const page = parseInt(searchParams.get('page') || '1');
-    const pageSize = Math.min(parseInt(searchParams.get('pageSize') || '10'), 100);
+    const page = Math.max(1, Math.min(parseInt(searchParams.get('page') || '1') || 1, 10_000));
+    const pageSize = Math.min(Math.max(1, parseInt(searchParams.get('pageSize') || '10') || 10), 100);
     const skip = (page - 1) * pageSize;
 
-    const where: Prisma.OficioWhereInput = {};
+    const where: Prisma.OficioWhereInput = oficioTenantScope(organization.organizationId);
     const andConditions: Prisma.OficioWhereInput[] = [];
 
     // IDOR: USER ve solo oficios donde es creador o destinatario
     if (req.user!.role === 'USER') {
-      andConditions.push({
-        OR: [
-          { createdById: req.user!.userId },
-          { recipient:  { contains: req.user!.email, mode: 'insensitive' } },
-        ],
-      });
+      andConditions.push(oficioUserAccessScope(req.user!.userId, req.user!.email));
     }
 
     if (status) where.status = status as Prisma.EnumOficioStatusFilter;
@@ -213,6 +168,8 @@ async function getHandler(req: AuthenticatedRequest) {
       totalPages: Math.ceil(total / pageSize)
     });
   } catch (error) {
+    const organizationResponse = oficioOrganizationFailure(error, requestId);
+    if (organizationResponse) return organizationResponse;
     console.error('Error al obtener oficios:', error);
     return NextResponse.json(
       { error: 'Error al obtener oficios' },
@@ -223,7 +180,27 @@ async function getHandler(req: AuthenticatedRequest) {
 
 // POST - Crear oficio
 async function postHandler(req: AuthenticatedRequest) {
+  const requestId = crypto.randomUUID();
   try {
+    const organization = await requireOrganizationContext(req, requestId);
+
+    if (!canAccess(req.user!.role as Role, 'oficios', 'create')) {
+      return NextResponse.json(
+        { error: 'No tiene permisos para crear oficios' },
+        { status: 403 }
+      );
+    }
+
+    // Rate-limit por usuario (mitiga consumo de secuencia + abuso)
+    const rateKey = `${req.user!.userId}:${organization.organizationId}`;
+    const limitResult = oficioCreateLimiter.check(rateKey);
+    if (!limitResult.success) {
+      return NextResponse.json(
+        { error: 'Demasiadas solicitudes, intente nuevamente en un momento.' },
+        { status: 429, headers: rateLimitHeaders(limitResult) }
+      );
+    }
+
     const {
       subject,
       number,
@@ -300,7 +277,7 @@ async function postHandler(req: AuthenticatedRequest) {
     }
 
     for (const att of parsedAttachments) {
-      if (!att.url?.startsWith('/uploads/oficios/') && !att.url?.startsWith('http')) {
+      if (!isOficioAttachmentUrlAllowed(att.url, organization.organizationId)) {
         return NextResponse.json(
           { error: 'URL de documento adjunto no válida' },
           { status: 400 }
@@ -311,7 +288,8 @@ async function postHandler(req: AuthenticatedRequest) {
     const oficio = await prisma.$transaction(async (tx) => {
       const year = new Date(oficioDate).getFullYear();
       const oficioNumber = shouldGenerateOficioNumber(oficioDirection)
-        ? await getNextOficioNumber(tx, {
+        ? await allocateOficioNumber(tx, {
+            organizationId: organization.organizationId,
             scope: oficioScope,
             direction: oficioDirection,
             year,
@@ -320,6 +298,7 @@ async function postHandler(req: AuthenticatedRequest) {
 
       return tx.oficio.create({
         data: {
+          organizationId: organization.organizationId,
           number: oficioNumber,
           subject: motivo,
           scope: oficioScope,
@@ -332,7 +311,7 @@ async function postHandler(req: AuthenticatedRequest) {
           sentDate: sentDate ? new Date(sentDate) : oficioDirection === 'OUTGOING' ? new Date(oficioDate) : undefined,
           attachments: parsedAttachments as unknown as Prisma.InputJsonValue,
           createdById: req.user!.userId,
-        },
+        } as Prisma.OficioUncheckedCreateInput,
         include: {
           createdBy: {
             select: { id: true, firstName: true, lastName: true, email: true },
@@ -348,6 +327,7 @@ async function postHandler(req: AuthenticatedRequest) {
       category: 'CREATE',
       userId: req.user!.userId,
       entityId: oficio.id,
+      organizationId: organization.organizationId,
       newData: {
         number: oficio.number,
         subject,
@@ -358,6 +338,8 @@ async function postHandler(req: AuthenticatedRequest) {
 
     return NextResponse.json({ oficio }, { status: 201 });
   } catch (error) {
+    const organizationResponse = oficioOrganizationFailure(error, requestId);
+    if (organizationResponse) return organizationResponse;
     console.error('Error al crear oficio:', error);
     return NextResponse.json(
       { error: 'Error al crear oficio' },

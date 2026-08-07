@@ -4,6 +4,9 @@ import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
 import { canAccess } from '@/lib/permissions';
 import type { Role } from '@/types';
+import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { oficioOrganizationFailure } from '@/modules/oficios/presentation/http';
+import { oficioTenantScope, oficioUserAccessScope } from '@/modules/oficios/infrastructure/tenant-scope';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +25,9 @@ export const dynamic = 'force-dynamic';
  *   - page / pageSize
  */
 async function getHandler(req: AuthenticatedRequest) {
+  const requestId = crypto.randomUUID();
   try {
+    const organization = await requireOrganizationContext(req, requestId);
     const role = req.user!.role as Role;
     if (!canAccess(role, 'oficios', 'read')) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
@@ -38,18 +43,16 @@ async function getHandler(req: AuthenticatedRequest) {
     const yearParam = searchParams.get('year');
     const dateFrom = searchParams.get('dateFrom');
     const dateTo = searchParams.get('dateTo');
-    const page = Math.max(parseInt(searchParams.get('page') || '1', 10), 1);
-    const pageSize = Math.min(parseInt(searchParams.get('pageSize') || '25', 10), 100);
+    const page = Math.max(1, Math.min(parseInt(searchParams.get('page') || '1', 10) || 1, 10_000));
+    const pageSize = Math.min(Math.max(1, parseInt(searchParams.get('pageSize') || '25', 10) || 25), 100);
     const skip = (page - 1) * pageSize;
 
-    const where: Prisma.OficioWhereInput = {};
+    const where: Prisma.OficioWhereInput = oficioTenantScope(organization.organizationId);
+    const andConditions: Prisma.OficioWhereInput[] = [];
 
     // RBAC: USER solo ve los propios
     if (role === 'USER') {
-      where.OR = [
-        { createdById: req.user!.userId },
-        { recipient: { contains: req.user!.email, mode: 'insensitive' } },
-      ];
+      andConditions.push(oficioUserAccessScope(req.user!.userId, req.user!.email));
     }
 
     if (scope) where.scope = scope;
@@ -79,17 +82,20 @@ async function getHandler(req: AuthenticatedRequest) {
     if (hasDocument === 'false') where.documents = { none: {} };
 
     if (q) {
-      where.OR = [
-        { number: { contains: q, mode: 'insensitive' } },
-        { systemNumber: { contains: q, mode: 'insensitive' } },
-        { subject: { contains: q, mode: 'insensitive' } },
-        { recipient: { contains: q, mode: 'insensitive' } },
-        { institution: { contains: q, mode: 'insensitive' } },
-        { preparedBy: { contains: q, mode: 'insensitive' } },
-        { comments: { contains: q, mode: 'insensitive' } },
-        { documents: { some: { originalName: { contains: q, mode: 'insensitive' } } } },
-      ];
+      andConditions.push({
+        OR: [
+          { number: { contains: q, mode: 'insensitive' } },
+          { systemNumber: { contains: q, mode: 'insensitive' } },
+          { subject: { contains: q, mode: 'insensitive' } },
+          { recipient: { contains: q, mode: 'insensitive' } },
+          { institution: { contains: q, mode: 'insensitive' } },
+          { preparedBy: { contains: q, mode: 'insensitive' } },
+          { comments: { contains: q, mode: 'insensitive' } },
+          { documents: { some: { originalName: { contains: q, mode: 'insensitive' } } } },
+        ],
+      });
     }
+    if (andConditions.length > 0) where.AND = andConditions;
 
     const [oficios, total] = await Promise.all([
       prisma.oficio.findMany({
@@ -116,6 +122,8 @@ async function getHandler(req: AuthenticatedRequest) {
       totalPages: Math.ceil(total / pageSize),
     });
   } catch (error) {
+    const organizationResponse = oficioOrganizationFailure(error, requestId);
+    if (organizationResponse) return organizationResponse;
     console.error('Error en /api/oficios/search:', error);
     return NextResponse.json({ error: 'Error al buscar oficios' }, { status: 500 });
   }

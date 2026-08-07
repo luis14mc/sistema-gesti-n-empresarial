@@ -71,10 +71,22 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_TRANSITIONS: Record<string, { next: OficioStatus; label: string; icon: typeof ArrowRight }[]> = {
-  DRAFT: [{ next: 'SENT', label: 'Enviar', icon: Send }],
-  SENT: [{ next: 'RECEIVED', label: 'Marcar recibido', icon: FileCheck }],
-  RECEIVED: [{ next: 'IN_PROCESS', label: 'En proceso', icon: ArrowRight }],
-  IN_PROCESS: [{ next: 'COMPLETED', label: 'Completar', icon: FileCheck }],
+  DRAFT: [
+    { next: 'SENT', label: 'Enviar', icon: Send },
+    { next: 'ARCHIVED', label: 'Archivar', icon: Archive },
+  ],
+  SENT: [
+    { next: 'RECEIVED', label: 'Marcar recibido', icon: FileCheck },
+    { next: 'IN_PROCESS', label: 'En proceso', icon: ArrowRight },
+  ],
+  RECEIVED: [
+    { next: 'IN_PROCESS', label: 'En proceso', icon: ArrowRight },
+    { next: 'COMPLETED', label: 'Completar', icon: FileCheck },
+  ],
+  IN_PROCESS: [
+    { next: 'COMPLETED', label: 'Completar', icon: FileCheck },
+    { next: 'ARCHIVED', label: 'Archivar', icon: Archive },
+  ],
   COMPLETED: [{ next: 'ARCHIVED', label: 'Archivar', icon: Archive }],
   ARCHIVED: [],
 };

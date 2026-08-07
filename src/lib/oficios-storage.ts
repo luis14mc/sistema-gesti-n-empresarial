@@ -11,7 +11,12 @@ import type { OficioAttachment } from '@/types';
 import { sanitizeOriginalName, validateOficioUploadFile } from '@/lib/oficios-attachments';
 import { getStorage } from '@/lib/storage';
 
-export async function saveOficioDocument(file: File): Promise<OficioAttachment> {
+export interface SaveOficioDocumentResult extends OficioAttachment {
+  /** Storage key (full path) returned by the StorageAdapter. */
+  storageKey: string;
+}
+
+export async function saveOficioDocument(file: File, organizationId: string): Promise<SaveOficioDocumentResult> {
   const originalName = sanitizeOriginalName(file.name);
   const { extension, mimeType } = validateOficioUploadFile({
     name: file.name,
@@ -26,7 +31,7 @@ export async function saveOficioDocument(file: File): Promise<OficioAttachment> 
   const desiredName = file.name.replace(/[^a-zA-Z0-9-_.]/g, '_').replace(/\s+/g, '_');
 
   const stored = await storage.put({
-    prefix: 'oficios',
+    prefix: `organizations/${organizationId}/oficios`,
     originalName: `${baseName}${extension}`,
     mimeType,
     size: file.size,
@@ -41,5 +46,6 @@ export async function saveOficioDocument(file: File): Promise<OficioAttachment> 
     mimeType,
     size: stored.size,
     uploadedAt: stored.uploadedAt,
+    storageKey: stored.key,
   };
 }
