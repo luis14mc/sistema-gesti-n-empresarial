@@ -4,13 +4,14 @@ import type { OrganizationContext } from '@/modules/organizations/application/co
 import { evaluateEquipmentDisposal } from '../domain/evaluator';
 import { assertDisposalTransition } from '../domain/rules';
 import type { DisposalPolicy } from '../domain/types';
-import { requirePermission } from './permissions';
 import { EquipmentDisposalError } from './errors';
 import type { DisposalEvaluationInput } from '../presentation/schemas/disposal';
 import { findDisposal, listDisposals } from '../infrastructure/repository';
 import { generateAndStoreDisposalPdf } from '../infrastructure/pdf';
 import { removeStoredDocument } from '@/lib/compras/orden/document-access';
-import { disposalSequenceScope } from '../infrastructure/tenant-scope';
+import { allocateDocumentSequence } from '@/platform/sequences/document-sequence';
+import { requirePermission } from '@/platform/security/authorization/permissions';
+import { appendSecurityEvent } from '@/platform/security/audit/security-events';
 
 function mapPolicy(policy: {
   maxAgeYears: Prisma.Decimal;
@@ -80,23 +81,115 @@ async function recordHistory(
       newData: input.newValues === undefined ? undefined : auditData(input.newValues),
     },
   });
+  await appendSecurityEvent(tx, {
+    organizationId: input.context.organizationId,
+    userId: input.context.userId,
+    eventType: `equipment_disposal.${input.action.toLowerCase()}`,
+    outcome: 'SUCCESS',
+    severity: input.action === 'DISPOSAL_APPROVED' ? 'NOTICE' : 'INFO',
+    module: 'equipment-disposal',
+    entityType: 'EquipmentDisposal',
+    entityId: input.disposalId,
+    action: input.action,
+    requestId: input.requestId,
+    attributes: { historyAction: input.action },
+  });
+}
+
+async function transition(
+  context: OrganizationContext,
+  id: string,
+  status: DisposalStatus,
+  action: DisposalHistoryAction,
+  requestId: string,
+) {
+  return prisma.$transaction(async (tx) => {
+    const disposal = await tx.equipmentDisposal.findFirst({ where: { id, organizationId: context.organizationId } });
+    if (!disposal) throw new EquipmentDisposalError('DISPOSAL_NOT_FOUND', 404);
+    assertDisposalTransition(disposal.status, status);
+    const updated = await tx.equipmentDisposal.update({
+      where: { id },
+      data: { status, submittedAt: status === 'PENDING_APPROVAL' ? new Date() : undefined, version: { increment: 1 } },
+    });
+    await recordHistory(tx, { context, disposalId: id, action, requestId, previousValues: { status: disposal.status }, newValues: { status } });
+    return updated;
+  });
+}
+
+async function restoreAndClose(
+  context: OrganizationContext,
+  id: string,
+  status: 'REJECTED' | 'CANCELLED',
+  action: DisposalHistoryAction,
+  reason: string,
+  requestId: string,
+) {
+  return prisma.$transaction(async (tx) => {
+    const disposal = await tx.equipmentDisposal.findFirst({ where: { id, organizationId: context.organizationId } });
+    if (!disposal) throw new EquipmentDisposalError('DISPOSAL_NOT_FOUND', 404);
+    assertDisposalTransition(disposal.status, status);
+
+    // A-2 fix: validar que el equipo sigue en DISPOSAL_IN_PROGRESS antes de
+    // restaurar. Si fue modificado fuera del flujo de disposal (p.ej. el flujo
+    // de mantenimiento lo puso en IN_MAINTENANCE), abortamos y registramos
+    // el drift en historial para investigación manual.
+    const equipment = await tx.equipment.findUnique({
+      where: { id: disposal.equipmentId },
+      select: { id: true, status: true, organizationId: true },
+    });
+    if (!equipment || equipment.organizationId !== context.organizationId) {
+      throw new EquipmentDisposalError('EQUIPMENT_NOT_FOUND', 404);
+    }
+    if (equipment.status !== 'DISPOSAL_IN_PROGRESS') {
+      await recordHistory(tx, {
+        context,
+        disposalId: id,
+        action: 'EQUIPMENT_STATUS_DRIFT_DETECTED',
+        requestId,
+        previousValues: { status: disposal.status },
+        newValues: {
+          attemptedRestoreTo: disposal.previousEquipmentStatus,
+          actualEquipmentStatus: equipment.status,
+          reason: 'equipment status changed outside disposal workflow',
+        },
+      });
+      throw new EquipmentDisposalError('EQUIPMENT_STATE_DRIFT', 409);
+    }
+
+    const updated = await tx.equipmentDisposal.update({
+      where: { id },
+      data: {
+        status, version: { increment: 1 },
+        rejectedAt: status === 'REJECTED' ? new Date() : undefined,
+        rejectionReason: status === 'REJECTED' ? reason : undefined,
+        cancelledAt: status === 'CANCELLED' ? new Date() : undefined,
+        cancellationReason: status === 'CANCELLED' ? reason : undefined,
+      },
+    });
+    await tx.equipment.update({
+      where: { id: disposal.equipmentId, organizationId: context.organizationId },
+      data: { status: disposal.previousEquipmentStatus },
+    });
+    await recordHistory(tx, { context, disposalId: id, action, requestId, previousValues: { status: disposal.status }, newValues: { status, reason } });
+    return updated;
+  });
 }
 
 export const equipmentDisposalService = {
   list(context: OrganizationContext, input: { page: number; pageSize: number; status?: DisposalStatus; search?: string }) {
-    requirePermission(context.role, 'equipment-disposal.read');
+    requirePermission(context, 'equipment-disposal.read');
     return listDisposals({ organizationId: context.organizationId, ...input });
   },
 
   async get(context: OrganizationContext, id: string) {
-    requirePermission(context.role, 'equipment-disposal.read');
+    requirePermission(context, 'equipment-disposal.read');
     const disposal = await findDisposal(context.organizationId, id);
     if (!disposal) throw new EquipmentDisposalError('DISPOSAL_NOT_FOUND', 404);
     return disposal;
   },
 
   async createDraft(context: OrganizationContext, input: DisposalEvaluationInput, requestId: string) {
-    requirePermission(context.role, 'equipment-disposal.create');
+    requirePermission(context, 'equipment-disposal.create');
     return prisma.$transaction(async (tx) => {
       const [equipment, policy] = await Promise.all([
         tx.equipment.findFirst({
@@ -133,13 +226,12 @@ export const equipmentDisposalService = {
         estimatedRepairCost: input.estimatedRepairCost,
       }, mapPolicy(policy));
       const year = new Date().getFullYear();
-      const sequence = await tx.documentSequence.upsert({
-        where: disposalSequenceScope(context.organizationId, year),
-        create: { organizationId: context.organizationId, documentType: 'EQUIPMENT_DISPOSAL', year, lastValue: 1 },
-        update: { lastValue: { increment: 1 } },
-        select: { lastValue: true },
+      const sequence = await allocateDocumentSequence(tx, {
+        organizationId: context.organizationId,
+        documentType: 'EQUIPMENT_DISPOSAL',
+        year,
       });
-      const folio = `${policy.folioPrefix}-${year}-${String(sequence.lastValue).padStart(5, '0')}`;
+      const folio = `${policy.folioPrefix}-${year}-${String(sequence).padStart(5, '0')}`;
       const disposal = await tx.equipmentDisposal.create({
         data: {
           organizationId: context.organizationId,
@@ -174,7 +266,7 @@ export const equipmentDisposalService = {
   },
 
   async updateDraft(context: OrganizationContext, id: string, input: DisposalEvaluationInput & { version: number }, requestId: string) {
-    requirePermission(context.role, 'equipment-disposal.update');
+    requirePermission(context, 'equipment-disposal.update');
     return prisma.$transaction(async (tx) => {
       const [disposal, policy] = await Promise.all([
         tx.equipmentDisposal.findFirst({ where: { id, organizationId: context.organizationId } }),
@@ -218,22 +310,22 @@ export const equipmentDisposalService = {
   },
 
   async submit(context: OrganizationContext, id: string, requestId: string) {
-    requirePermission(context.role, 'equipment-disposal.submit');
-    return this.transition(context, id, 'PENDING_APPROVAL', 'DISPOSAL_SUBMITTED', requestId);
+    requirePermission(context, 'equipment-disposal.submit');
+    return transition(context, id, 'PENDING_APPROVAL', 'DISPOSAL_SUBMITTED', requestId);
   },
 
   async reject(context: OrganizationContext, id: string, reason: string, requestId: string) {
-    requirePermission(context.role, 'equipment-disposal.reject');
-    return this.restoreAndClose(context, id, 'REJECTED', 'DISPOSAL_REJECTED', reason, requestId);
+    requirePermission(context, 'equipment-disposal.reject');
+    return restoreAndClose(context, id, 'REJECTED', 'DISPOSAL_REJECTED', reason, requestId);
   },
 
   async cancel(context: OrganizationContext, id: string, reason: string, requestId: string) {
-    requirePermission(context.role, 'equipment-disposal.cancel');
-    return this.restoreAndClose(context, id, 'CANCELLED', 'DISPOSAL_CANCELLED', reason, requestId);
+    requirePermission(context, 'equipment-disposal.cancel');
+    return restoreAndClose(context, id, 'CANCELLED', 'DISPOSAL_CANCELLED', reason, requestId);
   },
 
   async approve(context: OrganizationContext, id: string, requestId: string) {
-    requirePermission(context.role, 'equipment-disposal.approve');
+    requirePermission(context, 'equipment-disposal.approve');
     const existing = await findDisposal(context.organizationId, id);
     if (!existing) throw new EquipmentDisposalError('DISPOSAL_NOT_FOUND', 404);
     if (existing.status === 'APPROVED') return existing;
@@ -267,40 +359,5 @@ export const equipmentDisposalService = {
       throw error;
     }
     return this.get(context, id);
-  },
-
-  async transition(context: OrganizationContext, id: string, status: DisposalStatus, action: DisposalHistoryAction, requestId: string) {
-    return prisma.$transaction(async (tx) => {
-      const disposal = await tx.equipmentDisposal.findFirst({ where: { id, organizationId: context.organizationId } });
-      if (!disposal) throw new EquipmentDisposalError('DISPOSAL_NOT_FOUND', 404);
-      assertDisposalTransition(disposal.status, status);
-      const updated = await tx.equipmentDisposal.update({
-        where: { id },
-        data: { status, submittedAt: status === 'PENDING_APPROVAL' ? new Date() : undefined, version: { increment: 1 } },
-      });
-      await recordHistory(tx, { context, disposalId: id, action, requestId, previousValues: { status: disposal.status }, newValues: { status } });
-      return updated;
-    });
-  },
-
-  async restoreAndClose(context: OrganizationContext, id: string, status: 'REJECTED' | 'CANCELLED', action: DisposalHistoryAction, reason: string, requestId: string) {
-    return prisma.$transaction(async (tx) => {
-      const disposal = await tx.equipmentDisposal.findFirst({ where: { id, organizationId: context.organizationId } });
-      if (!disposal) throw new EquipmentDisposalError('DISPOSAL_NOT_FOUND', 404);
-      assertDisposalTransition(disposal.status, status);
-      const updated = await tx.equipmentDisposal.update({
-        where: { id },
-        data: {
-          status, version: { increment: 1 },
-          rejectedAt: status === 'REJECTED' ? new Date() : undefined,
-          rejectionReason: status === 'REJECTED' ? reason : undefined,
-          cancelledAt: status === 'CANCELLED' ? new Date() : undefined,
-          cancellationReason: status === 'CANCELLED' ? reason : undefined,
-        },
-      });
-      await tx.equipment.update({ where: { id: disposal.equipmentId }, data: { status: disposal.previousEquipmentStatus } });
-      await recordHistory(tx, { context, disposalId: id, action, requestId, previousValues: { status: disposal.status }, newValues: { status, reason } });
-      return updated;
-    });
   },
 };

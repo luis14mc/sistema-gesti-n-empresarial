@@ -69,6 +69,9 @@ const statusLabels: Record<string, string> = {
     DAMAGED: 'Dañado', RETIRED: 'Dado de baja', LOST: 'Extraviado',
 };
 
+/** Estados seleccionables desde UI (excluye RETIRED/DISPOSED — solo via disposal workflow). */
+const selectableStatuses = ['AVAILABLE', 'ASSIGNED', 'IN_MAINTENANCE', 'DAMAGED', 'LOST'] as const;
+
 const typeLabels: Record<string, string> = {
     LAPTOP: 'Laptop',
     DESKTOP_PC: 'PC de escritorio',
@@ -656,7 +659,7 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
                         <Select value={eq.status} onValueChange={(v) => handleStatusChange(v as EquipmentStatus)}>
                             <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent>
-                                {Object.entries(statusLabels).map(([k, v]) => (<SelectItem key={k} value={k}>{v}</SelectItem>))}
+                                {selectableStatuses.map((k) => (<SelectItem key={k} value={k}>{statusLabels[k]}</SelectItem>))}
                             </SelectContent>
                         </Select>
                     </div>

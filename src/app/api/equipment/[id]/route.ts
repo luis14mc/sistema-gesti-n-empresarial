@@ -5,14 +5,16 @@ import { createAuditRecord } from '@/lib/audit';
 import { logEquipmentHistory } from '@/lib/equipment-history';
 import { mapEquipmentResponse } from '@/lib/equipment-mapper';
 import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { equipmentApiFailure } from '@/modules/equipment/tenant';
 
 async function getHandler(
   req: AuthenticatedRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const requestId = crypto.randomUUID();
   try {
     const { id } = await params;
-    const organization = await requireOrganizationContext(req);
+    const organization = await requireOrganizationContext(req, requestId);
     const equipment = await prisma.equipment.findFirst({
       where: { id, organizationId: organization.organizationId },
       include: {
@@ -43,7 +45,7 @@ async function getHandler(
     return NextResponse.json({ equipment: mapEquipmentResponse(equipment) });
   } catch (error) {
     console.error('Error al obtener equipo:', error);
-    return NextResponse.json({ error: 'Error al obtener equipo' }, { status: 500 });
+    return equipmentApiFailure(error, requestId, { code: 'EQUIPMENT_GET_FAILED', message: 'Error al obtener equipo', stage: 'GET_EQUIPMENT' });
   }
 }
 
@@ -51,9 +53,10 @@ async function patchHandler(
   req: AuthenticatedRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const requestId = crypto.randomUUID();
   try {
     const { id } = await params;
-    const organization = await requireOrganizationContext(req);
+    const organization = await requireOrganizationContext(req, requestId);
     const data = await req.json();
     const current = await prisma.equipment.findFirst({ where: { id, organizationId: organization.organizationId } });
 
@@ -79,7 +82,7 @@ async function patchHandler(
     });
 
     const equipment = await prisma.equipment.update({
-      where: { id },
+      where: { id, organizationId: organization.organizationId },
       data: updateData,
     });
 
@@ -111,7 +114,7 @@ async function patchHandler(
     return NextResponse.json({ equipment: mapEquipmentResponse(equipment) });
   } catch (error) {
     console.error('Error al actualizar equipo:', error);
-    return NextResponse.json({ error: 'Error al actualizar equipo' }, { status: 500 });
+    return equipmentApiFailure(error, requestId, { code: 'EQUIPMENT_UPDATE_FAILED', message: 'Error al actualizar equipo', stage: 'UPDATE_EQUIPMENT' });
   }
 }
 
@@ -119,16 +122,17 @@ async function deleteHandler(
   req: AuthenticatedRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const requestId = crypto.randomUUID();
   try {
     await params;
-    await requireOrganizationContext(req);
+    await requireOrganizationContext(req, requestId);
     return NextResponse.json(
       { error: 'Use el flujo de dictamen técnico para dar de baja el equipo.' },
       { status: 409 },
     );
   } catch (error) {
     console.error('Error al dar de baja equipo:', error);
-    return NextResponse.json({ error: 'Error al dar de baja equipo' }, { status: 500 });
+    return equipmentApiFailure(error, requestId, { code: 'EQUIPMENT_DELETE_FAILED', message: 'Error al dar de baja equipo', stage: 'DELETE_EQUIPMENT' });
   }
 }
 

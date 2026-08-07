@@ -23,6 +23,33 @@ const equipmentListQuerySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).default(10),
 });
 
+// M3 fix: validación Zod para crear equipment (longitudes razonables, fechas válidas).
+const equipmentCreateSchema = z.object({
+  type: z.string().max(100).optional(),
+  category: z.string().max(60).optional(),
+  brand: z.string().min(1).max(120),
+  model: z.string().min(1).max(120),
+  serialNumber: z.string().max(120).optional().nullable(),
+  inventoryCode: z.string().max(60).optional(),
+  assetCode: z.string().max(60).optional(),
+  purchaseDate: z.coerce.date().optional().nullable(),
+  purchaseOrder: z.string().max(120).optional().nullable(),
+  supplier: z.string().max(200).optional().nullable(),
+  warrantyDate: z.coerce.date().optional().nullable(),
+  cost: z.coerce.number().nonnegative().optional().nullable(),
+  ram: z.string().max(60).optional().nullable(),
+  processor: z.string().max(200).optional().nullable(),
+  storage: z.string().max(60).optional().nullable(),
+  os: z.string().max(100).optional().nullable(),
+  ipAddress: z.string().refine((v) => v === '' || /^(\d{1,3}\.){3}\d{1,3}$/.test(v), { message: 'ipAddress inválida' }).optional().nullable(),
+  macAddress: z.string().regex(/^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$|^$/, { message: 'MAC inválida' }).optional().nullable(),
+  location: z.string().max(200).optional().nullable(),
+  notes: z.string().max(2000).optional().nullable(),
+}).refine(
+  (data) => !data.warrantyDate || !data.purchaseDate || data.warrantyDate >= data.purchaseDate,
+  { message: 'warrantyDate debe ser >= purchaseDate', path: ['warrantyDate'] }
+);
+
 function organizationFailure(error: unknown, requestId: string) {
   if (!isOrganizationContextError(error)) return null;
   const message = error.code === 'ORGANIZATION_SELECTION_REQUIRED'
@@ -127,6 +154,13 @@ async function postHandler(req: AuthenticatedRequest) {
   try {
     const organization = await requireOrganizationContext(req, requestId);
     const body = await req.json();
+    const parsed = equipmentCreateSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Datos inválidos', issues: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
     const {
       type,
       category,
@@ -148,14 +182,10 @@ async function postHandler(req: AuthenticatedRequest) {
       macAddress,
       location,
       notes,
-    } = body;
-
-    if (!brand || !model) {
-      return NextResponse.json({ error: 'Marca y modelo son requeridos' }, { status: 400 });
-    }
+    } = parsed.data;
 
     const resolvedCategory = resolveEquipmentCategory(category, type);
-    const code = inventoryCode || assetCode || (await generateAssetCode(resolvedCategory));
+    const code = inventoryCode || assetCode || (await generateAssetCode(organization.organizationId, resolvedCategory));
     const displayType = type || CATEGORY_LABELS[resolvedCategory];
 
     const equipment = await prisma.equipment.create({
@@ -167,19 +197,19 @@ async function postHandler(req: AuthenticatedRequest) {
         brand,
         model,
         serialNumber: serialNumber || null,
-        purchaseDate: purchaseDate ? new Date(purchaseDate) : null,
-        purchaseOrder,
-        supplier,
-        warrantyDate: warrantyDate ? new Date(warrantyDate) : null,
+        purchaseDate: purchaseDate ?? null,
+        purchaseOrder: purchaseOrder ?? null,
+        supplier: supplier ?? null,
+        warrantyDate: warrantyDate ?? null,
         cost: cost ?? null,
-        ram,
-        processor,
-        storage,
-        os,
-        ipAddress,
-        macAddress,
-        location,
-        notes,
+        ram: ram ?? null,
+        processor: processor ?? null,
+        storage: storage ?? null,
+        os: os ?? null,
+        ipAddress: ipAddress ?? null,
+        macAddress: macAddress ?? null,
+        location: location ?? null,
+        notes: notes ?? null,
       },
     });
 

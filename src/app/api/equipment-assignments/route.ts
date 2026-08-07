@@ -5,9 +5,14 @@ import { createAuditRecord } from '@/lib/audit';
 import { resolveEmployeeSnapshot } from '@/lib/employees';
 import { logEquipmentHistory } from '@/lib/equipment-history';
 import { mapAssignmentResponse } from '@/lib/equipment-mapper';
+import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { assignmentScope, equipmentApiFailure } from '@/modules/equipment/tenant';
+import { isActiveAssignmentConflict } from '@/modules/equipment/assignment-errors';
 
 async function getHandler(req: AuthenticatedRequest) {
+  const requestId = crypto.randomUUID();
   try {
+    const { organizationId } = await requireOrganizationContext(req, requestId);
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
     const userId = searchParams.get('userId');
@@ -17,7 +22,7 @@ async function getHandler(req: AuthenticatedRequest) {
     const pageSize = parseInt(searchParams.get('pageSize') || '100');
     const skip = (page - 1) * pageSize;
 
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = assignmentScope(organizationId);
     if (status) where.status = status;
     if (userId) where.userId = userId;
     if (employeeId) where.employeeId = employeeId;
@@ -55,12 +60,14 @@ async function getHandler(req: AuthenticatedRequest) {
     });
   } catch (error) {
     console.error('Error al obtener asignaciones:', error);
-    return NextResponse.json({ error: 'Error al obtener asignaciones' }, { status: 500 });
+    return equipmentApiFailure(error, requestId, { code: 'ASSIGNMENT_LIST_FAILED', message: 'Error al obtener asignaciones', stage: 'LIST_ASSIGNMENTS' });
   }
 }
 
 async function postHandler(req: AuthenticatedRequest) {
+  const requestId = crypto.randomUUID();
   try {
+    const { organizationId } = await requireOrganizationContext(req, requestId);
     const {
       equipmentId,
       employeeId,
@@ -81,7 +88,7 @@ async function postHandler(req: AuthenticatedRequest) {
 
     let snapshot;
     try {
-      snapshot = await resolveEmployeeSnapshot(employeeId, userId);
+      snapshot = await resolveEmployeeSnapshot(organizationId, employeeId, userId);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'ASSIGNEE_ERROR';
       const errors: Record<string, string> = {
@@ -89,6 +96,7 @@ async function postHandler(req: AuthenticatedRequest) {
         EMPLOYEE_INACTIVE: 'El empleado está inactivo',
         EMPLOYEE_NO_EMAIL: 'El empleado no tiene correo registrado',
         USER_NOT_FOUND: 'Usuario no encontrado',
+        USER_NOT_FOUND_ORG: 'El usuario no pertenece a esta organización',
         USER_INACTIVE: 'El usuario está inactivo',
         USER_NO_EMAIL: 'El usuario no tiene correo registrado',
         ASSIGNEE_REQUIRED: 'Debe seleccionar un empleado',
@@ -105,8 +113,8 @@ async function postHandler(req: AuthenticatedRequest) {
       .join('\n');
 
     const result = await prisma.$transaction(async (tx) => {
-      const equipment = await tx.equipment.findUnique({
-        where: { id: equipmentId },
+      const equipment = await tx.equipment.findFirst({
+        where: { id: equipmentId, organizationId },
         include: { assignments: { where: { status: 'ACTIVE' } } },
       });
 
@@ -117,6 +125,7 @@ async function postHandler(req: AuthenticatedRequest) {
       const assignment = await tx.equipmentAssignment.create({
         data: {
           equipmentId,
+          organizationId,
           employeeId: snapshot.employeeId,
           userId: userId || undefined,
           assignedById: req.user!.userId,
@@ -165,13 +174,14 @@ async function postHandler(req: AuthenticatedRequest) {
       performedById: req.user!.userId,
     });
 
-    await createAuditRecord({
+      await createAuditRecord({
       title: 'Asignación de equipo',
       description: `Se asignó equipo ${result.equipment.inventoryCode} a ${snapshot.employeeNameAtTime}`,
       module: 'EQUIPOS',
       category: 'CREATE',
       userId: req.user!.userId,
-      entityId: result.id,
+       entityId: result.id,
+       organizationId,
       newData: {
         equipmentId: result.equipmentId,
         employeeId: snapshot.employeeId,
@@ -183,11 +193,19 @@ async function postHandler(req: AuthenticatedRequest) {
   } catch (error: unknown) {
     console.error('Error al crear asignación:', error);
     const message = error instanceof Error ? error.message : '';
+    // Database-level concurrency guard: the partial unique index rejected a
+    // second ACTIVE assignment that raced past the in-transaction pre-check.
+    if (isActiveAssignmentConflict(error)) {
+      return NextResponse.json(
+        { error: 'El equipo ya tiene una asignación activa', code: 'EQUIPMENT_ALREADY_ASSIGNED' },
+        { status: 409 },
+      );
+    }
     if (message === 'NOT_FOUND') return NextResponse.json({ error: 'Equipo no encontrado' }, { status: 404 });
     if (message === 'NOT_AVAILABLE' || message === 'ALREADY_ASSIGNED') {
       return NextResponse.json({ error: 'El equipo no está disponible para asignación' }, { status: 400 });
     }
-    return NextResponse.json({ error: 'Error al crear asignación' }, { status: 500 });
+    return equipmentApiFailure(error, requestId, { code: 'ASSIGNMENT_CREATE_FAILED', message: 'Error al crear asignación', stage: 'CREATE_ASSIGNMENT' });
   }
 }
 

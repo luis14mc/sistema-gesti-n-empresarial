@@ -1,5 +1,6 @@
-import type { EquipmentCategory } from '@prisma/client';
+import type { EquipmentCategory, Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { allocateDocumentSequence } from '@/platform/sequences/document-sequence';
 
 /** Prefijos TI por categoría de activo */
 export const CATEGORY_CODE_PREFIX: Record<EquipmentCategory, string> = {
@@ -50,23 +51,35 @@ export function resolveEquipmentCategory(
   return typeMap[key] ?? 'OTHER';
 }
 
-/** Genera código interno tipo TI-LAP-0001 */
-export async function generateAssetCode(category: EquipmentCategory): Promise<string> {
-  const prefix = CATEGORY_CODE_PREFIX[category];
-  const pattern = `TI-${prefix}-`;
-
-  const existing = await prisma.equipment.findMany({
-    where: { inventoryCode: { startsWith: pattern } },
-    select: { inventoryCode: true },
-    orderBy: { inventoryCode: 'desc' },
-    take: 1,
-  });
-
-  let next = 1;
-  if (existing.length > 0) {
-    const match = existing[0].inventoryCode.match(/(\d+)$/);
-    if (match) next = parseInt(match[1], 10) + 1;
+/**
+ * Genera código interno `TI-{CATEGORY}-{NNNN}` atómicamente por organización.
+ *
+ * Antes (A-1 HIGH): escaneaba `inventoryCode startsWith` globalmente (cross-tenant)
+ * y calculaba el siguiente número con MAX+1 no atómico. Dos POSTs concurrentes
+ * generaban el mismo código; uno fallaba con P2002 en el INSERT.
+ *
+ * Ahora: usa `allocateDocumentSequence` (upsert atómico sobre
+ * `(organizationId, documentType, year)`). Garantiza unicidad por tenant.
+ *
+ * @param organizationId Tenant al que pertenece el equipo (obligatorio).
+ * @param category Categoría del equipo.
+ * @param client Cliente Prisma (default `prisma`) o `tx` dentro de transacción.
+ */
+export async function generateAssetCode(
+  organizationId: string,
+  category: EquipmentCategory,
+  client: Prisma.TransactionClient | typeof prisma = prisma
+): Promise<string> {
+  if (!organizationId) {
+    throw new Error('[generateAssetCode] organizationId es obligatorio');
   }
 
-  return `${pattern}${String(next).padStart(4, '0')}`;
+  const prefix = CATEGORY_CODE_PREFIX[category];
+  const year = new Date().getFullYear();
+  const sequence = await allocateDocumentSequence(client, {
+    organizationId,
+    documentType: 'EQUIPMENT_ASSET_CODE',
+    year,
+  });
+  return `TI-${prefix}-${String(sequence).padStart(4, '0')}`;
 }

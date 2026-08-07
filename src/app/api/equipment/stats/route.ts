@@ -2,9 +2,14 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { CATEGORY_LABELS } from '@/lib/equipment-asset-code';
+import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { assignmentScope, equipmentApiFailure, equipmentScope } from '@/modules/equipment/tenant';
 
 async function getHandler(req: AuthenticatedRequest) {
+  const requestId = crypto.randomUUID();
   try {
+    const { organizationId } = await requireOrganizationContext(req, requestId);
+    const scoped = equipmentScope(organizationId);
     const now = new Date();
     const in30Days = new Date();
     in30Days.setDate(in30Days.getDate() + 30);
@@ -22,16 +27,17 @@ async function getHandler(req: AuthenticatedRequest) {
       byCategory,
       byDepartment,
     ] = await Promise.all([
-      prisma.equipment.count(),
-      prisma.equipment.count({ where: { status: 'AVAILABLE' } }),
-      prisma.equipment.count({ where: { status: 'ASSIGNED' } }),
-      prisma.equipment.count({ where: { status: 'IN_MAINTENANCE' } }),
-      prisma.equipment.count({ where: { status: 'DAMAGED' } }),
-      prisma.equipment.count({ where: { status: 'RETIRED' } }),
-      prisma.equipment.count({ where: { status: 'LOST' } }),
-      prisma.equipment.count({ where: { OR: [{ serialNumber: null }, { serialNumber: '' }] } }),
+      prisma.equipment.count({ where: scoped }),
+      prisma.equipment.count({ where: { ...scoped, status: 'AVAILABLE' } }),
+      prisma.equipment.count({ where: { ...scoped, status: 'ASSIGNED' } }),
+      prisma.equipment.count({ where: { ...scoped, status: 'IN_MAINTENANCE' } }),
+      prisma.equipment.count({ where: { ...scoped, status: 'DAMAGED' } }),
+      prisma.equipment.count({ where: { ...scoped, status: 'RETIRED' } }),
+      prisma.equipment.count({ where: { ...scoped, status: 'LOST' } }),
+      prisma.equipment.count({ where: { ...scoped, OR: [{ serialNumber: null }, { serialNumber: '' }] } }),
       prisma.equipment.count({
         where: {
+          ...scoped,
           warrantyDate: { gte: now, lte: in30Days },
           status: { not: 'RETIRED' },
         },
@@ -39,12 +45,12 @@ async function getHandler(req: AuthenticatedRequest) {
       prisma.equipment.groupBy({
         by: ['category'],
         _count: { _all: true },
-        where: { status: { not: 'RETIRED' } },
+        where: { ...scoped, status: { not: 'RETIRED' } },
       }),
       prisma.equipmentAssignment.groupBy({
         by: ['departmentAtTime'],
         _count: { _all: true },
-        where: { status: 'ACTIVE', departmentAtTime: { not: null } },
+        where: { ...assignmentScope(organizationId), status: 'ACTIVE', departmentAtTime: { not: null } },
       }),
     ]);
 
@@ -80,7 +86,7 @@ async function getHandler(req: AuthenticatedRequest) {
     });
   } catch (error) {
     console.error('Error al obtener estadísticas de equipos:', error);
-    return NextResponse.json({ error: 'Error al obtener estadísticas' }, { status: 500 });
+    return equipmentApiFailure(error, requestId, { code: 'EQUIPMENT_STATS_FAILED', message: 'Error al obtener estadísticas', stage: 'LOAD_EQUIPMENT_STATS' });
   }
 }
 
