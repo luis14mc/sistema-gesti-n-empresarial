@@ -4,7 +4,7 @@ import { allocateOrderNumber } from '../src/lib/compras/orden/numbering';
 async function main() {
   const drafts = await prisma.compraOrden.findMany({
     where: { status: 'DRAFT', orderNumber: null, deletedAt: null },
-    select: { id: true },
+    select: { id: true, organizationId: true },
     orderBy: { createdAt: 'asc' },
   });
 
@@ -13,13 +13,14 @@ async function main() {
   for (const draft of drafts) {
     const repaired = await prisma.$transaction(async (tx) => {
       const template = await tx.compraOrdenTemplate.findFirst({
-        where: { isActive: true },
+        where: { isActive: true, organizationId: draft.organizationId },
         orderBy: { version: 'desc' },
         select: { orderPrefix: true },
       });
-      const allocation = await allocateOrderNumber(tx, template?.orderPrefix || 'COM-CNI');
+      const prefix = template?.orderPrefix ?? 'COM-CNI';
+      const allocation = await allocateOrderNumber(tx, draft.organizationId, prefix);
       const result = await tx.compraOrden.updateMany({
-        where: { id: draft.id, status: 'DRAFT', orderNumber: null },
+        where: { id: draft.id, organizationId: draft.organizationId, status: 'DRAFT', orderNumber: null },
         data: allocation,
       });
       return result.count === 1 ? allocation.orderNumber : null;

@@ -50,19 +50,30 @@ async function main() {
   await prisma.attendancePolicy.deleteMany();
   console.log('   ✅ Tablas limpias\n');
 
+  const organization = await prisma.organization.upsert({
+    where: { slug: 'cni' },
+    update: { status: 'ACTIVE' },
+    create: {
+      id: 'org_cni_default',
+      name: 'Consejo Nacional de Inversiones',
+      legalName: 'Consejo Nacional de Inversiones',
+      slug: 'cni',
+    },
+  });
+
   // ── Departamentos ───────────────────────────────────────────
   console.log('🏢 Creando departamentos...');
   const deptTI = await prisma.department.create({
-    data: { name: 'Tecnologías de la Información', description: 'Soporte, infraestructura y desarrollo' },
+    data: { organizationId: organization.id, name: 'Tecnologías de la Información', description: 'Soporte, infraestructura y desarrollo' },
   });
   const deptRRHH = await prisma.department.create({
-    data: { name: 'Recursos Humanos', description: 'Gestión del talento y nóminas' },
+    data: { organizationId: organization.id, name: 'Recursos Humanos', description: 'Gestión del talento y nóminas' },
   });
   const deptAdmin = await prisma.department.create({
-    data: { name: 'Administración', description: 'Dirección general y finanzas' },
+    data: { organizationId: organization.id, name: 'Administración', description: 'Dirección general y finanzas' },
   });
   const deptOps = await prisma.department.create({
-    data: { name: 'Operaciones', description: 'Logística y operaciones de campo' },
+    data: { organizationId: organization.id, name: 'Operaciones', description: 'Logística y operaciones de campo' },
   });
   console.log('   ✅ 4 departamentos creados');
 
@@ -104,17 +115,6 @@ async function main() {
     },
   });
   console.log('   ✅ 2 políticas creadas');
-
-  const organization = await prisma.organization.upsert({
-    where: { slug: 'cni' },
-    update: {},
-    create: {
-      id: 'org_cni_default',
-      name: 'Consejo Nacional de Inversiones',
-      legalName: 'Consejo Nacional de Inversiones',
-      slug: 'cni',
-    },
-  });
 
   // ── Usuarios ────────────────────────────────────────────────
   console.log('👤 Creando usuarios...');
@@ -208,6 +208,7 @@ async function main() {
   console.log('👥 Creando empleados...');
   const empJuan = await prisma.employee.create({
     data: {
+      organizationId: organization.id,
       employeeCode: 'EMP-004',
       firstName: 'Juan',
       lastName: 'Pérez',
@@ -220,6 +221,7 @@ async function main() {
   });
   await prisma.employee.create({
     data: {
+      organizationId: organization.id,
       employeeCode: 'EMP-005',
       firstName: 'Lucía',
       lastName: 'González',
@@ -232,6 +234,7 @@ async function main() {
   });
   await prisma.employee.create({
     data: {
+      organizationId: organization.id,
       employeeCode: 'EMP-002',
       firstName: 'Carlos',
       lastName: 'Ramírez',
@@ -249,6 +252,7 @@ async function main() {
   await prisma.ticket.create({
     data: {
       title: 'Impresora del 3er piso no funciona',
+      organizationId: organization.id,
       description: 'La impresora HP LaserJet del tercer piso no imprime y muestra error de atasco de papel.',
       type: 'HARDWARE',
       priority: 'HIGH',
@@ -264,6 +268,7 @@ async function main() {
   await prisma.ticket.create({
     data: {
       title: 'Actualización de software de contabilidad',
+      organizationId: organization.id,
       description: 'Se requiere actualizar el software ContaPyme a la versión 2026.',
       type: 'SOFTWARE',
       priority: 'MEDIUM',
@@ -279,6 +284,7 @@ async function main() {
   await prisma.oficio.create({
     data: {
       number: 'CNI-001-2026',
+      organizationId: organization.id,
       type: 'INTERNAL_MEMO',
       subject: 'Solicitud de vacaciones',
       status: 'SENT',
@@ -292,6 +298,7 @@ async function main() {
   await prisma.oficio.create({
     data: {
       number: 'DPICP-001-2026',
+      organizationId: organization.id,
       type: 'OUTGOING',
       subject: 'Informe mensual de actividades',
       status: 'SENT',
@@ -413,6 +420,7 @@ async function main() {
   await prisma.equipmentAssignment.create({
     data: {
       equipmentId: laptop1.id,
+      organizationId: organization.id,
       employeeId: empJuan.id,
       userId: user1.id,
       status: 'ACTIVE',
@@ -491,6 +499,7 @@ async function main() {
   const proveedorTech = await prisma.proveedor.create({
     data: {
       nombreRazonSocial: 'Tecnología Empresarial S.A.',
+      organizationId: organization.id,
       rtn: '08011990123456',
       telefono: '2234-5678',
       email: 'ventas@tecnologia.hn',
@@ -546,6 +555,7 @@ async function main() {
   await prisma.auditRecord.create({
     data: {
       title: 'Seed inicial del sistema',
+      organizationId: organization.id,
       description: 'Carga inicial de datos de prueba para el sistema de gestión empresarial v2.',
       module: 'MANUAL',
       category: 'SISTEMA',

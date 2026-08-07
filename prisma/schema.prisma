@@ -14,8 +14,19 @@ model Organization {
   legalName              String?
   rtn                    String?
   logoKey                String?
-  status                 OrganizationStatus         @default(ACTIVE)
+  status                 OrganizationStatus         @default(PROVISIONING)
   settings               Json?
+  timezone               String                     @default("America/Tegucigalpa")
+  locale                 String                     @default("es-HN")
+  currency               String                     @default("HNL")
+  primaryContactName     String?
+  primaryContactEmail    String?
+  primaryContactPhone    String?
+  onboardingStatus       OnboardingStatus           @default(PENDING)
+  activatedAt            DateTime?
+  suspendedAt            DateTime?
+  archivedAt             DateTime?
+  deletionRequestedAt    DateTime?
   createdAt              DateTime                   @default(now())
   updatedAt              DateTime                   @updatedAt
   memberships            OrganizationMembership[]
@@ -30,20 +41,34 @@ model Organization {
   auditRecords           AuditRecord[]
   equipmentAssignments   EquipmentAssignment[]
   tickets                Ticket[]
+  departments            Department[]
+  costCenters            CostCenter[]
+  suppliers              Proveedor[]
+  oficios                Oficio[]
+  audits                 Audit[]
+  purchaseOrderTemplates CompraOrdenTemplate[]
+  systemAuditEvents      SystemAuditEvent[]
+  domainEventOutbox      DomainEventOutbox[]
+  notifications          Notification[]
+  integrations           OrganizationIntegration[]
+  employees              Employee[]
 
+  @@index([status])
+  @@index([onboardingStatus])
   @@map("organizations")
 }
 
 model OrganizationMembership {
-  id             String           @id @default(cuid())
-  organizationId String
-  userId         String
-  role           OrganizationRole
-  status         MembershipStatus @default(ACTIVE)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String            @id @default(cuid())
+  organizationId   String
+  userId           String
+  role             OrganizationRole
+  status           MembershipStatus  @default(ACTIVE)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reportExecutions ReportExecution[]
 
   @@unique([organizationId, userId])
   @@index([userId])
@@ -52,16 +77,20 @@ model OrganizationMembership {
 }
 
 model Department {
-  id          String        @id @default(cuid())
-  name        String        @unique
-  description String?
-  isActive    Boolean       @default(true)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @default(now()) @updatedAt
-  employees   Employee[]
-  positions   JobPosition[]
-  users       User[]
+  id             String        @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  isActive       Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @default(now()) @updatedAt
+  employees      Employee[]
+  positions      JobPosition[]
+  users          User[]
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
+  @@unique([organizationId, name])
+  @@index([organizationId, isActive])
   @@map("departments")
 }
 
@@ -100,6 +129,7 @@ model User {
   lastName                     String
   phone                        String?
   role                         Role                         @default(USER)
+  platformRole                 PlatformRole?
   isActive                     Boolean                      @default(true)
   departmentId                 String?
   positionId                   String?
@@ -139,15 +169,17 @@ model User {
   disposalsApproved            EquipmentDisposal[]          @relation("DisposalApprover")
   disposalDocumentsUploaded    DisposalDocument[]           @relation("DisposalDocumentUploader")
   disposalHistory              EquipmentDisposalHistory[]   @relation("DisposalHistoryPerformer")
+  notifications                Notification[]
 
   @@index([departmentId])
   @@index([positionId])
   @@index([role])
+  @@index([platformRole])
   @@map("users")
 }
 
 model AuditRecord {
-  id             String        @id @default(cuid())
+  id             String       @id @default(cuid())
   title          String
   description    String
   justification  String?
@@ -164,16 +196,16 @@ model AuditRecord {
   previousData   Json?
   newData        Json?
   userId         String?
-  organizationId String?
+  organizationId String
   entityType     String?
   action         String?
   metadata       Json?
   ipAddress      String?
   userAgent      String?
   requestId      String?
-  createdAt      DateTime      @default(now())
-  user           User?         @relation("AuditUser", fields: [userId], references: [id])
-  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  createdAt      DateTime     @default(now())
+  user           User?        @relation("AuditUser", fields: [userId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
   @@index([userId])
   @@index([module])
@@ -217,8 +249,9 @@ model Ticket {
   closedAt       DateTime?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
-  organizationId String?
-  organization   Organization?  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  version        Int            @default(1)
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   assignedTo     User?          @relation("TicketAssignee", fields: [assignedToId], references: [id])
   createdBy      User           @relation("TicketCreator", fields: [createdById], references: [id])
 
@@ -230,22 +263,24 @@ model Ticket {
 }
 
 model Oficio {
-  id           String             @id @default(cuid())
-  number       String
-  systemNumber String?            @unique
-  type         OficioType
-  subject      String
-  status       OficioStatus       @default(DRAFT)
-  attachments  Json?
-  comments     String?
-  oficioDate   DateTime           @db.Date
-  receivedDate DateTime?          @db.Date
-  sentDate     DateTime?          @db.Date
-  recordSource OficioRecordSource @default(SYSTEM_CREATED)
+  id             String             @id @default(cuid())
+  organizationId String
+  number         String
+  systemNumber   String?
+  type           OficioType
+  subject        String
+  status         OficioStatus       @default(DRAFT)
+  attachments    Json?
+  comments       String?
+  oficioDate     DateTime           @db.Date
+  receivedDate   DateTime?          @db.Date
+  sentDate       DateTime?          @db.Date
+  recordSource   OficioRecordSource @default(SYSTEM_CREATED)
 
   createdById String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  version     Int      @default(1)
   institution String?
   preparedBy  String?
   recipient   String?
@@ -254,14 +289,16 @@ model Oficio {
   importedById String?
   importedAt   DateTime?
 
-  createdBy  User  @relation("OficioCreator", fields: [createdById], references: [id])
-  importedBy User? @relation("OficioImporter", fields: [importedById], references: [id])
+  createdBy    User         @relation("OficioCreator", fields: [createdById], references: [id])
+  importedBy   User?        @relation("OficioImporter", fields: [importedById], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
   documents              OficioDocument[]
   tracking               OficioTracking[]
   importBatches          OficioImportBatch[]
   oficioImportBatchItems OficioImportBatchItem[]
 
+  @@unique([organizationId, systemNumber])
   @@index([number])
   @@index([institution, number])
   @@index([createdById])
@@ -270,6 +307,7 @@ model Oficio {
   @@index([scope])
   @@index([recordSource])
   @@index([oficioDate])
+  @@index([organizationId, status])
   @@map("oficios")
 }
 
@@ -363,38 +401,42 @@ model OficioImportBatchItem {
 }
 
 model Employee {
-  id           String                @id @default(cuid())
-  employeeCode String?               @unique
-  firstName    String
-  lastName     String
-  fullName     String
-  email        String                @unique
-  phone        String?
-  dni          String?
-  userId       String?               @unique
-  departmentId String?
-  positionId   String?
-  isActive     Boolean               @default(true)
-  createdAt    DateTime              @default(now())
-  updatedAt    DateTime              @updatedAt
-  department   Department?           @relation(fields: [departmentId], references: [id])
-  position     JobPosition?          @relation(fields: [positionId], references: [id])
-  user         User?                 @relation(fields: [userId], references: [id])
-  assignments  EquipmentAssignment[]
+  id             String                @id @default(cuid())
+  organizationId String
+  employeeCode   String?
+  firstName      String
+  lastName       String
+  fullName       String
+  email          String
+  phone          String?
+  dni            String?
+  userId         String?               @unique
+  departmentId   String?
+  positionId     String?
+  isActive       Boolean               @default(true)
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  department     Department?           @relation(fields: [departmentId], references: [id])
+  position       JobPosition?          @relation(fields: [positionId], references: [id])
+  user           User?                 @relation(fields: [userId], references: [id])
+  assignments    EquipmentAssignment[]
 
+  @@unique([organizationId, email])
+  @@unique([organizationId, employeeCode])
+  @@index([organizationId, isActive])
   @@index([departmentId])
   @@index([positionId])
-  @@index([email])
   @@map("employees")
 }
 
 model Equipment {
   id                     String                  @id @default(cuid())
-  inventoryCode          String                  @unique
+  inventoryCode          String
   type                   String
   brand                  String
   model                  String
-  serialNumber           String?                 @unique
+  serialNumber           String?
   status                 EquipmentStatus         @default(AVAILABLE)
   purchaseDate           DateTime?               @db.Date
   warrantyDate           DateTime?               @db.Date
@@ -407,6 +449,7 @@ model Equipment {
   retiredAt              DateTime?
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
+  version                Int                     @default(1)
   category               EquipmentCategory       @default(OTHER)
   cost                   Float?
   ipAddress              String?
@@ -415,14 +458,16 @@ model Equipment {
   notes                  String?
   purchaseOrder          String?
   supplier               String?
-  organizationId         String?
-  organization           Organization?           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organizationId         String
+  organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   assignments            EquipmentAssignment[]
   history                EquipmentHistory[]
   maintenances           EquipmentMaintenance[]
   disposals              EquipmentDisposal[]
   replacementProjections ReplacementProjection[]
 
+  @@unique([organizationId, inventoryCode])
+  @@unique([organizationId, serialNumber])
   @@index([status])
   @@index([category])
   @@index([type])
@@ -456,9 +501,10 @@ model EquipmentAssignment {
   returnReason        String?
   returnedById        String?
   updatedAt           DateTime         @default(now()) @updatedAt
+  version             Int              @default(1)
   status              AssignmentStatus @default(ACTIVE)
-  organizationId      String?
-  organization        Organization?    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organizationId      String
+  organization        Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   employee            Employee?        @relation(fields: [employeeId], references: [id], onDelete: Restrict)
   equipment           Equipment        @relation(fields: [equipmentId], references: [id])
   user                User?            @relation(fields: [userId], references: [id])
@@ -526,19 +572,24 @@ model PromotionalMovement {
 }
 
 model CostCenter {
-  id          String   @id @default(cuid())
-  code        String   @unique
-  name        String
-  description String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String       @id @default(cuid())
+  organizationId String
+  code           String
+  name           String
+  description    String?
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
+  @@unique([organizationId, code])
+  @@index([organizationId, isActive])
   @@map("cost_centers")
 }
 
 model Proveedor {
   id                 String            @id @default(cuid())
+  organizationId     String
   nombreRazonSocial  String
   rtn                String?
   telefono           String?
@@ -548,12 +599,15 @@ model Proveedor {
   activo             Boolean           @default(true)
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
+  version            Int               @default(1)
   deletedAt          DateTime?
   comprasSolicitudes CompraSolicitud[]
   comprasOrdenes     CompraOrden[]
+  organization       Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
-  @@index([activo])
-  @@index([nombreRazonSocial])
+  @@unique([organizationId, rtn])
+  @@index([organizationId, activo])
+  @@index([organizationId, nombreRazonSocial])
   @@map("proveedores")
 }
 
@@ -672,7 +726,8 @@ model EquipmentMaintenance {
 
 model Audit {
   id              String               @id @default(cuid())
-  code            String               @unique
+  organizationId  String
+  code            String
   title           String
   description     String?
   type            AuditType            @default(INTERNAL)
@@ -692,11 +747,15 @@ model Audit {
   createdById     String?
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
+  version         Int                  @default(1)
   checklist       AuditChecklistItem[]
   findings        AuditFinding[]
   createdBy       User?                @relation("AuditCreator", fields: [createdById], references: [id])
   leadAuditor     User?                @relation("AuditLeadAuditor", fields: [leadAuditorId], references: [id])
+  organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
+  @@unique([organizationId, code])
+  @@index([organizationId, status])
   @@index([status])
   @@index([leadAuditorId])
   @@index([plannedDate])
@@ -788,7 +847,7 @@ model CompraDocumento {
 
 model CompraOrden {
   id                    String              @id @default(cuid())
-  orderNumber           String?             @unique
+  orderNumber           String?
   sequenceNumber        Int?
   sequenceYear          Int?
   purchaseReference     String
@@ -824,8 +883,9 @@ model CompraOrden {
   templateSnapshot      Json?
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
+  version               Int                 @default(1)
   deletedAt             DateTime?
-  organizationId        String?
+  organizationId        String
 
   createdBy              User                    @relation("CompraOrdenCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   generatedBy            User?                   @relation("CompraOrdenGeneratedBy", fields: [generatedById], references: [id], onDelete: SetNull)
@@ -837,10 +897,11 @@ model CompraOrden {
   items                  CompraOrdenItem[]
   documentos             CompraOrdenDocumento[]
   historial              CompraOrdenHistorial[]
-  organization           Organization?           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   replacementProjections ReplacementProjection[]
 
-  @@unique([sequenceYear, sequenceNumber])
+  @@unique([organizationId, orderNumber])
+  @@unique([organizationId, sequenceYear, sequenceNumber])
   @@index([orderNumber])
   @@index([status])
   @@index([requestDate])
@@ -864,6 +925,82 @@ model DocumentSequence {
   @@unique([organizationId, documentType, year])
   @@index([organizationId, year])
   @@map("document_sequences")
+}
+
+model SystemAuditEvent {
+  id             String                @id @default(cuid())
+  organizationId String?
+  userId         String?
+  eventType      String                @default("legacy.event.recorded")
+  outcome        SecurityEventOutcome  @default(SUCCESS)
+  severity       SecurityEventSeverity @default(INFO)
+  reasonCode     String?
+  module         String
+  entityType     String
+  entityId       String?
+  action         String
+  previousData   Json?
+  newData        Json?
+  metadata       Json?
+  attributes     Json?
+  requestId      String?
+  ipAddress      String?
+  userAgent      String?
+  occurredAt     DateTime              @default(now())
+  schemaVersion  Int                   @default(1)
+  createdAt      DateTime              @default(now())
+  organization   Organization?         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, entityType, entityId])
+  @@index([organizationId, action])
+  @@index([eventType, occurredAt])
+  @@index([outcome, occurredAt])
+  @@map("system_audit_events")
+}
+
+model DomainEventOutbox {
+  id               String       @id @default(cuid())
+  organizationId   String
+  eventType        String
+  aggregateType    String
+  aggregateId      String
+  aggregateVersion Int
+  eventVersion     Int          @default(1)
+  payload          Json
+  metadata         Json?
+  status           OutboxStatus @default(PENDING)
+  attempts         Int          @default(0)
+  occurredAt       DateTime     @default(now())
+  processedAt      DateTime?
+  lastError        String?
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, aggregateType, aggregateId, aggregateVersion, eventType])
+  @@index([status, occurredAt])
+  @@index([organizationId, aggregateType, aggregateId])
+  @@map("domain_event_outbox")
+}
+
+model ReportExecution {
+  id             String                 @id @default(cuid())
+  organizationId String
+  userId         String
+  reportCode     String
+  format         String
+  filters        Json
+  rowCount       Int?
+  status         ReportExecutionStatus  @default(PENDING)
+  storageKey     String?
+  durationMs     Int?
+  requestId      String?
+  createdAt      DateTime               @default(now())
+  completedAt    DateTime?
+  membership     OrganizationMembership @relation(fields: [organizationId, userId], references: [organizationId, userId], onDelete: Restrict)
+
+  @@index([organizationId, reportCode, createdAt])
+  @@index([organizationId, userId, createdAt])
+  @@map("report_executions")
 }
 
 model DisposalPolicy {
@@ -1080,6 +1217,7 @@ model CompraOrdenSequence {
 
 model CompraOrdenTemplate {
   id                     String        @id @default(cuid())
+  organizationId         String
   name                   String
   isActive               Boolean       @default(false)
   logoUrl                String?
@@ -1107,8 +1245,9 @@ model CompraOrdenTemplate {
   updatedAt              DateTime      @updatedAt
   createdBy              User          @relation("CompraOrdenTemplateCreator", fields: [createdById], references: [id], onDelete: Restrict)
   orders                 CompraOrden[]
+  organization           Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
-  @@index([isActive])
+  @@index([organizationId, isActive])
   @@map("purchase_order_templates")
 }
 
@@ -1246,15 +1385,25 @@ enum Role {
   IT
 }
 
+enum PlatformRole {
+  PLATFORM_ADMIN
+  SUPPORT_ADMIN
+}
+
 enum OrganizationStatus {
+  PROVISIONING
   ACTIVE
   SUSPENDED
+  ARCHIVED
+  PENDING_DELETION
   INACTIVE
 }
 
 enum MembershipStatus {
+  INVITED
   ACTIVE
   SUSPENDED
+  REVOKED
   INACTIVE
 }
 
@@ -1269,10 +1418,67 @@ enum OrganizationRole {
   USER
 }
 
+enum OnboardingStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+}
+
+enum SecurityEventOutcome {
+  SUCCESS
+  FAILURE
+  DENIED
+}
+
+enum SecurityEventSeverity {
+  INFO
+  NOTICE
+  WARNING
+  CRITICAL
+}
+
 enum DocumentType {
   EQUIPMENT_DISPOSAL
   PURCHASE_ORDER
   OFFICE_DOCUMENT
+  EQUIPMENT_ASSET_CODE
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
+enum ReportExecutionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+}
+
+enum NotificationStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+  CANCELLED
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+  SKIPPED
 }
 
 enum PhysicalCondition {
@@ -1322,6 +1528,7 @@ enum DisposalHistoryAction {
   DISPOSAL_DOCUMENT_DELETED
   DISPOSAL_PDF_GENERATED
   EQUIPMENT_STATUS_CHANGED
+  EQUIPMENT_STATUS_DRIFT_DETECTED
 }
 
 enum ReplacementProjectionStatus {
@@ -1619,4 +1826,140 @@ enum CompraTipoAdjunto {
 
 enum CompraTipoDocumento {
   ORDEN_COMPRA_PDF
+}
+
+model Notification {
+  id             String                 @id @default(cuid())
+  organizationId String
+  userId         String?
+  eventType      String
+  channel        NotificationChannel
+  status         NotificationStatus     @default(PENDING)
+  title          String
+  body           String
+  actionUrl      String?
+  metadata       Json?
+  idempotencyKey String
+  readAt         DateTime?
+  sentAt         DateTime?
+  failedAt       DateTime?
+  deliveredAt    DateTime?
+  cancelledAt    DateTime?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user           User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  deliveries     NotificationDelivery[]
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, userId, createdAt])
+  @@index([organizationId, status, createdAt])
+  @@index([organizationId, eventType, createdAt])
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+model NotificationDelivery {
+  id             String       @id @default(cuid())
+  notificationId String
+  channel        String
+  destination    String?
+  provider       String?
+  status         String
+  attempt        Int          @default(1)
+  providerId     String?
+  errorCode      String?
+  errorMessage   String?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime     @default(now())
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@index([notificationId, attempt])
+  @@index([status, createdAt])
+  @@map("notification_deliveries")
+}
+
+enum IntegrationStatus {
+  DRAFT
+  ACTIVE
+  DEGRADED
+  DISABLED
+  ERROR
+}
+
+enum IntegrationCapability {
+  IDENTITY_LOGIN
+  USER_DIRECTORY_READ
+  EMAIL_SEND
+  CALENDAR_READ
+  CALENDAR_WRITE
+  TEAMS_NOTIFICATION
+  SHAREPOINT_FILE_READ
+  SHAREPOINT_FILE_WRITE
+  OBJECT_STORAGE
+  WEBHOOK_SEND
+  WEBHOOK_RECEIVE
+  ELECTRONIC_SIGNATURE
+}
+
+enum IntegrationExecutionStatus {
+  STARTED
+  SUCCESS
+  TRANSIENT_FAILURE
+  PERMANENT_FAILURE
+  CIRCUIT_OPEN
+  CANCELLED
+}
+
+model OrganizationIntegration {
+  id               String                  @id @default(cuid())
+  organizationId   String
+  provider         String
+  name             String
+  status           IntegrationStatus       @default(DRAFT)
+  capabilities     IntegrationCapability[] @default([])
+  publicConfig     Json?
+  secretReference  String?
+  lastTestedAt     DateTime?
+  lastSuccessfulAt DateTime?
+  lastFailureAt    DateTime?
+  lastErrorCode    String?
+  lastErrorMessage String?
+  createdById      String
+  updatedById      String?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  organization     Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  executions       IntegrationExecution[]
+
+  @@unique([organizationId, provider, name])
+  @@index([organizationId, status])
+  @@index([provider, status])
+  @@map("organization_integrations")
+}
+
+model IntegrationExecution {
+  id                 String                     @id @default(cuid())
+  organizationId     String
+  integrationId      String
+  operation          String
+  status             IntegrationExecutionStatus
+  entityType         String?
+  entityId           String?
+  requestId          String?
+  correlationId      String?
+  attempt            Int                        @default(1)
+  durationMs         Int?
+  providerStatusCode Int?
+  errorCode          String?
+  errorMessage       String?
+  startedAt          DateTime                   @default(now())
+  completedAt        DateTime?
+  integration        OrganizationIntegration    @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, integrationId, startedAt])
+  @@index([status, startedAt])
+  @@index([integrationId, startedAt])
+  @@map("integration_executions")
 }
