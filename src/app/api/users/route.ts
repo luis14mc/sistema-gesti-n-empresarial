@@ -1,14 +1,18 @@
 import { NextResponse } from 'next/server';
+import { Prisma, type Role } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
+import { requireOrganizationContext } from '@/modules/organizations/application/context';
 
 // ============================================
-// GET /api/users — Listar usuarios (ADMIN only)
+// GET /api/users — Listar usuarios miembros de la organización actual
 // ============================================
 
 async function getHandler(req: AuthenticatedRequest) {
+    const requestId = crypto.randomUUID();
     try {
+        const { organizationId } = await requireOrganizationContext(req, requestId);
         const { searchParams } = new URL(req.url);
         const role = searchParams.get('role');
         const search = searchParams.get('search');
@@ -18,9 +22,13 @@ async function getHandler(req: AuthenticatedRequest) {
         const pageSize = parseInt(searchParams.get('pageSize') || '100');
         const skip = (page - 1) * pageSize;
 
-        const where: Record<string, unknown> = {};
+        const where: Prisma.UserWhereInput = {
+            organizationMemberships: {
+                some: { organizationId, status: 'ACTIVE' },
+            },
+        };
 
-        if (role) where.role = role;
+        if (role) where.role = role as Role;
         if (isActive !== null && isActive !== undefined && isActive !== '') {
             where.isActive = isActive === 'true';
         }
@@ -57,7 +65,7 @@ async function getHandler(req: AuthenticatedRequest) {
             prisma.user.count({ where })
         ]);
 
-        return NextResponse.json({ 
+        return NextResponse.json({
             users,
             total,
             page,
@@ -75,10 +83,13 @@ async function getHandler(req: AuthenticatedRequest) {
 
 // ============================================
 // PATCH /api/users — Actualizar usuario (ADMIN only)
+// Solo si el usuario target es miembro activo de la organización actual.
 // ============================================
 
 async function patchHandler(req: AuthenticatedRequest) {
+    const requestId = crypto.randomUUID();
     try {
+        const { organizationId } = await requireOrganizationContext(req, requestId);
         const body = await req.json();
         const { id, ...data } = body;
 
@@ -89,7 +100,6 @@ async function patchHandler(req: AuthenticatedRequest) {
             );
         }
 
-        // Prevent changing own role
         if (id === req.user!.userId && data.role) {
             return NextResponse.json(
                 { error: 'No puedes cambiar tu propio rol' },
@@ -97,11 +107,18 @@ async function patchHandler(req: AuthenticatedRequest) {
             );
         }
 
-        // Obtener estado anterior para auditoría
-        const previousUser = await prisma.user.findUnique({
-            where: { id },
-            select: { role: true, isActive: true, firstName: true, lastName: true },
+        const membership = await prisma.organizationMembership.findFirst({
+            where: { userId: id, organizationId, status: 'ACTIVE' },
+            select: {
+                user: {
+                    select: { role: true, isActive: true, firstName: true, lastName: true },
+                },
+            },
         });
+        if (!membership) {
+            return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
+        }
+        const previousUser = membership.user;
 
         const user = await prisma.user.update({
             where: { id },
@@ -131,7 +148,6 @@ async function patchHandler(req: AuthenticatedRequest) {
             },
         });
 
-        // Registrar en auditoría
         await createAuditRecord({
             title: 'Actualización de usuario',
             description: `Se actualizó usuario: ${user.firstName} ${user.lastName}`,
@@ -139,9 +155,11 @@ async function patchHandler(req: AuthenticatedRequest) {
             category: 'UPDATE',
             userId: req.user!.userId,
             entityId: user.id,
-            previousData: previousUser
-                ? { role: previousUser.role, isActive: previousUser.isActive }
-                : undefined,
+            organizationId,
+            previousData: {
+              role: previousUser.role,
+              isActive: previousUser.isActive,
+            },
             newData: { role: user.role, isActive: user.isActive },
         });
 
@@ -157,10 +175,13 @@ async function patchHandler(req: AuthenticatedRequest) {
 
 // ============================================
 // POST /api/users — Crear usuario (ADMIN only)
+// Crea el usuario y le asigna una membership activa en la organización actual.
 // ============================================
 
 async function postHandler(req: AuthenticatedRequest) {
+    const requestId = crypto.randomUUID();
     try {
+        const { organizationId } = await requireOrganizationContext(req, requestId);
         const body = await req.json();
         const { firstName, lastName, email, password, role, employeeNumber, phone, departmentId, positionId } = body;
 
@@ -171,7 +192,6 @@ async function postHandler(req: AuthenticatedRequest) {
             );
         }
 
-        // Check if email already exists
         const existing = await prisma.user.findUnique({ where: { email } });
         if (existing) {
             return NextResponse.json(
@@ -180,11 +200,11 @@ async function postHandler(req: AuthenticatedRequest) {
             );
         }
 
-        // Hash password
         const { hashPassword } = await import('@/lib/auth');
         const hashedPassword = await hashPassword(password);
 
-        const user = await prisma.user.create({
+        const user = await prisma.$transaction(async (tx) => {
+          const created = await tx.user.create({
             data: {
                 employeeNumber,
                 firstName,
@@ -210,9 +230,18 @@ async function postHandler(req: AuthenticatedRequest) {
                 createdAt: true,
                 updatedAt: true,
             },
+          });
+          await tx.organizationMembership.create({
+            data: {
+              organizationId,
+              userId: created.id,
+              role: 'USER',
+              status: 'ACTIVE',
+            },
+          });
+          return created;
         });
 
-        // Registrar en auditoría
         await createAuditRecord({
             title: 'Creación de usuario',
             description: `Se creó usuario: ${user.firstName} ${user.lastName} (${user.email})`,
@@ -220,6 +249,7 @@ async function postHandler(req: AuthenticatedRequest) {
             category: 'CREATE',
             userId: req.user!.userId,
             entityId: user.id,
+            organizationId,
             newData: { email: user.email, role: user.role, employeeNumber: user.employeeNumber },
         });
 

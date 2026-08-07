@@ -2,40 +2,48 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
+import { requireOrganizationContext } from '@/modules/organizations/application/context';
 
 // ============================================
 // GET /api/users/[id] — Obtener usuario por id (ADMIN, RRHH)
+// Solo retorna el usuario si es miembro activo de la organización actual.
 // ============================================
 
 async function getHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ id: string }> }) {
+    const requestId = crypto.randomUUID();
     try {
         const { id } = await ctx.params;
+        const { organizationId } = await requireOrganizationContext(req, requestId);
 
-        const user = await prisma.user.findUnique({
-            where: { id },
+        const membership = await prisma.organizationMembership.findFirst({
+            where: { userId: id, organizationId, status: 'ACTIVE' },
             select: {
-                id: true,
-                employeeNumber: true,
-                email: true,
-                firstName: true,
-                lastName: true,
-                phone: true,
-                role: true,
-                isActive: true,
-                departmentId: true,
-                positionId: true,
-                createdAt: true,
-                updatedAt: true,
-                department: { select: { id: true, name: true } },
-                position:   { select: { id: true, name: true } },
+                user: {
+                    select: {
+                        id: true,
+                        employeeNumber: true,
+                        email: true,
+                        firstName: true,
+                        lastName: true,
+                        phone: true,
+                        role: true,
+                        isActive: true,
+                        departmentId: true,
+                        positionId: true,
+                        createdAt: true,
+                        updatedAt: true,
+                        department: { select: { id: true, name: true } },
+                        position:   { select: { id: true, name: true } },
+                    },
+                },
             },
         });
 
-        if (!user) {
+        if (!membership) {
             return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
         }
 
-        return NextResponse.json({ user });
+        return NextResponse.json({ user: membership.user });
     } catch (error) {
         console.error('Error al obtener usuario:', error);
         return NextResponse.json({ error: 'Error al obtener usuario' }, { status: 500 });
@@ -44,20 +52,28 @@ async function getHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ id
 
 // ============================================
 // PATCH /api/users/[id] — Actualizar usuario (ADMIN)
+// Solo puede modificar usuarios miembros activos de la organización actual.
 // ============================================
 
 async function patchHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ id: string }> }) {
+    const requestId = crypto.randomUUID();
     try {
         const { id } = await ctx.params;
+        const { organizationId } = await requireOrganizationContext(req, requestId);
         const body = await req.json();
 
-        const existing = await prisma.user.findUnique({
-            where: { id },
-            select: { role: true, isActive: true, firstName: true, lastName: true, email: true },
+        const membership = await prisma.organizationMembership.findFirst({
+            where: { userId: id, organizationId, status: 'ACTIVE' },
+            select: {
+                user: {
+                    select: { role: true, isActive: true, firstName: true, lastName: true, email: true },
+                },
+            },
         });
-        if (!existing) {
+        if (!membership) {
             return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
         }
+        const existing = membership.user;
 
         if (id === req.user!.userId && body.role && body.role !== existing.role) {
             return NextResponse.json(
@@ -101,6 +117,7 @@ async function patchHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ 
             category: 'UPDATE',
             userId: req.user!.userId,
             entityId: user.id,
+            organizationId,
             previousData: { role: existing.role, isActive: existing.isActive },
             newData: { role: user.role, isActive: user.isActive },
         });
@@ -114,11 +131,14 @@ async function patchHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ 
 
 // ============================================
 // DELETE /api/users/[id] — Soft delete (ADMIN)
+// Solo puede desactivar usuarios miembros activos de la organización actual.
 // ============================================
 
 async function deleteHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ id: string }> }) {
+    const requestId = crypto.randomUUID();
     try {
         const { id } = await ctx.params;
+        const { organizationId } = await requireOrganizationContext(req, requestId);
 
         if (id === req.user!.userId) {
             return NextResponse.json(
@@ -127,15 +147,19 @@ async function deleteHandler(req: AuthenticatedRequest, ctx: { params: Promise<{
             );
         }
 
-        const existing = await prisma.user.findUnique({
-            where: { id },
-            select: { firstName: true, lastName: true, email: true, isActive: true },
+        const membership = await prisma.organizationMembership.findFirst({
+            where: { userId: id, organizationId, status: 'ACTIVE' },
+            select: {
+                user: {
+                    select: { firstName: true, lastName: true, email: true, isActive: true },
+                },
+            },
         });
-        if (!existing) {
+        if (!membership) {
             return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
         }
+        const existing = membership.user;
 
-        // Soft delete: desactivar en lugar de borrar
         const user = await prisma.user.update({
             where: { id },
             data: { isActive: false },
@@ -149,6 +173,7 @@ async function deleteHandler(req: AuthenticatedRequest, ctx: { params: Promise<{
             category: 'DELETE',
             userId: req.user!.userId,
             entityId: user.id,
+            organizationId,
             previousData: { isActive: existing.isActive },
             newData: { isActive: false },
         });

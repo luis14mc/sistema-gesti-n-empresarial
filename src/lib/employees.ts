@@ -9,13 +9,24 @@ export interface EmployeeSnapshot {
   positionAtTime: string;
 }
 
+/**
+ * Resuelve un Employee validando tenant isolation.
+ * - Si viene employeeId, debe pertenecer a organizationId.
+ * - Si viene userId, debe ser miembro activo de organizationId.
+ * - Si no existe Employee, se crea uno nuevo en organizationId.
+ *
+ * @throws EMPLOYEE_NOT_FOUND si el employeeId no pertenece a la org
+ * @throws EMPLOYEE_INACTIVE si el employee existe pero está inactivo
+ * @throws USER_NOT_FOUND_ORG si el userId no es miembro de la org
+ */
 export async function resolveEmployeeSnapshot(
+  organizationId: string,
   employeeId?: string,
   userId?: string
 ): Promise<EmployeeSnapshot> {
   if (employeeId) {
-    const employee = await prisma.employee.findUnique({
-      where: { id: employeeId },
+    const employee = await prisma.employee.findFirst({
+      where: { id: employeeId, organizationId },
       include: { department: true, position: true },
     });
     if (!employee) throw new Error('EMPLOYEE_NOT_FOUND');
@@ -32,21 +43,27 @@ export async function resolveEmployeeSnapshot(
   }
 
   if (userId) {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: { department: true, position: true },
+    const membership = await prisma.organizationMembership.findFirst({
+      where: { userId, organizationId, status: 'ACTIVE' },
+      include: {
+        user: {
+          include: { department: true, position: true },
+        },
+      },
     });
-    if (!user) throw new Error('USER_NOT_FOUND');
+    if (!membership) throw new Error('USER_NOT_FOUND_ORG');
+    const user = membership.user;
     if (!user.isActive) throw new Error('USER_INACTIVE');
     if (!user.email) throw new Error('USER_NO_EMAIL');
 
     let employee = await prisma.employee.findFirst({
-      where: { OR: [{ userId: user.id }, { email: user.email }] },
+      where: { organizationId, OR: [{ userId: user.id }, { email: user.email }] },
     });
 
     if (!employee) {
       employee = await prisma.employee.create({
         data: {
+          organizationId,
           firstName: user.firstName,
           lastName: user.lastName,
           fullName: `${user.firstName} ${user.lastName}`,
@@ -77,6 +94,7 @@ export function buildFullName(firstName: string, lastName: string) {
 }
 
 export type EmployeeCreateInput = {
+  organizationId: string;
   employeeCode?: string;
   firstName: string;
   lastName: string;
@@ -90,6 +108,7 @@ export type EmployeeCreateInput = {
 
 export function toEmployeeCreateData(input: EmployeeCreateInput): Prisma.EmployeeUncheckedCreateInput {
   return {
+    organizationId: input.organizationId,
     employeeCode: input.employeeCode,
     firstName: input.firstName,
     lastName: input.lastName,

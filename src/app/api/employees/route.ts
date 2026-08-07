@@ -4,9 +4,12 @@ import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
 import { Prisma } from '@prisma/client';
 import { buildFullName, toEmployeeCreateData } from '@/lib/employees';
+import { requireOrganizationContext } from '@/modules/organizations/application/context';
 
 async function getHandler(req: AuthenticatedRequest) {
+  const requestId = crypto.randomUUID();
   try {
+    const { organizationId } = await requireOrganizationContext(req, requestId);
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search');
     const departmentId = searchParams.get('departmentId');
@@ -15,7 +18,7 @@ async function getHandler(req: AuthenticatedRequest) {
     const pageSize = parseInt(searchParams.get('pageSize') || '20');
     const skip = (page - 1) * pageSize;
 
-    const where: Prisma.EmployeeWhereInput = {};
+    const where: Prisma.EmployeeWhereInput = { organizationId };
     if (departmentId) where.departmentId = departmentId;
     if (isActive !== null && isActive !== '') where.isActive = isActive === 'true';
     if (search) {
@@ -59,7 +62,9 @@ async function getHandler(req: AuthenticatedRequest) {
 }
 
 async function postHandler(req: AuthenticatedRequest) {
+  const requestId = crypto.randomUUID();
   try {
+    const { organizationId } = await requireOrganizationContext(req, requestId);
     const body = await req.json();
     const { firstName, lastName, email } = body;
 
@@ -71,7 +76,7 @@ async function postHandler(req: AuthenticatedRequest) {
     }
 
     const employee = await prisma.employee.create({
-      data: toEmployeeCreateData(body),
+      data: toEmployeeCreateData({ ...body, organizationId }),
       include: {
         department: { select: { id: true, name: true } },
         position: { select: { id: true, name: true } },
@@ -85,6 +90,7 @@ async function postHandler(req: AuthenticatedRequest) {
       category: 'CREATE',
       userId: req.user!.userId,
       entityId: employee.id,
+      organizationId,
       newData: { email: employee.email, fullName: employee.fullName },
     });
 
@@ -92,7 +98,7 @@ async function postHandler(req: AuthenticatedRequest) {
   } catch (error) {
     console.error('Error al crear empleado:', error);
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-      return NextResponse.json({ error: 'Correo o código de empleado ya registrado' }, { status: 409 });
+      return NextResponse.json({ error: 'Correo o código de empleado ya registrado en esta organización' }, { status: 409 });
     }
     return NextResponse.json({ error: 'Error al crear empleado' }, { status: 500 });
   }
