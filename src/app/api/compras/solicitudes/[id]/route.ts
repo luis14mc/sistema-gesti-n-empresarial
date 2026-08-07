@@ -1,73 +1,40 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { canAccess } from '@/lib/permissions';
-import { compraInclude, updateCompraSolicitud } from '@/lib/compras/service';
-import { updateCompraSolicitudSchema } from '@/lib/compras/schemas';
-import { isCompraEditable } from '@/lib/compras/workflow';
-import { deprecatedComprasResponse } from '@/lib/compras/deprecated-response';
-import type { Role } from '@/types';
 
-async function getHandler(
-  req: AuthenticatedRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const role = req.user!.role as Role;
-    if (!canAccess(role, 'purchases', 'read')) {
-      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
+/**
+ * S1 security fix: legacy CompraSolicitud endpoints are disabled because the
+ * model lacks `organizationId` (IDOR cross-tenant). Use /api/compras/ordenes/*
+ * which has proper tenant isolation via CompraOrden.
+ */
+function legacyGone() {
+  return NextResponse.json(
+    {
+      error: 'ENDPOINT_DEPRECATED',
+      message: 'Las rutas /api/compras/solicitudes/* fueron deshabilitadas por seguridad (S1). Use /api/compras/ordenes/* (multi-tenant).',
+    },
+    {
+      status: 410,
+      headers: {
+        'Deprecation': 'true',
+        'Sunset': 'Tue, 01 Jan 2025 00:00:00 GMT',
+        'Link': '</api/compras/ordenes>; rel="successor-version"',
+      },
     }
-
-    const { id } = await params;
-    const solicitud = await prisma.compraSolicitud.findFirst({
-      where: { id, deletedAt: null },
-      include: compraInclude,
-    });
-    if (!solicitud) {
-      return NextResponse.json({ error: 'Solicitud no encontrada' }, { status: 404 });
-    }
-
-    return deprecatedComprasResponse({ solicitud });
-  } catch (error) {
-    console.error('Error getting compra solicitud:', error);
-    return NextResponse.json({ error: 'Error al obtener solicitud' }, { status: 500 });
-  }
+  );
 }
 
-async function patchHandler(
-  req: AuthenticatedRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const role = req.user!.role as Role;
-    if (!canAccess(role, 'purchases', 'update')) {
-      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
-    }
+async function getHandler(_req: AuthenticatedRequest, _ctx: { params: Promise<{ id: string }> }) {
+  return legacyGone();
+}
 
-    const { id } = await params;
-    const existing = await prisma.compraSolicitud.findFirst({ where: { id, deletedAt: null } });
-    if (!existing) {
-      return NextResponse.json({ error: 'Solicitud no encontrada' }, { status: 404 });
-    }
+async function patchHandler(_req: AuthenticatedRequest, _ctx: { params: Promise<{ id: string }> }) {
+  return legacyGone();
+}
 
-    const isOwner = existing.solicitadoPorId === req.user!.userId;
-    if (!isCompraEditable(existing.estado) || (!isOwner && role !== 'ADMIN')) {
-      return NextResponse.json({ error: 'La solicitud no es editable' }, { status: 400 });
-    }
-
-    const body = await req.json();
-    const parsed = updateCompraSolicitudSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-    }
-
-    const solicitud = await updateCompraSolicitud(id, parsed.data);
-    return deprecatedComprasResponse({ solicitud });
-  } catch (error) {
-    console.error('Error updating compra solicitud:', error);
-    return NextResponse.json({ error: 'Error al actualizar solicitud' }, { status: 500 });
-  }
+async function deleteHandler(_req: AuthenticatedRequest, _ctx: { params: Promise<{ id: string }> }) {
+  return legacyGone();
 }
 
 export const GET = withAuth(getHandler);
 export const PATCH = withAuth(patchHandler);
+export const DELETE = withAuth(deleteHandler);

@@ -25,6 +25,7 @@ import {
   InvalidPurchaseOrderError,
   validatePurchaseOrderForGeneration,
 } from './generation-validation';
+import { purchaseOrderChildScope, purchaseOrderScope } from './tenant';
 
 export const orderInclude = {
   createdBy: { select: { id: true, firstName: true, lastName: true } },
@@ -48,7 +49,7 @@ const listInclude = {
   },
 } satisfies Prisma.CompraOrdenInclude;
 
-async function resolveSupplierSnapshot(input: DraftPurchaseOrderInput) {
+async function resolveSupplierSnapshot(input: DraftPurchaseOrderInput, _organizationId: string) {
   if (input.supplierId) {
     const supplier = await prisma.proveedor.findFirst({
       where: { id: input.supplierId, deletedAt: null, activo: true },
@@ -165,18 +166,19 @@ function buildItems(input: CreatePurchaseOrderInput) {
   };
 }
 
-export async function createPurchaseOrder(input: DraftPurchaseOrderInput, userId: string) {
-  await ensureDefaultTemplate(userId);
-  const supplier = await resolveSupplierSnapshot(input);
+export async function createPurchaseOrder(input: DraftPurchaseOrderInput, userId: string, organizationId: string) {
+  await ensureDefaultTemplate(organizationId, userId);
+  const supplier = await resolveSupplierSnapshot(input, organizationId);
   const { requestDate, requiredDate } = resolveDraftDates(input);
   const { mapped, subtotal, discountType, discountValue, discount, taxRate, tax, total } =
     buildDraftItems(input);
 
   return prisma.$transaction(async (tx) => {
-    const template = await getActiveTemplate(tx);
+    const template = await getActiveTemplate(organizationId, tx);
     if (!template) throw new Error('No hay plantilla activa configurada');
     const { sequenceNumber, sequenceYear, orderNumber } = await allocateOrderNumber(
       tx,
+      organizationId,
       template.orderPrefix
     );
     const order = await tx.compraOrden.create({
@@ -184,6 +186,7 @@ export async function createPurchaseOrder(input: DraftPurchaseOrderInput, userId
         orderNumber,
         sequenceNumber,
         sequenceYear,
+        organizationId,
         purchaseReference: input.purchaseReference ?? '',
         requestDate,
         requiredDate,
@@ -206,6 +209,7 @@ export async function createPurchaseOrder(input: DraftPurchaseOrderInput, userId
 
     await recordOrdenHistorial({
       orderId: order.id,
+      organizationId,
       action: 'CREATED',
       title: 'Orden creada',
       description: 'Borrador registrado por área administrativa',
@@ -216,23 +220,25 @@ export async function createPurchaseOrder(input: DraftPurchaseOrderInput, userId
 
     await recordOrdenAudit({
       orderId: order.id,
+      organizationId,
       category: 'CREATED',
       title: 'Orden de compra creada',
       description: order.purchaseReference,
       userId,
       newData: { id: order.id, orderNumber, status: order.status },
+      tx,
     });
 
     return serializePurchaseOrder(order);
   });
 }
 
-export async function updatePurchaseOrder(id: string, input: UpdatePurchaseOrderInput, userId: string) {
-  const existing = await prisma.compraOrden.findFirst({ where: { id, deletedAt: null } });
+export async function updatePurchaseOrder(id: string, input: UpdatePurchaseOrderInput, userId: string, organizationId: string) {
+  const existing = await prisma.compraOrden.findFirst({ where: { id, organizationId, deletedAt: null } });
   if (!existing) throw new Error('Orden no encontrada');
   if (existing.status !== 'DRAFT') throw new Error('Solo se pueden editar borradores');
 
-  const supplier = await resolveSupplierSnapshot(input);
+  const supplier = await resolveSupplierSnapshot(input, organizationId);
   const { requestDate, requiredDate } = resolveDraftDates(input);
   const { mapped, subtotal, discountType, discountValue, discount, taxRate, tax, total } =
     buildDraftItems(input);
@@ -263,6 +269,7 @@ export async function updatePurchaseOrder(id: string, input: UpdatePurchaseOrder
 
     await recordOrdenHistorial({
       orderId: id,
+      organizationId,
       action: 'UPDATED',
       title: 'Orden actualizada',
       performedById: userId,
@@ -273,20 +280,22 @@ export async function updatePurchaseOrder(id: string, input: UpdatePurchaseOrder
 
     await recordOrdenAudit({
       orderId: id,
+      organizationId,
       category: 'UPDATED',
       title: 'Orden actualizada',
       description: order.purchaseReference,
       userId,
       previousData: existing,
       newData: order,
+      tx,
     });
 
     return serializePurchaseOrder(order);
   });
 }
 
-export async function deletePurchaseOrder(id: string, userId: string) {
-  const existing = await prisma.compraOrden.findFirst({ where: { id, deletedAt: null } });
+export async function deletePurchaseOrder(id: string, userId: string, organizationId: string) {
+  const existing = await prisma.compraOrden.findFirst({ where: { id, organizationId, deletedAt: null } });
   if (!existing) throw new Error('ORDER_NOT_FOUND');
   if (existing.status !== 'DRAFT') throw new Error('ONLY_DRAFT_CAN_BE_DELETED');
 
@@ -298,6 +307,7 @@ export async function deletePurchaseOrder(id: string, userId: string) {
 
     await recordOrdenHistorial({
       orderId: id,
+      organizationId,
       action: 'STATUS_CHANGED',
       title: 'Borrador eliminado',
       description: existing.orderNumber ?? id,
@@ -309,18 +319,20 @@ export async function deletePurchaseOrder(id: string, userId: string) {
 
     await recordOrdenAudit({
       orderId: id,
+      organizationId,
       category: 'DELETED',
       title: 'Borrador de orden eliminado',
       description: existing.purchaseReference,
       userId,
       previousData: { status: existing.status, orderNumber: existing.orderNumber },
+      tx,
     });
   });
 }
 
-export async function getPurchaseOrder(id: string) {
+export async function getPurchaseOrder(id: string, organizationId: string) {
   const order = await prisma.compraOrden.findFirst({
-    where: { id, deletedAt: null },
+    where: { id, organizationId, deletedAt: null },
     include: orderInclude,
   });
   if (!order) return null;
@@ -328,6 +340,7 @@ export async function getPurchaseOrder(id: string) {
 }
 
 export async function listPurchaseOrders(params: {
+  organizationId: string;
   page?: number;
   pageSize?: number;
   search?: string;
@@ -338,7 +351,7 @@ export async function listPurchaseOrders(params: {
   const page = params.page ?? 1;
   const pageSize = params.pageSize ?? 10;
   const skip = (page - 1) * pageSize;
-  const where: Prisma.CompraOrdenWhereInput = { deletedAt: null };
+  const where: Prisma.CompraOrdenWhereInput = { ...purchaseOrderScope(params.organizationId), deletedAt: null };
   if (params.status) where.status = params.status as Prisma.CompraOrdenWhereInput['status'];
   if (params.mine && params.userId) where.createdById = params.userId;
   if (params.search) {
@@ -373,18 +386,19 @@ export async function listPurchaseOrders(params: {
 async function saveOrderPdf(
   orderId: string,
   userId: string,
+  organizationId: string,
   client: Prisma.TransactionClient | typeof prisma = prisma,
   configuredTemplate?: PurchaseOrderTemplateConfig
 ) {
-  const order = await client.compraOrden.findUnique({
-    where: { id: orderId },
+  const order = await client.compraOrden.findFirst({
+    where: { id: orderId, organizationId },
     include: { items: { orderBy: { itemNumber: 'asc' } } },
   });
   if (!order) throw new Error('Orden no encontrada');
 
   const template = configuredTemplate ?? await resolveTemplateForOrder(order);
   const lastDoc = await client.compraOrdenDocumento.findFirst({
-    where: { orderId, type: 'ORDER_PDF' },
+    where: { orderId, type: 'ORDER_PDF', orden: { organizationId } },
     orderBy: { version: 'desc' },
   });
   const version = (lastDoc?.version ?? 0) + 1;
@@ -394,30 +408,41 @@ async function saveOrderPdf(
   const filename = `orden-compra-${slug}-v${version}.pdf`;
   let stored;
   try {
-    stored = await saveOrdenPdf(buffer, orderId, filename);
+    stored = await saveOrdenPdf(buffer, organizationId, orderId, filename);
   } catch (error) {
     throw new Error('PURCHASE_ORDER_PDF_STORAGE_FAILED', { cause: error });
   }
 
-  await client.compraOrdenDocumento.updateMany({
-    where: { orderId, type: 'ORDER_PDF', isActive: true },
-    data: { isActive: false },
-  });
+  try {
+    await client.compraOrdenDocumento.updateMany({
+      where: { orderId, type: 'ORDER_PDF', isActive: true },
+      data: { isActive: false },
+    });
 
-  await client.compraOrdenDocumento.create({
-    data: {
-      orderId,
-      type: 'ORDER_PDF',
-      name: filename,
-      originalName: filename,
-      mimeType: 'application/pdf',
-      size: stored.size,
-      storageKey: stored.storageKey,
-      url: stored.url,
-      version,
-      uploadedById: userId,
-    },
-  });
+    await client.compraOrdenDocumento.create({
+      data: {
+        orderId,
+        type: 'ORDER_PDF',
+        name: filename,
+        originalName: filename,
+        mimeType: 'application/pdf',
+        size: stored.size,
+        storageKey: stored.storageKey,
+        url: stored.url,
+        version,
+        uploadedById: userId,
+      },
+    });
+  } catch (error) {
+    await removeStoredDocument(stored.storageKey).catch((cleanupError) => {
+      console.error('[PURCHASE ORDER] Failed to remove stored PDF after DB failure', {
+        orderId,
+        storageKey: stored.storageKey,
+        cleanupError,
+      });
+    });
+    throw error;
+  }
 
   return { version, url: stored.url, storageKey: stored.storageKey };
 }
@@ -425,12 +450,13 @@ async function saveOrderPdf(
 export async function generatePurchaseOrder(
   id: string,
   userId: string,
+  organizationId: string,
   onStage?: (stage: string) => void
 ) {
   onStage?.('LOAD_ORDER');
   console.info('[PURCHASE ORDER] Loading draft', { orderId: id });
   const existing = await prisma.compraOrden.findFirst({
-    where: { id, deletedAt: null },
+    where: { id, organizationId, deletedAt: null },
     include: { items: true },
   });
   if (!existing) throw new Error('ORDER_NOT_FOUND');
@@ -438,7 +464,7 @@ export async function generatePurchaseOrder(
 
   onStage?.('LOAD_TEMPLATE');
   console.info('[PURCHASE ORDER] Loading active format');
-  const template = await getActiveTemplate();
+  const template = await getActiveTemplate(organizationId);
   if (!template) throw new Error('ACTIVE_PURCHASE_FORMAT_NOT_FOUND');
   const templateSnapshot = buildTemplateSnapshot(template);
 
@@ -496,7 +522,7 @@ export async function generatePurchaseOrder(
     orderNumber,
   });
   const lastDoc = await prisma.compraOrdenDocumento.findFirst({
-    where: { orderId: id, type: 'ORDER_PDF' },
+    where: { orderId: id, type: 'ORDER_PDF', orden: { organizationId } },
     orderBy: { version: 'desc' },
   });
   const version = (lastDoc?.version ?? 0) + 1;
@@ -516,7 +542,7 @@ export async function generatePurchaseOrder(
     console.info('[PURCHASE ORDER] Saving PDF');
     let stored;
     try {
-      stored = await saveOrdenPdf(buffer, id, filename);
+      stored = await saveOrdenPdf(buffer, organizationId, id, filename);
     } catch (error) {
       throw new Error('PURCHASE_ORDER_PDF_STORAGE_FAILED', { cause: error });
     }
@@ -526,7 +552,7 @@ export async function generatePurchaseOrder(
     console.info('[PURCHASE ORDER] Updating status');
     await prisma.$transaction(async (tx) => {
       const claimed = await tx.compraOrden.updateMany({
-        where: { id, status: 'DRAFT', orderNumber },
+        where: { id, organizationId, status: 'DRAFT', orderNumber },
         data: {
           status: 'GENERATED',
           generatedById: userId,
@@ -570,6 +596,7 @@ export async function generatePurchaseOrder(
 
       await recordOrdenHistorial({
         orderId: id,
+        organizationId,
         action: 'GENERATED',
         title: 'Orden generada',
         description: `Orden validada con número ${orderNumber}`,
@@ -580,6 +607,7 @@ export async function generatePurchaseOrder(
       });
       await recordOrdenHistorial({
         orderId: id,
+        organizationId,
         action: 'PDF_GENERATED',
         title: 'PDF generado',
         performedById: userId,
@@ -587,6 +615,7 @@ export async function generatePurchaseOrder(
       });
       await recordOrdenAudit({
         orderId: id,
+        organizationId,
         category: 'GENERATED',
         title: 'Orden generada',
         description: orderNumber,
@@ -604,16 +633,16 @@ export async function generatePurchaseOrder(
     throw error;
   }
 
-  return getPurchaseOrder(id);
+  return getPurchaseOrder(id, organizationId);
 }
 
-export async function issuePurchaseOrder(id: string, userId: string) {
-  const order = await prisma.compraOrden.findFirst({ where: { id, deletedAt: null } });
+export async function issuePurchaseOrder(id: string, userId: string, organizationId: string) {
+  const order = await prisma.compraOrden.findFirst({ where: { id, organizationId, deletedAt: null } });
   if (!order) throw new Error('Orden no encontrada');
   if (order.status !== 'GENERATED') throw new Error('Solo órdenes generadas pueden emitirse');
 
   const activePdf = await prisma.compraOrdenDocumento.findFirst({
-    where: { orderId: id, type: 'ORDER_PDF', isActive: true },
+    where: { orderId: id, type: 'ORDER_PDF', isActive: true, orden: { organizationId } },
   });
   if (!activePdf) throw new Error('Debe existir PDF activo');
 
@@ -624,6 +653,7 @@ export async function issuePurchaseOrder(id: string, userId: string) {
     });
     await recordOrdenHistorial({
       orderId: id,
+      organizationId,
       action: 'ISSUED',
       title: 'Orden emitida',
       performedById: userId,
@@ -631,21 +661,22 @@ export async function issuePurchaseOrder(id: string, userId: string) {
       newData: { status: 'ISSUED' },
       tx,
     });
+    await recordOrdenAudit({
+      orderId: id,
+      organizationId,
+      category: 'ISSUED',
+      title: 'Orden emitida',
+      description: order.orderNumber ?? id,
+      userId,
+      tx,
+    });
   });
 
-  await recordOrdenAudit({
-    orderId: id,
-    category: 'ISSUED',
-    title: 'Orden emitida',
-    description: order.orderNumber ?? id,
-    userId,
-  });
-
-  return getPurchaseOrder(id);
+  return getPurchaseOrder(id, organizationId);
 }
 
-export async function cancelPurchaseOrder(id: string, userId: string, cancellationReason: string) {
-  const order = await prisma.compraOrden.findFirst({ where: { id, deletedAt: null } });
+export async function cancelPurchaseOrder(id: string, userId: string, cancellationReason: string, organizationId: string) {
+  const order = await prisma.compraOrden.findFirst({ where: { id, organizationId, deletedAt: null } });
   if (!order) throw new Error('Orden no encontrada');
   if (order.status === 'CLOSED') throw new Error('No se puede anular una orden cerrada');
   if (!['DRAFT', 'GENERATED', 'ISSUED'].includes(order.status)) {
@@ -664,6 +695,7 @@ export async function cancelPurchaseOrder(id: string, userId: string, cancellati
     });
     await recordOrdenHistorial({
       orderId: id,
+      organizationId,
       action: 'CANCELLED',
       title: 'Orden anulada',
       description: cancellationReason,
@@ -672,21 +704,22 @@ export async function cancelPurchaseOrder(id: string, userId: string, cancellati
       newData: { status: 'CANCELLED', cancellationReason },
       tx,
     });
+    await recordOrdenAudit({
+      orderId: id,
+      organizationId,
+      category: 'CANCELLED',
+      title: 'Orden anulada',
+      description: cancellationReason,
+      userId,
+      tx,
+    });
   });
 
-  await recordOrdenAudit({
-    orderId: id,
-    category: 'CANCELLED',
-    title: 'Orden anulada',
-    description: cancellationReason,
-    userId,
-  });
-
-  return getPurchaseOrder(id);
+  return getPurchaseOrder(id, organizationId);
 }
 
-export async function closePurchaseOrder(id: string, userId: string) {
-  const order = await prisma.compraOrden.findFirst({ where: { id, deletedAt: null } });
+export async function closePurchaseOrder(id: string, userId: string, organizationId: string) {
+  const order = await prisma.compraOrden.findFirst({ where: { id, organizationId, deletedAt: null } });
   if (!order) throw new Error('Orden no encontrada');
   if (order.status !== 'ISSUED') throw new Error('Solo órdenes emitidas pueden cerrarse');
 
@@ -697,6 +730,7 @@ export async function closePurchaseOrder(id: string, userId: string) {
     });
     await recordOrdenHistorial({
       orderId: id,
+      organizationId,
       action: 'CLOSED',
       title: 'Orden cerrada',
       performedById: userId,
@@ -704,88 +738,104 @@ export async function closePurchaseOrder(id: string, userId: string) {
       newData: { status: 'CLOSED' },
       tx,
     });
+    await recordOrdenAudit({
+      orderId: id,
+      organizationId,
+      category: 'CLOSED',
+      title: 'Orden cerrada',
+      description: order.orderNumber ?? id,
+      userId,
+      tx,
+    });
   });
 
-  await recordOrdenAudit({
-    orderId: id,
-    category: 'CLOSED',
-    title: 'Orden cerrada',
-    description: order.orderNumber ?? id,
-    userId,
-  });
-
-  return getPurchaseOrder(id);
+  return getPurchaseOrder(id, organizationId);
 }
 
-export async function regeneratePurchaseOrderPdf(id: string, userId: string) {
-  const order = await prisma.compraOrden.findFirst({ where: { id, deletedAt: null } });
+export async function regeneratePurchaseOrderPdf(id: string, userId: string, organizationId: string) {
+  const order = await prisma.compraOrden.findFirst({ where: { id, organizationId, deletedAt: null } });
   if (!order) throw new Error('Orden no encontrada');
   if (!['GENERATED', 'ISSUED', 'CLOSED'].includes(order.status)) {
     throw new Error('Estado no permite regenerar PDF');
   }
 
-  await saveOrderPdf(id, userId);
+  await saveOrderPdf(id, userId, organizationId);
 
-  await recordOrdenHistorial({
-    orderId: id,
-    action: 'PDF_REGENERATED',
-    title: 'PDF regenerado',
-    performedById: userId,
+  await prisma.$transaction(async (tx) => {
+    await recordOrdenHistorial({
+      orderId: id,
+      organizationId,
+      action: 'PDF_REGENERATED',
+      title: 'PDF regenerado',
+      performedById: userId,
+      tx,
+    });
+
+    await recordOrdenAudit({
+      orderId: id,
+      organizationId,
+      category: 'PDF_REGENERATED',
+      title: 'PDF regenerado',
+      description: order.orderNumber ?? id,
+      userId,
+      tx,
+    });
   });
 
-  await recordOrdenAudit({
-    orderId: id,
-    category: 'PDF_REGENERATED',
-    title: 'PDF regenerado',
-    description: order.orderNumber ?? id,
-    userId,
-  });
-
-  return getPurchaseOrder(id);
+  return getPurchaseOrder(id, organizationId);
 }
 
 export async function uploadPurchaseOrderDocument(
   orderId: string,
   file: File,
   type: PurchaseDocumentType,
-  userId: string
+  userId: string,
+  organizationId: string
 ) {
-  const order = await prisma.compraOrden.findFirst({ where: { id: orderId, deletedAt: null } });
+  const order = await prisma.compraOrden.findFirst({ where: { id: orderId, organizationId, deletedAt: null } });
   if (!order) throw new Error('Orden no encontrada');
 
-  const stored = await saveOrdenDocument(file, orderId);
-  const doc = await prisma.compraOrdenDocumento.create({
-    data: {
+  const stored = await saveOrdenDocument(file, organizationId, orderId);
+  const doc = await prisma.$transaction(async (tx) => {
+    const created = await tx.compraOrdenDocumento.create({
+      data: {
+        orderId,
+        type,
+        name: stored.nombre,
+        originalName: stored.originalName,
+        mimeType: stored.mimeType,
+        size: stored.size,
+        storageKey: stored.storageKey,
+        url: stored.url,
+        fileHash: stored.fileHash,
+        uploadedById: userId,
+      },
+      include: { uploadedBy: { select: { id: true, firstName: true, lastName: true } } },
+    });
+
+    await recordOrdenHistorial({
       orderId,
-      type,
-      name: stored.nombre,
-      originalName: stored.originalName,
-      mimeType: stored.mimeType,
-      size: stored.size,
-      storageKey: stored.storageKey,
-      url: stored.url,
-      fileHash: stored.fileHash,
-      uploadedById: userId,
-    },
-    include: { uploadedBy: { select: { id: true, firstName: true, lastName: true } } },
-  });
+      organizationId,
+      action: 'DOCUMENT_ADDED',
+      title: 'Documento adjuntado',
+      description: stored.nombre,
+      performedById: userId,
+      newData: { type, name: stored.nombre },
+      tx,
+    });
 
-  await recordOrdenHistorial({
-    orderId,
-    action: 'DOCUMENT_ADDED',
-    title: 'Documento adjuntado',
-    description: stored.nombre,
-    performedById: userId,
-    newData: { type, name: stored.nombre },
-  });
+    await recordOrdenAudit({
+      orderId,
+      organizationId,
+      category: 'DOCUMENT_ADDED',
+      title: 'Documento adjuntado',
+      description: stored.nombre,
+      userId,
+      newData: created,
+      tx,
+    });
 
-  await recordOrdenAudit({
-    orderId,
-    category: 'DOCUMENT_ADDED',
-    title: 'Documento adjuntado',
-    description: stored.nombre,
-    userId,
-    newData: doc,
+    return created;
   });
 
   return doc;
@@ -794,47 +844,61 @@ export async function uploadPurchaseOrderDocument(
 export async function deletePurchaseOrderDocument(
   orderId: string,
   documentId: string,
-  userId: string
+  userId: string,
+  organizationId: string
 ) {
   const doc = await prisma.compraOrdenDocumento.findFirst({
-    where: { id: documentId, orderId },
+    where: { id: documentId, orderId, orden: { organizationId } },
   });
   if (!doc) throw new Error('Documento no encontrado');
   if (doc.type === 'ORDER_PDF') throw new Error('No se puede eliminar el PDF de la orden');
 
-  await removeStoredDocument(doc.storageKey);
-  await prisma.compraOrdenDocumento.delete({ where: { id: documentId } });
+  await prisma.$transaction(async (tx) => {
+    await tx.compraOrdenDocumento.delete({ where: { id: documentId } });
 
-  await recordOrdenHistorial({
-    orderId,
-    action: 'DOCUMENT_REMOVED',
-    title: 'Documento eliminado',
-    description: doc.name,
-    performedById: userId,
-    previousData: doc,
+    await recordOrdenHistorial({
+      orderId,
+      organizationId,
+      action: 'DOCUMENT_REMOVED',
+      title: 'Documento eliminado',
+      description: doc.name,
+      performedById: userId,
+      previousData: doc,
+      tx,
+    });
+
+    await recordOrdenAudit({
+      orderId,
+      organizationId,
+      category: 'DOCUMENT_REMOVED',
+      title: 'Documento eliminado',
+      description: doc.name,
+      userId,
+      previousData: doc,
+      tx,
+    });
   });
 
-  await recordOrdenAudit({
-    orderId,
-    category: 'DOCUMENT_REMOVED',
-    title: 'Documento eliminado',
-    description: doc.name,
-    userId,
-    previousData: doc,
+  await removeStoredDocument(doc.storageKey).catch((error) => {
+    console.error('[PURCHASE ORDER] Failed to remove stored document after DB delete', {
+      documentId,
+      storageKey: doc.storageKey,
+      error,
+    });
   });
 }
 
-export async function getPurchaseOrderHistory(orderId: string) {
+export async function getPurchaseOrderHistory(orderId: string, organizationId: string) {
   return prisma.compraOrdenHistorial.findMany({
-    where: { orderId },
+    where: { orderId, ...purchaseOrderChildScope(organizationId) },
     orderBy: { createdAt: 'desc' },
     include: { performedBy: { select: { id: true, firstName: true, lastName: true } } },
   });
 }
 
-export async function getPurchaseOrderDocuments(orderId: string) {
+export async function getPurchaseOrderDocuments(orderId: string, organizationId: string) {
   const docs = await prisma.compraOrdenDocumento.findMany({
-    where: { orderId, type: { not: 'ORDER_PDF' } },
+    where: { orderId, ...purchaseOrderChildScope(organizationId), type: { not: 'ORDER_PDF' } },
     orderBy: { uploadedAt: 'desc' },
     include: { uploadedBy: { select: { id: true, firstName: true, lastName: true } } },
   });
@@ -849,9 +913,9 @@ export async function getPurchaseOrderDocuments(orderId: string) {
   }));
 }
 
-export async function readPurchaseOrderDocumentFile(orderId: string, documentId: string) {
+export async function readPurchaseOrderDocumentFile(orderId: string, documentId: string, organizationId: string) {
   const doc = await prisma.compraOrdenDocumento.findFirst({
-    where: { id: documentId, orderId },
+    where: { id: documentId, orderId, ...purchaseOrderChildScope(organizationId) },
   });
   if (!doc) throw new Error('Documento no encontrado');
   const file = await readStoredDocument(doc.storageKey, doc.mimeType);
@@ -865,31 +929,33 @@ export async function readPurchaseOrderDocumentFile(orderId: string, documentId:
 }
 
 
-export async function getPurchaseOrderHtmlPreview(orderId: string): Promise<string> {
+export async function getPurchaseOrderHtmlPreview(orderId: string, organizationId: string): Promise<string> {
   const order = await prisma.compraOrden.findFirst({
-    where: { id: orderId, deletedAt: null },
+    where: { id: orderId, organizationId, deletedAt: null },
     include: { items: { orderBy: { itemNumber: 'asc' } } },
   });
   if (!order) throw new Error('Orden no encontrada');
   const template = await resolveTemplateForOrder(order);
   const activePdf = await prisma.compraOrdenDocumento.findFirst({
-    where: { orderId, type: 'ORDER_PDF', isActive: true },
+    where: { orderId, type: 'ORDER_PDF', isActive: true, orden: { organizationId } },
   });
   return buildPurchaseOrderHtml(order, template, activePdf?.version ?? 1);
 }
 
 export async function getPurchaseOrderDraftPreviewHtml(
-  input: CreatePurchaseOrderInput
+  input: CreatePurchaseOrderInput,
+  organizationId: string
 ): Promise<string> {
-  const template = await getActiveTemplateConfig();
+  const template = await getActiveTemplateConfig(organizationId);
   const preview = buildPreviewDataFromInput(input, template);
   return buildPurchaseOrderHtml(previewDataToPdfOrder(preview), template, 1);
 }
 
 export async function buildPurchaseOrderPreviewHtml(
-  input: CreatePurchaseOrderInput
+  input: CreatePurchaseOrderInput,
+  organizationId: string
 ): Promise<string> {
-  return getPurchaseOrderDraftPreviewHtml(input);
+  return getPurchaseOrderDraftPreviewHtml(input, organizationId);
 }
 
 // Legacy aliases

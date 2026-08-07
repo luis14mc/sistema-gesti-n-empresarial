@@ -4,6 +4,7 @@ import { createAuditRecord } from '@/lib/audit';
 
 export async function recordOrdenHistorial(params: {
   orderId: string;
+  organizationId: string;
   action: PurchaseHistoryAction;
   title: string;
   description?: string;
@@ -29,6 +30,7 @@ export async function recordOrdenHistorial(params: {
 }
 
 export async function recordOrdenAudit(params: {
+  organizationId: string;
   orderId: string;
   category: string;
   title: string;
@@ -45,6 +47,7 @@ export async function recordOrdenAudit(params: {
     category: params.category,
     userId: params.userId,
     entityId: params.orderId,
+    organizationId: params.organizationId,
     previousData: params.previousData,
     newData: params.newData,
     tx: params.tx,

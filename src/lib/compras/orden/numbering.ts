@@ -1,4 +1,5 @@
 import type { Prisma } from '@prisma/client';
+import { allocateDocumentSequence } from '@/platform/sequences/document-sequence';
 
 export function formatOrderNumber(
   prefix: string,
@@ -10,16 +11,15 @@ export function formatOrderNumber(
 
 export async function allocateOrderNumber(
   tx: Prisma.TransactionClient,
+  organizationId: string,
   prefix = 'COM-CNI',
   year = new Date().getFullYear()
 ): Promise<{ sequenceNumber: number; sequenceYear: number; orderNumber: string }> {
-  const sequence = await tx.compraOrdenSequence.upsert({
-    where: { year },
-    create: { year, lastValue: 1 },
-    update: { lastValue: { increment: 1 } },
+  const sequenceNumber = await allocateDocumentSequence(tx, {
+    organizationId,
+    documentType: 'PURCHASE_ORDER',
+    year,
   });
-
-  const sequenceNumber = sequence.lastValue;
   const orderNumber = formatOrderNumber(prefix, year, sequenceNumber);
 
   return { sequenceNumber, sequenceYear: year, orderNumber };

@@ -10,6 +10,7 @@ import { updateCompraOrdenSchema, normalizePurchaseOrderPayload } from '@/lib/co
 import { canOrdenAction } from '@/lib/compras/orden/permissions';
 import { handlePrismaRouteError } from '@/lib/compras/orden/prisma-error';
 import type { Role } from '@/types';
+import { requireOrganizationContext } from '@/modules/organizations/application/context';
 
 async function getHandler(
   req: AuthenticatedRequest,
@@ -17,8 +18,9 @@ async function getHandler(
 ) {
   try {
     const role = req.user!.role as Role;
+    const { organizationId } = await requireOrganizationContext(req);
     const { id } = await params;
-    const orden = await getCompraOrden(id);
+    const orden = await getCompraOrden(id, organizationId);
     if (!orden) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
 
     if (
@@ -41,8 +43,9 @@ async function patchHandler(
 ) {
   try {
     const role = req.user!.role as Role;
+    const { organizationId } = await requireOrganizationContext(req);
     const { id } = await params;
-    const existing = await getCompraOrden(id);
+    const existing = await getCompraOrden(id, organizationId);
     if (!existing) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
 
     if (
@@ -60,7 +63,7 @@ async function patchHandler(
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
-    const orden = await updateCompraOrden(id, parsed.data, req.user!.userId);
+    const orden = await updateCompraOrden(id, parsed.data, req.user!.userId, organizationId);
     return NextResponse.json({ orden });
   } catch (error) {
     if (error instanceof Error && !('code' in error)) {
@@ -79,8 +82,9 @@ async function deleteHandler(
 ) {
   try {
     const role = req.user!.role as Role;
+    const { organizationId } = await requireOrganizationContext(req);
     const { id } = await params;
-    const existing = await getCompraOrden(id);
+    const existing = await getCompraOrden(id, organizationId);
     if (!existing) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
 
     if (
@@ -92,7 +96,7 @@ async function deleteHandler(
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
 
-    await deleteCompraOrden(id, req.user!.userId);
+    await deleteCompraOrden(id, req.user!.userId, organizationId);
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (error instanceof Error && error.message === 'ORDER_NOT_FOUND') {

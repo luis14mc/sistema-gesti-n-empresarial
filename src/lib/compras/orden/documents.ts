@@ -21,7 +21,7 @@ export function validateOrdenDocumentUpload(file: { name: string; type: string; 
   return { originalName, mimeType: file.type };
 }
 
-export async function saveOrdenDocument(file: File, ordenId: string) {
+export async function saveOrdenDocument(file: File, organizationId: string, ordenId: string) {
   const { originalName, mimeType } = validateOrdenDocumentUpload({
     name: file.name,
     type: file.type,
@@ -31,7 +31,7 @@ export async function saveOrdenDocument(file: File, ordenId: string) {
   const fileHash = createHash('sha256').update(buffer).digest('hex');
   const storage = getStorage();
   const stored = await storage.put({
-    prefix: `compras/ordenes/${ordenId}/documentos`,
+    prefix: `organizations/${organizationId}/compras/ordenes/${ordenId}/documentos`,
     originalName,
     mimeType,
     size: file.size,
@@ -49,12 +49,12 @@ export async function saveOrdenDocument(file: File, ordenId: string) {
   };
 }
 
-export async function saveOrdenPdf(buffer: Buffer, ordenId: string, filename: string) {
+export async function saveOrdenPdf(buffer: Buffer, organizationId: string, ordenId: string, filename: string) {
   if (!buffer.length) throw new Error('EMPTY_PURCHASE_ORDER_PDF');
 
   const storage = getStorage();
   const stored = await storage.put({
-    prefix: `compras/ordenes/${ordenId}/pdf`,
+    prefix: `organizations/${organizationId}/compras/ordenes/${ordenId}/pdf`,
     originalName: filename,
     mimeType: 'application/pdf',
     size: buffer.length,

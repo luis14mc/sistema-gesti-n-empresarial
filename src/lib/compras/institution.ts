@@ -17,6 +17,52 @@ const MIME_BY_EXT: Record<string, string> = {
 
 const FALLBACK_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect width="120" height="120" fill="#003366"/><text x="60" y="68" text-anchor="middle" fill="#fff" font-family="Arial" font-size="28" font-weight="700">CNI</text></svg>`;
 
+const PUBLIC_ROOT = path.resolve(process.cwd(), 'public');
+
+/**
+ * Verifica que una URL candidata a logo sea segura:
+ * - Solo se permiten URLs https:// (no http:// — evitar SSRF en red interna).
+ * - Solo se permiten data URIs con tipos MIME de imagen explícitos.
+ * - Los paths deben estar dentro de PUBLIC_ROOT (mitiga path traversal `../`).
+ * Retorna la URL sanitizada o null si es peligrosa/inválida.
+ */
+export function sanitizeLogoCandidate(candidate: string): string | null {
+  if (!candidate || typeof candidate !== 'string') return null;
+
+  if (candidate.startsWith('https://')) {
+    try {
+      const u = new URL(candidate);
+      if (u.protocol !== 'https:') return null;
+      if (!u.hostname || u.hostname === 'localhost' || u.hostname === '127.0.0.1' || u.hostname.startsWith('192.168.') || u.hostname.startsWith('10.')) {
+        return null;
+      }
+      return candidate;
+    } catch {
+      return null;
+    }
+  }
+
+  if (candidate.startsWith('data:')) {
+    if (!/^data:image\/(png|jpe?g|svg\+xml|webp|gif);base64,/i.test(candidate)) return null;
+    return candidate;
+  }
+
+  if (candidate.includes(':') || candidate.startsWith('//')) return null;
+
+  if (candidate.includes('..')) return null;
+
+  if (/^\/(etc|proc|root|var|usr|home|sys|tmp|dev|boot|opt|srv|mnt|media)(\/|$)/.test(candidate)) {
+    return null;
+  }
+
+  const relative = candidate.replace(/^\/+/, '');
+  const absolute = path.resolve(PUBLIC_ROOT, relative);
+  const normalizedRoot = PUBLIC_ROOT.endsWith(path.sep) ? PUBLIC_ROOT : PUBLIC_ROOT + path.sep;
+  if (absolute !== PUBLIC_ROOT && !absolute.startsWith(normalizedRoot)) return null;
+
+  return candidate;
+}
+
 export type { InstitutionSettings };
 
 export function getInstitutionName(): string {
@@ -50,15 +96,15 @@ export async function resolveInstitutionLogoDataUri(logoPath?: string): Promise<
   ].filter((value, index, arr): value is string => Boolean(value) && arr.indexOf(value) === index);
 
   for (const candidate of candidates) {
-    if (candidate.startsWith('http://') || candidate.startsWith('https://')) {
-      return candidate;
-    }
-    if (candidate.startsWith('data:')) {
-      return candidate;
+    const safe = sanitizeLogoCandidate(candidate);
+    if (!safe) continue;
+
+    if (safe.startsWith('https://') || safe.startsWith('data:')) {
+      return safe;
     }
 
-    const relative = candidate.replace(/^\//, '');
-    const absolute = path.join(process.cwd(), 'public', relative);
+    const relative = safe.replace(/^\//, '');
+    const absolute = path.join(PUBLIC_ROOT, relative);
     const dataUri = await fileToDataUri(absolute);
     if (dataUri) return dataUri;
   }
@@ -74,7 +120,7 @@ export async function getInstitutionConfig() {
   };
 }
 
-const LOGO_DIR = path.join(process.cwd(), 'public', 'uploads', 'institution');
+const LOGO_DIR = path.join(PUBLIC_ROOT, 'uploads', 'institution');
 const ALLOWED_LOGO_EXT = new Set(['svg', 'png', 'jpg', 'jpeg', 'webp', 'gif']);
 
 export async function saveInstitutionLogo(file: File): Promise<string> {

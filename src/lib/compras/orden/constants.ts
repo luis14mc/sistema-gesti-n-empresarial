@@ -3,9 +3,9 @@ import type { PurchaseOrderStatus, PurchaseUnit, PurchaseDocumentType } from '@p
 export const ORDER_STATUS_LABELS: Record<PurchaseOrderStatus, string> = {
   DRAFT: 'Borrador',
   GENERATED: 'Generada',
-  ISSUED: 'Generada',
+  ISSUED: 'Emitida',
   CANCELLED: 'Anulada',
-  CLOSED: 'Generada',
+  CLOSED: 'Cerrada',
 };
 
 export const ORDER_PENDING_STATUSES: PurchaseOrderStatus[] = ['DRAFT', 'GENERATED'];

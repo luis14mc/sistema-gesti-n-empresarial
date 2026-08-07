@@ -1,41 +1,44 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { canAccess } from '@/lib/permissions';
-import { applyWorkflowAction } from '@/lib/compras/service';
-import { canPerformCompraAction, type CompraWorkflowAction } from '@/lib/compras/workflow';
-import type { Role } from '@/types';
+import type { CompraWorkflowAction } from '@/lib/compras/workflow';
 
+/**
+ * Helper para endpoints legacy de /api/compras/solicitudes/*.
+ *
+ * SECURITY (S1): Esta helper ahora retorna 410 Gone inmediatamente.
+ *
+ * El modelo `CompraSolicitud` no tiene `organizationId` (ver auditoría S1),
+ * lo que provoca IDOR cross-tenant: cualquier usuario con `purchases.read`
+ * puede listar/editar/anular solicitudes de cualquier organización.
+ *
+ * La API activa es `/api/compras/ordenes/*` (modelo `CompraOrden`, ya
+ * multi-tenant). El frontend activo (`useCompraOrden`) usa exclusivamente
+ * los endpoints nuevos.
+ *
+ * Si algún consumer interno aún llama estos endpoints, debe migrarse a
+ * `/api/compras/ordenes`. Esta respuesta 410 explícita evita exponer el bug.
+ */
 export function createCompraWorkflowRoute(action: CompraWorkflowAction) {
   async function handler(
-    req: AuthenticatedRequest,
-    { params }: { params: Promise<{ id: string }> }
+    _req: AuthenticatedRequest,
+    _ctx: { params: Promise<{ id: string }> }
   ) {
-    try {
-      const role = req.user!.role as Role;
-      if (!canAccess(role, 'purchases', 'update')) {
-        return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
+    void action;
+    return NextResponse.json(
+      {
+        error: 'ENDPOINT_DEPRECATED',
+        message: 'Las rutas /api/compras/solicitudes/* fueron deshabilitadas por seguridad. Use /api/compras/ordenes/* (multi-tenant).',
+        migrationGuide: 'https://docs.example.com/api/compras/migration',
+      },
+      {
+        status: 410,
+        headers: {
+          'Deprecation': 'true',
+          'Sunset': 'Tue, 01 Jan 2025 00:00:00 GMT',
+          'Link': '</api/compras/ordenes>; rel="successor-version"',
+        },
       }
-
-      const { id } = await params;
-      const orden = await prisma.compraSolicitud.findFirst({
-        where: { id, deletedAt: null },
-      });
-      if (!orden) {
-        return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
-      }
-
-      const isOwner = orden.solicitadoPorId === req.user!.userId;
-      if (!canPerformCompraAction(role, action, orden.estado, { isOwner })) {
-        return NextResponse.json({ error: 'Acción no permitida' }, { status: 403 });
-      }
-
-      const updated = await applyWorkflowAction(id, action, req.user!.userId);
-      return NextResponse.json({ solicitud: updated });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Error en workflow';
-      return NextResponse.json({ error: message }, { status: 400 });
-    }
+    );
   }
 
   return withAuth(handler);

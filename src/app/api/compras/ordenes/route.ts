@@ -9,10 +9,12 @@ import { createCompraOrdenSchema, normalizePurchaseOrderPayload } from '@/lib/co
 import { canOrdenAction } from '@/lib/compras/orden/permissions';
 import { handlePrismaRouteError, mapLegacyEstadoFilter } from '@/lib/compras/orden/prisma-error';
 import type { Role } from '@/types';
+import { requireOrganizationContext } from '@/modules/organizations/application/context';
 
 async function getHandler(req: AuthenticatedRequest) {
   try {
     const role = req.user!.role as Role;
+    const { organizationId } = await requireOrganizationContext(req);
     if (!canAccess(role, 'purchases', 'read')) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
@@ -21,6 +23,7 @@ async function getHandler(req: AuthenticatedRequest) {
     const mine = searchParams.get('mine') === 'true' || role === 'USER';
 
     const result = await listCompraOrdenes({
+      organizationId,
       page: Number.parseInt(searchParams.get('page') || '1', 10),
       pageSize: Number.parseInt(searchParams.get('pageSize') || '10', 10),
       search: searchParams.get('search') || undefined,
@@ -40,6 +43,7 @@ async function getHandler(req: AuthenticatedRequest) {
 async function postHandler(req: AuthenticatedRequest) {
   try {
     const role = req.user!.role as Role;
+    const { organizationId } = await requireOrganizationContext(req);
     if (!canOrdenAction(role, 'create')) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
@@ -50,7 +54,7 @@ async function postHandler(req: AuthenticatedRequest) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
-    const orden = await createCompraOrden(parsed.data, req.user!.userId);
+    const orden = await createCompraOrden(parsed.data, req.user!.userId, organizationId);
     return NextResponse.json({ orden }, { status: 201 });
   } catch (error) {
     return handlePrismaRouteError(error, 'POST /api/compras/ordenes');

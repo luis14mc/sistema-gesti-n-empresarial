@@ -8,12 +8,15 @@ import {
   type PurchaseOrderTemplateConfig,
 } from './template-config';
 
-export async function getActiveTemplate(tx: Prisma.TransactionClient = prisma) {
-  return tx.compraOrdenTemplate.findFirst({ where: { isActive: true } });
+export async function getActiveTemplate(organizationId: string, tx: Prisma.TransactionClient = prisma) {
+  return tx.compraOrdenTemplate.findFirst({
+    where: { organizationId, isActive: true },
+    orderBy: { version: 'desc' },
+  });
 }
 
-export async function ensureDefaultTemplate(userId: string) {
-  const existing = await prisma.compraOrdenTemplate.findFirst({ where: { isActive: true } });
+export async function ensureDefaultTemplate(organizationId: string, userId: string) {
+  const existing = await getActiveTemplate(organizationId);
   if (existing) return existing;
 
   return prisma.compraOrdenTemplate.create({
@@ -22,6 +25,7 @@ export async function ensureDefaultTemplate(userId: string) {
       isActive: true,
       logoUrl: '/Logo_CNI.png',
       createdById: userId,
+      organizationId,
     },
   });
 }
@@ -49,10 +53,11 @@ export async function savePurchaseOrderTemplate(
     showReference: boolean;
     showRequiredDate: boolean;
   },
-  userId: string
+  userId: string,
+  organizationId: string
 ) {
   return prisma.$transaction(async (tx) => {
-    const current = await tx.compraOrdenTemplate.findFirst({ where: { isActive: true } });
+    const current = await getActiveTemplate(organizationId, tx);
     if (current) {
       await tx.compraOrdenTemplate.update({
         where: { id: current.id },
@@ -67,6 +72,7 @@ export async function savePurchaseOrderTemplate(
         isActive: true,
         version,
         createdById: userId,
+        organizationId,
       },
     });
 
@@ -76,6 +82,7 @@ export async function savePurchaseOrderTemplate(
       title: 'Plantilla de orden actualizada',
       description: `Versión ${version}`,
       userId,
+      organizationId,
       newData: template,
     });
 
@@ -84,14 +91,16 @@ export async function savePurchaseOrderTemplate(
 }
 
 export async function getActiveTemplateConfig(
+  organizationId: string,
   tx: Prisma.TransactionClient = prisma
 ): Promise<PurchaseOrderTemplateConfig> {
-  const template = await getActiveTemplate(tx);
+  const template = await getActiveTemplate(organizationId, tx);
   if (!template) throw new Error('No hay plantilla activa configurada');
   return templateToConfig(template);
 }
 
 export async function resolveTemplateForOrder(order: {
+  organizationId?: string | null;
   status?: string;
   templateId?: string | null;
   templateVersion?: number | null;
@@ -105,10 +114,12 @@ export async function resolveTemplateForOrder(order: {
     const stored = await prisma.compraOrdenTemplate.findUnique({ where: { id: order.templateId } });
     if (stored) return templateToConfig(stored);
   }
-  return getActiveTemplateConfig();
+  if (!order.organizationId) throw new Error('Orden sin organización');
+  return getActiveTemplateConfig(order.organizationId);
 }
 
 export async function getTemplateForOrder(order: {
+  organizationId?: string | null;
   status?: string;
   templateId?: string | null;
   templateVersion?: number | null;
@@ -146,7 +157,8 @@ export async function getTemplateForOrder(order: {
     const stored = await prisma.compraOrdenTemplate.findUnique({ where: { id: order.templateId } });
     if (stored) return stored;
   }
-  return getActiveTemplate();
+  if (!order.organizationId) throw new Error('Orden sin organización');
+  return getActiveTemplate(order.organizationId);
 }
 
 export { buildTemplateSnapshot };
