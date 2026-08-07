@@ -1,5 +1,13 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import {
+  JWT_ALGORITHM,
+  JWT_AUDIENCE,
+  JWT_EXPIRES_IN,
+  JWT_ISSUER,
+  VALID_ROLES,
+  type Role,
+} from './jwt-config';
 
 export interface TokenPayload {
   userId: string;
@@ -33,12 +41,46 @@ export const comparePassword = async (
 };
 
 export const generateToken = (payload: TokenPayload): string => {
-  return jwt.sign(payload, getSecret(), { expiresIn: '1h' });
+  if (!payload.userId || typeof payload.userId !== 'string') {
+    throw new Error('[Auth] generateToken: userId requerido');
+  }
+  if (!payload.role || !VALID_ROLES.has(payload.role)) {
+    throw new Error(`[Auth] generateToken: role inválido "${payload.role}"`);
+  }
+
+  const jti = crypto.randomUUID();
+  return jwt.sign(
+    {
+      ...payload,
+      jti,
+    },
+    getSecret(),
+    {
+      algorithm: JWT_ALGORITHM,
+      expiresIn: JWT_EXPIRES_IN,
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE,
+    }
+  );
 };
 
 export const verifyToken = (token: string): TokenPayload | null => {
   try {
-    return jwt.verify(token, getSecret()) as TokenPayload;
+    const decoded = jwt.verify(token, getSecret(), {
+      algorithms: [JWT_ALGORITHM],
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE,
+    }) as jwt.JwtPayload;
+
+    if (!decoded.userId || typeof decoded.userId !== 'string') return null;
+    if (!decoded.role || !VALID_ROLES.has(decoded.role as Role)) return null;
+    if (!decoded.email || typeof decoded.email !== 'string') return null;
+
+    return {
+      userId: decoded.userId,
+      email: decoded.email,
+      role: decoded.role,
+    };
   } catch {
     return null;
   }

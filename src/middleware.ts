@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { routeToAccess } from '@/lib/permissions';
 import { isDeprecatedFrontendPath } from '@/lib/deprecated-api';
+import {
+  JWT_ALGORITHM,
+  validateTokenClaims,
+  type TokenClaims,
+} from '@/lib/jwt-config';
 
 // ============================================
 // NEXT.JS MIDDLEWARE — Protección de rutas + RBAC + CSP nonce
 // Sprint 3: la matriz de permisos vive en lib/permissions.ts (única fuente
 // de verdad). Este middleware orquesta JWT + redirecciones + CSP nonce.
+// S2: validación JWT estricta en Edge (alg=HS256, exp, iss, aud, claims).
 // ============================================
-
-type Role = 'ADMIN' | 'USER' | 'RRHH' | 'IT';
 
 const TOKEN_COOKIE = 'token';
 const AUTH_ROUTES  = ['/login', '/register'];
@@ -68,13 +72,36 @@ function buildExtraSecurityHeaders(): string[] {
   ];
 }
 
-async function decodeAndVerifyJwt(token: string): Promise<{ userId: string; role: Role } | null> {
+function decodeBase64Url(input: string): Uint8Array {
+  const normalized = input.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized.padEnd(normalized.length + (4 - normalized.length % 4) % 4, '=');
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+function decodeJsonSegment<T = unknown>(segment: string): T | null {
+  try {
+    const text = new TextDecoder().decode(decodeBase64Url(segment));
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
+
+async function decodeAndVerifyJwt(token: string): Promise<TokenClaims | null> {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
 
     const secret = process.env.JWT_SECRET || '';
     if (!secret) return null;
+
+    const header = decodeJsonSegment<{ alg?: string; typ?: string }>(parts[0]);
+    if (!header) return null;
+    if (header.alg !== JWT_ALGORITHM) return null;
+    if (header.typ && header.typ !== 'JWT') return null;
 
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey(
@@ -85,18 +112,19 @@ async function decodeAndVerifyJwt(token: string): Promise<{ userId: string; role
       ['verify']
     );
 
-    const signatureStr = parts[2].replace(/-/g, '+').replace(/_/g, '/');
-    const paddedSignature = signatureStr.padEnd(signatureStr.length + (4 - signatureStr.length % 4) % 4, '=');
-    const signatureBytes = Uint8Array.from(atob(paddedSignature), c => c.charCodeAt(0));
+    const signatureBytes = decodeBase64Url(parts[2]);
     const dataBytes = encoder.encode(parts[0] + '.' + parts[1]);
 
-    const isValid = await crypto.subtle.verify('HMAC', key, signatureBytes, dataBytes);
+    const isValid = await crypto.subtle.verify(
+      'HMAC',
+      key,
+      signatureBytes as BufferSource,
+      dataBytes as BufferSource
+    );
     if (!isValid) return null;
 
-    const payloadStr = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    const paddedPayload = payloadStr.padEnd(payloadStr.length + (4 - payloadStr.length % 4) % 4, '=');
-    const payload = JSON.parse(atob(paddedPayload));
-    return payload;
+    const rawPayload = decodeJsonSegment(parts[1]);
+    return validateTokenClaims(rawPayload);
   } catch (error) {
     console.error('Error verifying JWT in edge:', error);
     return null;
