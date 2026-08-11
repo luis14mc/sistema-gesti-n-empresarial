@@ -1,0 +1,260 @@
+{
+  "audit": "internal-system-simplification",
+  "status": "AUDIT_ONLY",
+  "date": "2026-08-11",
+  "principle": "SGE must be a reliable internal institutional management system for CNI, not a generic SaaS platform.",
+  "scopeGuard": {
+    "removedTables": false,
+    "deletedRoutes": false,
+    "changedSchema": false,
+    "rewroteModules": false,
+    "requiresApprovalBeforeCode": true
+  },
+  "complexityScore": {
+    "current": 7.5,
+    "target": 4.0,
+    "scale": "0 = pure institutional monolith, 10 = full SaaS platform",
+    "dimensions": [
+      { "name": "Tenancy exposure", "current": 1.5, "target": 0.5 },
+      { "name": "Event-driven infra (outbox)", "current": 1.0, "target": 0.0 },
+      { "name": "Async/job platform", "current": 0.5, "target": 0.25 },
+      { "name": "Integration framework", "current": 1.5, "target": 0.0 },
+      { "name": "Notification platform", "current": 1.0, "target": 0.25 },
+      { "name": "Platform admin surface", "current": 1.0, "target": 0.0 },
+      { "name": "Duplicate/legacy data models", "current": 1.0, "target": 0.25 }
+    ]
+  },
+  "priorInstitutionalContext": {
+    "alreadyContained": [
+      "Worker runs dormant (src/worker/index.ts)",
+      "Job handler registry intentionally empty (src/platform/jobs/registry.ts)",
+      "Sidebar already excludes Platform/Integrations/Notifications/Organizations/Webhooks (src/components/layout/nav-items.ts)",
+      "Legacy/out-of-scope APIs already return HTTP 410 (src/lib/deprecated-api.ts)"
+    ],
+    "absentModels": [
+      "OrganizationModule", "OrganizationLimit", "OrganizationUsage",
+      "ExternalIdentity", "ExternalSyncRecord", "WebhookSubscription",
+      "InboundIntegrationEvent", "BackgroundJob"
+    ]
+  },
+  "classificationLegend": {
+    "component": ["REQUIRED", "KEEP_INTERNAL_ONLY", "SIMPLIFY", "DISABLE", "DEPRECATE", "REMOVE_LATER"],
+    "database": ["ACTIVE", "LEGACY_READ_ONLY", "INFRASTRUCTURE_UNUSED", "DEPRECATED"],
+    "api": ["INTERNAL_REQUIRED", "INTERNAL_REDUNDANT", "LEGACY", "UNUSED"]
+  },
+  "components": [
+    {
+      "id": 1,
+      "component": "Organization model + organizationId scoping",
+      "currentPurpose": "Multi-tenant ownership and security boundary",
+      "cniRequirement": "Single org (CNI); scoping still valuable as isolation guard",
+      "classification": "KEEP_INTERNAL_ONLY",
+      "dependencies": ["nearly all models/queries", "middleware", "tenant-scope helpers"],
+      "recommendedAction": "Keep column and scoping; hard-default CNI; hide any selector",
+      "riskOfRemoval": "high",
+      "priority": "P2"
+    },
+    {
+      "id": 2,
+      "component": "OrganizationMembership / OrganizationRole / MembershipStatus",
+      "currentPurpose": "User-to-org membership with roles",
+      "cniRequirement": "CNI users implicitly all in CNI",
+      "classification": "KEEP_INTERNAL_ONLY",
+      "dependencies": ["auth/session", "permissions"],
+      "recommendedAction": "Auto-provision single CNI membership; no membership UI",
+      "riskOfRemoval": "medium",
+      "priority": "P2"
+    },
+    {
+      "id": 3,
+      "component": "Platform administration (/api/platform/organizations/**, organizationLifecycleService, platform-http, PlatformRole, OrganizationStatus lifecycle)",
+      "currentPurpose": "Create/suspend/archive/reactivate/close organizations",
+      "cniRequirement": "None (CNI is fixed)",
+      "classification": "DISABLE",
+      "dependencies": ["src/modules/organizations/application/lifecycle.ts", "platform routes", "notification dispatch"],
+      "recommendedAction": "Gate routes off behind technical-admin flag; remove from any surface",
+      "riskOfRemoval": "low",
+      "priority": "P1"
+    },
+    {
+      "id": 4,
+      "component": "Tenant switcher / organization selector UI",
+      "currentPurpose": "Choose active organization",
+      "cniRequirement": "None",
+      "classification": "DISABLE",
+      "dependencies": ["nav-items"],
+      "recommendedAction": "Confirm not rendered; keep excluded",
+      "riskOfRemoval": "low",
+      "priority": "P2"
+    },
+    {
+      "id": 5,
+      "component": "Support access / SecuritySupportStatus enum",
+      "currentPurpose": "SaaS support-session vestige",
+      "cniRequirement": "None",
+      "classification": "REMOVE_LATER",
+      "dependencies": ["enum only; no support-session code"],
+      "recommendedAction": "Leave dormant; drop in schema cleanup",
+      "riskOfRemoval": "low",
+      "priority": "P3"
+    },
+    {
+      "id": 6,
+      "component": "DomainEventOutbox + OutboxStatus + appendOutboxEvent (src/platform/events/outbox.ts)",
+      "currentPurpose": "Reliable async domain-event propagation",
+      "cniRequirement": "None; direct transactional services suffice",
+      "classification": "DISABLE",
+      "followUp": "REMOVE_LATER",
+      "dependencies": ["zero producers", "zero consumers (verified)"],
+      "recommendedAction": "Stop referencing; mark table INFRASTRUCTURE_UNUSED; drop later",
+      "riskOfRemoval": "very low",
+      "priority": "P2"
+    },
+    {
+      "id": 7,
+      "component": "Job platform (jobs/registry.ts, jobs/dispatcher.ts SynchronousJobDispatcher, src/worker/**)",
+      "currentPurpose": "Async background jobs",
+      "cniRequirement": "Only synchronous in-request work today",
+      "classification": "SIMPLIFY",
+      "dependencies": ["worker container", "WORKER_* env"],
+      "recommendedAction": "Keep SynchronousJobDispatcher seam; do not deploy worker; registry stays empty",
+      "riskOfRemoval": "low",
+      "priority": "P2"
+    },
+    {
+      "id": 8,
+      "component": "Integration framework (src/platform/integrations/**, OrganizationIntegration, IntegrationExecution, /api/organizations/current/integrations/**)",
+      "currentPurpose": "Generic external REST/provider integration with secrets, circuit breaker, SSRF guard",
+      "cniRequirement": "None (no confirmed CNI integration)",
+      "classification": "DISABLE",
+      "dependencies": ["4 API routes", "integration services", "secret store"],
+      "recommendedAction": "Turn off routes; park code + document; no admin UI",
+      "riskOfRemoval": "low",
+      "priority": "P1"
+    },
+    {
+      "id": 9,
+      "component": "Notification platform (src/modules/notifications/**, Notification, NotificationDelivery, /api/notifications/**)",
+      "currentPurpose": "Multi-channel (in-app + email) notifications",
+      "cniRequirement": "Few genuine events; email not required for v1",
+      "classification": "SIMPLIFY",
+      "followUp": "DISABLE",
+      "dependencies": ["single caller: organizations/application/lifecycle.ts (disabled surface)"],
+      "recommendedAction": "Disable multi-channel/email; keep minimal in-app seam only if a real event is prioritized",
+      "riskOfRemoval": "low",
+      "priority": "P2"
+    },
+    {
+      "id": 10,
+      "component": "Reporting module (src/modules/reporting/**, ReportExecution, /api/reports/catalog, /api/compras/reportes)",
+      "currentPurpose": "Report catalog + async execution + CSV/XLSX export",
+      "cniRequirement": "REQUIRED institutional reports; finish, do not abstract",
+      "classification": "REQUIRED",
+      "followUp": "SIMPLIFY",
+      "dependencies": ["export exporters", "compras reportes route (reads canonical compraOrden)"],
+      "recommendedAction": "Finish concrete reports (filters/totals/secure download); collapse async execution if unused",
+      "riskOfRemoval": "medium",
+      "priority": "P1"
+    }
+  ],
+  "apiClassification": {
+    "INTERNAL_REQUIRED": [
+      "/api/oficios/**", "/api/equipment/**", "/api/equipment-assignments/**",
+      "/api/equipment-disposal/**", "/api/maintenance/**", "/api/compras/ordenes/**",
+      "/api/compras/proveedores", "/api/employees/**", "/api/users/**", "/api/auth/**",
+      "/api/audit-logs", "/api/health/**", "/api/audits/**", "/api/corrective-actions/**",
+      "/api/compras/reportes/**", "/api/reports/catalog"
+    ],
+    "LEGACY": [
+      "/api/purchases/**", "/api/compras/solicitudes/**",
+      "/api/tickets/**", "/api/time-entries/**", "/api/promotional-items/**"
+    ],
+    "DISABLE": [
+      "/api/platform/organizations/**", "/api/organizations/current/integrations/**"
+    ],
+    "INTERNAL_REDUNDANT": ["/api/notifications/**"]
+  },
+  "databaseClassification": {
+    "ACTIVE": [
+      "Oficio", "OficioDocument", "OficioTracking", "OficioImportBatch", "OficioImportBatchItem",
+      "Equipment", "EquipmentAssignment", "EquipmentMaintenance", "EquipmentHistory",
+      "EquipmentDisposal", "EquipmentDisposalHistory", "DisposalDocument", "DisposalPolicy",
+      "CompraOrden", "CompraOrdenItem", "CompraOrdenDocumento", "CompraOrdenHistorial",
+      "CompraOrdenSequence", "CompraOrdenTemplate", "CompraDocumento", "CompraAdjunto",
+      "Proveedor", "Employee", "User", "Department", "CostCenter", "DocumentSequence",
+      "Audit", "AuditFinding", "AuditChecklistItem", "CorrectiveAction",
+      "Organization", "OrganizationMembership", "SystemAuditEvent"
+    ],
+    "DEPRECATED": [
+      "CompraSolicitud", "CompraSolicitudItem",
+      "Ticket", "TimeEntry", "AttendancePolicy", "AuditRecord",
+      "PromotionalItem", "PromotionalMovement", "JobPosition", "ReplacementProjection",
+      "SecuritySupportStatus"
+    ],
+    "LEGACY_READ_ONLY": [
+      "CompraOrdenLegacy", "CompraOrdenItemLegacy", "CompraOrdenDocumentoLegacy",
+      "CompraOrdenHistorialLegacy", "CompraOrdenSequenceLegacy"
+    ],
+    "INFRASTRUCTURE_UNUSED": [
+      "DomainEventOutbox", "OrganizationIntegration", "IntegrationExecution",
+      "Notification", "NotificationDelivery"
+    ],
+    "REVIEW": ["ReportExecution"]
+  },
+  "institutionalGaps": [
+    {
+      "domain": "Institutional Audits",
+      "priority": "P1",
+      "state": "Implemented (models/routes/pages) but not in navigation, no dedicated permission module",
+      "action": "Add 'audits' permission Module, wire RBAC, add Control -> Auditoria institucional nav entry, make operational",
+      "outranks": "all SaaS/platform infrastructure work"
+    },
+    {
+      "domain": "Reports",
+      "priority": "P1",
+      "state": "Module + CSV/XLSX exporters exist; canonical compraOrden source confirmed",
+      "action": "Finish filters, totals, secure download; collapse async execution ceremony if unused"
+    }
+  ],
+  "organizationDecision": {
+    "classification": "KEEP_INTERNAL_ONLY",
+    "reason": "organizationId is deeply embedded in ownership and tenant security; removal now is a dangerous high-blast-radius migration",
+    "rules": [
+      "CNI is default and only organization",
+      "Users never choose an organization",
+      "Organization lifecycle UI and platform management disabled",
+      "Tenant scoping retained as internal safety boundary (defense-in-depth against IDOR)"
+    ],
+    "doNotDoNow": "organizationId removal migration"
+  },
+  "platformInfrastructureVerdict": {
+    "KEEP": [
+      "Organization/OrganizationMembership tenancy (internal-only)",
+      "SynchronousJobDispatcher seam",
+      "Route Handlers, PDF, S3 storage, CSV/XLSX export"
+    ],
+    "SIMPLIFY": [
+      "Notification platform (minimal in-app or disable)",
+      "Reporting async execution",
+      "Compras legacy/solicitud duplicate models -> single source CompraOrden"
+    ],
+    "DISABLE": [
+      "Platform admin (/api/platform/**, org lifecycle)",
+      "Integration framework + routes",
+      "Background worker deployment (dormant)",
+      "/api/notifications/** (no producers)"
+    ],
+    "REMOVE_LATER": [
+      "DomainEventOutbox",
+      "SecuritySupportStatus",
+      "CompraOrden*Legacy tables",
+      "Ticket / TimeEntry / AttendancePolicy / AuditRecord / PromotionalItem / JobPosition / ReplacementProjection"
+    ]
+  },
+  "remediationOrder": [
+    "1. Finish P1 institutional gaps (Audits nav+permissions, Reports)",
+    "2. DISABLE platform/integration/notification/worker surfaces",
+    "3. SIMPLIFY duplicate procurement to single source (CompraOrden)",
+    "4. REMOVE_LATER dead tables after dependency + data + migration confirmation"
+  ]
+}
