@@ -15,6 +15,7 @@ export type Module =
   | 'employees'
   | 'users'
   | 'purchases'
+  | 'audits'
   | 'audit-records'
   | 'settings';
 
@@ -29,6 +30,7 @@ const PERMISSIONS: Record<Role, Partial<Record<Module, Action[]>>> = {
     employees:       ['read', 'create', 'update', 'delete'],
     purchases:       ['read', 'create', 'update', 'delete'],
     users:           ['read', 'create', 'update', 'delete'],
+    audits:          ['read', 'create', 'update', 'delete'],
     'audit-records': ['read', 'create', 'update', 'delete'],
     settings:        ['read', 'update'],
   },
@@ -96,6 +98,7 @@ export const ROUTE_ACCESS_BY_MODULE: Record<Module, Role[] | null> = {
   'employees':       ['ADMIN', 'IT', 'RRHH'],
   'purchases':       ['ADMIN', 'IT', 'RRHH'],
   'users':           ['ADMIN', 'RRHH'],
+  'audits':          ['ADMIN'],
   'audit-records':   ['ADMIN'],
   'settings':        ['ADMIN'],
 };
@@ -122,6 +125,7 @@ export const ROUTE_PATH_TO_MODULE: Record<string, Module> = {
   '/compras/nueva':          'purchases',
   '/compras/configuracion':  'purchases',
   '/users':                  'users',
+  '/audits':                 'audits',
   '/audit/logs':             'audit-records',
   '/audit-records':          'audit-records',
   '/settings':               'settings',

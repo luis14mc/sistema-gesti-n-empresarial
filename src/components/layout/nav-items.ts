@@ -29,9 +29,10 @@ import type { Module } from '@/lib/permissions';
 //   • Notifications        (no UI/email backend — FOUNDATION_ONLY)
 //   • Integrations         (no adapters/consumers — FOUNDATION_ONLY)
 //   • Organization/Platform admin (TECHNICAL_ADMIN_ONLY / FUTURE — no UI)
-//   • Institutional Audits (/audits) (kept DISABLED until 14F functional
-//     closure adds an `audits` permission module + verifies the workflow).
 //   • Maintenance (/maintenance) (no operational page yet — 14F).
+//
+// Institutional Audits (/audits) is EXPOSED (Phase 14F) under Control, gated by
+// the `audits` permission module (ADMIN).
 
 export interface NavSubItem {
   label: string;
@@ -113,10 +114,11 @@ export const NAV_ITEMS: NavItem[] = [
   // Control
   {
     label: 'Control',
-    href: '/audit/logs',
+    href: '/audits',
     icon: ClipboardCheck,
-    module: 'audit-records',
+    module: 'audits',
     children: [
+      { label: 'Auditoría institucional', href: '/audits', module: 'audits' },
       { label: 'Auditoría del sistema', href: '/audit/logs', module: 'audit-records' },
     ],
   },

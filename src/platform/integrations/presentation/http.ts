@@ -7,6 +7,7 @@ import { recordSecurityEventBestEffort } from '@/platform/security/audit/securit
 import { isOrganizationContextError, requireOrganizationContext, type OrganizationContext } from '@/modules/organizations/application/context';
 import { requirePermission } from '@/platform/security/authorization/permissions';
 import { isIntegrationDomainError } from '@/platform/integrations/domain/integration-errors';
+import { FEATURES } from '@/platform/config/features';
 
 export async function runIntegrationRoute(
   request: AuthenticatedRequest,
@@ -15,6 +16,11 @@ export async function runIntegrationRoute(
   handler: (input: { requestId: string; context: OrganizationContext }) => Promise<NextResponse>,
 ): Promise<NextResponse> {
   const requestId = crypto.randomUUID();
+  // Phase 14C — the generic integration framework is foundation-only (no active
+  // CNI integration/adapter). Disabled at runtime unless explicitly enabled.
+  if (!FEATURES.integrations) {
+    return apiFailure('FEATURE_NOT_AVAILABLE', 'Recurso no disponible.', { requestId, status: 404 });
+  }
   const startedAt = performance.now();
   let securityContext: OrganizationContext | undefined;
   try {

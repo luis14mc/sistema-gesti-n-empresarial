@@ -78,16 +78,23 @@ describe('navigation reconciliation', () => {
 
   it('does NOT expose foundation-only / disabled capabilities', () => {
     const hrefs = allHrefs().join(' ');
-    // Notifications, integrations, platform/org admin, institutional audits.
+    // Notifications, integrations, platform/org admin remain foundation-only.
     expect(hrefs).not.toMatch(/\/notifications/);
     expect(hrefs).not.toMatch(/\/integrations/);
     expect(hrefs).not.toMatch(/\/platform/);
     expect(hrefs).not.toMatch(/\/organizations?\/admin/);
-    // Institutional Audits page is /audits ; the system audit log is /audit/logs.
-    // Ensure no nav entry points at the (disabled) institutional audits module.
-    for (const href of allHrefs()) {
-      expect(href === '/audits' || href.startsWith('/audits/')).toBe(false);
-    }
+    // Maintenance has no operational page yet (14F) — must not be linked.
+    expect(hrefs).not.toMatch(/\/maintenance/);
+  });
+
+  it('exposes Institutional Audits gated by the ADMIN-only `audits` module', () => {
+    const auditNav = NAV_ITEMS.flatMap((i) => i.children ?? []).find((c) => c.href === '/audits');
+    expect(auditNav, 'institutional audits must be present in nav').toBeTruthy();
+    expect(auditNav?.module).toBe('audits');
+    // Only ADMIN reaches it.
+    expect(reachableModules('ADMIN')).toContain('audits');
+    expect(reachableModules('USER')).not.toContain('audits');
+    expect(reachableModules('IT')).not.toContain('audits');
   });
 
   it('contains no dead legacy purchase navigation', () => {

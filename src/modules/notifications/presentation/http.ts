@@ -7,6 +7,7 @@ import { recordSecurityEventBestEffort } from '@/platform/security/audit/securit
 import { isOrganizationContextError, requireOrganizationContext, type OrganizationContext } from '@/modules/organizations/application/context';
 import { requirePermission } from '@/platform/security/authorization/permissions';
 import { isNotificationDomainError } from '@/modules/notifications/domain/errors';
+import { FEATURES } from '@/platform/config/features';
 
 export async function runNotificationRoute(
   request: AuthenticatedRequest,
@@ -14,6 +15,11 @@ export async function runNotificationRoute(
   handler: (input: { requestId: string; context: OrganizationContext }) => Promise<NextResponse>,
 ): Promise<NextResponse> {
   const requestId = crypto.randomUUID();
+  // Phase 14D — notifications are foundation-only for the initial release (no
+  // in-app center / email backend). Disabled at runtime unless explicitly enabled.
+  if (!FEATURES.notifications) {
+    return apiFailure('FEATURE_NOT_AVAILABLE', 'Recurso no disponible.', { requestId, status: 404 });
+  }
   const startedAt = performance.now();
   let securityContext: OrganizationContext | undefined;
   try {

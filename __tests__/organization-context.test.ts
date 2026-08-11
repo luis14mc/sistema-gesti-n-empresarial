@@ -52,9 +52,12 @@ describe('requireOrganizationContext', () => {
     await expect(requireOrganizationContext(request('org-b'), 'request-2')).resolves.toMatchObject({ organizationId: 'org-b' });
   });
 
-  it('requires selection when multiple memberships are active', async () => {
+  it('defaults to the primary (first) active membership when none is selected (Phase 14B)', async () => {
+    // Internal single-org (CNI) deployment: normal users never choose an
+    // organization, so an unselected context resolves the primary membership
+    // deterministically instead of forcing a 409 selection flow.
     mocks.findMemberships.mockResolvedValue([membership('org-a'), membership('org-b')]);
-    await expect(requireOrganizationContext(request(), 'request-3')).rejects.toMatchObject({ code: 'ORGANIZATION_SELECTION_REQUIRED', status: 409 });
+    await expect(requireOrganizationContext(request(), 'request-3')).resolves.toMatchObject({ organizationId: 'org-a' });
   });
 
   it('returns controlled membership and cross-tenant errors', async () => {

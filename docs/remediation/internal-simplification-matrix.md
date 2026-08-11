@@ -14,13 +14,16 @@ Source of truth: [`docs/audit/internal-system-simplification.md`](../audit/inter
 
 | Subphase | Scope | Status |
 |----------|-------|--------|
-| **14A** | Navigation & visible-surface cleanup | ☑ done (this pass) |
-| 14B | Organization/platform simplification (CNI auto-select) | ☐ |
-| 14C | Disable unused SaaS foundations (integrations/webhooks/support/usage/limits) | ☐ |
-| 14D | Worker/outbox/notifications simplification | ☐ |
-| 14E | Database/schema deprecation classification + safe migrations | ☐ |
-| 14F | Institutional modules functional closure (audits, maintenance, reports) | ☐ |
-| 14G | Functional re-audit (score) | ☐ |
+| **14A** | Navigation & visible-surface cleanup | ☑ done |
+| **14B** | Organization/platform simplification (CNI auto-select, 409 removed) | ☑ done |
+| **14C** | Disable unused SaaS foundations (integrations, platform admin) | ☑ done (runtime 404 via `FEATURES`) |
+| **14D** | Worker/outbox/notifications simplification | ☑ done (notifications 404; outbox/worker dormant) |
+| **14E** | Database/schema deprecation classification | ☑ done (classification only; no destructive migration) |
+| **14F** | Institutional Audits functional closure | ☑ done (Maintenance UI + full Reports remain P1) |
+| **14G** | Functional re-audit (score) | ☑ done — see [phase14-reaudit](../audit/functional-system-audit-phase14-reaudit.md) (~80%) |
+
+**Feature gates (default off):** `SGE_ENABLE_PLATFORM_ADMIN`, `SGE_ENABLE_INTEGRATIONS`, `SGE_ENABLE_NOTIFICATIONS` — see `src/platform/config/features.ts`.
+**Remaining P1 (14F follow-up):** Maintenance UI page · Reports catalog completion · assignment-constraint `migrate deploy`.
 
 ---
 

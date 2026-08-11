@@ -88,12 +88,14 @@ export async function requireOrganizationContext(
     throw new TenantAccessDeniedError();
   }
 
-  const membership = selectedMembership ?? (activeMemberships.length === 1 ? activeMemberships[0] : null);
-  if (!membership) {
-    warnDenied({ requestId, userId: user.id, sessionEmail: user.email, membershipCount: memberships.length, activeMembershipCount: activeMemberships.length, selectedOrganizationId, reason: 'ORGANIZATION_SELECTION_REQUIRED' });
-    await auditDenied(requestId, user.id, 'ORGANIZATION_SELECTION_REQUIRED', false, memberships.length, activeMemberships.length);
-    throw new OrganizationSelectionRequiredError();
-  }
+  // Phase 14B — internal single-org (CNI) deployment: normal users never choose
+  // an organization. When no explicit selection is present we deterministically
+  // resolve the primary (oldest) active membership instead of forcing a
+  // selection flow. Membership + tenant validation above is unchanged, so this
+  // grants no access beyond the user's own active memberships. The
+  // OrganizationSelectionRequiredError type is retained for API compatibility
+  // but is no longer thrown from the normal flow.
+  const membership = selectedMembership ?? activeMemberships[0];
 
   return {
     authorizationScope: 'organization',

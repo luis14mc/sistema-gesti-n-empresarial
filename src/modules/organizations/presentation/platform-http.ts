@@ -9,6 +9,7 @@ import { isPlatformContextError, requirePlatformContext, type PlatformContext } 
 import { isOrganizationDomainError } from '@/modules/organizations/domain/errors';
 import { PermissionDeniedError } from '@/platform/domain/errors';
 import { InvalidOrganizationCommandError } from '@/modules/organizations/application/lifecycle';
+import { FEATURES } from '@/platform/config/features';
 
 export type PlatformRouteAction = string;
 
@@ -18,6 +19,12 @@ export async function runPlatformRoute(
   handler: (input: { requestId: string; context: PlatformContext }) => Promise<NextResponse>,
 ): Promise<NextResponse> {
   const requestId = crypto.randomUUID();
+  // Phase 14B/14C — platform administration is a foundation-only capability and
+  // is disabled for the internal CNI deployment. Behaves as if the route does
+  // not exist unless explicitly enabled.
+  if (!FEATURES.platformAdmin) {
+    return apiFailure('FEATURE_NOT_AVAILABLE', 'Recurso no disponible.', { requestId, status: 404 });
+  }
   const startedAt = performance.now();
   let platformContext: PlatformContext | undefined;
   try {
