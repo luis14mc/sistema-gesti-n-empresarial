@@ -1,6 +1,8 @@
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
+import { validateDatabaseEnvironment } from '@/platform/config/env';
+import { createLogger } from '@/platform/observability/logger';
 
 // ============================================
 // PRISMA 7 - Singleton con PG Adapter
@@ -8,17 +10,15 @@ import { PrismaClient } from '@prisma/client';
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
-// Validar que DATABASE_URL existe
-if (!process.env.DATABASE_URL) {
-  console.error(
-    '\x1b[31m[Prisma] ❌ DATABASE_URL no está definida en .env\x1b[0m'
-  );
-}
-
 function createPrismaClient(): PrismaClient {
+  const environment = validateDatabaseEnvironment(process.env);
   const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: environment.DATABASE_URL,
+    max: environment.DATABASE_POOL_MAX,
+    idleTimeoutMillis: environment.DATABASE_IDLE_TIMEOUT_MS,
+    connectionTimeoutMillis: environment.DATABASE_CONNECTION_TIMEOUT_MS,
   });
+  pool.on('error', (error) => createLogger({ module: 'database' }).error('database.pool.error', { error }));
 
   const adapter = new PrismaPg(pool);
 

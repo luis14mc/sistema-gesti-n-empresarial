@@ -1,12 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthenticatedRequest } from '@/lib/middleware';
 
-const mocks = vi.hoisted(() => ({ findUser: vi.fn(), findMemberships: vi.fn() }));
+const mocks = vi.hoisted(() => ({ findUser: vi.fn(), findMemberships: vi.fn(), recordDenied: vi.fn() }));
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     user: { findFirst: mocks.findUser },
     organizationMembership: { findMany: mocks.findMemberships },
   },
+}));
+vi.mock('@/platform/security/audit/security-events', () => ({
+  recordSecurityEventBestEffort: mocks.recordDenied,
 }));
 
 import { requireOrganizationContext } from '@/modules/organizations/application/context';
@@ -27,19 +30,20 @@ const membership = (organizationId: string) => ({
   status: 'ACTIVE',
   createdAt: new Date(),
   updatedAt: new Date(),
-  organization: { id: organizationId, slug: organizationId, status: 'ACTIVE' },
+  organization: { id: organizationId, slug: organizationId, status: 'ACTIVE', timezone: 'America/Tegucigalpa' },
 });
 
 describe('requireOrganizationContext', () => {
   beforeEach(() => {
     mocks.findUser.mockReset().mockResolvedValue({ id: 'user-a', email: 'a@example.com' });
     mocks.findMemberships.mockReset();
+    mocks.recordDenied.mockReset().mockResolvedValue(undefined);
   });
 
   it('automatically selects the only active membership', async () => {
     mocks.findMemberships.mockResolvedValue([membership('org-a')]);
     await expect(requireOrganizationContext(request(), 'request-1')).resolves.toEqual({
-      userId: 'user-a', organizationId: 'org-a', organizationSlug: 'org-a', membershipId: 'membership-org-a', role: 'USER',
+      authorizationScope: 'organization', userId: 'user-a', organizationId: 'org-a', organizationSlug: 'org-a', timezone: 'America/Tegucigalpa', membershipId: 'membership-org-a', role: 'USER',
     });
   });
 
@@ -58,5 +62,8 @@ describe('requireOrganizationContext', () => {
     await expect(requireOrganizationContext(request(), 'request-4')).rejects.toMatchObject({ code: 'ORGANIZATION_MEMBERSHIP_REQUIRED', status: 403 });
     mocks.findMemberships.mockResolvedValue([membership('org-a')]);
     await expect(requireOrganizationContext(request('org-b'), 'request-5')).rejects.toMatchObject({ code: 'TENANT_ACCESS_DENIED', status: 403 });
+    expect(mocks.recordDenied).toHaveBeenLastCalledWith(expect.objectContaining({
+      eventType: 'tenant.context.denied', outcome: 'DENIED', reasonCode: 'SELECTED_ORGANIZATION_NOT_ALLOWED',
+    }));
   });
 });

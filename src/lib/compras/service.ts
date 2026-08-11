@@ -302,8 +302,8 @@ export async function createProveedor(data: {
   email?: string | null;
   personaContacto?: string | null;
   direccion?: string | null;
-}) {
-  return prisma.proveedor.create({ data });
+}, organizationId: string) {
+  return prisma.proveedor.create({ data: { ...data, organizationId } });
 }
 
 // Legacy alias

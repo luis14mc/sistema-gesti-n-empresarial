@@ -1,0 +1,192 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2026-08-03T00:00:00Z",
+  "modules": [
+    {
+      "name": "Purchases",
+      "requirements": [
+        "REQ-PO-001: crear borrador con número institucional",
+        "REQ-PO-002: aplicar descuentos (porcentaje o monto)",
+        "REQ-PO-003: calcular ISV 15%",
+        "REQ-PO-004: generar PDF con plantilla activa",
+        "REQ-PO-005: emitir / anular / cerrar orden",
+        "REQ-PO-006: regenerar PDF sin perder checksum"
+      ],
+      "domain_rules": [
+        "src/lib/compras/calculos.ts:calcularTotalesCompra",
+        "src/lib/compras/orden/tenant.ts:purchaseOrderScope",
+        "src/lib/compras/validation.ts:validateRtn",
+        "src/lib/compras/orden/generation-validation.ts:validatePurchaseOrderForGeneration"
+      ],
+      "test_cases": [
+        "tests/unit/purchase-totals.test.ts",
+        "tests/unit/compras-validation.test.ts",
+        "tests/unit/purchase-order-tenant.test.ts",
+        "__tests__/purchase-order-generation-validation.test.ts",
+        "tests/e2e/purchase-order.e2e.spec.ts"
+      ],
+      "evidence": "phase10/report.json"
+    },
+    {
+      "name": "Equipment",
+      "requirements": [
+        "REQ-EQ-001: alta con código TI-CAT-NNNN",
+        "REQ-EQ-002: asignación, devolución, mantenimiento",
+        "REQ-EQ-003: marcar como disponible / DISPOSED",
+        "REQ-EQ-004: una sola asignación activa por equipo"
+      ],
+      "domain_rules": [
+        "src/lib/equipment-asset-code.ts:resolveEquipmentCategory",
+        "src/lib/equipment-history.ts:mapReturnConditionToStatus",
+        "src/lib/equipment-document-types.ts:resolveEquipmentDocumentType",
+        "src/modules/equipment/tenant.ts:equipmentScope"
+      ],
+      "test_cases": [
+        "tests/unit/equipment-asset-code.test.ts",
+        "tests/unit/equipment-return-status.test.ts",
+        "tests/unit/equipment-document-types.test.ts",
+        "tests/security/idor-per-entity.test.ts",
+        "tests/e2e/equipment-lifecycle.e2e.spec.ts"
+      ],
+      "evidence": "phase10/report.json"
+    },
+    {
+      "name": "Disposal",
+      "requirements": [
+        "REQ-DI-001: evaluar y justificar",
+        "REQ-DI-002: thresholds aprobación / revisión",
+        "REQ-DI-003: aprobar / rechazar / cancelar",
+        "REQ-DI-004: generar dictamen PDF con checksum"
+      ],
+      "domain_rules": [
+        "src/modules/equipment-disposal/domain/evaluator.ts:evaluateEquipmentDisposal",
+        "src/modules/equipment-disposal/domain/rules.ts:ALLOWED_DISPOSAL_TRANSITIONS",
+        "src/modules/equipment-disposal/infrastructure/tenant-scope.ts:disposalScope"
+      ],
+      "test_cases": [
+        "tests/unit/disposal-evaluator.test.ts",
+        "tests/unit/disposal-rules.test.ts",
+        "tests/security/idor-per-entity.test.ts",
+        "tests/integration/data-quality.test.ts"
+      ],
+      "evidence": "phase10/report.json"
+    },
+    {
+      "name": "Oficios",
+      "requirements": [
+        "REQ-OF-001: numeración MEMO/DPICP/CNI",
+        "REQ-OF-002: recibir, enviar, completar, archivar",
+        "REQ-OF-003: importar lote",
+        "REQ-OF-004: filtros por usuario"
+      ],
+      "domain_rules": [
+        "src/lib/oficios-numbering.ts:formatOficioNumber",
+        "src/modules/oficios/infrastructure/tenant-scope.ts:oficioScope"
+      ],
+      "test_cases": [
+        "tests/unit/oficios-numbering.test.ts",
+        "tests/unit/tenant-scope-shapes.test.ts",
+        "__tests__/oficios-tenant-isolation.test.ts",
+        "tests/e2e/oficios.e2e.spec.ts"
+      ],
+      "evidence": "phase10/report.json"
+    },
+    {
+      "name": "Security",
+      "requirements": [
+        "REQ-SE-001: JWT con expiración 1h",
+        "REQ-SE-002: SameSite=Lax cookie",
+        "REQ-SE-003: CSP nonce + strict-dynamic",
+        "REQ-SE-004: IDOR por organización",
+        "REQ-SE-005: rate limiting por IP",
+        "REQ-SE-006: SSRF guard",
+        "REQ-SE-007: webhook signature",
+        "REQ-SE-008: audit log mandatory"
+      ],
+      "domain_rules": [
+        "src/lib/auth.ts:generateToken",
+        "src/middleware.ts:buildCspHeader",
+        "src/lib/idor.ts:applyIdorFilter",
+        "src/lib/rate-limit.ts:createRateLimiter",
+        "src/platform/integrations/application/ssrf-guard.ts:checkUrlForSsrf"
+      ],
+      "test_cases": [
+        "tests/security/authentication.test.ts",
+        "tests/security/csp-cors-csrf.test.ts",
+        "tests/security/idor-per-entity.test.ts",
+        "tests/security/idor-regression.test.ts",
+        "tests/security/authorization-matrix.test.ts",
+        "tests/security/file-security.test.ts",
+        "tests/contracts/api-envelope.test.ts",
+        "tests/contracts/auth-middleware.test.ts"
+      ],
+      "evidence": "phase10/report.json"
+    },
+    {
+      "name": "Organizations",
+      "requirements": [
+        "REQ-OR-001: alta con slug único",
+        "REQ-OR-002: activar solo con onboarding COMPLETED/SKIPPED",
+        "REQ-OR-003: suspender / archivar / cierre",
+        "REQ-OR-004: al menos un OWNER activo"
+      ],
+      "domain_rules": [
+        "src/modules/organizations/domain/rules.ts:ALLOWED_ORGANIZATION_TRANSITIONS",
+        "src/modules/organizations/domain/rules.ts:assertOnboardingReadyForActivation"
+      ],
+      "test_cases": [
+        "tests/unit/organization-lifecycle.test.ts",
+        "__tests__/organization-lifecycle.test.ts",
+        "__tests__/organization-context.test.ts",
+        "__tests__/organization-platform-context.test.ts"
+      ],
+      "evidence": "phase10/report.json"
+    },
+    {
+      "name": "Notifications",
+      "requirements": [
+        "REQ-NO-001: idempotencia (organización, evento, receptor, canal)",
+        "REQ-NO-002: link interno seguro",
+        "REQ-NO-003: destinatarios por rol",
+        "REQ-NO-004: aislamiento por tenant"
+      ],
+      "domain_rules": [
+        "src/modules/notifications/application/idempotency.ts:buildIdempotencyKey",
+        "src/modules/notifications/application/action-url.ts:normalizeInternalPath",
+        "src/modules/notifications/domain/rules.ts:NOTIFICATION_RULES"
+      ],
+      "test_cases": [
+        "tests/unit/notification-idempotency.test.ts",
+        "tests/unit/notification-action-url.test.ts",
+        "tests/unit/notification-rules.test.ts",
+        "__tests__/notifications-idempotency.test.ts",
+        "__tests__/notifications-action-url.test.ts",
+        "tests/security/idor-per-entity.test.ts"
+      ],
+      "evidence": "phase10/report.json"
+    },
+    {
+      "name": "Integrations",
+      "requirements": [
+        "REQ-IN-001: retries + circuit breaker",
+        "REQ-IN-002: SSRF guard",
+        "REQ-IN-003: webhook signature + replay",
+        "REQ-IN-004: rotación de credenciales"
+      ],
+      "domain_rules": [
+        "src/platform/integrations/application/retry-policy.ts:shouldRetry",
+        "src/platform/integrations/application/circuit-breaker.ts:CircuitBreaker",
+        "src/platform/integrations/application/ssrf-guard.ts:checkUrlForSsrf"
+      ],
+      "test_cases": [
+        "tests/unit/integration-retry-policy.test.ts",
+        "tests/unit/integration-circuit-breaker.test.ts",
+        "tests/unit/ssrf-guard.test.ts",
+        "__tests__/integrations-retry-circuit.test.ts",
+        "__tests__/integrations-ssrf-guard.test.ts",
+        "__tests__/integrations-execution.test.ts"
+      ],
+      "evidence": "phase10/report.json"
+    }
+  ]
+}

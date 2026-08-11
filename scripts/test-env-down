@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# scripts/test-env-down
+# Phase 10A — tear down the isolated PostgreSQL test database.
+#
+# Hard rules:
+#   - Only touches the test container (db-test, profile=test).
+#   - Refuses to run if APP_ENV is "production".
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
+
+if [ "${APP_ENV:-}" = "production" ]; then
+  echo "REFUSED: APP_ENV=production is not allowed for test-env-down." >&2
+  exit 64
+fi
+
+if ! command -v docker >/dev/null 2>&1; then
+  echo "docker is required for test-env-down." >&2
+  exit 127
+fi
+
+echo "[test-env-down] stopping and removing the test container"
+docker compose --profile test down -v db-test
+echo "[test-env-down] done."

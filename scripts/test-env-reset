@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# scripts/test-env-reset
+# Phase 10A — destructive reset of the test database.
+#
+# Hard rules:
+#   - Refuses to run if DATABASE_URL does not look like a test environment.
+#   - Refuses to run if APP_ENV is "production".
+#   - Recreates the database from scratch (POSTGRES_DB)
+#   - Re-applies every migration.
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
+
+: "${DATABASE_URL:?DATABASE_URL must be set to the test database URL}"
+
+if [ "${APP_ENV:-}" = "production" ]; then
+  echo "REFUSED: APP_ENV=production is not allowed for test-env-reset." >&2
+  exit 64
+fi
+
+case "$DATABASE_URL" in
+  *staging*|*prod*|*production*)
+    echo "REFUSED: DATABASE_URL looks like a non-test environment: $DATABASE_URL" >&2
+    exit 64
+    ;;
+esac
+
+if ! command -v docker >/dev/null 2>&1; then
+  echo "docker is required for test-env-reset." >&2
+  exit 127
+fi
+
+DB_CONTAINER=$(docker compose --profile test ps -q db-test)
+if [ -z "$DB_CONTAINER" ]; then
+  echo "[test-env-reset] db-test container is not running. Use scripts/test-env-up first." >&2
+  exit 1
+fi
+
+echo "[test-env-reset] dropping and recreating the database"
+docker exec -e PGPASSWORD=postgres "$DB_CONTAINER" \
+  psql -U postgres -d postgres -c "DROP DATABASE IF EXISTS sge_test; CREATE DATABASE sge_test;"
+
+echo "[test-env-reset] applying migrations"
+pnpm prisma migrate deploy
+
+echo "[test-env-reset] done."

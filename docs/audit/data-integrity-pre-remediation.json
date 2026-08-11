@@ -1,0 +1,27 @@
+{
+  "phase": "13A",
+  "type": "read-only-integrity-pre-remediation",
+  "generatedAt": "2026-08-03",
+  "executionStatus": "PARTIALLY_EXECUTED",
+  "executionReason": "Core checks executed READ-ONLY against production Neon on 2026-08-03 (all CLEAN). Remaining checks (missing supplier, missing document, oficios invalid state, audit reference, notifications recipient) still PENDING a fuller staging run.",
+  "liveRun": { "date": "2026-08-03", "target": "production Neon (read-only)", "volumes": { "active_assignments": 1, "purchase_orders": 1, "compras_solicitudes_legacy": 1 } },
+  "repairPolicy": "no-automatic-repair; explicit dry-run-default scripts only",
+  "checks": [
+    { "id": 1, "name": "orphan-assignments", "severityIfFound": "CRITICAL", "table": "equipment_assignments", "result": "CLEAN (0 rows)" },
+    { "id": 2, "name": "missing-organization-ownership", "severityIfFound": "CRITICAL", "tables": ["equipment", "purchase_orders", "equipment_assignments", "oficios"], "result": "PENDING" },
+    { "id": 3, "name": "duplicate-document-sequences", "severityIfFound": "CRITICAL", "table": "document_sequences", "result": "CLEAN (0 rows)" },
+    { "id": 4, "name": "duplicate-active-assignments", "severityIfFound": "HIGH", "relatedFinding": "M-1", "table": "equipment_assignments", "result": "CLEAN (0 rows)" },
+    { "id": 5, "name": "approved-disposal-equipment-not-disposed", "severityIfFound": "CRITICAL", "result": "CLEAN (0 rows)" },
+    { "id": 6, "name": "disposed-equipment-with-active-assignment", "severityIfFound": "CRITICAL", "result": "CLEAN (0 rows)" },
+    { "id": 7, "name": "purchase-totals-inconsistent", "severityIfFound": "CRITICAL", "table": "purchase_orders", "result": "CLEAN (0 rows)" },
+    { "id": 8, "name": "purchase-order-without-supplier", "severityIfFound": "HIGH", "table": "purchase_orders", "result": "PENDING" },
+    { "id": 9, "name": "missing-purchase-document", "severityIfFound": "HIGH", "result": "PENDING" },
+    { "id": 10, "name": "oficios-invalid-state", "severityIfFound": "HIGH", "table": "oficios", "result": "PENDING" },
+    { "id": 11, "name": "broken-equipment-history-reference", "severityIfFound": "CRITICAL", "table": "equipment_history", "result": "PENDING" },
+    { "id": 12, "name": "missing-audit-reference", "severityIfFound": "MEDIUM", "result": "PENDING" },
+    { "id": 13, "name": "unprocessed-background-jobs", "severityIfFound": "NOT_APPLICABLE", "note": "No background-job table exists; dispatch is synchronous.", "result": "N/A" },
+    { "id": 14, "name": "outbox-backlog", "severityIfFound": "INFO", "table": "domain_event_outbox", "expected": "0 rows (dormant)", "result": "PENDING" },
+    { "id": 15, "name": "notifications-without-recipient", "severityIfFound": "MEDIUM", "table": "notifications", "result": "PENDING" },
+    { "id": 16, "name": "procurement-volume-canonical-vs-legacy", "severityIfFound": "INFO", "note": "Drives historical-data strategy in 13B", "result": "PENDING" }
+  ]
+}

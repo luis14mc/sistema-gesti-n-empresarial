@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { afterEach, describe, it, expect, beforeEach } from 'vitest';
 import { mkdtempSync, rmSync, existsSync, readFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -10,6 +10,11 @@ describe('LocalStorageAdapter', () => {
 
   beforeEach(() => {
     tmpDir = mkdtempSync(join(tmpdir(), 'sge-storage-'));
+    resetStorageForTests();
+  });
+
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
     resetStorageForTests();
   });
 
@@ -58,6 +63,12 @@ describe('LocalStorageAdapter', () => {
     await expect(adapter.remove('no/existe/path.pdf')).resolves.toBeUndefined();
   });
 
+  it('rejects keys that escape the configured storage root', async () => {
+    const adapter = new LocalStorageAdapter({ baseDir: tmpDir, publicPrefix: '/uploads' });
+    await expect(adapter.get('../secret.txt')).rejects.toThrow('INVALID_STORAGE_KEY');
+    await expect(adapter.remove('../secret.txt')).rejects.toThrow('INVALID_STORAGE_KEY');
+  });
+
   it('round-trip: put then read back via fs', async () => {
     const adapter = new LocalStorageAdapter({
       baseDir: tmpDir,
@@ -93,7 +104,7 @@ describe('LocalStorageAdapter', () => {
 
     process.env.STORAGE_DRIVER = 's3';
     resetStorageForTests();
-    expect(() => getStorage()).toThrowError(/S3_BUCKET/);
+    expect(() => getStorage()).toThrowError(/S3_BUCKET|AWS_REGION/);
     process.env.STORAGE_DRIVER = 'local';
     resetStorageForTests();
   });

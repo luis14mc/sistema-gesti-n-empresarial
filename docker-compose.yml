@@ -1,65 +1,91 @@
-# =====================================================
-# SGE — Desarrollo local con Docker
-# Levanta Postgres + App + (opcional) MinIO para simular S3
-# =====================================================
-# Uso:
-#   docker compose up app db
-#   docker compose --profile s3 up app db minio
-# =====================================================
-
 services:
   db:
-    image: postgres:16-alpine
-    container_name: sge-db
+    image: postgres:16.9-alpine3.22
+    profiles: ["db", "full"]
     environment:
       POSTGRES_USER: sge
       POSTGRES_PASSWORD: sge_dev_password
       POSTGRES_DB: sge
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U sge -d sge"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
-      retries: 5
-
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: sge-app
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql://sge:sge_dev_password@db:5432/sge?schema=public
-      DIRECT_URL:   postgresql://sge:sge_dev_password@db:5432/sge?schema=public
-      JWT_SECRET: dev-jwt-secret-change-in-production-min-32-chars-aaaaaaaaa
-      STORAGE_DRIVER: local
-      NEXT_TELEMETRY_DISABLED: "1"
-    ports:
-      - "3000:3000"
-    volumes:
-      # Persiste adjuntos y PDFs de compras: public/uploads/compras/solicitudes/{id}/
-      - uploads:/app/public/uploads
+      retries: 12
 
   minio:
-    image: minio/minio:latest
-    container_name: sge-minio
-    profiles: ["s3"]
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    profiles: ["storage", "full"]
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     volumes:
       - miniodata:/data
 
+  minio-init:
+    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
+    profiles: ["storage", "full"]
+    depends_on:
+      - minio
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        until mc alias set local http://minio:9000 minioadmin minioadmin; do sleep 2; done;
+        mc mb --ignore-existing local/sge-development;
+        mc anonymous set download local/sge-development
+
+  migrate:
+    profiles: ["full"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migration
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://sge:sge_dev_password@db:5432/sge?schema=public
+      DIRECT_URL: postgresql://sge:sge_dev_password@db:5432/sge?schema=public
+
+  app:
+    profiles: ["full"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: production
+      APP_ENV: development
+      DATABASE_URL: postgresql://sge:sge_dev_password@db:5432/sge?schema=public
+      APP_URL: http://localhost:3000
+      JWT_SECRET: dev-jwt-secret-change-in-production-min-32-chars-aaaaaaaaa
+      STORAGE_DRIVER: s3
+      S3_BUCKET: sge-development
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      S3_ENDPOINT: http://minio:9000
+      S3_FORCE_PATH_STYLE: "true"
+      S3_PUBLIC_URL: http://localhost:9000/sge-development
+      COOKIE_SECURE: "false"
+      PUPPETEER_EXECUTABLE_PATH: /opt/chrome/chrome
+      PUPPETEER_DISABLE_SANDBOX: "true"
+      LOG_LEVEL: debug
+    ports:
+      - "127.0.0.1:3000:3000"
+
 volumes:
   pgdata:
-  uploads:
   miniodata:

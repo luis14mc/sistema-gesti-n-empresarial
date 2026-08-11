@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
+import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { correctiveActionWhere, findAudit } from '@/modules/audits/infrastructure/repository';
+import { auditChildScope } from '@/modules/audits/infrastructure/tenant-scope';
 
 // ============================================
 // GET /api/corrective-actions — Listar acciones correctivas
@@ -9,6 +12,7 @@ import { createAuditRecord } from '@/lib/audit';
 
 async function getHandler(req: AuthenticatedRequest) {
     try {
+        const organization = await requireOrganizationContext(req);
         const { searchParams } = new URL(req.url);
         const status       = searchParams.get('status');
         const auditId      = searchParams.get('auditId');
@@ -19,8 +23,8 @@ async function getHandler(req: AuthenticatedRequest) {
         const pageSize = Math.min(parseInt(searchParams.get('pageSize') || '10'), 100);
         const skip     = (page - 1) * pageSize;
 
-        const where: Record<string, unknown> = {};
-        if (status)    where.status = status;
+        const where = correctiveActionWhere(organization.organizationId);
+        if (status)    where.status = status as any;
         if (auditId)   where.auditId = auditId;
         if (findingId) where.findingId = findingId;
         if (responsibleId) where.responsibleId = responsibleId;
@@ -62,6 +66,7 @@ async function getHandler(req: AuthenticatedRequest) {
 
 async function postHandler(req: AuthenticatedRequest) {
     try {
+        const organization = await requireOrganizationContext(req);
         const data = await req.json();
         const { description, auditId, findingId, responsibleId, dueDate, evidence, notes } = data;
 
@@ -71,12 +76,21 @@ async function postHandler(req: AuthenticatedRequest) {
 
         // Validar auditId si viene
         if (auditId) {
-            const audit = await prisma.audit.findUnique({ where: { id: auditId } });
+            const audit = await findAudit(organization.organizationId, auditId);
             if (!audit) return NextResponse.json({ error: 'Auditoría no encontrada' }, { status: 404 });
+        }
+        if (findingId) {
+            const finding = await prisma.auditFinding.findFirst({
+                where: auditChildScope(organization.organizationId, auditId ?? undefined, findingId),
+            });
+            if (!finding || (auditId && finding.auditId !== auditId)) {
+                return NextResponse.json({ error: 'Hallazgo no encontrado' }, { status: 404 });
+            }
         }
 
         const action = await prisma.correctiveAction.create({
             data: {
+                organizationId: organization.organizationId,
                 description,
                 auditId:        auditId ?? null,
                 findingId:      findingId ?? null,
@@ -84,7 +98,7 @@ async function postHandler(req: AuthenticatedRequest) {
                 dueDate:        dueDate ? new Date(dueDate) : null,
                 evidence:       evidence ?? null,
                 notes:          notes ?? null,
-            },
+            } as any,
             include: {
                 responsible: { select: { id: true, firstName: true, lastName: true } },
             },
@@ -97,6 +111,7 @@ async function postHandler(req: AuthenticatedRequest) {
             category: 'CREATE',
             userId: req.user!.userId,
             entityId: action.id,
+            organizationId: organization.organizationId,
             newData: { auditId: action.auditId, status: action.status },
         });
 

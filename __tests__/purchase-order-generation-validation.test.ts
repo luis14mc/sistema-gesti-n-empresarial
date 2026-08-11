@@ -8,7 +8,8 @@ import {
 function validOrder(): PurchaseOrderWithItems {
   return {
     id: 'order-1',
-    organizationId: null,
+    organizationId: 'org-a',
+    version: 1,
     orderNumber: 'OC-2026-00001',
     sequenceNumber: 1,
     sequenceYear: 2026,

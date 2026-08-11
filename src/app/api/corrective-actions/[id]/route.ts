@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
+import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { correctiveActionWhere, findCorrectiveAction } from '@/modules/audits/infrastructure/repository';
 
 // ============================================
 // GET /api/corrective-actions/[id]
@@ -9,10 +11,11 @@ import { createAuditRecord } from '@/lib/audit';
 
 async function getHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ id: string }> }) {
     try {
+        const organization = await requireOrganizationContext(req);
         const { id } = await ctx.params;
 
-        const action = await prisma.correctiveAction.findUnique({
-            where: { id },
+        const action = await prisma.correctiveAction.findFirst({
+            where: correctiveActionWhere(organization.organizationId, { id }),
             include: {
                 responsible: { select: { id: true, firstName: true, lastName: true, email: true } },
             },
@@ -39,10 +42,11 @@ async function getHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ id
 
 async function patchHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ id: string }> }) {
     try {
+        const organization = await requireOrganizationContext(req);
         const { id } = await ctx.params;
         const data = await req.json();
 
-        const existing = await prisma.correctiveAction.findUnique({ where: { id } });
+        const existing = await findCorrectiveAction(organization.organizationId, id);
         if (!existing) {
             return NextResponse.json({ error: 'Acción no encontrada' }, { status: 404 });
         }
@@ -52,8 +56,8 @@ async function patchHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ 
             return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
         }
 
-        const action = await prisma.correctiveAction.update({
-            where: { id },
+        await prisma.correctiveAction.updateMany({
+            where: correctiveActionWhere(organization.organizationId, { id }),
             data: {
                 ...(data.description !== undefined && { description: data.description }),
                 ...(data.status !== undefined && { status: data.status }),
@@ -67,6 +71,9 @@ async function patchHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ 
                 ...(data.evidence !== undefined && { evidence: data.evidence }),
                 ...(data.notes !== undefined && { notes: data.notes }),
             },
+        });
+        const action = await prisma.correctiveAction.findFirstOrThrow({
+            where: correctiveActionWhere(organization.organizationId, { id }),
             include: {
                 responsible: { select: { id: true, firstName: true, lastName: true } },
             },
@@ -79,6 +86,7 @@ async function patchHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ 
             category: 'UPDATE',
             userId: req.user!.userId,
             entityId: action.id,
+            organizationId: organization.organizationId,
             previousData: { status: existing.status },
             newData: { status: action.status },
         });
@@ -96,17 +104,18 @@ async function patchHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ 
 
 async function deleteHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ id: string }> }) {
     try {
+        const organization = await requireOrganizationContext(req);
         const { id } = await ctx.params;
 
-        const existing = await prisma.correctiveAction.findUnique({
-            where: { id },
+        const existing = await prisma.correctiveAction.findFirst({
+            where: correctiveActionWhere(organization.organizationId, { id }),
             select: { description: true, status: true },
         });
         if (!existing) {
             return NextResponse.json({ error: 'Acción no encontrada' }, { status: 404 });
         }
 
-        await prisma.correctiveAction.delete({ where: { id } });
+        await prisma.correctiveAction.deleteMany({ where: correctiveActionWhere(organization.organizationId, { id }) });
 
         await createAuditRecord({
             title: 'Eliminación de acción correctiva',
@@ -115,6 +124,7 @@ async function deleteHandler(req: AuthenticatedRequest, ctx: { params: Promise<{
             category: 'DELETE',
             userId: req.user!.userId,
             entityId: id,
+            organizationId: organization.organizationId,
             previousData: { status: existing.status },
         });
 

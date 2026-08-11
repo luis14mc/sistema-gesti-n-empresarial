@@ -4,7 +4,8 @@
 // Sprint 2: usar S3StorageAdapter en producción AWS.
 // =====================================================
 
-import { mkdir, writeFile, unlink, readFile } from 'fs/promises';
+import { access, mkdir, writeFile, unlink, readFile } from 'fs/promises';
+import { constants } from 'fs';
 import path from 'path';
 import { randomUUID } from 'crypto';
 import type { PutObjectInput, PutObjectResult, StorageAdapter } from './types';
@@ -33,6 +34,15 @@ export class LocalStorageAdapter implements StorageAdapter {
     return name.replace(/[/\\?%*:|"<>]/g, '_').replace(/\s+/g, '_');
   }
 
+  private resolveKey(key: string): string {
+    const root = path.resolve(this.baseDir);
+    const resolved = path.resolve(root, key.replace(/^[/\\]+/, ''));
+    if (resolved !== root && !resolved.startsWith(`${root}${path.sep}`)) {
+      throw new Error('INVALID_STORAGE_KEY');
+    }
+    return resolved;
+  }
+
   private getExtension(name: string): string {
     const ext = path.extname(name);
     return ext ? ext.toLowerCase() : '';
@@ -45,13 +55,12 @@ export class LocalStorageAdapter implements StorageAdapter {
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const timestamp = now.toISOString().replace(/[:.]/g, '-');
 
-    const sanitizedOriginal = this.sanitizeFilename(input.originalName);
     const desired = input.desiredName
       ? this.sanitizeFilename(input.desiredName)
       : `${prefixSlug(input.prefix)}-${timestamp}-${randomUUID()}${ext}`;
 
     const relativeDir = path.join(this.publicPrefix.replace(/^\//, ''), input.prefix, year, month);
-    const absoluteDir = path.join(this.baseDir, relativeDir);
+    const absoluteDir = this.resolveKey(relativeDir);
     await mkdir(absoluteDir, { recursive: true });
 
     const absolutePath = path.join(absoluteDir, desired);
@@ -73,9 +82,9 @@ export class LocalStorageAdapter implements StorageAdapter {
 
   async remove(key: string): Promise<void> {
     const relative = key.replace(/^\/+/, '');
-    const absolute = path.join(this.baseDir, relative);
-    await unlink(absolute).catch(() => {
-      // idempotente: borrar lo que no existe es OK
+    const absolute = this.resolveKey(relative);
+    await unlink(absolute).catch((error: NodeJS.ErrnoException) => {
+      if (error.code !== 'ENOENT') throw error;
     });
   }
 
@@ -85,11 +94,17 @@ export class LocalStorageAdapter implements StorageAdapter {
 
   async get(key: string, mimeTypeHint?: string): Promise<import('./types').GetObjectResult> {
     const relative = key.replace(/^\/+/, '');
-    const absolute = path.join(this.baseDir, relative);
+    const absolute = this.resolveKey(relative);
     const buffer = await readFile(absolute);
     const ext = this.getExtension(key);
     const mimeType = mimeTypeHint ?? mimeFromExtension(ext);
     return { buffer, mimeType, size: buffer.length };
+  }
+
+  async ping(): Promise<void> {
+    const uploadRoot = this.resolveKey(this.publicPrefix);
+    await mkdir(uploadRoot, { recursive: true });
+    await access(uploadRoot, constants.R_OK | constants.W_OK);
   }
 }
 

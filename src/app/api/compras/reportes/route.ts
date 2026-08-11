@@ -1,13 +1,40 @@
 import { NextResponse } from 'next/server';
+import type { PurchaseOrderStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
 import { canAccess } from '@/lib/permissions';
-import { COMPRA_ESTADOS_PENDIENTES } from '@/lib/compras/constants';
+import { requireOrganizationContext } from '@/modules/organizations/application/context';
 import type { Role } from '@/types';
+
+// ─────────────────────────────────────────────────────────────
+// Phase 13 · C-1 remediation
+// Purchasing reports MUST read the canonical purchase-order aggregate
+// (`CompraOrden` → table `purchase_orders`), i.e. the same records the
+// operational UI creates. Previously this route read the legacy
+// `CompraSolicitud` (`compras_solicitudes`) table, which the active UI
+// no longer writes to, so institutional figures did not reflect real
+// orders. See docs/remediation/procurement-canonicalization.md.
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Canonical `PurchaseOrderStatus` → legacy Spanish estado code.
+ * We map back to the legacy vocabulary only so the existing report UI
+ * (which labels rows via COMPRA_ESTADO_LABELS) keeps rendering unchanged.
+ * The DATA source is fully canonical.
+ */
+const STATUS_TO_ESTADO: Record<PurchaseOrderStatus, string> = {
+  DRAFT: 'BORRADOR',
+  GENERATED: 'GENERADA',
+  ISSUED: 'EMITIDA',
+  CANCELLED: 'ANULADA',
+  CLOSED: 'CERRADA',
+};
 
 async function getHandler(req: AuthenticatedRequest) {
   try {
     const role = req.user!.role as Role;
+    const { organizationId } = await requireOrganizationContext(req);
+
     if (!canAccess(role, 'purchases', 'read')) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
@@ -21,35 +48,42 @@ async function getHandler(req: AuthenticatedRequest) {
     const end = new Date(year + 1, 0, 1);
 
     const where = {
+      organizationId,
       deletedAt: null,
-      fechaSolicitud: { gte: start, lt: end },
-    };
+      requestDate: { gte: start, lt: end },
+    } as const;
 
-    const [porEstado, montoPorMes, ordenesEmitidas, enProceso, cerradas, anuladas] = await Promise.all([
-      prisma.compraSolicitud.groupBy({
-        by: ['estado'],
+    const [grouped, montoPorMes, ordenesEmitidas, enProceso, cerradas, anuladas] = await Promise.all([
+      prisma.compraOrden.groupBy({
+        by: ['status'],
         where,
         _count: { _all: true },
         _sum: { total: true },
       }),
       prisma.$queryRaw<Array<{ mes: number; total: number; cantidad: bigint }>>`
-        SELECT EXTRACT(MONTH FROM "fechaSolicitud")::int AS mes,
+        SELECT EXTRACT(MONTH FROM "requestDate")::int AS mes,
                COALESCE(SUM("total"), 0)::float AS total,
                COUNT(*)::bigint AS cantidad
-        FROM "compras_solicitudes"
+        FROM "purchase_orders"
         WHERE "deletedAt" IS NULL
-          AND "fechaSolicitud" >= ${start}
-          AND "fechaSolicitud" < ${end}
+          AND "organizationId" = ${organizationId}
+          AND "requestDate" >= ${start}
+          AND "requestDate" < ${end}
         GROUP BY 1
         ORDER BY 1
       `,
-      prisma.compraSolicitud.count({ where: { ...where, estado: 'EMITIDA' } }),
-      prisma.compraSolicitud.count({
-        where: { ...where, estado: { in: [...COMPRA_ESTADOS_PENDIENTES] } },
-      }),
-      prisma.compraSolicitud.count({ where: { ...where, estado: 'CERRADA' } }),
-      prisma.compraSolicitud.count({ where: { ...where, estado: 'ANULADA' } }),
+      prisma.compraOrden.count({ where: { ...where, status: 'ISSUED' } }),
+      prisma.compraOrden.count({ where: { ...where, status: { in: ['DRAFT', 'GENERATED'] } } }),
+      prisma.compraOrden.count({ where: { ...where, status: 'CLOSED' } }),
+      prisma.compraOrden.count({ where: { ...where, status: 'CANCELLED' } }),
     ]);
+
+    // Preserve the existing report contract: estado code + numeric total.
+    const porEstado = grouped.map((row) => ({
+      estado: STATUS_TO_ESTADO[row.status],
+      _count: { _all: row._count._all },
+      _sum: { total: row._sum.total ? Number(row._sum.total) : 0 },
+    }));
 
     return NextResponse.json({
       year,

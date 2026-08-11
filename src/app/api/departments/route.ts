@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { withAuth } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { requireOrganizationContext } from '@/modules/organizations/application/context';
 
-async function getHandler() {
+async function getHandler(req: AuthenticatedRequest) {
   try {
+    const { organizationId } = await requireOrganizationContext(req);
     const departments = await prisma.department.findMany({
-      where: { isActive: true },
+      where: { organizationId, isActive: true },
       include: {
         positions: {
           where: { isActive: true },

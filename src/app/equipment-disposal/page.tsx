@@ -20,7 +20,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useEquipment } from '@/hooks/useEquipment';
 import { useEquipmentDisposals } from '@/hooks/useEquipmentDisposals';
 import { disposalEvaluationSchema, type DisposalEvaluationInput } from '@/modules/equipment-disposal/presentation/schemas/disposal';
-import { can } from '@/modules/equipment-disposal/application/permissions';
+import { can, organizationRole } from '@/platform/security/authorization/permissions';
 import { swalConfirm, swalError, swalSuccess } from '@/lib/swal';
 import Swal from 'sweetalert2';
 import { getApiErrorData, getApiErrorMessage, getHttpStatus } from '@/lib/api-error';
@@ -87,14 +87,14 @@ export default function EquipmentDisposalPage() {
 
   const items = disposals.query.data?.items ?? [];
   return <MainLayout><div className="space-y-6 font-[Aptos,'Segoe_UI',sans-serif]">
-    <PageHeader title="Dictámenes de baja" description="Diagnóstico, evaluación y aprobación de bajas de equipo">{role && can(role, 'equipment-disposal.create') ? <Button onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" />Nuevo dictamen</Button> : null}</PageHeader>
+    <PageHeader title="Dictámenes de baja" description="Diagnóstico, evaluación y aprobación de bajas de equipo">{role && can(organizationRole(role), 'equipment-disposal.create') ? <Button onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" />Nuevo dictamen</Button> : null}</PageHeader>
     <Card><CardContent className="pt-6"><div className="relative max-w-md"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input className="pl-9" placeholder="Buscar folio, inventario o serie" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} /></div></CardContent></Card>
     <Card><CardContent className="p-0"><div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Folio</TableHead><TableHead>Activo</TableHead><TableHead>Equipo</TableHead><TableHead>Puntuación</TableHead><TableHead>Estado</TableHead><TableHead>Evidencias</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader><TableBody>
       {disposals.query.isLoading ? <TableRow><TableCell colSpan={7} className="py-12 text-center">Cargando dictámenes...</TableCell></TableRow> : items.length === 0 ? <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">No hay dictámenes registrados.</TableCell></TableRow> : items.map((item) => <TableRow key={item.id}><TableCell className="font-mono font-medium">{item.folio}</TableCell><TableCell>{item.equipment.inventoryCode}</TableCell><TableCell>{item.brand} {item.model}</TableCell><TableCell>{item.evaluationScore}/100</TableCell><TableCell><Badge variant="outline">{STATUS_LABELS[item.status]}</Badge></TableCell><TableCell>{item._count.documents}</TableCell><TableCell className="space-x-1 text-right">
         <Button size="sm" variant="ghost" asChild><Link href={`/equipment-disposal/${item.id}`}>Abrir</Link></Button>
-        {item.status === 'DRAFT' && role && can(role, 'equipment-disposal.submit') ? <Button size="sm" variant="outline" onClick={() => runCommand(item.id, 'submit')}>Enviar</Button> : null}
-        {item.status === 'PENDING_APPROVAL' && role && can(role, 'equipment-disposal.approve') ? <Button size="sm" onClick={() => runCommand(item.id, 'approve')}>Aprobar</Button> : null}
-        {item.status === 'PENDING_APPROVAL' && role && can(role, 'equipment-disposal.reject') ? <Button size="sm" variant="outline" onClick={() => runCommand(item.id, 'reject')}>Rechazar</Button> : null}
+        {item.status === 'DRAFT' && role && can(organizationRole(role), 'equipment-disposal.submit') ? <Button size="sm" variant="outline" onClick={() => runCommand(item.id, 'submit')}>Enviar</Button> : null}
+        {item.status === 'PENDING_APPROVAL' && role && can(organizationRole(role), 'equipment-disposal.approve') ? <Button size="sm" onClick={() => runCommand(item.id, 'approve')}>Aprobar</Button> : null}
+        {item.status === 'PENDING_APPROVAL' && role && can(organizationRole(role), 'equipment-disposal.reject') ? <Button size="sm" variant="outline" onClick={() => runCommand(item.id, 'reject')}>Rechazar</Button> : null}
         {item.status === 'APPROVED' ? <Button size="sm" variant="outline" asChild><a href={`/api/equipment-disposal/${item.id}/pdf`}>PDF</a></Button> : null}
       </TableCell></TableRow>)}
     </TableBody></Table></div></CardContent></Card>

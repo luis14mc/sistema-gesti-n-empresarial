@@ -21,9 +21,26 @@ export default function ComprasReportesPage() {
     );
   }
 
+  const exportYear = reportes?.year ?? new Date().getFullYear();
+
   return (
     <MainLayout>
-      <PageHeader title="Reportes de compras" description={`Año ${reportes?.year ?? new Date().getFullYear()}`} />
+      <PageHeader title="Reportes de compras" description={`Año ${exportYear}`} />
+
+      <div className="mb-4 flex flex-wrap gap-2">
+        <a
+          href={`/api/compras/reportes/export?format=csv&year=${exportYear}`}
+          className="inline-flex items-center rounded-md border border-input bg-background px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+        >
+          Exportar CSV
+        </a>
+        <a
+          href={`/api/compras/reportes/export?format=xlsx&year=${exportYear}`}
+          className="inline-flex items-center rounded-md border border-input bg-background px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+        >
+          Exportar XLSX
+        </a>
+      </div>
 
       {isLoading || !reportes ? (
         <p>Cargando reportes...</p>

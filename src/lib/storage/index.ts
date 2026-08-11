@@ -6,6 +6,7 @@
 import type { StorageAdapter } from './types';
 import { LocalStorageAdapter } from './local';
 import { S3StorageAdapter } from './s3';
+import { validateStorageEnvironment } from '@/platform/config/env';
 
 let _instance: StorageAdapter | null = null;
 
@@ -20,36 +21,27 @@ let _instance: StorageAdapter | null = null;
 export function getStorage(): StorageAdapter {
   if (_instance) return _instance;
 
-  const driver = (process.env.STORAGE_DRIVER ?? 'local').toLowerCase();
+  const environment = validateStorageEnvironment(process.env);
+  const driver = environment.STORAGE_DRIVER;
 
   if (driver === 's3') {
-    const bucket = process.env.S3_BUCKET;
-    const region = process.env.AWS_REGION;
-    const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
-    const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
-
-    if (!bucket || !region || !accessKeyId || !secretAccessKey) {
-      throw new Error(
-        'S3StorageAdapter: faltan variables S3_BUCKET/AWS_REGION/AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY'
-      );
-    }
-
     _instance = new S3StorageAdapter({
-      bucket,
-      region,
-      accessKeyId,
-      secretAccessKey,
-      publicUrlBase: process.env.S3_PUBLIC_URL,
-      signedUrlTtlSeconds: process.env.S3_PRESIGNED_TTL_SECONDS
-        ? Number(process.env.S3_PRESIGNED_TTL_SECONDS)
-        : 900,
+      bucket: environment.S3_BUCKET!,
+      region: environment.AWS_REGION!,
+      accessKeyId: environment.AWS_ACCESS_KEY_ID,
+      secretAccessKey: environment.AWS_SECRET_ACCESS_KEY,
+      sessionToken: environment.AWS_SESSION_TOKEN,
+      endpoint: environment.S3_ENDPOINT,
+      forcePathStyle: environment.S3_FORCE_PATH_STYLE,
+      keyPrefix: environment.APP_ENV,
+      requireTenantPrefix: environment.APP_ENV === 'staging' || environment.APP_ENV === 'production',
+      publicUrlBase: environment.S3_PUBLIC_URL,
+      signedUrlTtlSeconds: environment.S3_PRESIGNED_TTL_SECONDS,
     });
   } else {
     _instance = new LocalStorageAdapter({
-      baseDir: process.env.LOCAL_STORAGE_PATH
-        ? `${process.env.LOCAL_STORAGE_PATH}`
-        : undefined,
-      publicPrefix: '/uploads',
+      baseDir: environment.LOCAL_STORAGE_PATH,
+      publicPrefix: `/uploads/${environment.APP_ENV}`,
     });
   }
 

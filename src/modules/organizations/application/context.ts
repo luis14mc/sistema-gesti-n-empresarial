@@ -1,11 +1,14 @@
 import type { OrganizationRole } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import type { AuthenticatedRequest } from '@/lib/middleware';
+import { recordSecurityEventBestEffort } from '@/platform/security/audit/security-events';
 
 export type OrganizationContext = {
+  authorizationScope: 'organization';
   userId: string;
   organizationId: string;
   organizationSlug: string;
+  timezone: string;
   membershipId: string;
   role: OrganizationRole;
 };
@@ -57,12 +60,13 @@ export async function requireOrganizationContext(
   });
   if (!user) {
     warnDenied({ requestId, userId: sessionUser.userId, sessionEmail: sessionUser.email, membershipCount: 0, activeMembershipCount: 0, selectedOrganizationId, reason: 'CANONICAL_USER_NOT_FOUND' });
+    await auditDenied(requestId, sessionUser.userId, 'CANONICAL_USER_NOT_FOUND', false, 0, 0);
     throw new AuthenticationRequiredError();
   }
 
   const memberships = await prisma.organizationMembership.findMany({
     where: { userId: user.id },
-    include: { organization: { select: { id: true, slug: true, status: true } } },
+    include: { organization: { select: { id: true, slug: true, status: true, timezone: true } } },
     orderBy: { createdAt: 'asc' },
   });
   const activeMemberships = memberships.filter(
@@ -71,6 +75,7 @@ export async function requireOrganizationContext(
 
   if (activeMemberships.length === 0) {
     warnDenied({ requestId, userId: user.id, sessionEmail: user.email, membershipCount: memberships.length, activeMembershipCount: 0, selectedOrganizationId, reason: 'NO_ACTIVE_MEMBERSHIP' });
+    await auditDenied(requestId, user.id, 'NO_ACTIVE_MEMBERSHIP', Boolean(selectedOrganizationId), memberships.length, 0);
     throw new OrganizationMembershipRequiredError();
   }
 
@@ -79,22 +84,48 @@ export async function requireOrganizationContext(
     : undefined;
   if (selectedOrganizationId && !selectedMembership) {
     warnDenied({ requestId, userId: user.id, sessionEmail: user.email, membershipCount: memberships.length, activeMembershipCount: activeMemberships.length, selectedOrganizationId, reason: 'SELECTED_ORGANIZATION_NOT_ALLOWED' });
+    await auditDenied(requestId, user.id, 'SELECTED_ORGANIZATION_NOT_ALLOWED', true, memberships.length, activeMemberships.length);
     throw new TenantAccessDeniedError();
   }
 
   const membership = selectedMembership ?? (activeMemberships.length === 1 ? activeMemberships[0] : null);
   if (!membership) {
     warnDenied({ requestId, userId: user.id, sessionEmail: user.email, membershipCount: memberships.length, activeMembershipCount: activeMemberships.length, selectedOrganizationId, reason: 'ORGANIZATION_SELECTION_REQUIRED' });
+    await auditDenied(requestId, user.id, 'ORGANIZATION_SELECTION_REQUIRED', false, memberships.length, activeMemberships.length);
     throw new OrganizationSelectionRequiredError();
   }
 
   return {
+    authorizationScope: 'organization',
     userId: user.id,
     organizationId: membership.organizationId,
     organizationSlug: membership.organization.slug,
+    timezone: membership.organization.timezone,
     membershipId: membership.id,
     role: membership.role,
   };
+}
+
+async function auditDenied(
+  requestId: string,
+  userId: string,
+  reasonCode: string,
+  selectedOrganizationProvided: boolean,
+  membershipCount: number,
+  activeMembershipCount: number,
+): Promise<void> {
+  await recordSecurityEventBestEffort({
+    userId,
+    eventType: 'tenant.context.denied',
+    outcome: 'DENIED',
+    severity: 'WARNING',
+    reasonCode,
+    module: 'security',
+    entityType: 'OrganizationContext',
+    action: 'RESOLVE',
+    requestId,
+    attributes: { selectedOrganizationProvided, membershipCount, activeMembershipCount },
+  });
 }
 
 function warnDenied(input: {

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
+import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { findAudit } from '@/modules/audits/infrastructure/repository';
 
 // POST /api/audits/[id]/findings - Agregar hallazgo
 async function postHandler(
@@ -9,6 +11,7 @@ async function postHandler(
   { params }: { params: { id: string } }
 ) {
   try {
+    const organization = await requireOrganizationContext(req);
     const { description, severity, evidence, clause } = await req.json();
 
     if (!description || !severity) {
@@ -18,7 +21,7 @@ async function postHandler(
       );
     }
 
-    const audit = await prisma.audit.findUnique({ where: { id: params.id } });
+    const audit = await findAudit(organization.organizationId, params.id);
     if (!audit) {
       return NextResponse.json(
         { error: 'Auditoría no encontrada' },
@@ -59,6 +62,7 @@ async function postHandler(
       category: 'CREATE',
       userId: req.user!.userId,
       entityId: finding.id,
+      organizationId: organization.organizationId,
       newData: { code, severity, auditId: audit.id },
     });
 

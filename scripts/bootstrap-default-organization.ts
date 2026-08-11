@@ -58,11 +58,11 @@ async function main() {
   }
 
   const [equipment, purchaseOrders, assignments, tickets, auditRecords] = await prisma.$transaction([
-    prisma.equipment.updateMany({ where: { organizationId: null }, data: { organizationId: organization.id } }),
-    prisma.compraOrden.updateMany({ where: { organizationId: null }, data: { organizationId: organization.id } }),
-    prisma.equipmentAssignment.updateMany({ where: { organizationId: null }, data: { organizationId: organization.id } }),
-    prisma.ticket.updateMany({ where: { organizationId: null }, data: { organizationId: organization.id } }),
-    prisma.auditRecord.updateMany({ where: { organizationId: null }, data: { organizationId: organization.id } }),
+    prisma.$executeRaw`UPDATE "equipment" SET "organizationId" = ${organization.id} WHERE "organizationId" IS NULL`,
+    prisma.$executeRaw`UPDATE "purchase_orders" SET "organizationId" = ${organization.id} WHERE "organizationId" IS NULL`,
+    prisma.$executeRaw`UPDATE "equipment_assignments" SET "organizationId" = ${organization.id} WHERE "organizationId" IS NULL`,
+    prisma.$executeRaw`UPDATE "tickets" SET "organizationId" = ${organization.id} WHERE "organizationId" IS NULL`,
+    prisma.$executeRaw`UPDATE "audit_records" SET "organizationId" = ${organization.id} WHERE "organizationId" IS NULL`,
   ]);
   await prisma.disposalPolicy.upsert({
     where: { organizationId: organization.id },
@@ -72,11 +72,11 @@ async function main() {
 
   console.info('Users processed:', users.length);
   console.info('Memberships created:', membershipsCreated);
-  console.info('Equipment backfilled:', equipment.count);
-  console.info('Purchase orders backfilled:', purchaseOrders.count);
-  console.info('Assignments backfilled:', assignments.count);
-  console.info('Tickets backfilled:', tickets.count);
-  console.info('Audit records backfilled:', auditRecords.count);
+  console.info('Equipment backfilled:', equipment);
+  console.info('Purchase orders backfilled:', purchaseOrders);
+  console.info('Assignments backfilled:', assignments);
+  console.info('Tickets backfilled:', tickets);
+  console.info('Audit records backfilled:', auditRecords);
 }
 
 main()

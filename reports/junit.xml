@@ -1,0 +1,1516 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="648" failures="0" errors="0" time="11.399399853">
+    <testsuite name="__tests__/api-error-normalization.test.ts" timestamp="2026-08-03T19:47:24.558Z" hostname="MSI" tests="2" failures="0" errors="0" skipped="0" time="0.012069566">
+        <testcase classname="__tests__/api-error-normalization.test.ts" name="getApiError &gt; normalizes the standardized API envelope" time="0.006164453">
+        </testcase>
+        <testcase classname="__tests__/api-error-normalization.test.ts" name="getApiError &gt; maps machine codes to friendly Spanish messages" time="0.001053253">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/audit-tenant-isolation.test.ts" timestamp="2026-08-03T19:47:24.562Z" hostname="MSI" tests="3" failures="0" errors="0" skipped="0" time="0.014009136">
+        <testcase classname="__tests__/audit-tenant-isolation.test.ts" name="audit tenant ownership &gt; scopes aggregate roots and repository predicates by organization" time="0.008288322">
+        </testcase>
+        <testcase classname="__tests__/audit-tenant-isolation.test.ts" name="audit tenant ownership &gt; derives child ownership through the scoped audit" time="0.000838355">
+        </testcase>
+        <testcase classname="__tests__/audit-tenant-isolation.test.ts" name="audit tenant ownership &gt; scopes audit records by organization" time="0.000689059">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/auth.test.ts" timestamp="2026-08-03T19:47:24.567Z" hostname="MSI" tests="1" failures="0" errors="0" skipped="0" time="1.058148999">
+        <testcase classname="__tests__/auth.test.ts" name="Auth Utilities &gt; should hash a password and verify it correctly" time="1.051681816">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/authorization-foundation.test.ts" timestamp="2026-08-03T19:47:24.569Z" hostname="MSI" tests="6" failures="0" errors="0" skipped="0" time="0.093393146">
+        <testcase classname="__tests__/authorization-foundation.test.ts" name="Phase 6A capability authorization &gt; defines unique capabilities and an explicit decision for every role" time="0.070184126">
+        </testcase>
+        <testcase classname="__tests__/authorization-foundation.test.ts" name="Phase 6A capability authorization &gt; keeps platform authority separate from organization membership authority" time="0.000824268">
+        </testcase>
+        <testcase classname="__tests__/authorization-foundation.test.ts" name="Phase 6A capability authorization &gt; does not use wildcard permissions for organization owners" time="0.000605567">
+        </testcase>
+        <testcase classname="__tests__/authorization-foundation.test.ts" name="Phase 6A capability authorization &gt; requires the server-resolved scoped context" time="0.004447841">
+        </testcase>
+        <testcase classname="__tests__/authorization-foundation.test.ts" name="Phase 6A capability authorization &gt; uses membership authority even when the legacy JWT role is stronger or weaker" time="0.001051735">
+        </testcase>
+        <testcase classname="__tests__/authorization-foundation.test.ts" name="Phase 6A capability authorization &gt; rejects audit reads before querying for an unauthorized membership" time="0.0079655">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/compras-orden-tenant.test.ts" timestamp="2026-08-03T19:47:24.575Z" hostname="MSI" tests="2" failures="0" errors="0" skipped="0" time="0.03033197">
+        <testcase classname="__tests__/compras-orden-tenant.test.ts" name="CompraOrden tenant scope &gt; scopes roots directly and children through their parent order" time="0.013898712">
+        </testcase>
+        <testcase classname="__tests__/compras-orden-tenant.test.ts" name="CompraOrden tenant scope &gt; allocates PURCHASE_ORDER sequences by organization atomically" time="0.00957534">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/compras-orden.test.ts" timestamp="2026-08-03T19:47:24.577Z" hostname="MSI" tests="26" failures="0" errors="0" skipped="0" time="0.069129223">
+        <testcase classname="__tests__/compras-orden.test.ts" name="calculatePurchaseOrder &gt; calcula subtotal" time="0.015020453">
+        </testcase>
+        <testcase classname="__tests__/compras-orden.test.ts" name="calculatePurchaseOrder &gt; limita descuento al subtotal" time="0.001594026">
+        </testcase>
+        <testcase classname="__tests__/compras-orden.test.ts" name="calculatePurchaseOrder &gt; calcula impuesto sobre base imponible" time="0.001210746">
+        </testcase>
+        <testcase classname="__tests__/compras-orden.test.ts" name="calculatePurchaseOrder &gt; calcula ISV 0% 0 después de un descuento fijo" time="0.001923134">
+        </testcase>
+        <testcase classname="__tests__/compras-orden.test.ts" name="calculatePurchaseOrder &gt; calcula ISV 15% 1350 después de un descuento fijo" time="0.000778362">
+        </testcase>
+        <testcase classname="__tests__/compras-orden.test.ts" name="calculatePurchaseOrder &gt; calcula ISV 18% 1620 después de un descuento fijo" time="0.000532303">
+        </testcase>
+        <testcase classname="__tests__/compras-orden.test.ts" name="calculatePurchaseOrder &gt; calcula descuento porcentual con Decimal" time="0.005624106">
+        </testcase>
+        <testcase classname="__tests__/compras-orden.test.ts" name="calculatePurchaseOrder &gt; ignora el valor cuando no aplica descuento" time="0.001620402">
+        </testcase>
+        <testcase classname="__tests__/compras-orden.test.ts" name="purchase order calculation schema &gt; acepta la tasa ISV 0" time="0.016054396">
+        </testcase>
+        <testcase classname="__tests__/compras-orden.test.ts" name="purchase order calculation schema &gt; acepta la tasa ISV 15" time="0.000691986">
+        </testcase>
+        <testcase classname="__tests__/compras-orden.test.ts" name="purchase order calculation schema &gt; acepta la tasa ISV 18" time="0.000641149">
+        </testcase>
+        <testcase classname="__tests__/compras-orden.test.ts" name="purchase order calculation schema &gt; rechaza tasas, porcentajes y descuentos fijos inválidos" time="0.004194072">
+        </testcase>
+        <testcase classname="__tests__/compras-orden.test.ts" name="purchase order calculation schema &gt; normaliza cargas antiguas como descuento fijo y tasa 15" time="0.004703329">
+        </testcase>
+        <testcase classname="__tests__/compras-orden.test.ts" name="formatOrderNumber &gt; formatea COM-CNI-2026-00001" time="0.00058446">
+        </testcase>
+        <testcase classname="__tests__/compras-orden.test.ts" name="canOrdenAction &gt; permite editar borrador al creador" time="0.000680592">
+        </testcase>
+        <testcase classname="__tests__/compras-orden.test.ts" name="canOrdenAction &gt; impide editar orden emitida" time="0.000370466">
+        </testcase>
+        <testcase classname="__tests__/compras-orden.test.ts" name="canOrdenAction &gt; impide anular cerrada" time="0.000266956">
+        </testcase>
+        <testcase classname="__tests__/compras-orden.test.ts" name="Prisma Decimal &gt; multiplica correctamente" time="0.000670578">
+        </testcase>
+        <testcase classname="__tests__/compras-orden.test.ts" name="Prisma Decimal &gt; normaliza undefined a un Decimal válido" time="0.00043475">
+        </testcase>
+        <testcase classname="__tests__/compras-orden.test.ts" name="Prisma Decimal &gt; normaliza null a un Decimal válido" time="0.000356689">
+        </testcase>
+        <testcase classname="__tests__/compras-orden.test.ts" name="Prisma Decimal &gt; normaliza  a un Decimal válido" time="0.000230085">
+        </testcase>
+        <testcase classname="__tests__/compras-orden.test.ts" name="Prisma Decimal &gt; normaliza NaN a un Decimal válido" time="0.000165638">
+        </testcase>
+        <testcase classname="__tests__/compras-orden.test.ts" name="Prisma Decimal &gt; normaliza 0 a un Decimal válido" time="0.000126949">
+        </testcase>
+        <testcase classname="__tests__/compras-orden.test.ts" name="Prisma Decimal &gt; normaliza 25.50 a un Decimal válido" time="0.000149569">
+        </testcase>
+        <testcase classname="__tests__/compras-orden.test.ts" name="Prisma Decimal &gt; preserva el valor de una instancia Decimal" time="0.00035583">
+        </testcase>
+        <testcase classname="__tests__/compras-orden.test.ts" name="buildPreviewDataFromInput &gt; tolera una fila de ítem incompleta sin lanzar DecimalError" time="0.002646921">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/compras-types.test.ts" timestamp="2026-08-03T19:47:24.600Z" hostname="MSI" tests="2" failures="0" errors="0" skipped="0" time="0.013621402">
+        <testcase classname="__tests__/compras-types.test.ts" name="compras frontend types (orden institucional) &gt; modela orden con campos institucionales" time="0.007342547">
+        </testcase>
+        <testcase classname="__tests__/compras-types.test.ts" name="compras frontend types (orden institucional) &gt; modela ítems con precio unitario y total" time="0.000691182">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/compras.test.ts" timestamp="2026-08-03T19:47:24.602Z" hostname="MSI" tests="8" failures="0" errors="0" skipped="0" time="0.026268081">
+        <testcase classname="__tests__/compras.test.ts" name="compras calculos &gt; calcula total de línea" time="0.016268005">
+        </testcase>
+        <testcase classname="__tests__/compras.test.ts" name="compras calculos &gt; calcula subtotal, descuento, impuesto y total" time="0.00114651">
+        </testcase>
+        <testcase classname="__tests__/compras.test.ts" name="compras workflow orden institucional &gt; transiciona de borrador a generada" time="0.000565339">
+        </testcase>
+        <testcase classname="__tests__/compras.test.ts" name="compras workflow orden institucional &gt; transiciona de generada a emitida" time="0.00028036">
+        </testcase>
+        <testcase classname="__tests__/compras.test.ts" name="compras workflow orden institucional &gt; permite generar orden al solicitante" time="0.0005058">
+        </testcase>
+        <testcase classname="__tests__/compras.test.ts" name="compras workflow orden institucional &gt; permite emitir PDF al solicitante" time="0.000334327">
+        </testcase>
+        <testcase classname="__tests__/compras.test.ts" name="compras workflow orden institucional &gt; permite anular borrador al solicitante" time="0.000365267">
+        </testcase>
+        <testcase classname="__tests__/compras.test.ts" name="compras workflow orden institucional &gt; permite cerrar solo a ADMIN" time="0.000357018">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/deprecated-api.test.ts" timestamp="2026-08-03T19:47:24.610Z" hostname="MSI" tests="3" failures="0" errors="0" skipped="0" time="0.016540704">
+        <testcase classname="__tests__/deprecated-api.test.ts" name="deprecated API modules &gt; define mensajes 410 para módulos fuera de alcance" time="0.007413483">
+        </testcase>
+        <testcase classname="__tests__/deprecated-api.test.ts" name="deprecated API modules &gt; detecta rutas frontend legacy" time="0.001226264">
+        </testcase>
+        <testcase classname="__tests__/deprecated-api.test.ts" name="deprecated API modules &gt; lista prefijos frontend deprecados" time="0.002739219">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/design-system-foundations.test.tsx" timestamp="2026-08-03T19:47:24.613Z" hostname="MSI" tests="5" failures="0" errors="0" skipped="0" time="1.036103208">
+        <testcase classname="__tests__/design-system-foundations.test.tsx" name="Phase 2A design-system foundations &gt; renders a semantic page header with breadcrumbs and actions" time="0.794918809">
+        </testcase>
+        <testcase classname="__tests__/design-system-foundations.test.tsx" name="Phase 2A design-system foundations &gt; uses centralized semantic status tones" time="0.035955961">
+        </testcase>
+        <testcase classname="__tests__/design-system-foundations.test.tsx" name="Phase 2A design-system foundations &gt; announces loading without exposing decorative skeletons as content" time="0.054381848">
+        </testcase>
+        <testcase classname="__tests__/design-system-foundations.test.tsx" name="Phase 2A design-system foundations &gt; renders an actionable empty state" time="0.070812924">
+        </testcase>
+        <testcase classname="__tests__/design-system-foundations.test.tsx" name="Phase 2A design-system foundations &gt; renders an accessible retryable error state with request reference" time="0.071194781">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/disposal-document-render.test.tsx" timestamp="2026-08-03T19:47:24.618Z" hostname="MSI" tests="1" failures="0" errors="0" skipped="0" time="0.087681889">
+        <testcase classname="__tests__/disposal-document-render.test.tsx" name="DisposalDocument &gt; renders the shared server-safe institutional document" time="0.072888398">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/domain-error-response.test.ts" timestamp="2026-08-03T19:47:24.620Z" hostname="MSI" tests="2" failures="0" errors="0" skipped="0" time="0.059397213">
+        <testcase classname="__tests__/domain-error-response.test.ts" name="domain error response &gt; maps typed domain errors to the standardized API envelope" time="0.039488048">
+        </testcase>
+        <testcase classname="__tests__/domain-error-response.test.ts" name="domain error response &gt; does not expose unknown internal error messages" time="0.013380955">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/domain-event-foundations.test.ts" timestamp="2026-08-03T19:47:24.623Z" hostname="MSI" tests="2" failures="0" errors="0" skipped="0" time="0.029596315">
+        <testcase classname="__tests__/domain-event-foundations.test.ts" name="Phase 3A event foundations &gt; appends immutable audit data through the caller transaction" time="0.019188615">
+        </testcase>
+        <testcase classname="__tests__/domain-event-foundations.test.ts" name="Phase 3A event foundations &gt; writes outbox events with aggregate version idempotency data" time="0.002022154">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/domain-foundations.test.ts" timestamp="2026-08-03T19:47:24.625Z" hostname="MSI" tests="6" failures="0" errors="0" skipped="0" time="0.04915194">
+        <testcase classname="__tests__/domain-foundations.test.ts" name="Phase 3A domain foundations &gt; allows only transitions declared by the domain" time="0.007005893">
+        </testcase>
+        <testcase classname="__tests__/domain-foundations.test.ts" name="Phase 3A domain foundations &gt; rejects stale optimistic updates" time="0.003224757">
+        </testcase>
+        <testcase classname="__tests__/domain-foundations.test.ts" name="Phase 3A domain foundations &gt; preserves tenant membership identity in command context" time="0.004398718">
+        </testcase>
+        <testcase classname="__tests__/domain-foundations.test.ts" name="Phase 3A domain foundations &gt; retries only transient Prisma transaction conflicts" time="0.007725092">
+        </testcase>
+        <testcase classname="__tests__/domain-foundations.test.ts" name="Phase 3A domain foundations &gt; does not retry domain or other non-transaction errors" time="0.002079468">
+        </testcase>
+        <testcase classname="__tests__/domain-foundations.test.ts" name="Phase 3A domain foundations &gt; allocates tenant-scoped sequences with a database-side increment" time="0.005707879">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/environment-validation.test.ts" timestamp="2026-08-03T19:47:24.630Z" hostname="MSI" tests="5" failures="0" errors="0" skipped="0" time="0.05045697">
+        <testcase classname="__tests__/environment-validation.test.ts" name="production environment validation &gt; fails startup when required production configuration is missing" time="0.026367817">
+        </testcase>
+        <testcase classname="__tests__/environment-validation.test.ts" name="production environment validation &gt; never accepts insecure production cookies or local storage" time="0.007518904">
+        </testcase>
+        <testcase classname="__tests__/environment-validation.test.ts" name="production environment validation &gt; uses task-role credentials in protected environments" time="0.009668668">
+        </testcase>
+        <testcase classname="__tests__/environment-validation.test.ts" name="production environment validation &gt; keeps public configuration separate from server secrets" time="0.001737461">
+        </testcase>
+        <testcase classname="__tests__/environment-validation.test.ts" name="production environment validation &gt; requires explicit worker activation" time="0.001053127">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/equipment-disposal-tenant-isolation.test.ts" timestamp="2026-08-03T19:47:24.634Z" hostname="MSI" tests="5" failures="0" errors="0" skipped="0" time="0.706037434">
+        <testcase classname="__tests__/equipment-disposal-tenant-isolation.test.ts" name="equipment disposal tenant ownership &gt; scopes disposal reads and writes by organization" time="0.008117118">
+        </testcase>
+        <testcase classname="__tests__/equipment-disposal-tenant-isolation.test.ts" name="equipment disposal tenant ownership &gt; scopes document endpoints by organization and parent disposal" time="0.00115281">
+        </testcase>
+        <testcase classname="__tests__/equipment-disposal-tenant-isolation.test.ts" name="equipment disposal tenant ownership &gt; isolates policies by organization" time="0.001310554">
+        </testcase>
+        <testcase classname="__tests__/equipment-disposal-tenant-isolation.test.ts" name="equipment disposal tenant ownership &gt; isolates annual sequences by organization" time="0.002377831">
+        </testcase>
+        <testcase classname="__tests__/equipment-disposal-tenant-isolation.test.ts" name="equipment disposal tenant ownership &gt; does not accept an organization field from disposal input" time="0.687970932">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/equipment-tenant-scope.test.ts" timestamp="2026-08-03T19:47:24.639Z" hostname="MSI" tests="3" failures="0" errors="0" skipped="0" time="0.007008116">
+        <testcase classname="__tests__/equipment-tenant-scope.test.ts" name="equipment tenant scopes &gt; scopes equipment directly to the organization" time="0.003643777">
+        </testcase>
+        <testcase classname="__tests__/equipment-tenant-scope.test.ts" name="equipment tenant scopes &gt; scopes assignments directly and through their equipment" time="0.000549975">
+        </testcase>
+        <testcase classname="__tests__/equipment-tenant-scope.test.ts" name="equipment tenant scopes &gt; scopes maintenance through equipment ownership" time="0.000434922">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/equipment-upload.test.ts" timestamp="2026-08-03T19:47:24.642Z" hostname="MSI" tests="9" failures="0" errors="0" skipped="0" time="0.203300749">
+        <testcase classname="__tests__/equipment-upload.test.ts" name="equipment document upload types &gt; expone los seis tipos institucionales" time="0.012586399">
+        </testcase>
+        <testcase classname="__tests__/equipment-upload.test.ts" name="equipment document upload types &gt; resuelve tipoDocumento explícito" time="0.002757507">
+        </testcase>
+        <testcase classname="__tests__/equipment-upload.test.ts" name="equipment document upload types &gt; mapea subcarpetas legacy" time="0.005225446">
+        </testcase>
+        <testcase classname="__tests__/equipment-upload.test.ts" name="equipment document upload types &gt; rechaza tipo desconocido" time="0.005628955">
+        </testcase>
+        <testcase classname="__tests__/equipment-upload.test.ts" name="equipment document upload types &gt; requiere tipoDocumento o subfolder legacy" time="0.00125634">
+        </testcase>
+        <testcase classname="__tests__/equipment-upload.test.ts" name="equipment document upload types &gt; genera prefijos de storage por tipo" time="0.000693919">
+        </testcase>
+        <testcase classname="__tests__/equipment-upload.test.ts" name="saveEquipmentDocument &gt; guarda documento con StorageAdapter y retorna metadata tipada" time="0.06098485">
+        </testcase>
+        <testcase classname="__tests__/equipment-upload.test.ts" name="saveEquipmentDocument &gt; acepta acta de asignación firmada" time="0.058436414">
+        </testcase>
+        <testcase classname="__tests__/equipment-upload.test.ts" name="saveEquipmentDocument &gt; acepta acta de devolución firmada" time="0.042637403">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/health-foundation.test.ts" timestamp="2026-08-03T19:47:24.649Z" hostname="MSI" tests="3" failures="0" errors="0" skipped="0" time="0.059873312">
+        <testcase classname="__tests__/health-foundation.test.ts" name="deployment health foundation &gt; keeps liveness healthy without database connectivity" time="0.040642915">
+        </testcase>
+        <testcase classname="__tests__/health-foundation.test.ts" name="deployment health foundation &gt; fails readiness when the database is unavailable" time="0.009721249">
+        </testcase>
+        <testcase classname="__tests__/health-foundation.test.ts" name="deployment health foundation &gt; does not expose dependency error messages" time="0.001651235">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/idor.test.ts" timestamp="2026-08-03T19:47:24.652Z" hostname="MSI" tests="12" failures="0" errors="0" skipped="0" time="0.070541498">
+        <testcase classname="__tests__/idor.test.ts" name="IDOR helper — applyIdorFilter &gt; ADMIN bypasses IDOR (gets the base where)" time="0.022647006">
+        </testcase>
+        <testcase classname="__tests__/idor.test.ts" name="IDOR helper — applyIdorFilter &gt; USER con userAccess=none no ve NADA" time="0.014233653">
+        </testcase>
+        <testcase classname="__tests__/idor.test.ts" name="IDOR helper — applyIdorFilter &gt; USER con userAccess=self-record filtra por userId" time="0.000709773">
+        </testcase>
+        <testcase classname="__tests__/idor.test.ts" name="IDOR helper — applyIdorFilter &gt; USER con userAccess=owner filtra por createdById" time="0.000516421">
+        </testcase>
+        <testcase classname="__tests__/idor.test.ts" name="IDOR helper — applyIdorFilter &gt; USER con userAccess=assigned crea un OR combinando userId/assignedUserId/employee" time="0.000836087">
+        </testcase>
+        <testcase classname="__tests__/idor.test.ts" name="IDOR helper — applyIdorFilter &gt; IT/RRHH sin extraForStaff pasan el base" time="0.000513072">
+        </testcase>
+        <testcase classname="__tests__/idor.test.ts" name="IDOR helper — applyIdorFilter &gt; extraForStaff aplica filtros a roles no-ADMIN" time="0.000574137">
+        </testcase>
+        <testcase classname="__tests__/idor.test.ts" name="IDOR helper — checkItemAccess &gt; null/undefined items nunca pasan" time="0.000722305">
+        </testcase>
+        <testcase classname="__tests__/idor.test.ts" name="IDOR helper — checkItemAccess &gt; ADMIN pasa siempre" time="0.001188152">
+        </testcase>
+        <testcase classname="__tests__/idor.test.ts" name="IDOR helper — checkItemAccess &gt; USER en self-record solo pasa si userId coincide" time="0.001716368">
+        </testcase>
+        <testcase classname="__tests__/idor.test.ts" name="IDOR helper — checkItemAccess &gt; USER en owner pasa si createdById o userId o employee.userId coinciden" time="0.000649874">
+        </testcase>
+        <testcase classname="__tests__/idor.test.ts" name="IDOR helper — checkItemAccess &gt; customCheck tiene prioridad" time="0.014305453">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integrations-execution.test.ts" timestamp="2026-08-03T19:47:24.662Z" hostname="MSI" tests="3" failures="0" errors="0" skipped="0" time="0.093783809">
+        <testcase classname="__tests__/integrations-execution.test.ts" name="integrationExecutionService &gt; rejects start when the integration does not belong to the organization" time="0.046102922">
+        </testcase>
+        <testcase classname="__tests__/integrations-execution.test.ts" name="integrationExecutionService &gt; records a STARTED execution row when starting" time="0.026458746">
+            <system-out>
+{&quot;requestId&quot;:&quot;req-2&quot;,&quot;organizationId&quot;:&quot;org-1&quot;,&quot;module&quot;:&quot;integrations&quot;,&quot;executionId&quot;:&quot;exec-1&quot;,&quot;operation&quot;:&quot;email.send&quot;,&quot;integrationId&quot;:&quot;int-1&quot;,&quot;attempt&quot;:1,&quot;timestamp&quot;:&quot;2026-08-03T19:47:18.398Z&quot;,&quot;level&quot;:&quot;info&quot;,&quot;message&quot;:&quot;integration.execution.started&quot;}
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/integrations-execution.test.ts" name="integrationExecutionService &gt; records a connection test result and updates the integration health fields" time="0.015674847">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integrations-http-client.test.ts" timestamp="2026-08-03T19:47:24.667Z" hostname="MSI" tests="6" failures="0" errors="0" skipped="0" time="0.162942844">
+        <testcase classname="__tests__/integrations-http-client.test.ts" name="IntegrationHttpClient &gt; blocks SSRF destinations before issuing a request" time="0.022614738">
+        </testcase>
+        <testcase classname="__tests__/integrations-http-client.test.ts" name="IntegrationHttpClient &gt; returns success and redacts sensitive headers in the result" time="0.052172012">
+            <system-out>
+{&quot;requestId&quot;:&quot;req-2&quot;,&quot;module&quot;:&quot;integrations&quot;,&quot;provider&quot;:&quot;MICROSOFT_GRAPH&quot;,&quot;operation&quot;:&quot;test&quot;,&quot;status&quot;:200,&quot;durationMs&quot;:1,&quot;attempt&quot;:1,&quot;timestamp&quot;:&quot;2026-08-03T19:47:00.062Z&quot;,&quot;level&quot;:&quot;info&quot;,&quot;message&quot;:&quot;integration.http.success&quot;}
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/integrations-http-client.test.ts" name="IntegrationHttpClient &gt; retries transient failures and succeeds on a later attempt" time="0.008274605">
+            <system-out>
+{&quot;requestId&quot;:&quot;req-3&quot;,&quot;module&quot;:&quot;integrations&quot;,&quot;provider&quot;:&quot;MICROSOFT_GRAPH&quot;,&quot;operation&quot;:&quot;test&quot;,&quot;status&quot;:200,&quot;durationMs&quot;:0,&quot;attempt&quot;:2,&quot;timestamp&quot;:&quot;2026-08-03T19:47:00.078Z&quot;,&quot;level&quot;:&quot;info&quot;,&quot;message&quot;:&quot;integration.http.success&quot;}
+
+            </system-out>
+            <system-err>
+{&quot;requestId&quot;:&quot;req-3&quot;,&quot;module&quot;:&quot;integrations&quot;,&quot;provider&quot;:&quot;MICROSOFT_GRAPH&quot;,&quot;operation&quot;:&quot;test&quot;,&quot;status&quot;:503,&quot;durationMs&quot;:1,&quot;attempt&quot;:1,&quot;nextDelayMs&quot;:214,&quot;timestamp&quot;:&quot;2026-08-03T19:47:00.077Z&quot;,&quot;level&quot;:&quot;warn&quot;,&quot;message&quot;:&quot;integration.http.transient_failure&quot;}
+
+            </system-err>
+        </testcase>
+        <testcase classname="__tests__/integrations-http-client.test.ts" name="IntegrationHttpClient &gt; does not retry permanent failures" time="0.002559869">
+            <system-err>
+{&quot;requestId&quot;:&quot;req-4&quot;,&quot;module&quot;:&quot;integrations&quot;,&quot;provider&quot;:&quot;MICROSOFT_GRAPH&quot;,&quot;operation&quot;:&quot;test&quot;,&quot;status&quot;:403,&quot;durationMs&quot;:0,&quot;attempt&quot;:1,&quot;reason&quot;:&quot;PERMANENT&quot;,&quot;timestamp&quot;:&quot;2026-08-03T19:47:00.081Z&quot;,&quot;level&quot;:&quot;warn&quot;,&quot;message&quot;:&quot;integration.http.permanent_failure&quot;}
+
+            </system-err>
+        </testcase>
+        <testcase classname="__tests__/integrations-http-client.test.ts" name="IntegrationHttpClient &gt; maps HTTP 429 to IntegrationRateLimitedError when retries are exhausted" time="0.005571614">
+        </testcase>
+        <testcase classname="__tests__/integrations-http-client.test.ts" name="IntegrationHttpClient &gt; maps timeout to IntegrationTimeoutError and stops further attempts" time="0.065636859">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integrations-registry-health.test.ts" timestamp="2026-08-03T19:47:24.676Z" hostname="MSI" tests="10" failures="0" errors="0" skipped="0" time="0.107601202">
+        <testcase classname="__tests__/integrations-registry-health.test.ts" name="integrationRegistry &gt; lists every known provider with capabilities and labels" time="0.031066341">
+        </testcase>
+        <testcase classname="__tests__/integrations-registry-health.test.ts" name="integrationRegistry &gt; returns null for unknown providers" time="0.011638263">
+        </testcase>
+        <testcase classname="__tests__/integrations-registry-health.test.ts" name="integrationRegistry &gt; throws when asserting a provider/capability mismatch" time="0.012823557">
+        </testcase>
+        <testcase classname="__tests__/integrations-registry-health.test.ts" name="isValidProviderCapability &gt; honors the static capability table" time="0.000414485">
+        </testcase>
+        <testcase classname="__tests__/integrations-registry-health.test.ts" name="computeHealth &gt; returns DISABLED for disabled status" time="0.02091748">
+        </testcase>
+        <testcase classname="__tests__/integrations-registry-health.test.ts" name="computeHealth &gt; returns UNKNOWN for DRAFT integrations" time="0.000641743">
+        </testcase>
+        <testcase classname="__tests__/integrations-registry-health.test.ts" name="computeHealth &gt; returns HEALTHY when failure rate is low" time="0.009207343">
+        </testcase>
+        <testcase classname="__tests__/integrations-registry-health.test.ts" name="computeHealth &gt; returns DEGRADED when failure rate crosses the threshold" time="0.000977705">
+        </testcase>
+        <testcase classname="__tests__/integrations-registry-health.test.ts" name="computeHealth &gt; returns UNAVAILABLE when failure rate crosses the high threshold" time="0.000456517">
+        </testcase>
+        <testcase classname="__tests__/integrations-registry-health.test.ts" name="computeHealth &gt; overrides health to UNAVAILABLE when circuit is OPEN" time="0.000583442">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integrations-retry-circuit.test.ts" timestamp="2026-08-03T19:47:24.684Z" hostname="MSI" tests="12" failures="0" errors="0" skipped="0" time="0.066558228">
+        <testcase classname="__tests__/integrations-retry-circuit.test.ts" name="classifyFailure &gt; classifies transient HTTP statuses" time="0.005849076">
+        </testcase>
+        <testcase classname="__tests__/integrations-retry-circuit.test.ts" name="classifyFailure &gt; classifies permanent HTTP statuses" time="0.000705962">
+        </testcase>
+        <testcase classname="__tests__/integrations-retry-circuit.test.ts" name="classifyFailure &gt; classifies network causes without a status as transient" time="0.000383842">
+        </testcase>
+        <testcase classname="__tests__/integrations-retry-circuit.test.ts" name="classifyFailure &gt; classifies abort as permanent" time="0.000337031">
+        </testcase>
+        <testcase classname="__tests__/integrations-retry-circuit.test.ts" name="shouldRetry &gt; does not retry past maxAttempts" time="0.002650066">
+        </testcase>
+        <testcase classname="__tests__/integrations-retry-circuit.test.ts" name="shouldRetry &gt; does not retry permanent failures" time="0.00206825">
+        </testcase>
+        <testcase classname="__tests__/integrations-retry-circuit.test.ts" name="shouldRetry &gt; retries transient failures with exponential backoff" time="0.00113845">
+        </testcase>
+        <testcase classname="__tests__/integrations-retry-circuit.test.ts" name="CircuitBreaker &gt; opens after the failure threshold and rejects calls during openDuration" time="0.001544958">
+        </testcase>
+        <testcase classname="__tests__/integrations-retry-circuit.test.ts" name="CircuitBreaker &gt; moves to HALF_OPEN after openDuration and closes on required successes" time="0.011540555">
+        </testcase>
+        <testcase classname="__tests__/integrations-retry-circuit.test.ts" name="CircuitBreaker &gt; reopens immediately on a failure during HALF_OPEN" time="0.000574635">
+        </testcase>
+        <testcase classname="__tests__/integrations-retry-circuit.test.ts" name="integrationCircuitBreakers registry &gt; returns the same breaker instance for the same key" time="0.000423831">
+        </testcase>
+        <testcase classname="__tests__/integrations-retry-circuit.test.ts" name="integrationCircuitBreakers registry &gt; keeps separate breakers for different providers or integrations" time="0.013973066">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integrations-secret-service.test.ts" timestamp="2026-08-03T19:47:24.693Z" hostname="MSI" tests="3" failures="0" errors="0" skipped="0" time="0.051961084">
+        <testcase classname="__tests__/integrations-secret-service.test.ts" name="secretService &gt; builds a deterministic per-organization integration reference" time="0.010984173">
+        </testcase>
+        <testcase classname="__tests__/integrations-secret-service.test.ts" name="secretService &gt; stores secret material via the configured store and audits without leaking the payload" time="0.013190618">
+        </testcase>
+        <testcase classname="__tests__/integrations-secret-service.test.ts" name="secretService &gt; rejects malformed secret references" time="0.022131375">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integrations-ssrf-guard.test.ts" timestamp="2026-08-03T19:47:24.695Z" hostname="MSI" tests="5" failures="0" errors="0" skipped="0" time="0.058856282">
+        <testcase classname="__tests__/integrations-ssrf-guard.test.ts" name="ssrfGuard &gt; blocks loopback and private networks by default" time="0.034964233">
+        </testcase>
+        <testcase classname="__tests__/integrations-ssrf-guard.test.ts" name="ssrfGuard &gt; accepts public hosts over https" time="0.001100791">
+        </testcase>
+        <testcase classname="__tests__/integrations-ssrf-guard.test.ts" name="ssrfGuard &gt; rejects non-http(s) protocols" time="0.000962448">
+        </testcase>
+        <testcase classname="__tests__/integrations-ssrf-guard.test.ts" name="ssrfGuard &gt; honours allowlist when private networks are otherwise blocked" time="0.000711446">
+        </testcase>
+        <testcase classname="__tests__/integrations-ssrf-guard.test.ts" name="ssrfGuard &gt; throws on blocked URL when assertUrlIsSafe is called" time="0.001763123">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/jwt.test.ts" timestamp="2026-08-03T19:47:24.699Z" hostname="MSI" tests="5" failures="0" errors="0" skipped="0" time="0.042112683">
+        <testcase classname="__tests__/jwt.test.ts" name="JWT — generate/verify &gt; genera token con 3 partes separadas por punto" time="0.017967904">
+        </testcase>
+        <testcase classname="__tests__/jwt.test.ts" name="JWT — generate/verify &gt; verifyToken retorna el payload firmado correctamente" time="0.009021702">
+        </testcase>
+        <testcase classname="__tests__/jwt.test.ts" name="JWT — generate/verify &gt; verifyToken retorna null con token firmado con clave distinta" time="0.002566589">
+        </testcase>
+        <testcase classname="__tests__/jwt.test.ts" name="JWT — generate/verify &gt; verifyToken retorna null con firma corrupta" time="0.001575842">
+        </testcase>
+        <testcase classname="__tests__/jwt.test.ts" name="JWT — generate/verify &gt; verifyToken retorna null si la estructura no es válida (no JWT)" time="0.000808705">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/notification-facade.test.ts" timestamp="2026-08-03T19:47:24.703Z" hostname="MSI" tests="3" failures="0" errors="0" skipped="0" time="0.144694098">
+        <testcase classname="__tests__/notification-facade.test.ts" name="notification facade &gt; routes success feedback through one provider" time="0.120889499">
+        </testcase>
+        <testcase classname="__tests__/notification-facade.test.ts" name="notification facade &gt; returns a boolean confirmation result" time="0.015119756">
+        </testcase>
+        <testcase classname="__tests__/notification-facade.test.ts" name="notification facade &gt; returns one close function for loading feedback" time="0.001918356">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/notifications-action-url.test.ts" timestamp="2026-08-03T19:47:24.706Z" hostname="MSI" tests="7" failures="0" errors="0" skipped="0" time="0.017088938">
+        <testcase classname="__tests__/notifications-action-url.test.ts" name="normalizeInternalPath &gt; accepts absolute internal paths" time="0.005855998">
+        </testcase>
+        <testcase classname="__tests__/notifications-action-url.test.ts" name="normalizeInternalPath &gt; requires a leading slash" time="0.002152039">
+        </testcase>
+        <testcase classname="__tests__/notifications-action-url.test.ts" name="normalizeInternalPath &gt; rejects absolute http(s) URLs" time="0.00060938">
+        </testcase>
+        <testcase classname="__tests__/notifications-action-url.test.ts" name="normalizeInternalPath &gt; rejects protocol-relative URLs" time="0.000404908">
+        </testcase>
+        <testcase classname="__tests__/notifications-action-url.test.ts" name="normalizeInternalPath &gt; rejects javascript: and data: schemes" time="0.001075112">
+        </testcase>
+        <testcase classname="__tests__/notifications-action-url.test.ts" name="normalizeInternalPath &gt; rejects CRLF injection" time="0.000399466">
+        </testcase>
+        <testcase classname="__tests__/notifications-action-url.test.ts" name="normalizeInternalPath &gt; returns null for empty input" time="0.0003774">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/notifications-dispatcher.test.ts" timestamp="2026-08-03T19:47:24.712Z" hostname="MSI" tests="7" failures="0" errors="0" skipped="0" time="0.087177528">
+        <testcase classname="__tests__/notifications-dispatcher.test.ts" name="notificationDispatcher &gt; skips when no recipients exist and writes an audit" time="0.036650133">
+            <system-out>
+{&quot;requestId&quot;:&quot;req-1&quot;,&quot;organizationId&quot;:&quot;org-1&quot;,&quot;module&quot;:&quot;notifications&quot;,&quot;eventType&quot;:&quot;organization.lifecycle.suspended&quot;,&quot;aggregateId&quot;:&quot;org-1&quot;,&quot;timestamp&quot;:&quot;2026-08-03T19:47:02.475Z&quot;,&quot;level&quot;:&quot;info&quot;,&quot;message&quot;:&quot;notification.dispatch.no_recipients&quot;}
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/notifications-dispatcher.test.ts" name="notificationDispatcher &gt; creates one in-app notification per owner with idempotency key" time="0.014207413">
+            <system-out>
+{&quot;requestId&quot;:&quot;req-1&quot;,&quot;organizationId&quot;:&quot;org-1&quot;,&quot;module&quot;:&quot;notifications&quot;,&quot;eventType&quot;:&quot;organization.lifecycle.suspended&quot;,&quot;aggregateId&quot;:&quot;org-1&quot;,&quot;created&quot;:2,&quot;deduped&quot;:0,&quot;timestamp&quot;:&quot;2026-08-03T19:47:02.514Z&quot;,&quot;level&quot;:&quot;info&quot;,&quot;message&quot;:&quot;notification.dispatch.completed&quot;}
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/notifications-dispatcher.test.ts" name="notificationDispatcher &gt; queues EMAIL rows in PENDING status for 8D to process" time="0.001903277">
+            <system-out>
+{&quot;requestId&quot;:&quot;req-2&quot;,&quot;organizationId&quot;:&quot;org-1&quot;,&quot;module&quot;:&quot;notifications&quot;,&quot;eventType&quot;:&quot;organization.lifecycle.closure_requested&quot;,&quot;aggregateId&quot;:&quot;org-1&quot;,&quot;created&quot;:1,&quot;deduped&quot;:0,&quot;timestamp&quot;:&quot;2026-08-03T19:47:02.521Z&quot;,&quot;level&quot;:&quot;info&quot;,&quot;message&quot;:&quot;notification.dispatch.completed&quot;}
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/notifications-dispatcher.test.ts" name="notificationDispatcher &gt; marks duplicate inserts as deduped and continues" time="0.003094248">
+            <system-out>
+{&quot;requestId&quot;:&quot;req-3&quot;,&quot;organizationId&quot;:&quot;org-1&quot;,&quot;module&quot;:&quot;notifications&quot;,&quot;eventType&quot;:&quot;organization.lifecycle.suspended&quot;,&quot;aggregateId&quot;:&quot;org-1&quot;,&quot;created&quot;:0,&quot;deduped&quot;:1,&quot;timestamp&quot;:&quot;2026-08-03T19:47:02.523Z&quot;,&quot;level&quot;:&quot;info&quot;,&quot;message&quot;:&quot;notification.dispatch.completed&quot;}
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/notifications-dispatcher.test.ts" name="notificationDispatcher &gt; does not include recipients from another organization" time="0.002002699">
+            <system-out>
+{&quot;requestId&quot;:&quot;req-4&quot;,&quot;organizationId&quot;:&quot;org-1&quot;,&quot;module&quot;:&quot;notifications&quot;,&quot;eventType&quot;:&quot;organization.lifecycle.suspended&quot;,&quot;aggregateId&quot;:&quot;org-1&quot;,&quot;created&quot;:1,&quot;deduped&quot;:0,&quot;timestamp&quot;:&quot;2026-08-03T19:47:02.526Z&quot;,&quot;level&quot;:&quot;info&quot;,&quot;message&quot;:&quot;notification.dispatch.completed&quot;}
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/notifications-dispatcher.test.ts" name="notificationDispatcher &gt; flags mandatory events in the audit attributes" time="0.007832207">
+            <system-out>
+{&quot;requestId&quot;:&quot;req-5&quot;,&quot;organizationId&quot;:&quot;org-1&quot;,&quot;module&quot;:&quot;notifications&quot;,&quot;eventType&quot;:&quot;organization.lifecycle.archived&quot;,&quot;aggregateId&quot;:&quot;org-1&quot;,&quot;created&quot;:1,&quot;deduped&quot;:0,&quot;timestamp&quot;:&quot;2026-08-03T19:47:02.532Z&quot;,&quot;level&quot;:&quot;info&quot;,&quot;message&quot;:&quot;notification.dispatch.completed&quot;}
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/notifications-dispatcher.test.ts" name="notificationDispatcher &gt; throws when the action URL is invalid" time="0.008019956">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/notifications-idempotency.test.ts" timestamp="2026-08-03T19:47:24.723Z" hostname="MSI" tests="4" failures="0" errors="0" skipped="0" time="0.01766594">
+        <testcase classname="__tests__/notifications-idempotency.test.ts" name="buildIdempotencyKey &gt; produces a deterministic key for the same inputs" time="0.009751712">
+        </testcase>
+        <testcase classname="__tests__/notifications-idempotency.test.ts" name="buildIdempotencyKey &gt; changes when the recipient changes" time="0.001494809">
+        </testcase>
+        <testcase classname="__tests__/notifications-idempotency.test.ts" name="buildIdempotencyKey &gt; changes when the channel changes" time="0.001188249">
+        </testcase>
+        <testcase classname="__tests__/notifications-idempotency.test.ts" name="buildIdempotencyKey &gt; produces different keys for different aggregates" time="0.000754434">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/notifications-queries.test.ts" timestamp="2026-08-03T19:47:24.727Z" hostname="MSI" tests="6" failures="0" errors="0" skipped="0" time="0.073084848">
+        <testcase classname="__tests__/notifications-queries.test.ts" name="notificationQueryService &gt; lists only notifications for the current user and organization" time="0.051655853">
+        </testcase>
+        <testcase classname="__tests__/notifications-queries.test.ts" name="notificationQueryService &gt; returns the user-scoped unread count" time="0.00525824">
+        </testcase>
+        <testcase classname="__tests__/notifications-queries.test.ts" name="notificationCommandService.markRead &gt; refuses to mark a notification that does not belong to the current organization" time="0.004183227">
+        </testcase>
+        <testcase classname="__tests__/notifications-queries.test.ts" name="notificationCommandService.markRead &gt; refuses to mark a notification owned by another user" time="0.002017872">
+        </testcase>
+        <testcase classname="__tests__/notifications-queries.test.ts" name="notificationCommandService.markRead &gt; marks the notification as read and writes an audit" time="0.00153093">
+        </testcase>
+        <testcase classname="__tests__/notifications-queries.test.ts" name="notificationCommandService.markRead &gt; updates only the current user and current organization on read-all" time="0.001422705">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/oficios-numbering.test.ts" timestamp="2026-08-03T19:47:24.732Z" hostname="MSI" tests="15" failures="0" errors="0" skipped="0" time="0.163379449">
+        <testcase classname="__tests__/oficios-numbering.test.ts" name="Oficios numbering &gt; allocates the next number atomically in the organization sequence" time="0.103253356">
+        </testcase>
+        <testcase classname="__tests__/oficios-numbering.test.ts" name="Oficios numbering &gt; normalizeOficioScope &gt; maps legacy aliases to canonical scopes" time="0.001859529">
+        </testcase>
+        <testcase classname="__tests__/oficios-numbering.test.ts" name="Oficios numbering &gt; normalizeOficioScope &gt; defaults unknown values to CNI" time="0.001442482">
+        </testcase>
+        <testcase classname="__tests__/oficios-numbering.test.ts" name="Oficios numbering &gt; normalizeOficioDirection &gt; maps aliases" time="0.001616708">
+        </testcase>
+        <testcase classname="__tests__/oficios-numbering.test.ts" name="Oficios numbering &gt; normalizeOficioDirection &gt; forces INTERNAL_MEMO when scope is INTERNO" time="0.00065024">
+        </testcase>
+        <testcase classname="__tests__/oficios-numbering.test.ts" name="Oficios numbering &gt; normalizeOficioDirection &gt; defaults to OUTGOING for unknown values" time="0.004875427">
+        </testcase>
+        <testcase classname="__tests__/oficios-numbering.test.ts" name="Oficios numbering &gt; shouldGenerateOficioNumber &gt; does NOT generate for INCOMING (preserve external sender number)" time="0.000944978">
+        </testcase>
+        <testcase classname="__tests__/oficios-numbering.test.ts" name="Oficios numbering &gt; shouldGenerateOficioNumber &gt; generates for OUTGOING and INTERNAL_MEMO" time="0.001098727">
+        </testcase>
+        <testcase classname="__tests__/oficios-numbering.test.ts" name="Oficios numbering &gt; formatOficioNumber &gt; CNI outgoing: 0001-CNI-2026" time="0.001967503">
+        </testcase>
+        <testcase classname="__tests__/oficios-numbering.test.ts" name="Oficios numbering &gt; formatOficioNumber &gt; DESPACHO outgoing: DPICP-0001-2026" time="0.000778323">
+        </testcase>
+        <testcase classname="__tests__/oficios-numbering.test.ts" name="Oficios numbering &gt; formatOficioNumber &gt; INTERNAL_MEMO: MEMO-0001-2026" time="0.000717771">
+        </testcase>
+        <testcase classname="__tests__/oficios-numbering.test.ts" name="Oficios numbering &gt; formatOficioNumber &gt; throws on INCOMING (caller should not generate)" time="0.002947179">
+        </testcase>
+        <testcase classname="__tests__/oficios-numbering.test.ts" name="Oficios numbering &gt; parseOficioSequence &gt; extracts the 4-digit sequence from formatted numbers" time="0.001052754">
+        </testcase>
+        <testcase classname="__tests__/oficios-numbering.test.ts" name="Oficios numbering &gt; parseOficioSequence &gt; returns 0 for malformed inputs (safe fallback)" time="0.000477632">
+        </testcase>
+        <testcase classname="__tests__/oficios-numbering.test.ts" name="Oficios numbering &gt; OFICIO_SCOPE_PATHS &gt; maps each scope to its dedicated path" time="0.013025085">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/oficios-tenant-isolation.test.ts" timestamp="2026-08-03T19:47:24.744Z" hostname="MSI" tests="5" failures="0" errors="0" skipped="0" time="0.109288824">
+        <testcase classname="__tests__/oficios-tenant-isolation.test.ts" name="oficios tenant ownership &gt; scopes lists and aggregate ids by organization" time="0.031467816">
+        </testcase>
+        <testcase classname="__tests__/oficios-tenant-isolation.test.ts" name="oficios tenant ownership &gt; scopes documents through their parent oficio" time="0.001161868">
+        </testcase>
+        <testcase classname="__tests__/oficios-tenant-isolation.test.ts" name="oficios tenant ownership &gt; scopes import batch ids by organization" time="0.000571014">
+        </testcase>
+        <testcase classname="__tests__/oficios-tenant-isolation.test.ts" name="oficios tenant ownership &gt; keeps user authorization as an AND condition beside text search" time="0.054424782">
+        </testcase>
+        <testcase classname="__tests__/oficios-tenant-isolation.test.ts" name="oficios tenant ownership &gt; isolates atomic office number sequences by organization" time="0.001832273">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/organization-context.test.ts" timestamp="2026-08-03T19:47:24.748Z" hostname="MSI" tests="4" failures="0" errors="0" skipped="0" time="0.038676761">
+        <testcase classname="__tests__/organization-context.test.ts" name="requireOrganizationContext &gt; automatically selects the only active membership" time="0.017320331">
+        </testcase>
+        <testcase classname="__tests__/organization-context.test.ts" name="requireOrganizationContext &gt; uses a selected organization only after membership validation" time="0.004202786">
+        </testcase>
+        <testcase classname="__tests__/organization-context.test.ts" name="requireOrganizationContext &gt; requires selection when multiple memberships are active" time="0.007290738">
+        </testcase>
+        <testcase classname="__tests__/organization-context.test.ts" name="requireOrganizationContext &gt; returns controlled membership and cross-tenant errors" time="0.003555176">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/organization-lifecycle.test.ts" timestamp="2026-08-03T19:47:24.751Z" hostname="MSI" tests="16" failures="0" errors="0" skipped="0" time="0.13772757">
+        <testcase classname="__tests__/organization-lifecycle.test.ts" name="organization lifecycle transitions &gt; allows the canonical Phase 7A transitions" time="0.007371092">
+        </testcase>
+        <testcase classname="__tests__/organization-lifecycle.test.ts" name="organization lifecycle transitions &gt; rejects transitions that must never happen implicitly" time="0.001113528">
+        </testcase>
+        <testcase classname="__tests__/organization-lifecycle.test.ts" name="organization lifecycle transitions &gt; throws InvalidOrganizationTransitionError for forbidden moves" time="0.001385208">
+        </testcase>
+        <testcase classname="__tests__/organization-lifecycle.test.ts" name="organization lifecycle transitions &gt; keeps the existing CNI organization operational (ACTIVE is writable)" time="0.00066988">
+        </testcase>
+        <testcase classname="__tests__/organization-lifecycle.test.ts" name="membership lifecycle transitions &gt; allows the canonical Phase 7A transitions" time="0.000803546">
+        </testcase>
+        <testcase classname="__tests__/organization-lifecycle.test.ts" name="membership lifecycle transitions &gt; rejects re-revoking or un-archiving memberships" time="0.001087747">
+        </testcase>
+        <testcase classname="__tests__/organization-lifecycle.test.ts" name="onboarding transitions &gt; supports PENDING → IN_PROGRESS → COMPLETED" time="0.003475051">
+        </testcase>
+        <testcase classname="__tests__/organization-lifecycle.test.ts" name="onboarding transitions &gt; blocks skipping straight to completed from PENDING" time="0.004797015">
+        </testcase>
+        <testcase classname="__tests__/organization-lifecycle.test.ts" name="owner protection &gt; refuses to remove the last active owner" time="0.001047039">
+        </testcase>
+        <testcase classname="__tests__/organization-lifecycle.test.ts" name="owner protection &gt; allows removing an owner when at least two are active" time="0.002009295">
+        </testcase>
+        <testcase classname="__tests__/organization-lifecycle.test.ts" name="owner protection &gt; classifies OWNER correctly" time="0.001912279">
+        </testcase>
+        <testcase classname="__tests__/organization-lifecycle.test.ts" name="onboarding readiness for activation &gt; requires COMPLETED or SKIPPED before activation" time="0.001178988">
+        </testcase>
+        <testcase classname="__tests__/organization-lifecycle.test.ts" name="organization lifecycle service audit wiring &gt; creates the organization in PROVISIONING and writes a lifecycle audit event" time="0.026216282">
+            <system-out>
+{&quot;requestId&quot;:&quot;req-1&quot;,&quot;module&quot;:&quot;organizations&quot;,&quot;organizationId&quot;:&quot;org-1&quot;,&quot;slug&quot;:&quot;org-1&quot;,&quot;timestamp&quot;:&quot;2026-08-03T19:47:01.608Z&quot;,&quot;level&quot;:&quot;info&quot;,&quot;message&quot;:&quot;organization.lifecycle.created&quot;}
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/organization-lifecycle.test.ts" name="organization lifecycle service audit wiring &gt; rejects activation without an active owner and writes a denied audit" time="0.013479546">
+        </testcase>
+        <testcase classname="__tests__/organization-lifecycle.test.ts" name="organization lifecycle service audit wiring &gt; rejects suspension from PROVISIONING with an audit and InvalidOrganizationTransitionError" time="0.014515031">
+        </testcase>
+        <testcase classname="__tests__/organization-lifecycle.test.ts" name="organization lifecycle service audit wiring &gt; suspends an ACTIVE organization and records a success audit" time="0.043466272">
+            <system-out>
+{&quot;requestId&quot;:&quot;req-4&quot;,&quot;organizationId&quot;:&quot;org-4&quot;,&quot;module&quot;:&quot;organizations&quot;,&quot;reason&quot;:&quot;policy violation&quot;,&quot;timestamp&quot;:&quot;2026-08-03T19:47:01.660Z&quot;,&quot;level&quot;:&quot;info&quot;,&quot;message&quot;:&quot;organization.lifecycle.suspended&quot;}
+
+            </system-out>
+            <system-err>
+{&quot;requestId&quot;:&quot;req-4&quot;,&quot;organizationId&quot;:&quot;org-4&quot;,&quot;module&quot;:&quot;notifications&quot;,&quot;eventType&quot;:&quot;organization.lifecycle.suspended&quot;,&quot;error&quot;:{&quot;name&quot;:&quot;TypeError&quot;,&quot;message&quot;:&quot;Cannot read properties of undefined (reading &apos;findMany&apos;)&quot;,&quot;stack&quot;:&quot;TypeError: Cannot read properties of undefined (reading &apos;findMany&apos;)\n    at resolveRecipients (/home/luis/sistema-gestion-empresarial/src/modules/notifications/application/recipient-resolver.ts:43:55)\n    at Object.dispatch (/home/luis/sistema-gestion-empresarial/src/modules/notifications/application/dispatcher.ts:68:30)\n    at dispatchLifecycleNotification (/home/luis/sistema-gestion-empresarial/src/modules/organizations/application/lifecycle.ts:418:34)\n    at /home/luis/sistema-gestion-empresarial/src/modules/organizations/application/lifecycle.ts:262:13\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /home/luis/sistema-gestion-empresarial/__tests__/organization-lifecycle.test.ts:235:20\n    at file:///home/luis/sistema-gestion-empresarial/node_modules/.pnpm/@vitest+runner@4.1.10/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20&quot;},&quot;timestamp&quot;:&quot;2026-08-03T19:47:01.664Z&quot;,&quot;level&quot;:&quot;error&quot;,&quot;message&quot;:&quot;organization.lifecycle.notification_dispatch_failed&quot;}
+
+            </system-err>
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/organization-platform-context.test.ts" timestamp="2026-08-03T19:47:24.764Z" hostname="MSI" tests="3" failures="0" errors="0" skipped="0" time="0.065774324">
+        <testcase classname="__tests__/organization-platform-context.test.ts" name="requirePlatformContext &gt; returns a PLATFORM_ADMIN context for users with the platform role" time="0.033234347">
+        </testcase>
+        <testcase classname="__tests__/organization-platform-context.test.ts" name="requirePlatformContext &gt; rejects users without a platform role and audits the denial" time="0.016192496">
+        </testcase>
+        <testcase classname="__tests__/organization-platform-context.test.ts" name="requirePlatformContext &gt; rejects users whose platform role is not in the allow-list" time="0.004229813">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/permissions.test.ts" timestamp="2026-08-03T19:47:24.767Z" hostname="MSI" tests="22" failures="0" errors="0" skipped="0" time="0.057755771">
+        <testcase classname="__tests__/permissions.test.ts" name="RBAC — permissions matrix &gt; ADMIN &gt; has full CRUD on oficios/equipment/assignments/users/audit-records" time="0.013369163">
+        </testcase>
+        <testcase classname="__tests__/permissions.test.ts" name="RBAC — permissions matrix &gt; ADMIN &gt; can update settings but not delete" time="0.000977322">
+        </testcase>
+        <testcase classname="__tests__/permissions.test.ts" name="RBAC — permissions matrix &gt; IT &gt; can manage equipment and assignments but not delete" time="0.000652562">
+        </testcase>
+        <testcase classname="__tests__/permissions.test.ts" name="RBAC — permissions matrix &gt; IT &gt; cannot access oficios or users" time="0.000477428">
+        </testcase>
+        <testcase classname="__tests__/permissions.test.ts" name="RBAC — permissions matrix &gt; RRHH &gt; can manage users and read audit-records" time="0.000438121">
+        </testcase>
+        <testcase classname="__tests__/permissions.test.ts" name="RBAC — permissions matrix &gt; RRHH &gt; cannot manage equipment or assignments" time="0.000384217">
+        </testcase>
+        <testcase classname="__tests__/permissions.test.ts" name="RBAC — permissions matrix &gt; USER (read-only baseline) &gt; can only read oficios/equipment/assignments and dashboard" time="0.000651686">
+        </testcase>
+        <testcase classname="__tests__/permissions.test.ts" name="RBAC — permissions matrix &gt; USER (read-only baseline) &gt; cannot create, update, or delete any resource" time="0.004372541">
+        </testcase>
+        <testcase classname="__tests__/permissions.test.ts" name="RBAC — permissions matrix &gt; USER (read-only baseline) &gt; cannot access users/purchases/audit-records" time="0.001211873">
+        </testcase>
+        <testcase classname="__tests__/permissions.test.ts" name="RBAC — permissions matrix &gt; Deprecation safety &gt; legacy modules (tickets/inventory/time-entries) are no longer in PERMISSIONS" time="0.000595893">
+        </testcase>
+        <testcase classname="__tests__/permissions.test.ts" name="RBAC — permissions matrix &gt; Helpers &gt; hasModuleAccess returns true if any permission exists" time="0.000562534">
+        </testcase>
+        <testcase classname="__tests__/permissions.test.ts" name="RBAC — permissions matrix &gt; Helpers &gt; getAccessibleModules returns modules with at least one action" time="0.007963837">
+        </testcase>
+        <testcase classname="__tests__/permissions.test.ts" name="RBAC — permissions matrix &gt; Helpers &gt; getModuleActions returns the actions list or empty array" time="0.002560315">
+        </testcase>
+        <testcase classname="__tests__/permissions.test.ts" name="RBAC — permissions matrix &gt; routeToAccess (URL → module + roles) &gt; resolves /dashboard to module dashboard (null = any role)" time="0.000800586">
+        </testcase>
+        <testcase classname="__tests__/permissions.test.ts" name="RBAC — permissions matrix &gt; routeToAccess (URL → module + roles) &gt; resolves /oficios/sub-routes to the oficios module" time="0.000404181">
+        </testcase>
+        <testcase classname="__tests__/permissions.test.ts" name="RBAC — permissions matrix &gt; routeToAccess (URL → module + roles) &gt; resolves /equipment to any authenticated role (read-only)" time="0.000287671">
+        </testcase>
+        <testcase classname="__tests__/permissions.test.ts" name="RBAC — permissions matrix &gt; routeToAccess (URL → module + roles) &gt; resolves legacy /audit-records AND new /audit/logs to audit-records module" time="0.000543968">
+        </testcase>
+        <testcase classname="__tests__/permissions.test.ts" name="RBAC — permissions matrix &gt; routeToAccess (URL → module + roles) &gt; returns null for unprotected routes" time="0.008371706">
+        </testcase>
+        <testcase classname="__tests__/permissions.test.ts" name="RBAC — permissions matrix &gt; canAccessRoute (role can navigate to path) &gt; ADMIN can access any module path" time="0.002551523">
+        </testcase>
+        <testcase classname="__tests__/permissions.test.ts" name="RBAC — permissions matrix &gt; canAccessRoute (role can navigate to path) &gt; USER can only access dashboard and read-only oficios/equipment/assignments" time="0.000763959">
+        </testcase>
+        <testcase classname="__tests__/permissions.test.ts" name="RBAC — permissions matrix &gt; canAccessRoute (role can navigate to path) &gt; IT cannot access /users or /settings" time="0.000373639">
+        </testcase>
+        <testcase classname="__tests__/permissions.test.ts" name="RBAC — permissions matrix &gt; canAccessRoute (role can navigate to path) &gt; RRHH can access employees/users/purchases and view equipment (read)" time="0.000388518">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/purchase-order-generation-validation.test.ts" timestamp="2026-08-03T19:47:24.783Z" hostname="MSI" tests="9" failures="0" errors="0" skipped="0" time="0.071854945">
+        <testcase classname="__tests__/purchase-order-generation-validation.test.ts" name="validatePurchaseOrderForGeneration &gt; reports a missing or invalid supplier RTN" time="0.034203979">
+        </testcase>
+        <testcase classname="__tests__/purchase-order-generation-validation.test.ts" name="validatePurchaseOrderForGeneration &gt; reports a missing or invalid supplier phone" time="0.001434825">
+        </testcase>
+        <testcase classname="__tests__/purchase-order-generation-validation.test.ts" name="validatePurchaseOrderForGeneration &gt; reports a missing or invalid item description" time="0.000651352">
+        </testcase>
+        <testcase classname="__tests__/purchase-order-generation-validation.test.ts" name="validatePurchaseOrderForGeneration &gt; reports a missing or invalid positive quantity" time="0.000482767">
+        </testcase>
+        <testcase classname="__tests__/purchase-order-generation-validation.test.ts" name="validatePurchaseOrderForGeneration &gt; reports a missing or invalid valid unit price" time="0.0003791">
+        </testcase>
+        <testcase classname="__tests__/purchase-order-generation-validation.test.ts" name="validatePurchaseOrderForGeneration &gt; reports a missing or invalid justification" time="0.012631807">
+        </testcase>
+        <testcase classname="__tests__/purchase-order-generation-validation.test.ts" name="validatePurchaseOrderForGeneration &gt; rejects invalid and reversed dates" time="0.00186917">
+        </testcase>
+        <testcase classname="__tests__/purchase-order-generation-validation.test.ts" name="validatePurchaseOrderForGeneration &gt; rejects invalid RTN format" time="0.004471435">
+        </testcase>
+        <testcase classname="__tests__/purchase-order-generation-validation.test.ts" name="validatePurchaseOrderForGeneration &gt; accepts a complete simplified draft without a purchase reference" time="0.009159159">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/rate-limit.test.ts" timestamp="2026-08-03T19:47:24.789Z" hostname="MSI" tests="10" failures="0" errors="0" skipped="0" time="0.318284126">
+        <testcase classname="__tests__/rate-limit.test.ts" name="Rate Limiter — sliding window &gt; permite las primeras N requests dentro del windowMs" time="0.005588254">
+        </testcase>
+        <testcase classname="__tests__/rate-limit.test.ts" name="Rate Limiter — sliding window &gt; resetea el contador cuando la ventana vence" time="0.113256595">
+        </testcase>
+        <testcase classname="__tests__/rate-limit.test.ts" name="Rate Limiter — sliding window &gt; keys distintas no se interfieren" time="0.000532699">
+        </testcase>
+        <testcase classname="__tests__/rate-limit.test.ts" name="Rate Limiter — sliding window &gt; cleanup() elimina entradas vencidas" time="0.06208302">
+        </testcase>
+        <testcase classname="__tests__/rate-limit.test.ts" name="Rate Limiter — sliding window &gt; resetMs decrece mientras pasa el tiempo" time="0.101669158">
+        </testcase>
+        <testcase classname="__tests__/rate-limit.test.ts" name="Rate limit helpers &gt; RATE_LIMIT_RULES contiene los presets esperados" time="0.006934111">
+        </testcase>
+        <testcase classname="__tests__/rate-limit.test.ts" name="Rate limit helpers &gt; getClientIp extrae IP de x-forwarded-for" time="0.016427728">
+        </testcase>
+        <testcase classname="__tests__/rate-limit.test.ts" name="Rate limit helpers &gt; getClientIp usa x-real-ip si no hay x-forwarded-for" time="0.003829519">
+        </testcase>
+        <testcase classname="__tests__/rate-limit.test.ts" name="Rate limit helpers &gt; getClientIp devuelve &quot;unknown&quot; si no hay headers" time="0.000623389">
+        </testcase>
+        <testcase classname="__tests__/rate-limit.test.ts" name="Rate limit helpers &gt; rateLimitHeaders produce los 3 headers estándar" time="0.000493863">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/reporting-foundation.test.ts" timestamp="2026-08-03T19:47:24.795Z" hostname="MSI" tests="9" failures="0" errors="0" skipped="0" time="0.16481813">
+        <testcase classname="__tests__/reporting-foundation.test.ts" name="Phase 4A reporting foundation &gt; keeps one centralized definition per report code" time="0.009257525">
+        </testcase>
+        <testcase classname="__tests__/reporting-foundation.test.ts" name="Phase 4A reporting foundation &gt; does not grant platform reports through any organization role" time="0.003434494">
+        </testcase>
+        <testcase classname="__tests__/reporting-foundation.test.ts" name="Phase 4A reporting foundation &gt; parses shareable date filters in the organization timezone" time="0.093527246">
+        </testcase>
+        <testcase classname="__tests__/reporting-foundation.test.ts" name="Phase 4A reporting foundation &gt; rejects invalid, reversed, and unbounded ranges" time="0.010813742">
+        </testcase>
+        <testcase classname="__tests__/reporting-foundation.test.ts" name="Phase 4A reporting foundation &gt; passes only trusted tenant context to report handlers" time="0.010460364">
+        </testcase>
+        <testcase classname="__tests__/reporting-foundation.test.ts" name="Phase 4A reporting foundation &gt; rejects tenant-shaped filter keys before invoking a handler" time="0.010943296">
+        </testcase>
+        <testcase classname="__tests__/reporting-foundation.test.ts" name="Phase 4A reporting foundation &gt; checks report permissions before invoking a query handler" time="0.00223589">
+        </testcase>
+        <testcase classname="__tests__/reporting-foundation.test.ts" name="Phase 4A reporting foundation &gt; creates execution records from canonical tenant and user context" time="0.013164688">
+        </testcase>
+        <testcase classname="__tests__/reporting-foundation.test.ts" name="Phase 4A reporting foundation &gt; validates execution ranges and reserved filters at the application boundary" time="0.003206323">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/storage-factory.test.ts" timestamp="2026-08-03T19:47:24.800Z" hostname="MSI" tests="5" failures="0" errors="0" skipped="0" time="0.206173452">
+        <testcase classname="__tests__/storage-factory.test.ts" name="Storage factory + S3 driver configuration &gt; returns LocalStorageAdapter by default (no STORAGE_DRIVER)" time="0.043335094">
+        </testcase>
+        <testcase classname="__tests__/storage-factory.test.ts" name="Storage factory + S3 driver configuration &gt; returns LocalStorageAdapter explicitly with STORAGE_DRIVER=local" time="0.005418581">
+        </testcase>
+        <testcase classname="__tests__/storage-factory.test.ts" name="Storage factory + S3 driver configuration &gt; throws on S3 driver when AWS_REGION is missing" time="0.006965268">
+        </testcase>
+        <testcase classname="__tests__/storage-factory.test.ts" name="Storage factory + S3 driver configuration &gt; instantiates S3StorageAdapter with the AWS credential chain" time="0.105409894">
+        </testcase>
+        <testcase classname="__tests__/storage-factory.test.ts" name="Storage factory + S3 driver configuration &gt; read S3_PRESIGNED_TTL_SECONDS as number or defaults to 900" time="0.033919851">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/storage-isolation.test.ts" timestamp="2026-08-03T19:47:24.803Z" hostname="MSI" tests="1" failures="0" errors="0" skipped="0" time="0.013268633">
+        <testcase classname="__tests__/storage-isolation.test.ts" name="protected storage namespaces &gt; requires organization-scoped logical prefixes" time="0.008474354">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/storage.test.ts" timestamp="2026-08-03T19:47:24.805Z" hostname="MSI" tests="7" failures="0" errors="0" skipped="0" time="0.201813317">
+        <testcase classname="__tests__/storage.test.ts" name="LocalStorageAdapter &gt; stores a file and returns a relative URL" time="0.055894859">
+        </testcase>
+        <testcase classname="__tests__/storage.test.ts" name="LocalStorageAdapter &gt; sanitizes filenames with special characters" time="0.022574396">
+        </testcase>
+        <testcase classname="__tests__/storage.test.ts" name="LocalStorageAdapter &gt; remove() is idempotent (does not throw on missing key)" time="0.009609939">
+        </testcase>
+        <testcase classname="__tests__/storage.test.ts" name="LocalStorageAdapter &gt; rejects keys that escape the configured storage root" time="0.019741291">
+        </testcase>
+        <testcase classname="__tests__/storage.test.ts" name="LocalStorageAdapter &gt; round-trip: put then read back via fs" time="0.038418447">
+        </testcase>
+        <testcase classname="__tests__/storage.test.ts" name="LocalStorageAdapter &gt; getStorage() with STORAGE_DRIVER=local returns LocalStorageAdapter" time="0.033496514">
+        </testcase>
+        <testcase classname="__tests__/storage.test.ts" name="LocalStorageAdapter &gt; getStorage() with STORAGE_DRIVER=s3 throws when env vars are missing" time="0.014161056">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/worker-runtime.test.ts" timestamp="2026-08-03T19:47:24.811Z" hostname="MSI" tests="3" failures="0" errors="0" skipped="0" time="0.047158595">
+        <testcase classname="__tests__/worker-runtime.test.ts" name="worker runtime lifecycle &gt; aborts active polling and drains the processor during shutdown" time="0.012818801">
+        </testcase>
+        <testcase classname="__tests__/worker-runtime.test.ts" name="worker runtime lifecycle &gt; makes repeated shutdown requests idempotent" time="0.001456756">
+        </testcase>
+        <testcase classname="__tests__/worker-runtime.test.ts" name="worker runtime lifecycle &gt; fails shutdown when the processor exceeds its drain timeout" time="0.019213499">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/contracts/api-envelope.test.ts" timestamp="2026-08-03T19:47:24.814Z" hostname="MSI" tests="10" failures="0" errors="0" skipped="0" time="0.096263967">
+        <testcase classname="tests/contracts/api-envelope.test.ts" name="API success envelope (Phase 10A contract) &gt; matches the documented success shape" time="0.040457054">
+        </testcase>
+        <testcase classname="tests/contracts/api-envelope.test.ts" name="API success envelope (Phase 10A contract) &gt; does not expose an error field on success" time="0.007735788">
+        </testcase>
+        <testcase classname="tests/contracts/api-envelope.test.ts" name="API success envelope (Phase 10A contract) &gt; always sets the x-request-id header" time="0.00334049">
+        </testcase>
+        <testcase classname="tests/contracts/api-envelope.test.ts" name="API failure envelope (Phase 10A contract) &gt; matches the documented failure shape with a known error code" time="0.007714785">
+        </testcase>
+        <testcase classname="tests/contracts/api-envelope.test.ts" name="API failure envelope (Phase 10A contract) &gt; omits details and stage when not provided" time="0.007018605">
+        </testcase>
+        <testcase classname="tests/contracts/api-envelope.test.ts" name="API failure envelope (Phase 10A contract) &gt; always sets the x-request-id header on failure" time="0.001441942">
+        </testcase>
+        <testcase classname="tests/contracts/api-envelope.test.ts" name="API failure envelope (Phase 10A contract) &gt; forwards details when explicitly provided" time="0.003662486">
+        </testcase>
+        <testcase classname="tests/contracts/api-envelope.test.ts" name="Failure envelope leak guard (Phase 10A contract) &gt; never echoes the original error message when it contains a secret keyword" time="0.002512404">
+        </testcase>
+        <testcase classname="tests/contracts/api-envelope.test.ts" name="Failure envelope leak guard (Phase 10A contract) &gt; preserves the human-friendly message that does not contain secrets" time="0.001535944">
+        </testcase>
+        <testcase classname="tests/contracts/api-envelope.test.ts" name="DomainError mapping (Phase 10A contract) &gt; ConcurrentModificationError renders with code CONCURRENT_MODIFICATION and status 409" time="0.005386726">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/contracts/auth-middleware.test.ts" timestamp="2026-08-03T19:47:24.823Z" hostname="MSI" tests="7" failures="0" errors="0" skipped="0" time="0.136037777">
+        <testcase classname="tests/contracts/auth-middleware.test.ts" name="withAuth middleware (Phase 10A contract) &gt; returns AUTHENTICATION_REQUIRED when no token is present" time="0.048663423">
+        </testcase>
+        <testcase classname="tests/contracts/auth-middleware.test.ts" name="withAuth middleware (Phase 10A contract) &gt; returns AUTHENTICATION_REQUIRED when the token signature is invalid" time="0.008385203">
+        </testcase>
+        <testcase classname="tests/contracts/auth-middleware.test.ts" name="withAuth middleware (Phase 10A contract) &gt; returns FORBIDDEN when the user role is not in the allow-list" time="0.027304206">
+        </testcase>
+        <testcase classname="tests/contracts/auth-middleware.test.ts" name="withAuth middleware (Phase 10A contract) &gt; invokes the handler and propagates the success envelope when the token is valid" time="0.009839725">
+        </testcase>
+        <testcase classname="tests/contracts/auth-middleware.test.ts" name="withAuth middleware (Phase 10A contract) &gt; attaches the x-request-id header on every response (success and failure)" time="0.001958919">
+        </testcase>
+        <testcase classname="tests/contracts/auth-middleware.test.ts" name="withAuth middleware (Phase 10A contract) &gt; uses the cookie token when authorization header is absent" time="0.004172498">
+        </testcase>
+        <testcase classname="tests/contracts/auth-middleware.test.ts" name="withAuth middleware (Phase 10A contract) &gt; falls back to AUTHENTICATION_REQUIRED if the handler throws" time="0.023503441">
+            <system-err>
+Error en middleware de autenticación: Error: handler exploded
+    at /home/luis/sistema-gestion-empresarial/tests/contracts/auth-middleware.test.ts:134:15
+    at /home/luis/sistema-gestion-empresarial/src/lib/middleware.ts:52:20
+    at /home/luis/sistema-gestion-empresarial/tests/contracts/auth-middleware.test.ts:136:30
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at file:///home/luis/sistema-gestion-empresarial/node_modules/.pnpm/@vitest+runner@4.1.10/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+
+            </system-err>
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/integration/data-quality.test.ts" timestamp="2026-08-03T19:47:24.829Z" hostname="MSI" tests="28" failures="0" errors="0" skipped="0" time="0.085084245">
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema data-quality invariants (Phase 10A) &gt; every business table has an organizationId column" time="0.017854914">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema data-quality invariants (Phase 10A) &gt; Organization has a unique slug" time="0.001424229">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema data-quality invariants (Phase 10A) &gt; OrganizationMembership has a unique (organizationId, userId) pair" time="0.001205189">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema data-quality invariants (Phase 10A) &gt; Notification has a unique (organizationId, idempotencyKey) pair" time="0.000909825">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema data-quality invariants (Phase 10A) &gt; OrganizationIntegration has a unique (organizationId, provider, name) tuple" time="0.000968306">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema data-quality invariants (Phase 10A) &gt; DomainEventOutbox has a unique (organizationId, aggregateType, aggregateId, aggregateVersion, eventType) tuple" time="0.001319775">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema data-quality invariants (Phase 10A) &gt; integration_executions has the (integrationId, startedAt) index" time="0.001135044">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema data-quality invariants (Phase 10A) &gt; notifications has the (organizationId, userId, createdAt) index" time="0.006876549">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema data-quality invariants (Phase 10A) &gt; User has a unique email and a unique employeeNumber" time="0.001166108">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema data-quality invariants (Phase 10A) &gt; User has a platformRole column (Phase 6A)" time="0.002116873">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema data-quality invariants (Phase 10A) &gt; Organization has the Phase 7A onboardingStatus column" time="0.00082257">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema enum coverage (Phase 10A) &gt; declares the lifecycle statuses required by Phase 7A" time="0.001358608">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema enum coverage (Phase 10A) &gt; declares the platform role enum" time="0.013527351">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema enum coverage (Phase 10A) &gt; declares the notification channel and status enums (Phase 8A)" time="0.00141399">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema enum coverage (Phase 10A) &gt; declares the integration status and capability enums (Phase 9A)" time="0.005436886">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema safety — no business data without organization (Phase 10A) &gt; Equipment enforces NOT NULL on organizationId" time="0.001042658">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema safety — no business data without organization (Phase 10A) &gt; EquipmentAssignment enforces NOT NULL on organizationId" time="0.000576273">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema safety — no business data without organization (Phase 10A) &gt; Oficio enforces NOT NULL on organizationId" time="0.000427115">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema safety — no business data without organization (Phase 10A) &gt; Audit enforces NOT NULL on organizationId" time="0.000395646">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema safety — no business data without organization (Phase 10A) &gt; Ticket enforces NOT NULL on organizationId" time="0.000366832">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema safety — no business data without organization (Phase 10A) &gt; AuditRecord enforces NOT NULL on organizationId" time="0.000389249">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema safety — no business data without organization (Phase 10A) &gt; CompraOrden enforces NOT NULL on organizationId" time="0.004642008">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema safety — no business data without organization (Phase 10A) &gt; EquipmentDisposal enforces NOT NULL on organizationId" time="0.000834698">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema safety — no business data without organization (Phase 10A) &gt; Department enforces NOT NULL on organizationId" time="0.000440616">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema safety — no business data without organization (Phase 10A) &gt; Proveedor enforces NOT NULL on organizationId" time="0.000394694">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema safety — no business data without organization (Phase 10A) &gt; Notification enforces NOT NULL on organizationId" time="0.010280539">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema safety — no business data without organization (Phase 10A) &gt; OrganizationIntegration enforces NOT NULL on organizationId" time="0.000827389">
+        </testcase>
+        <testcase classname="tests/integration/data-quality.test.ts" name="Schema safety — no business data without organization (Phase 10A) &gt; IntegrationExecution enforces NOT NULL on organizationId" time="0.000557671">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/migrations/migration-validation.test.ts" timestamp="2026-08-03T19:47:24.847Z" hostname="MSI" tests="24" failures="0" errors="0" skipped="0" time="0.034937467">
+        <testcase classname="tests/migrations/migration-validation.test.ts" name="Migration directory layout (Phase 10A migration validation) &gt; contains at least one migration" time="0.005943372">
+        </testcase>
+        <testcase classname="tests/migrations/migration-validation.test.ts" name="Migration directory layout (Phase 10A migration validation) &gt; uses a 14-digit prefix for every directory" time="0.002260185">
+        </testcase>
+        <testcase classname="tests/migrations/migration-validation.test.ts" name="Migration directory layout (Phase 10A migration validation) &gt; uses the canonical migration.sql filename in every directory" time="0.004025195">
+        </testcase>
+        <testcase classname="tests/migrations/migration-validation.test.ts" name="Phase 1 — tenant hardening migration (Phase 10A migration validation) &gt; exists and creates the per-organization composite unique indexes on business tables" time="0.001132757">
+        </testcase>
+        <testcase classname="tests/migrations/migration-validation.test.ts" name="Phase 7A — organization lifecycle migration (Phase 10A migration validation) &gt; exists and adds the new lifecycle enum values" time="0.000956815">
+        </testcase>
+        <testcase classname="tests/migrations/migration-validation.test.ts" name="Phase 8A — notifications migration (Phase 10A migration validation) &gt; exists and creates the notifications and notification_deliveries tables with the unique idempotency key" time="0.001591753">
+        </testcase>
+        <testcase classname="tests/migrations/migration-validation.test.ts" name="Phase 9A — integrations migration (Phase 10A migration validation) &gt; exists and creates the integration tables with the per-organization unique key" time="0.000993338">
+        </testcase>
+        <testcase classname="tests/migrations/migration-validation.test.ts" name="No post-Phase-1 migration drops a business table (Phase 10A data quality) &gt; 20260722210000_phase1_tenant_hardening does not DROP TABLE" time="0.000939003">
+        </testcase>
+        <testcase classname="tests/migrations/migration-validation.test.ts" name="No post-Phase-1 migration drops a business table (Phase 10A data quality) &gt; 20260722220000_phase3a_domain_foundations does not DROP TABLE" time="0.002346542">
+        </testcase>
+        <testcase classname="tests/migrations/migration-validation.test.ts" name="No post-Phase-1 migration drops a business table (Phase 10A data quality) &gt; 20260723120000_phase4a_reporting_foundation does not DROP TABLE" time="0.000360207">
+        </testcase>
+        <testcase classname="tests/migrations/migration-validation.test.ts" name="No post-Phase-1 migration drops a business table (Phase 10A data quality) &gt; 20260724170000_phase6a_identity_authorization does not DROP TABLE" time="0.000306944">
+        </testcase>
+        <testcase classname="tests/migrations/migration-validation.test.ts" name="No post-Phase-1 migration drops a business table (Phase 10A data quality) &gt; 20260724200000_phase7a_organization_lifecycle does not DROP TABLE" time="0.000148817">
+        </testcase>
+        <testcase classname="tests/migrations/migration-validation.test.ts" name="No post-Phase-1 migration drops a business table (Phase 10A data quality) &gt; 20260724220000_phase8a_notification_foundation does not DROP TABLE" time="0.000114756">
+        </testcase>
+        <testcase classname="tests/migrations/migration-validation.test.ts" name="No post-Phase-1 migration drops a business table (Phase 10A data quality) &gt; 20260724230000_phase9a_integration_foundation does not DROP TABLE" time="0.00020288">
+        </testcase>
+        <testcase classname="tests/migrations/migration-validation.test.ts" name="Every CREATE TABLE has a primary key (Phase 10A data quality) &gt; 20260714000000_baseline_from_existing_db declares primary keys" time="0.000409626">
+        </testcase>
+        <testcase classname="tests/migrations/migration-validation.test.ts" name="Every CREATE TABLE has a primary key (Phase 10A data quality) &gt; 20260714100000_oficios_documental declares primary keys" time="0.000159105">
+        </testcase>
+        <testcase classname="tests/migrations/migration-validation.test.ts" name="Every CREATE TABLE has a primary key (Phase 10A data quality) &gt; 20260714160000_compras_orden_institucional declares primary keys" time="0.000107182">
+        </testcase>
+        <testcase classname="tests/migrations/migration-validation.test.ts" name="Every CREATE TABLE has a primary key (Phase 10A data quality) &gt; 20260714200000_compra_orden_v2 declares primary keys" time="0.000097953">
+        </testcase>
+        <testcase classname="tests/migrations/migration-validation.test.ts" name="Every CREATE TABLE has a primary key (Phase 10A data quality) &gt; 20260715100000_simplify_purchase_orders declares primary keys" time="0.000095172">
+        </testcase>
+        <testcase classname="tests/migrations/migration-validation.test.ts" name="Every CREATE TABLE has a primary key (Phase 10A data quality) &gt; 20260722170000_saas_foundation_equipment_disposal declares primary keys" time="0.000152474">
+        </testcase>
+        <testcase classname="tests/migrations/migration-validation.test.ts" name="Every CREATE TABLE has a primary key (Phase 10A data quality) &gt; 20260722220000_phase3a_domain_foundations declares primary keys" time="0.000130367">
+        </testcase>
+        <testcase classname="tests/migrations/migration-validation.test.ts" name="Every CREATE TABLE has a primary key (Phase 10A data quality) &gt; 20260723120000_phase4a_reporting_foundation declares primary keys" time="0.000097904">
+        </testcase>
+        <testcase classname="tests/migrations/migration-validation.test.ts" name="Every CREATE TABLE has a primary key (Phase 10A data quality) &gt; 20260724220000_phase8a_notification_foundation declares primary keys" time="0.000099139">
+        </testcase>
+        <testcase classname="tests/migrations/migration-validation.test.ts" name="Every CREATE TABLE has a primary key (Phase 10A data quality) &gt; 20260724230000_phase9a_integration_foundation declares primary keys" time="0.00024288">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/performance/resource-leaks.test.ts" timestamp="2026-08-03T19:47:24.861Z" hostname="MSI" tests="2" failures="0" errors="0" skipped="0" time="0.005438596">
+        <testcase classname="tests/performance/resource-leaks.test.ts" name="Resource leak guards (Phase 10F) &gt; does not leave a Chromium process running after PDF generation" time="0.002470748">
+        </testcase>
+        <testcase classname="tests/performance/resource-leaks.test.ts" name="Resource leak guards (Phase 10F) &gt; returns the database pool to the baseline after the suite" time="0.000354788">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/security/authentication.test.ts" timestamp="2026-08-03T19:47:24.863Z" hostname="MSI" tests="17" failures="0" errors="0" skipped="0" time="3.42876487">
+        <testcase classname="tests/security/authentication.test.ts" name="password primitives &gt; produces a bcrypt hash that is not the plaintext" time="0.342211015">
+        </testcase>
+        <testcase classname="tests/security/authentication.test.ts" name="password primitives &gt; verifies the correct password" time="0.550131258">
+        </testcase>
+        <testcase classname="tests/security/authentication.test.ts" name="password primitives &gt; rejects an incorrect password" time="0.600357755">
+        </testcase>
+        <testcase classname="tests/security/authentication.test.ts" name="password primitives &gt; rejects an empty password" time="0.661167229">
+        </testcase>
+        <testcase classname="tests/security/authentication.test.ts" name="password primitives &gt; rejects a password that is too long to be a valid bcrypt input" time="1.004842926">
+        </testcase>
+        <testcase classname="tests/security/authentication.test.ts" name="JWT helpers &gt; round-trips a valid payload" time="0.026024649">
+        </testcase>
+        <testcase classname="tests/security/authentication.test.ts" name="JWT helpers &gt; returns null for a token signed with a different secret" time="0.004640288">
+        </testcase>
+        <testcase classname="tests/security/authentication.test.ts" name="JWT helpers &gt; returns null for a malformed token" time="0.010817038">
+        </testcase>
+        <testcase classname="tests/security/authentication.test.ts" name="JWT helpers &gt; returns null for an empty token" time="0.001666969">
+        </testcase>
+        <testcase classname="tests/security/authentication.test.ts" name="JWT helpers &gt; throws when JWT_SECRET is missing" time="0.008617398">
+        </testcase>
+        <testcase classname="tests/security/authentication.test.ts" name="JWT helpers &gt; throws when JWT_SECRET is shorter than the minimum length" time="0.001461369">
+        </testcase>
+        <testcase classname="tests/security/authentication.test.ts" name="JWT helpers &gt; rejects an expired token" time="0.002785057">
+        </testcase>
+        <testcase classname="tests/security/authentication.test.ts" name="middleware behavior — auth envelope &gt; withAuth returns AUTHENTICATION_REQUIRED with the standard envelope when no token" time="0.171706639">
+        </testcase>
+        <testcase classname="tests/security/authentication.test.ts" name="middleware behavior — auth envelope &gt; withAuth validates the role allowlist and returns FORBIDDEN when missing" time="0.007738413">
+        </testcase>
+        <testcase classname="tests/security/authentication.test.ts" name="middleware behavior — auth envelope &gt; withAuth accepts a cookie token when the authorization header is absent" time="0.009053778">
+        </testcase>
+        <testcase classname="tests/security/authentication.test.ts" name="middleware behavior — auth envelope &gt; withAuth rejects a &quot;Bearer none&quot; token as AUTHENTICATION_REQUIRED" time="0.002719366">
+        </testcase>
+        <testcase classname="tests/security/authentication.test.ts" name="middleware behavior — auth envelope &gt; withAuth exposes an authenticated user on the request when the token is valid" time="0.013046265">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/security/authorization-matrix.test.ts" timestamp="2026-08-03T19:47:24.875Z" hostname="MSI" tests="16" failures="0" errors="0" skipped="0" time="0.082154284">
+        <testcase classname="tests/security/authorization-matrix.test.ts" name="Integration permission matrix (Phase 10A security regression) &gt; OWNER has every integration permission" time="0.045507119">
+        </testcase>
+        <testcase classname="tests/security/authorization-matrix.test.ts" name="Integration permission matrix (Phase 10A security regression) &gt; ADMIN has every integration permission" time="0.007374167">
+        </testcase>
+        <testcase classname="tests/security/authorization-matrix.test.ts" name="Integration permission matrix (Phase 10A security regression) &gt; IT_MANAGER has the read/test/view-history subset, but cannot create or rotate" time="0.00121658">
+        </testcase>
+        <testcase classname="tests/security/authorization-matrix.test.ts" name="Integration permission matrix (Phase 10A security regression) &gt; AUDITOR can read and view history but cannot mutate" time="0.000568148">
+        </testcase>
+        <testcase classname="tests/security/authorization-matrix.test.ts" name="Integration permission matrix (Phase 10A security regression) &gt; USER has no integration permission" time="0.000800809">
+        </testcase>
+        <testcase classname="tests/security/authorization-matrix.test.ts" name="Integration permission matrix (Phase 10A security regression) &gt; PROCUREMENT cannot manage webhooks" time="0.00033819">
+        </testcase>
+        <testcase classname="tests/security/authorization-matrix.test.ts" name="Integration permission matrix (Phase 10A security regression) &gt; platform roles do not silently gain organization integration rights" time="0.000362741">
+        </testcase>
+        <testcase classname="tests/security/authorization-matrix.test.ts" name="Notification permission matrix (Phase 10A security regression) &gt; OWNER and ADMIN can manage organization notification settings and retry failures" time="0.000715881">
+        </testcase>
+        <testcase classname="tests/security/authorization-matrix.test.ts" name="Notification permission matrix (Phase 10A security regression) &gt; every organization role can read notifications" time="0.002013043">
+        </testcase>
+        <testcase classname="tests/security/authorization-matrix.test.ts" name="Notification permission matrix (Phase 10A security regression) &gt; IT_MANAGER can manage their own preferences but not organization-wide settings" time="0.000690358">
+        </testcase>
+        <testcase classname="tests/security/authorization-matrix.test.ts" name="Notification permission matrix (Phase 10A security regression) &gt; USER can read but cannot manage anything" time="0.002006503">
+        </testcase>
+        <testcase classname="tests/security/authorization-matrix.test.ts" name="requirePermission (Phase 10A security regression) &gt; throws PermissionDeniedError when a permission is missing" time="0.00647084">
+        </testcase>
+        <testcase classname="tests/security/authorization-matrix.test.ts" name="requirePermission (Phase 10A security regression) &gt; does not throw when the permission is granted" time="0.000861608">
+        </testcase>
+        <testcase classname="tests/security/authorization-matrix.test.ts" name="requirePermission (Phase 10A security regression) &gt; does not allow platform role to bypass organization permission check" time="0.000684658">
+        </testcase>
+        <testcase classname="tests/security/authorization-matrix.test.ts" name="Platform permission isolation (Phase 10A security regression) &gt; SUPPORT_ADMIN has only platform.health.read" time="0.000404948">
+        </testcase>
+        <testcase classname="tests/security/authorization-matrix.test.ts" name="Platform permission isolation (Phase 10A security regression) &gt; PLATFORM_ADMIN has every platform permission" time="0.000348455">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/security/csp-cors-csrf.test.ts" timestamp="2026-08-03T19:47:24.887Z" hostname="MSI" tests="10" failures="0" errors="0" skipped="0" time="0.04513318">
+        <testcase classname="tests/security/csp-cors-csrf.test.ts" name="CSP / security headers (Phase 10C) &gt; middleware module exposes a default `middleware` function" time="0.01013668">
+        </testcase>
+        <testcase classname="tests/security/csp-cors-csrf.test.ts" name="CSP / security headers (Phase 10C) &gt; middleware config matches only non-API, non-static routes" time="0.001823121">
+        </testcase>
+        <testcase classname="tests/security/csp-cors-csrf.test.ts" name="CSP / security headers (Phase 10C) &gt; CSP forbids the `object-src` directive by default" time="0.001171223">
+        </testcase>
+        <testcase classname="tests/security/csp-cors-csrf.test.ts" name="CSP / security headers (Phase 10C) &gt; CSP enables strict-dynamic when running with a nonce" time="0.001709559">
+        </testcase>
+        <testcase classname="tests/security/csp-cors-csrf.test.ts" name="CSP / security headers (Phase 10C) &gt; hides extra security headers (X-Frame-Options, HSTS, COOP, COEP)" time="0.000891074">
+        </testcase>
+        <testcase classname="tests/security/csp-cors-csrf.test.ts" name="CORS — outright rejected at the middleware layer &gt; the middleware does not emit Access-Control-Allow-Origin by default" time="0.00112637">
+        </testcase>
+        <testcase classname="tests/security/csp-cors-csrf.test.ts" name="CSRF — token-based session cookies &gt; the same JWT is used for cookie and Bearer auth (no separate CSRF token)" time="0.000944536">
+        </testcase>
+        <testcase classname="tests/security/csp-cors-csrf.test.ts" name="CSRF — token-based session cookies &gt; the server action that issues the session cookie sets SameSite=Lax" time="0.005492338">
+        </testcase>
+        <testcase classname="tests/security/csp-cors-csrf.test.ts" name="CSRF — token-based session cookies &gt; the client-side auth store also sets SameSite=Lax" time="0.009746966">
+        </testcase>
+        <testcase classname="tests/security/csp-cors-csrf.test.ts" name="CSRF — token-based session cookies &gt; session revocation clears the token cookie with maxAge=0" time="0.000681608">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/security/file-security.test.ts" timestamp="2026-08-03T19:47:24.895Z" hostname="MSI" tests="15" failures="0" errors="0" skipped="0" time="0.044244583">
+        <testcase classname="tests/security/file-security.test.ts" name="File security — magic bytes (Phase 10A security regression) &gt; accepts a real PDF header" time="0.006584875">
+        </testcase>
+        <testcase classname="tests/security/file-security.test.ts" name="File security — magic bytes (Phase 10A security regression) &gt; rejects an executable masquerading as a PDF" time="0.000618932">
+        </testcase>
+        <testcase classname="tests/security/file-security.test.ts" name="File security — magic bytes (Phase 10A security regression) &gt; rejects HTML embedded as a PDF" time="0.00030201">
+        </testcase>
+        <testcase classname="tests/security/file-security.test.ts" name="File security — magic bytes (Phase 10A security regression) &gt; rejects SVG with embedded script (no SVG ever accepted as PDF)" time="0.000608712">
+        </testcase>
+        <testcase classname="tests/security/file-security.test.ts" name="File security — magic bytes (Phase 10A security regression) &gt; rejects an oversized payload past the documented 25 MB cap" time="0.001523952">
+        </testcase>
+        <testcase classname="tests/security/file-security.test.ts" name="File security — magic bytes (Phase 10A security regression) &gt; rejects a checksum mismatch when stored and computed hashes differ" time="0.002144871">
+        </testcase>
+        <testcase classname="tests/security/file-security.test.ts" name="File security — MIME validation (Phase 10A security regression) &gt; accepts the configured document MIME types" time="0.000702432">
+        </testcase>
+        <testcase classname="tests/security/file-security.test.ts" name="File security — MIME validation (Phase 10A security regression) &gt; rejects unknown MIME types" time="0.000524624">
+        </testcase>
+        <testcase classname="tests/security/file-security.test.ts" name="File security — MIME validation (Phase 10A security regression) &gt; rejects mismatched MIME and extension pairs" time="0.001330668">
+        </testcase>
+        <testcase classname="tests/security/file-security.test.ts" name="File security — MIME validation (Phase 10A security regression) &gt; rejects double extensions that may bypass extension checks" time="0.0005087">
+        </testcase>
+        <testcase classname="tests/security/file-security.test.ts" name="File security — equipment document type allowlist (Phase 10A) &gt; exposes a finite, audited set of equipment document types" time="0.001861058">
+        </testcase>
+        <testcase classname="tests/security/file-security.test.ts" name="File security — equipment document type allowlist (Phase 10A) &gt; does not include executable or script extensions" time="0.000736115">
+        </testcase>
+        <testcase classname="tests/security/file-security.test.ts" name="File security — cross-tenant storage keys (Phase 10A) &gt; rejects keys that omit the organization prefix" time="0.002423146">
+        </testcase>
+        <testcase classname="tests/security/file-security.test.ts" name="File security — cross-tenant storage keys (Phase 10A) &gt; rejects keys with a different organization than the prefix" time="0.000708669">
+        </testcase>
+        <testcase classname="tests/security/file-security.test.ts" name="File security — cross-tenant storage keys (Phase 10A) &gt; accepts well-formed tenant prefixes" time="0.000447189">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/security/idor-per-entity.test.ts" timestamp="2026-08-03T19:47:24.905Z" hostname="MSI" tests="24" failures="0" errors="0" skipped="0" time="0.238238775">
+        <testcase classname="tests/security/idor-per-entity.test.ts" name="IDOR — equipment &gt; equipmentScope filters by organizationId" time="0.031960938">
+        </testcase>
+        <testcase classname="tests/security/idor-per-entity.test.ts" name="IDOR — equipment &gt; assignmentScope filters by organizationId and the equipment relationship" time="0.001567653">
+        </testcase>
+        <testcase classname="tests/security/idor-per-entity.test.ts" name="IDOR — equipment &gt; maintenanceScope filters through the equipment relationship" time="0.001122196">
+        </testcase>
+        <testcase classname="tests/security/idor-per-entity.test.ts" name="IDOR — equipment disposal &gt; disposalScope uses id + organizationId" time="0.001204882">
+        </testcase>
+        <testcase classname="tests/security/idor-per-entity.test.ts" name="IDOR — equipment disposal &gt; disposalDocumentScope adds the disposalId filter" time="0.000915553">
+        </testcase>
+        <testcase classname="tests/security/idor-per-entity.test.ts" name="IDOR — equipment disposal &gt; disposalPolicyScope filters by organizationId" time="0.012922915">
+        </testcase>
+        <testcase classname="tests/security/idor-per-entity.test.ts" name="IDOR — equipment disposal &gt; disposalSequenceScope uses the composite unique index" time="0.001939796">
+        </testcase>
+        <testcase classname="tests/security/idor-per-entity.test.ts" name="IDOR — oficios &gt; oficioTenantScope filters by organizationId" time="0.001659027">
+        </testcase>
+        <testcase classname="tests/security/idor-per-entity.test.ts" name="IDOR — oficios &gt; oficioScope combines organizationId and id" time="0.013501026">
+        </testcase>
+        <testcase classname="tests/security/idor-per-entity.test.ts" name="IDOR — oficios &gt; oficioDocumentScope chains the parent filter" time="0.014592869">
+        </testcase>
+        <testcase classname="tests/security/idor-per-entity.test.ts" name="IDOR — oficios &gt; oficioDocumentTenantScope filters through the parent oficio" time="0.001121115">
+        </testcase>
+        <testcase classname="tests/security/idor-per-entity.test.ts" name="IDOR — oficios &gt; oficioBatchScope isolates import batches by organization" time="0.001060256">
+        </testcase>
+        <testcase classname="tests/security/idor-per-entity.test.ts" name="IDOR — oficios &gt; oficioUserAccessScope narrows to the user&apos;s own records or recipient" time="0.001001223">
+        </testcase>
+        <testcase classname="tests/security/idor-per-entity.test.ts" name="IDOR — oficios &gt; oficioSequenceScope uses the composite unique index" time="0.001946994">
+        </testcase>
+        <testcase classname="tests/security/idor-per-entity.test.ts" name="IDOR — purchase orders &gt; purchaseOrderScope filters by organizationId" time="0.001828817">
+        </testcase>
+        <testcase classname="tests/security/idor-per-entity.test.ts" name="IDOR — purchase orders &gt; purchaseOrderChildScope scopes child tables through the parent order" time="0.000739888">
+        </testcase>
+        <testcase classname="tests/security/idor-per-entity.test.ts" name="IDOR — audits &gt; auditScope filters by organizationId" time="0.007923673">
+        </testcase>
+        <testcase classname="tests/security/idor-per-entity.test.ts" name="IDOR — audits &gt; auditChildScope chains the parent audit filter" time="0.001400761">
+        </testcase>
+        <testcase classname="tests/security/idor-per-entity.test.ts" name="IDOR — audits &gt; correctiveActionScope filters by organizationId" time="0.000824914">
+        </testcase>
+        <testcase classname="tests/security/idor-per-entity.test.ts" name="IDOR — audits &gt; auditRecordScope filters by organizationId" time="0.001211794">
+        </testcase>
+        <testcase classname="tests/security/idor-per-entity.test.ts" name="IDOR — notifications queries &gt; list builds a tenant-scoped where clause" time="0.035124687">
+        </testcase>
+        <testcase classname="tests/security/idor-per-entity.test.ts" name="IDOR — notifications queries &gt; unreadCount is tenant-scoped" time="0.013571902">
+        </testcase>
+        <testcase classname="tests/security/idor-per-entity.test.ts" name="IDOR — notifications queries &gt; markRead checks ownership and rejects notifications owned by another user" time="0.019317449">
+        </testcase>
+        <testcase classname="tests/security/idor-per-entity.test.ts" name="IDOR — notifications queries &gt; markRead throws when the notification belongs to another organization" time="0.01290547">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/security/idor-regression.test.ts" timestamp="2026-08-03T19:47:24.922Z" hostname="MSI" tests="13" failures="0" errors="0" skipped="0" time="0.096028946">
+        <testcase classname="tests/security/idor-regression.test.ts" name="applyIdorFilter (Phase 10A security regression) &gt; ADMIN sees everything (no filter added)" time="0.017686664">
+        </testcase>
+        <testcase classname="tests/security/idor-regression.test.ts" name="applyIdorFilter (Phase 10A security regression) &gt; USER with self-record access is filtered by userId" time="0.018607199">
+        </testcase>
+        <testcase classname="tests/security/idor-regression.test.ts" name="applyIdorFilter (Phase 10A security regression) &gt; USER with owner access is filtered by createdById" time="0.001163374">
+        </testcase>
+        <testcase classname="tests/security/idor-regression.test.ts" name="applyIdorFilter (Phase 10A security regression) &gt; USER with none access is blocked by the sentinel id" time="0.001312819">
+        </testcase>
+        <testcase classname="tests/security/idor-regression.test.ts" name="applyIdorFilter (Phase 10A security regression) &gt; USER with assigned access adds an OR of ownership fields" time="0.012383053">
+        </testcase>
+        <testcase classname="tests/security/idor-regression.test.ts" name="applyIdorFilter (Phase 10A security regression) &gt; IT and RRHH without extraForStaff are not additionally restricted" time="0.001188904">
+        </testcase>
+        <testcase classname="tests/security/idor-regression.test.ts" name="checkItemAccess (Phase 10A security regression) &gt; returns false for a null item" time="0.001073026">
+        </testcase>
+        <testcase classname="tests/security/idor-regression.test.ts" name="checkItemAccess (Phase 10A security regression) &gt; ADMIN always has access" time="0.000654914">
+        </testcase>
+        <testcase classname="tests/security/idor-regression.test.ts" name="checkItemAccess (Phase 10A security regression) &gt; USER with self-record only matches when userId matches" time="0.000935821">
+        </testcase>
+        <testcase classname="tests/security/idor-regression.test.ts" name="checkItemAccess (Phase 10A security regression) &gt; USER with owner matches by userId OR createdById" time="0.011996214">
+        </testcase>
+        <testcase classname="tests/security/idor-regression.test.ts" name="checkItemAccess (Phase 10A security regression) &gt; honors the customCheck escape hatch" time="0.000757485">
+        </testcase>
+        <testcase classname="tests/security/idor-regression.test.ts" name="Cross-tenant invariants (Phase 10A security regression) &gt; the same user may belong to two organizations with the same role" time="0.003955084">
+        </testcase>
+        <testcase classname="tests/security/idor-regression.test.ts" name="Cross-tenant invariants (Phase 10A security regression) &gt; membership.status can be ACTIVE in one organization and SUSPENDED in another" time="0.00187562">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/audit-log-query-service.test.ts" timestamp="2026-08-03T19:47:24.932Z" hostname="MSI" tests="4" failures="0" errors="0" skipped="0" time="0.035361235">
+        <testcase classname="tests/unit/audit-log-query-service.test.ts" name="auditLogQueryService.list — shape &gt; scopes the query by the active organizationId" time="0.020371038">
+        </testcase>
+        <testcase classname="tests/unit/audit-log-query-service.test.ts" name="auditLogQueryService.list — shape &gt; defaults a missing page to 1 and clamps a malformed pageSize to 20" time="0.004403379">
+        </testcase>
+        <testcase classname="tests/unit/audit-log-query-service.test.ts" name="auditLogQueryService.list — shape &gt; clamps pageSize to 100 maximum" time="0.002933626">
+        </testcase>
+        <testcase classname="tests/unit/audit-log-query-service.test.ts" name="auditLogQueryService.list — shape &gt; applies the userId, module, and action filters when provided" time="0.001211713">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/compras-validation.test.ts" timestamp="2026-08-03T19:47:24.936Z" hostname="MSI" tests="14" failures="0" errors="0" skipped="0" time="0.079977436">
+        <testcase classname="tests/unit/compras-validation.test.ts" name="validateRtn &gt; returns true for an empty RTN (optional field)" time="0.020547829">
+        </testcase>
+        <testcase classname="tests/unit/compras-validation.test.ts" name="validateRtn &gt; returns true for a 14-digit RTN" time="0.000798484">
+        </testcase>
+        <testcase classname="tests/unit/compras-validation.test.ts" name="validateRtn &gt; returns true when the RTN contains non-digit characters but 14 digits" time="0.000347359">
+        </testcase>
+        <testcase classname="tests/unit/compras-validation.test.ts" name="validateRtn &gt; returns false for an RTN with fewer than 14 digits" time="0.000314249">
+        </testcase>
+        <testcase classname="tests/unit/compras-validation.test.ts" name="validateRtn &gt; returns false for an RTN with more than 14 digits" time="0.000397681">
+        </testcase>
+        <testcase classname="tests/unit/compras-validation.test.ts" name="normalizeRtn &gt; returns null for empty input" time="0.000737628">
+        </testcase>
+        <testcase classname="tests/unit/compras-validation.test.ts" name="normalizeRtn &gt; strips non-digit characters from a valid RTN" time="0.000292442">
+        </testcase>
+        <testcase classname="tests/unit/compras-validation.test.ts" name="normalizeRtn &gt; returns null when the input has no digits" time="0.00024328">
+        </testcase>
+        <testcase classname="tests/unit/compras-validation.test.ts" name="COMPRA constants &gt; uses a 15% ISV tax rate" time="0.000346408">
+        </testcase>
+        <testcase classname="tests/unit/compras-validation.test.ts" name="COMPRA constants &gt; exposes labels for every CompraUnidad" time="0.000966529">
+        </testcase>
+        <testcase classname="tests/unit/compras-validation.test.ts" name="COMPRA constants &gt; exposes labels for every CompraEstado" time="0.012493142">
+        </testcase>
+        <testcase classname="tests/unit/compras-validation.test.ts" name="COMPRA constants &gt; only allows DRAFT orders to be edited" time="0.003143483">
+        </testcase>
+        <testcase classname="tests/unit/compras-validation.test.ts" name="COMPRA constants &gt; exposes DRAFT and GENERATED as the pending states" time="0.006247982">
+        </testcase>
+        <testcase classname="tests/unit/compras-validation.test.ts" name="COMPRA constants &gt; exposes ISSUED, CLOSED, and CANCELLED as the finalized states" time="0.000618031">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/disposal-evaluator.test.ts" timestamp="2026-08-03T19:47:24.945Z" hostname="MSI" tests="8" failures="0" errors="0" skipped="0" time="0.028385237">
+        <testcase classname="tests/unit/disposal-evaluator.test.ts" name="evaluateEquipmentDisposal — score calculation &gt; produces a score between 0 and 100" time="0.00844123">
+        </testcase>
+        <testcase classname="tests/unit/disposal-evaluator.test.ts" name="evaluateEquipmentDisposal — score calculation &gt; returns DISPOSAL_JUSTIFIED when the score is past the approval threshold" time="0.004473801">
+        </testcase>
+        <testcase classname="tests/unit/disposal-evaluator.test.ts" name="evaluateEquipmentDisposal — score calculation &gt; returns KEEP_IN_SERVICE when the score is below the review threshold" time="0.001228677">
+        </testcase>
+        <testcase classname="tests/unit/disposal-evaluator.test.ts" name="evaluateEquipmentDisposal — score calculation &gt; flags BEYOND_USEFUL_LIFE when the age exceeds the policy maxAgeYears" time="0.000702343">
+        </testcase>
+        <testcase classname="tests/unit/disposal-evaluator.test.ts" name="evaluateEquipmentDisposal — score calculation &gt; flags REPAIR_EXCEEDS_THRESHOLD when the repair-to-replacement ratio is too high" time="0.000633972">
+        </testcase>
+        <testcase classname="tests/unit/disposal-evaluator.test.ts" name="evaluateEquipmentDisposal — input validation &gt; throws when the evaluation date is before the purchase date" time="0.002337295">
+        </testcase>
+        <testcase classname="tests/unit/disposal-evaluator.test.ts" name="evaluateEquipmentDisposal — input validation &gt; throws when the replacement price is non-positive" time="0.001492308">
+        </testcase>
+        <testcase classname="tests/unit/disposal-evaluator.test.ts" name="evaluateEquipmentDisposal — input validation &gt; throws when the repair cost is negative" time="0.001036935">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/disposal-rules.test.ts" timestamp="2026-08-03T19:47:24.951Z" hostname="MSI" tests="11" failures="0" errors="0" skipped="0" time="0.045603027">
+        <testcase classname="tests/unit/disposal-rules.test.ts" name="canTransitionDisposal / assertDisposalTransition &gt; allows DRAFT → PENDING_APPROVAL and DRAFT → CANCELLED" time="0.015511747">
+        </testcase>
+        <testcase classname="tests/unit/disposal-rules.test.ts" name="canTransitionDisposal / assertDisposalTransition &gt; allows PENDING_APPROVAL → APPROVED, REJECTED and CANCELLED" time="0.001200838">
+        </testcase>
+        <testcase classname="tests/unit/disposal-rules.test.ts" name="canTransitionDisposal / assertDisposalTransition &gt; forbids leaving the terminal states" time="0.000502121">
+        </testcase>
+        <testcase classname="tests/unit/disposal-rules.test.ts" name="canTransitionDisposal / assertDisposalTransition &gt; throws InvalidDisposalTransitionError on a forbidden transition" time="0.001652139">
+        </testcase>
+        <testcase classname="tests/unit/disposal-rules.test.ts" name="canTransitionDisposal / assertDisposalTransition &gt; does not throw on a permitted transition" time="0.003955042">
+        </testcase>
+        <testcase classname="tests/unit/disposal-rules.test.ts" name="validateDisposalPolicy &gt; accepts a well-formed policy" time="0.00215504">
+        </testcase>
+        <testcase classname="tests/unit/disposal-rules.test.ts" name="validateDisposalPolicy &gt; rejects a negative weight" time="0.001553233">
+        </testcase>
+        <testcase classname="tests/unit/disposal-rules.test.ts" name="validateDisposalPolicy &gt; rejects weights that do not sum to 100" time="0.001080073">
+        </testcase>
+        <testcase classname="tests/unit/disposal-rules.test.ts" name="validateDisposalPolicy &gt; rejects a non-positive maxAgeYears" time="0.005844851">
+        </testcase>
+        <testcase classname="tests/unit/disposal-rules.test.ts" name="validateDisposalPolicy &gt; rejects a repairThresholdPct outside (0, 100]" time="0.003068163">
+        </testcase>
+        <testcase classname="tests/unit/disposal-rules.test.ts" name="validateDisposalPolicy &gt; rejects score thresholds that are inverted or out of range" time="0.001853387">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/domain-error-catalogue.test.ts" timestamp="2026-08-03T19:47:24.959Z" hostname="MSI" tests="14" failures="0" errors="0" skipped="0" time="0.049235138">
+        <testcase classname="tests/unit/domain-error-catalogue.test.ts" name="domain error catalogue &gt; EntityNotFoundError exposes a 404 status" time="0.008657823">
+        </testcase>
+        <testcase classname="tests/unit/domain-error-catalogue.test.ts" name="domain error catalogue &gt; InvalidDomainDataError exposes a 422 status" time="0.002388139">
+        </testcase>
+        <testcase classname="tests/unit/domain-error-catalogue.test.ts" name="domain error catalogue &gt; InvalidStatusTransitionError encodes the transition in details" time="0.00457934">
+        </testcase>
+        <testcase classname="tests/unit/domain-error-catalogue.test.ts" name="domain error catalogue &gt; DomainConflictError exposes a 409 status" time="0.000917089">
+        </testcase>
+        <testcase classname="tests/unit/domain-error-catalogue.test.ts" name="domain error catalogue &gt; AlreadyProcessedError exposes a 409 status" time="0.000803643">
+        </testcase>
+        <testcase classname="tests/unit/domain-error-catalogue.test.ts" name="domain error catalogue &gt; PermissionDeniedError exposes a 403 status" time="0.000577632">
+        </testcase>
+        <testcase classname="tests/unit/domain-error-catalogue.test.ts" name="domain error catalogue &gt; ConcurrentModificationError exposes a 409 status" time="0.00052956">
+        </testcase>
+        <testcase classname="tests/unit/domain-error-catalogue.test.ts" name="domain error catalogue &gt; SequenceAllocationFailedError exposes a 500 status" time="0.000696939">
+        </testcase>
+        <testcase classname="tests/unit/domain-error-catalogue.test.ts" name="domain error catalogue &gt; DocumentGenerationFailedError exposes a 500 status" time="0.008579632">
+        </testcase>
+        <testcase classname="tests/unit/domain-error-catalogue.test.ts" name="domain error catalogue &gt; StorageFailedError exposes a 500 status" time="0.00243358">
+        </testcase>
+        <testcase classname="tests/unit/domain-error-catalogue.test.ts" name="domain error catalogue &gt; ExternalIntegrationFailedError exposes a 502 status" time="0.001764293">
+        </testcase>
+        <testcase classname="tests/unit/domain-error-catalogue.test.ts" name="domain error catalogue &gt; every domain error is recognised by isDomainError" time="0.00103718">
+        </testcase>
+        <testcase classname="tests/unit/domain-error-catalogue.test.ts" name="domain error catalogue &gt; isDomainError returns false for non-domain errors" time="0.000387603">
+        </testcase>
+        <testcase classname="tests/unit/domain-error-catalogue.test.ts" name="domain error catalogue &gt; passes the cause option to the underlying Error" time="0.000374378">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/equipment-asset-code.test.ts" timestamp="2026-08-03T19:47:24.967Z" hostname="MSI" tests="8" failures="0" errors="0" skipped="0" time="0.033353426">
+        <testcase classname="tests/unit/equipment-asset-code.test.ts" name="CATEGORY_CODE_PREFIX catalogue &gt; maps every documented category to a non-empty prefix" time="0.005680349">
+        </testcase>
+        <testcase classname="tests/unit/equipment-asset-code.test.ts" name="CATEGORY_CODE_PREFIX catalogue &gt; only exposes documented prefixes" time="0.007636825">
+        </testcase>
+        <testcase classname="tests/unit/equipment-asset-code.test.ts" name="CATEGORY_LABELS catalogue &gt; exposes a Spanish label for every category" time="0.005052508">
+        </testcase>
+        <testcase classname="tests/unit/equipment-asset-code.test.ts" name="resolveEquipmentCategory &gt; passes through a canonical Prisma category" time="0.000842708">
+        </testcase>
+        <testcase classname="tests/unit/equipment-asset-code.test.ts" name="resolveEquipmentCategory &gt; maps the legacy DESKTOP alias to DESKTOP_PC" time="0.000582547">
+        </testcase>
+        <testcase classname="tests/unit/equipment-asset-code.test.ts" name="resolveEquipmentCategory &gt; maps the legacy TABLET alias to OTHER" time="0.0004737">
+        </testcase>
+        <testcase classname="tests/unit/equipment-asset-code.test.ts" name="resolveEquipmentCategory &gt; falls back to OTHER when the category is unknown and no legacy type is given" time="0.000347663">
+        </testcase>
+        <testcase classname="tests/unit/equipment-asset-code.test.ts" name="resolveEquipmentCategory &gt; honours the legacy type when the category is missing or unknown" time="0.000653358">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/equipment-document-types.test.ts" timestamp="2026-08-03T19:47:24.972Z" hostname="MSI" tests="11" failures="0" errors="0" skipped="0" time="0.047791019">
+        <testcase classname="tests/unit/equipment-document-types.test.ts" name="EQUIPMENT_DOCUMENT_TYPES catalogue &gt; exposes the documented document types" time="0.013179771">
+        </testcase>
+        <testcase classname="tests/unit/equipment-document-types.test.ts" name="EQUIPMENT_DOCUMENT_TYPES catalogue &gt; does not expose executable or script extensions" time="0.006506583">
+        </testcase>
+        <testcase classname="tests/unit/equipment-document-types.test.ts" name="isEquipmentDocumentType &gt; accepts every documented type" time="0.006603184">
+        </testcase>
+        <testcase classname="tests/unit/equipment-document-types.test.ts" name="isEquipmentDocumentType &gt; rejects unknown types" time="0.000629451">
+        </testcase>
+        <testcase classname="tests/unit/equipment-document-types.test.ts" name="resolveEquipmentDocumentType &gt; accepts an explicit canonical type" time="0.000957033">
+        </testcase>
+        <testcase classname="tests/unit/equipment-document-types.test.ts" name="resolveEquipmentDocumentType &gt; rejects an unknown canonical type" time="0.007523442">
+        </testcase>
+        <testcase classname="tests/unit/equipment-document-types.test.ts" name="resolveEquipmentDocumentType &gt; maps the legacy assignments subfolder to ACTA_ASIGNACION" time="0.000483616">
+        </testcase>
+        <testcase classname="tests/unit/equipment-document-types.test.ts" name="resolveEquipmentDocumentType &gt; maps the legacy returns subfolder to ACTA_DEVOLUCION" time="0.000594989">
+        </testcase>
+        <testcase classname="tests/unit/equipment-document-types.test.ts" name="resolveEquipmentDocumentType &gt; maps the legacy maintenance subfolder to INFORME_MANTENIMIENTO" time="0.000467742">
+        </testcase>
+        <testcase classname="tests/unit/equipment-document-types.test.ts" name="resolveEquipmentDocumentType &gt; throws when neither tipoDocumento nor subfolder is provided" time="0.000691364">
+        </testcase>
+        <testcase classname="tests/unit/equipment-document-types.test.ts" name="equipmentDocumentStoragePrefix &gt; returns the documented storage prefix for each type" time="0.000686076">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/equipment-return-status.test.ts" timestamp="2026-08-03T19:47:24.980Z" hostname="MSI" tests="7" failures="0" errors="0" skipped="0" time="0.051054066">
+        <testcase classname="tests/unit/equipment-return-status.test.ts" name="mapReturnConditionToStatus &gt; maps MANTENIMIENTO/IN_MAINTENANCE to IN_MAINTENANCE" time="0.040270523">
+        </testcase>
+        <testcase classname="tests/unit/equipment-return-status.test.ts" name="mapReturnConditionToStatus &gt; maps damage-related strings to DAMAGED" time="0.000799704">
+        </testcase>
+        <testcase classname="tests/unit/equipment-return-status.test.ts" name="mapReturnConditionToStatus &gt; maps retirement-related strings to RETIRED" time="0.000478416">
+        </testcase>
+        <testcase classname="tests/unit/equipment-return-status.test.ts" name="mapReturnConditionToStatus &gt; maps loss-related strings to LOST" time="0.000518298">
+        </testcase>
+        <testcase classname="tests/unit/equipment-return-status.test.ts" name="mapReturnConditionToStatus &gt; defaults to AVAILABLE when no condition is given" time="0.000514332">
+        </testcase>
+        <testcase classname="tests/unit/equipment-return-status.test.ts" name="mapReturnConditionToStatus &gt; allows an explicit equipmentStatusAfter when it is in the allowlist" time="0.000876972">
+        </testcase>
+        <testcase classname="tests/unit/equipment-return-status.test.ts" name="mapReturnConditionToStatus &gt; falls back to the condition mapping when the explicit status is not allowlisted" time="0.000407592">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/integration-circuit-breaker.test.ts" timestamp="2026-08-03T19:47:24.984Z" hostname="MSI" tests="9" failures="0" errors="0" skipped="0" time="0.030913297">
+        <testcase classname="tests/unit/integration-circuit-breaker.test.ts" name="CircuitBreaker lifecycle &gt; starts in CLOSED state" time="0.0105074">
+        </testcase>
+        <testcase classname="tests/unit/integration-circuit-breaker.test.ts" name="CircuitBreaker lifecycle &gt; opens once the failure threshold is reached" time="0.001533948">
+        </testcase>
+        <testcase classname="tests/unit/integration-circuit-breaker.test.ts" name="CircuitBreaker lifecycle &gt; moves to HALF_OPEN after openDuration and closes on the required successes" time="0.000954013">
+        </testcase>
+        <testcase classname="tests/unit/integration-circuit-breaker.test.ts" name="CircuitBreaker lifecycle &gt; reopens immediately on a failure during HALF_OPEN" time="0.000478717">
+        </testcase>
+        <testcase classname="tests/unit/integration-circuit-breaker.test.ts" name="CircuitBreaker lifecycle &gt; resets the consecutive failure counter on a success in CLOSED state" time="0.000771373">
+        </testcase>
+        <testcase classname="tests/unit/integration-circuit-breaker.test.ts" name="CircuitBreaker lifecycle &gt; uses the documented defaults when none are given" time="0.000537542">
+        </testcase>
+        <testcase classname="tests/unit/integration-circuit-breaker.test.ts" name="CircuitBreakerRegistry &gt; returns the same breaker instance for the same key" time="0.000659928">
+        </testcase>
+        <testcase classname="tests/unit/integration-circuit-breaker.test.ts" name="CircuitBreakerRegistry &gt; keeps separate breakers for different keys" time="0.004380477">
+        </testcase>
+        <testcase classname="tests/unit/integration-circuit-breaker.test.ts" name="CircuitBreakerRegistry &gt; snapshots every breaker at once" time="0.0022044">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/integration-retry-policy.test.ts" timestamp="2026-08-03T19:47:24.991Z" hostname="MSI" tests="14" failures="0" errors="0" skipped="0" time="0.059846034">
+        <testcase classname="tests/unit/integration-retry-policy.test.ts" name="classifyFailure &gt; classifies transient HTTP statuses" time="0.016709029">
+        </testcase>
+        <testcase classname="tests/unit/integration-retry-policy.test.ts" name="classifyFailure &gt; classifies permanent HTTP statuses" time="0.002580641">
+        </testcase>
+        <testcase classname="tests/unit/integration-retry-policy.test.ts" name="classifyFailure &gt; classifies network causes without a status as transient" time="0.001163551">
+        </testcase>
+        <testcase classname="tests/unit/integration-retry-policy.test.ts" name="classifyFailure &gt; classifies abort as permanent" time="0.000757109">
+        </testcase>
+        <testcase classname="tests/unit/integration-retry-policy.test.ts" name="classifyFailure &gt; classifies unknown as UNKNOWN" time="0.000482713">
+        </testcase>
+        <testcase classname="tests/unit/integration-retry-policy.test.ts" name="shouldRetry — boundary conditions &gt; does not retry past maxAttempts" time="0.011163095">
+        </testcase>
+        <testcase classname="tests/unit/integration-retry-policy.test.ts" name="shouldRetry — boundary conditions &gt; does not retry permanent failures" time="0.001197418">
+        </testcase>
+        <testcase classname="tests/unit/integration-retry-policy.test.ts" name="shouldRetry — boundary conditions &gt; does not retry UNKNOWN failures" time="0.000556638">
+        </testcase>
+        <testcase classname="tests/unit/integration-retry-policy.test.ts" name="shouldRetry — boundary conditions &gt; produces a bounded exponential backoff when transient" time="0.001023185">
+        </testcase>
+        <testcase classname="tests/unit/integration-retry-policy.test.ts" name="shouldRetry — boundary conditions &gt; caps the delay at maxDelayMs" time="0.000469642">
+        </testcase>
+        <testcase classname="tests/unit/integration-retry-policy.test.ts" name="shouldRetry — deterministic jitter &gt; respects the configured jitterRatio deterministically" time="0.003944389">
+        </testcase>
+        <testcase classname="tests/unit/integration-retry-policy.test.ts" name="shouldRetry — deterministic jitter &gt; does not produce a negative delay" time="0.001815714">
+        </testcase>
+        <testcase classname="tests/unit/integration-retry-policy.test.ts" name="DEFAULT_RETRY_POLICY &gt; caps at three attempts and 5 seconds" time="0.00044943">
+        </testcase>
+        <testcase classname="tests/unit/integration-retry-policy.test.ts" name="DEFAULT_RETRY_POLICY &gt; uses a 20% jitter to avoid thundering herd" time="0.003517028">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/notification-action-url.test.ts" timestamp="2026-08-03T19:47:25.001Z" hostname="MSI" tests="12" failures="0" errors="0" skipped="0" time="0.026389229">
+        <testcase classname="tests/unit/notification-action-url.test.ts" name="normalizeInternalPath &gt; returns null for empty / whitespace / null inputs" time="0.005838678">
+        </testcase>
+        <testcase classname="tests/unit/notification-action-url.test.ts" name="normalizeInternalPath &gt; accepts a leading-slash path and prefixes the slash when missing" time="0.001213122">
+        </testcase>
+        <testcase classname="tests/unit/notification-action-url.test.ts" name="normalizeInternalPath &gt; throws when the input lacks a leading slash" time="0.001156846">
+        </testcase>
+        <testcase classname="tests/unit/notification-action-url.test.ts" name="normalizeInternalPath &gt; rejects protocol-relative URLs" time="0.000501672">
+        </testcase>
+        <testcase classname="tests/unit/notification-action-url.test.ts" name="normalizeInternalPath &gt; rejects absolute URLs" time="0.000687928">
+        </testcase>
+        <testcase classname="tests/unit/notification-action-url.test.ts" name="normalizeInternalPath &gt; rejects javascript / data / vbscript URIs" time="0.000570526">
+        </testcase>
+        <testcase classname="tests/unit/notification-action-url.test.ts" name="normalizeInternalPath &gt; rejects newline / null control characters" time="0.000484496">
+        </testcase>
+        <testcase classname="tests/unit/notification-action-url.test.ts" name="normalizeInternalPath &gt; rejects paths that contain characters outside the allowlist" time="0.000607224">
+        </testcase>
+        <testcase classname="tests/unit/notification-action-url.test.ts" name="normalizeInternalPath &gt; accepts paths with query / fragment / encoded characters" time="0.00062665">
+        </testcase>
+        <testcase classname="tests/unit/notification-action-url.test.ts" name="assertSafeInternalPath &gt; returns an empty string when the input is null" time="0.000754745">
+        </testcase>
+        <testcase classname="tests/unit/notification-action-url.test.ts" name="assertSafeInternalPath &gt; returns the normalised path for valid inputs" time="0.000434151">
+        </testcase>
+        <testcase classname="tests/unit/notification-action-url.test.ts" name="assertSafeInternalPath &gt; throws for unsafe inputs" time="0.000486251">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/notification-idempotency.test.ts" timestamp="2026-08-03T19:47:25.008Z" hostname="MSI" tests="7" failures="0" errors="0" skipped="0" time="0.046135138">
+        <testcase classname="tests/unit/notification-idempotency.test.ts" name="buildIdempotencyKey &gt; returns a deterministic hash for the same inputs" time="0.014823938">
+        </testcase>
+        <testcase classname="tests/unit/notification-idempotency.test.ts" name="buildIdempotencyKey &gt; produces a key shaped &quot;&lt;eventType&gt;:&lt;channel&gt;:&lt;sha256-prefix&gt;&quot;" time="0.001874116">
+        </testcase>
+        <testcase classname="tests/unit/notification-idempotency.test.ts" name="buildIdempotencyKey &gt; matches the manually computed sha256 prefix" time="0.00081237">
+        </testcase>
+        <testcase classname="tests/unit/notification-idempotency.test.ts" name="buildIdempotencyKey &gt; changes when the recipient changes" time="0.007957701">
+        </testcase>
+        <testcase classname="tests/unit/notification-idempotency.test.ts" name="buildIdempotencyKey &gt; changes when the channel changes" time="0.000950657">
+        </testcase>
+        <testcase classname="tests/unit/notification-idempotency.test.ts" name="buildIdempotencyKey &gt; handles a null recipient using the wildcard sentinel" time="0.006221182">
+        </testcase>
+        <testcase classname="tests/unit/notification-idempotency.test.ts" name="buildIdempotencyKey &gt; does not depend on eventId when both inputs omit it" time="0.00050565">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/notification-rules.test.ts" timestamp="2026-08-03T19:47:25.013Z" hostname="MSI" tests="8" failures="0" errors="0" skipped="0" time="0.026853368">
+        <testcase classname="tests/unit/notification-rules.test.ts" name="NOTIFICATION_RULES catalogue &gt; exposes a rule for every documented lifecycle event" time="0.005946183">
+        </testcase>
+        <testcase classname="tests/unit/notification-rules.test.ts" name="NOTIFICATION_RULES catalogue &gt; marks suspended, archived, and closure-requested events as mandatory" time="0.004308958">
+        </testcase>
+        <testcase classname="tests/unit/notification-rules.test.ts" name="NOTIFICATION_RULES catalogue &gt; does not mark non-critical events as mandatory" time="0.000612073">
+        </testcase>
+        <testcase classname="tests/unit/notification-rules.test.ts" name="NOTIFICATION_RULES catalogue &gt; routes mandatory alerts to either owners OR admins" time="0.002261271">
+        </testcase>
+        <testcase classname="tests/unit/notification-rules.test.ts" name="NOTIFICATION_RULES catalogue &gt; routes closure-requested alerts to admins only" time="0.003166007">
+        </testcase>
+        <testcase classname="tests/unit/notification-rules.test.ts" name="NOTIFICATION_RULES catalogue &gt; includes EMAIL channel for mandatory alerts" time="0.001719499">
+        </testcase>
+        <testcase classname="tests/unit/notification-rules.test.ts" name="NOTIFICATION_RULES catalogue &gt; every rule has a default title, body, and internal action path" time="0.002009416">
+        </testcase>
+        <testcase classname="tests/unit/notification-rules.test.ts" name="getNotificationRule &gt; returns the same object as the catalogue entry" time="0.000589833">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/oficios-numbering.test.ts" timestamp="2026-08-03T19:47:25.018Z" hostname="MSI" tests="19" failures="0" errors="0" skipped="0" time="0.073266177">
+        <testcase classname="tests/unit/oficios-numbering.test.ts" name="normalizeOficioScope &gt; maps DPICP and DESPACHO to DESPACHO" time="0.010319077">
+        </testcase>
+        <testcase classname="tests/unit/oficios-numbering.test.ts" name="normalizeOficioScope &gt; maps INTERNO / INTERNAL / MEMO / INTERNAL_MEMO to INTERNO" time="0.003207582">
+        </testcase>
+        <testcase classname="tests/unit/oficios-numbering.test.ts" name="normalizeOficioScope &gt; defaults to CNI for empty / unknown / CNI inputs" time="0.001340967">
+        </testcase>
+        <testcase classname="tests/unit/oficios-numbering.test.ts" name="normalizeOficioDirection &gt; forces INTERNAL_MEMO when the scope is INTERNO" time="0.000945423">
+        </testcase>
+        <testcase classname="tests/unit/oficios-numbering.test.ts" name="normalizeOficioDirection &gt; maps INCOMING / INGRESADO / RECIBIDO to INCOMING" time="0.000847907">
+        </testcase>
+        <testcase classname="tests/unit/oficios-numbering.test.ts" name="normalizeOficioDirection &gt; maps INTERNAL / MEMO / INTERNAL_MEMO to INTERNAL_MEMO" time="0.001682254">
+        </testcase>
+        <testcase classname="tests/unit/oficios-numbering.test.ts" name="normalizeOficioDirection &gt; defaults to OUTGOING for unknown CNI / DESPACHO inputs" time="0.004372861">
+        </testcase>
+        <testcase classname="tests/unit/oficios-numbering.test.ts" name="shouldGenerateOficioNumber &gt; generates numbers for OUTGOING and INTERNAL_MEMO only" time="0.006780099">
+        </testcase>
+        <testcase classname="tests/unit/oficios-numbering.test.ts" name="formatOficioNumber &gt; formats a DPICP out-of-office number" time="0.002115914">
+        </testcase>
+        <testcase classname="tests/unit/oficios-numbering.test.ts" name="formatOficioNumber &gt; formats a CNI out-of-office number" time="0.000841543">
+        </testcase>
+        <testcase classname="tests/unit/oficios-numbering.test.ts" name="formatOficioNumber &gt; formats an internal memo number" time="0.000715091">
+        </testcase>
+        <testcase classname="tests/unit/oficios-numbering.test.ts" name="formatOficioNumber &gt; pads the sequence to four digits" time="0.000673191">
+        </testcase>
+        <testcase classname="tests/unit/oficios-numbering.test.ts" name="formatOficioNumber &gt; throws when an incoming office is given a sequence" time="0.015348928">
+        </testcase>
+        <testcase classname="tests/unit/oficios-numbering.test.ts" name="parseOficioSequence &gt; returns the first four-digit sequence it finds" time="0.001194342">
+        </testcase>
+        <testcase classname="tests/unit/oficios-numbering.test.ts" name="parseOficioSequence &gt; returns the first 4-digit block when only the year is present" time="0.000617788">
+        </testcase>
+        <testcase classname="tests/unit/oficios-numbering.test.ts" name="parseOficioSequence &gt; returns 0 for an empty string and for inputs without any digit" time="0.000668014">
+        </testcase>
+        <testcase classname="tests/unit/oficios-numbering.test.ts" name="getAutoNumberHint &gt; returns null for incoming offices (the institution controls the number)" time="0.001173707">
+        </testcase>
+        <testcase classname="tests/unit/oficios-numbering.test.ts" name="getAutoNumberHint &gt; returns a MEMO hint for internal memos" time="0.011726742">
+        </testcase>
+        <testcase classname="tests/unit/oficios-numbering.test.ts" name="getAutoNumberHint &gt; returns a CNI / DESPACHO hint for outgoing offices" time="0.000787067">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/organization-lifecycle.test.ts" timestamp="2026-08-03T19:47:25.027Z" hostname="MSI" tests="13" failures="0" errors="0" skipped="0" time="0.035100335">
+        <testcase classname="tests/unit/organization-lifecycle.test.ts" name="ALLOWED_ORGANIZATION_TRANSITIONS &gt; allows the documented lifecycle moves" time="0.015128509">
+        </testcase>
+        <testcase classname="tests/unit/organization-lifecycle.test.ts" name="ALLOWED_ORGANIZATION_TRANSITIONS &gt; forbids resurrecting from PENDING_DELETION" time="0.001262699">
+        </testcase>
+        <testcase classname="tests/unit/organization-lifecycle.test.ts" name="ALLOWED_ORGANIZATION_TRANSITIONS &gt; forbids skipping straight from PROVISIONING to SUSPENDED" time="0.000419777">
+        </testcase>
+        <testcase classname="tests/unit/organization-lifecycle.test.ts" name="assertOrganizationTransition &gt; does not throw on allowed moves" time="0.003282881">
+        </testcase>
+        <testcase classname="tests/unit/organization-lifecycle.test.ts" name="assertOrganizationTransition &gt; throws InvalidOrganizationTransitionError on forbidden moves" time="0.001825841">
+        </testcase>
+        <testcase classname="tests/unit/organization-lifecycle.test.ts" name="ALLOWED_MEMBERSHIP_TRANSITIONS &gt; allows invitation from INVITED to ACTIVE / REVOKED" time="0.000907452">
+        </testcase>
+        <testcase classname="tests/unit/organization-lifecycle.test.ts" name="ALLOWED_MEMBERSHIP_TRANSITIONS &gt; allows suspending or revoking an ACTIVE membership" time="0.000422297">
+        </testcase>
+        <testcase classname="tests/unit/organization-lifecycle.test.ts" name="ALLOWED_MEMBERSHIP_TRANSITIONS &gt; forbids resuscitating a REVOKED membership" time="0.000651805">
+        </testcase>
+        <testcase classname="tests/unit/organization-lifecycle.test.ts" name="ALLOWED_MEMBERSHIP_TRANSITIONS &gt; treats REVOKED as terminal" time="0.000703584">
+        </testcase>
+        <testcase classname="tests/unit/organization-lifecycle.test.ts" name="ONBOARDING_TRANSITIONS &gt; allows the documented onboarding moves" time="0.001445958">
+        </testcase>
+        <testcase classname="tests/unit/organization-lifecycle.test.ts" name="assertOnboardingReadyForActivation &gt; does not throw when onboarding is COMPLETED" time="0.001087272">
+        </testcase>
+        <testcase classname="tests/unit/organization-lifecycle.test.ts" name="assertOnboardingReadyForActivation &gt; throws OnboardingIncompleteError when onboarding is PENDING or IN_PROGRESS" time="0.000777077">
+        </testcase>
+        <testcase classname="tests/unit/organization-lifecycle.test.ts" name="assertOnboardingReadyForActivation &gt; treats SKIPPED as ready for activation (the operator consciously opted out)" time="0.000535613">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/purchase-order-tenant.test.ts" timestamp="2026-08-03T19:47:25.035Z" hostname="MSI" tests="2" failures="0" errors="0" skipped="0" time="0.015684352">
+        <testcase classname="tests/unit/purchase-order-tenant.test.ts" name="purchaseOrderScope &gt; isolates purchase orders by organizationId" time="0.007214569">
+        </testcase>
+        <testcase classname="tests/unit/purchase-order-tenant.test.ts" name="purchaseOrderChildScope &gt; scopes child tables through the parent order organization" time="0.000871394">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/purchase-totals.test.ts" timestamp="2026-08-03T19:47:25.036Z" hostname="MSI" tests="7" failures="0" errors="0" skipped="0" time="0.034191827">
+        <testcase classname="tests/unit/purchase-totals.test.ts" name="calcularLineaTotal &gt; multiplies quantity by unit price and rounds to two decimals" time="0.008593479">
+        </testcase>
+        <testcase classname="tests/unit/purchase-totals.test.ts" name="calcularLineaTotal &gt; returns 0 when quantity is 0" time="0.000500375">
+        </testcase>
+        <testcase classname="tests/unit/purchase-totals.test.ts" name="calcularTotalesCompra &gt; computes subtotal, discount, tax, and total for a simple order" time="0.003438147">
+        </testcase>
+        <testcase classname="tests/unit/purchase-totals.test.ts" name="calcularTotalesCompra &gt; clamps a negative discount to 0" time="0.000640163">
+        </testcase>
+        <testcase classname="tests/unit/purchase-totals.test.ts" name="calcularTotalesCompra &gt; clamps a discount that exceeds the subtotal to the subtotal value" time="0.000606762">
+        </testcase>
+        <testcase classname="tests/unit/purchase-totals.test.ts" name="calcularTotalesCompra &gt; honours an explicit tax rate" time="0.000465033">
+        </testcase>
+        <testcase classname="tests/unit/purchase-totals.test.ts" name="calcularTotalesCompra &gt; returns the per-line totals in the same order as the input" time="0.012279341">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/ssrf-guard.test.ts" timestamp="2026-08-03T19:47:25.041Z" hostname="MSI" tests="13" failures="0" errors="0" skipped="0" time="0.067649753">
+        <testcase classname="tests/unit/ssrf-guard.test.ts" name="checkUrlForSsrf &gt; accepts a public https URL" time="0.040326218">
+        </testcase>
+        <testcase classname="tests/unit/ssrf-guard.test.ts" name="checkUrlForSsrf &gt; accepts a public http URL" time="0.001464546">
+        </testcase>
+        <testcase classname="tests/unit/ssrf-guard.test.ts" name="checkUrlForSsrf &gt; rejects an invalid URL" time="0.002185193">
+        </testcase>
+        <testcase classname="tests/unit/ssrf-guard.test.ts" name="checkUrlForSsrf &gt; rejects unsupported protocols" time="0.001773736">
+        </testcase>
+        <testcase classname="tests/unit/ssrf-guard.test.ts" name="checkUrlForSsrf &gt; rejects the localhost hostname" time="0.000848007">
+        </testcase>
+        <testcase classname="tests/unit/ssrf-guard.test.ts" name="checkUrlForSsrf &gt; rejects the private IPv4 ranges listed in the catalogue" time="0.002181981">
+        </testcase>
+        <testcase classname="tests/unit/ssrf-guard.test.ts" name="checkUrlForSsrf &gt; rejects private IPv6 ranges" time="0.001853136">
+        </testcase>
+        <testcase classname="tests/unit/ssrf-guard.test.ts" name="checkUrlForSsrf &gt; honours the allowedHostnames opt-in for ephemeral test endpoints" time="0.000722029">
+        </testcase>
+        <testcase classname="tests/unit/ssrf-guard.test.ts" name="checkUrlForSsrf &gt; lets allowPrivateNetworks bypass the guard for staging test runs" time="0.001595733">
+        </testcase>
+        <testcase classname="tests/unit/ssrf-guard.test.ts" name="SSRF allowed-list catalogues &gt; exposes a non-empty list of private IPv4 CIDRs" time="0.003652019">
+        </testcase>
+        <testcase classname="tests/unit/ssrf-guard.test.ts" name="SSRF allowed-list catalogues &gt; exposes a non-empty set of private hostnames" time="0.001604314">
+        </testcase>
+        <testcase classname="tests/unit/ssrf-guard.test.ts" name="assertUrlIsSafe &gt; returns the parsed URL when the host is safe" time="0.000643518">
+        </testcase>
+        <testcase classname="tests/unit/ssrf-guard.test.ts" name="assertUrlIsSafe &gt; throws SsrfBlockedHostError when the host is private" time="0.001289598">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/tenant-scope-shapes.test.ts" timestamp="2026-08-03T19:47:25.046Z" hostname="MSI" tests="11" failures="0" errors="0" skipped="0" time="0.02978626">
+        <testcase classname="tests/unit/tenant-scope-shapes.test.ts" name="disposal tenant scope &gt; isolates disposal rows by organizationId and id" time="0.014422974">
+        </testcase>
+        <testcase classname="tests/unit/tenant-scope-shapes.test.ts" name="disposal tenant scope &gt; requires both organizationId and disposalId when scoping documents" time="0.000844031">
+        </testcase>
+        <testcase classname="tests/unit/tenant-scope-shapes.test.ts" name="disposal tenant scope &gt; isolates disposal policies and sequences by organization" time="0.001072205">
+        </testcase>
+        <testcase classname="tests/unit/tenant-scope-shapes.test.ts" name="disposal tenant scope &gt; keeps sequence uniqueness scoped per organization and year" time="0.000553452">
+        </testcase>
+        <testcase classname="tests/unit/tenant-scope-shapes.test.ts" name="oficios tenant scope &gt; isolates oficio lists by organizationId" time="0.000582732">
+        </testcase>
+        <testcase classname="tests/unit/tenant-scope-shapes.test.ts" name="oficios tenant scope &gt; isolates oficio detail by organizationId and id" time="0.001678708">
+        </testcase>
+        <testcase classname="tests/unit/tenant-scope-shapes.test.ts" name="oficios tenant scope &gt; requires the oficio to belong to the same organization when accessing documents" time="0.002075156">
+        </testcase>
+        <testcase classname="tests/unit/tenant-scope-shapes.test.ts" name="oficios tenant scope &gt; scopes document lists through the parent oficio organization" time="0.000558271">
+        </testcase>
+        <testcase classname="tests/unit/tenant-scope-shapes.test.ts" name="oficios tenant scope &gt; isolates import batches by organization and id" time="0.000499586">
+        </testcase>
+        <testcase classname="tests/unit/tenant-scope-shapes.test.ts" name="oficios tenant scope &gt; scopes user access to oficio createdById or recipient email" time="0.000769353">
+        </testcase>
+        <testcase classname="tests/unit/tenant-scope-shapes.test.ts" name="oficios tenant scope &gt; isolates sequence scope by organization" time="0.001142413">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/modules/equipment-disposal/domain/__tests__/evaluator.test.ts" timestamp="2026-08-03T19:47:25.052Z" hostname="MSI" tests="4" failures="0" errors="0" skipped="0" time="0.078334557">
+        <testcase classname="src/modules/equipment-disposal/domain/__tests__/evaluator.test.ts" name="evaluateEquipmentDisposal &gt; returns a justified disposal with rationales and risks" time="0.025958099">
+        </testcase>
+        <testcase classname="src/modules/equipment-disposal/domain/__tests__/evaluator.test.ts" name="evaluateEquipmentDisposal &gt; uses organization policy thresholds" time="0.005540252">
+        </testcase>
+        <testcase classname="src/modules/equipment-disposal/domain/__tests__/evaluator.test.ts" name="disposal policy and workflow rules &gt; rejects invalid policy weights and thresholds" time="0.024669982">
+        </testcase>
+        <testcase classname="src/modules/equipment-disposal/domain/__tests__/evaluator.test.ts" name="disposal policy and workflow rules &gt; enforces the centralized workflow" time="0.0052283">
+        </testcase>
+    </testsuite>
+</testsuites>

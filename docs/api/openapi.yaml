@@ -1,0 +1,901 @@
+openapi: 3.1.0
+info:
+  title: SGE Platform API
+  version: 1.0.0
+  description: |
+    Sistema de Gestión Empresarial (SGE) — REST API for the multi-tenant
+    institutional management platform. Every response follows the
+    standardised envelope contract (`success: true, data, requestId` or
+    `success: false, error: { code, message, details?, stage? }, requestId`).
+    Schemas reflect the runtime validation; no field is documented unless
+    the route handler actually returns it.
+  contact:
+    name: SGE Platform Team
+    email: platform@cni.example.test
+  license:
+    name: Proprietary
+servers:
+  - url: https://app.cni.example.test/api
+    description: Production
+  - url: https://staging.cni.example.test/api
+    description: Staging
+  - url: http://localhost:3000/api
+    description: Local development
+tags:
+  - name: Authentication
+    description: Login, session, password reset.
+  - name: Organizations
+    description: Multi-tenant organization lifecycle.
+  - name: Oficios
+    description: Incoming/outgoing/internal institutional memoranda.
+  - name: Equipment
+    description: Equipment registry, assignments, maintenance, disposal.
+  - name: Purchases
+    description: Purchase order workflow and PDF generation.
+  - name: Disposals
+    description: Disposal evaluation, approval, and dictamen PDF.
+  - name: Notifications
+    description: In-app and email notification dispatch.
+  - name: Reports
+    description: Reporting catalog and CSV/PDF exports.
+  - name: Integrations
+    description: External integration registry, executions, and webhooks.
+  - name: Audits
+    description: Audit log queries for compliance.
+  - name: Health
+    description: Liveness and readiness probes.
+security:
+  - bearerAuth: []
+  - cookieAuth: []
+paths:
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Authenticate with email and password
+      description: |
+        Returns a JWT token and the user object. The token is also set as
+        a `HttpOnly, SameSite=Lax` cookie. Rate-limited per IP (5 requests
+        per minute).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginInput'
+      responses:
+        '200':
+          description: Login successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccess_LoginOutput'
+        '400':
+          description: Invalid request payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiFailure'
+        '401':
+          description: Invalid credentials.
+        '403':
+          description: User is inactive.
+        '429':
+          description: Rate limit exceeded.
+  /auth/me:
+    get:
+      tags: [Authentication]
+      summary: Current session user
+      responses:
+        '200':
+          description: Session user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccess_SessionUser'
+        '401':
+          description: No valid session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiFailure'
+  /auth/password:
+    patch:
+      tags: [Authentication]
+      summary: Change the current password
+      description: |
+        Requires the current password. On success, all existing sessions
+        for the user are revoked.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChangeInput'
+      responses:
+        '200':
+          description: Password changed; sessions invalidated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccess_PasswordChangeOutput'
+        '401':
+          description: Current password is incorrect.
+        '422':
+          description: New password does not meet the policy.
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Self-registration (org-bound invitation flow)
+      description: |
+        Accepts an invitation token and creates the user/membership pair.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrationInput'
+      responses:
+        '201':
+          description: Registration completed.
+        '422':
+          description: Invalid invitation token or payload.
+  /health:
+    get:
+      tags: [Health]
+      summary: Aggregate health check
+      security: []
+      responses:
+        '200':
+          description: Service is healthy.
+  /health/live:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      security: []
+      responses:
+        '200':
+          description: Process is alive.
+  /health/ready:
+    get:
+      tags: [Health]
+      summary: Readiness probe (database, storage, integrations)
+      security: []
+      responses:
+        '200':
+          description: Service is ready.
+        '503':
+          description: One or more dependencies are unavailable.
+  /organizations/current:
+    get:
+      tags: [Organizations]
+      summary: Current organization context
+      responses:
+        '200':
+          description: Current organization.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccess_Organization'
+  /oficios:
+    get:
+      tags: [Oficios]
+      summary: List oficios in the current organization
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: pageSize
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: status
+          in: query
+          schema: { type: string, enum: [DRAFT, SENT, RECEIVED, COMPLETED, ARCHIVED, CANCELLED] }
+      responses:
+        '200':
+          description: Paginated list of oficios.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccess_OficioList'
+    post:
+      tags: [Oficios]
+      summary: Create a new oficio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OficioCreateInput'
+      responses:
+        '201':
+          description: Oficio created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccess_Oficio'
+        '403':
+          description: Permission to `offices.create` is required.
+  /oficios/{id}:
+    get:
+      tags: [Oficios]
+      summary: Retrieve an oficio by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Oficio detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccess_Oficio'
+        '404':
+          description: Oficio not found in this organization.
+    patch:
+      tags: [Oficios]
+      summary: Update an oficio
+      responses:
+        '200':
+          description: Updated.
+        '409':
+          description: State transition invalid.
+    delete:
+      tags: [Oficios]
+      summary: Cancel an oficio
+      responses:
+        '200':
+          description: Cancelled.
+  /oficios/{id}/documents:
+    get:
+      tags: [Oficios]
+      summary: List documents attached to an oficio
+      responses:
+        '200':
+          description: Document list.
+    post:
+      tags: [Oficios]
+      summary: Upload a document for an oficio
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                type:
+                  type: string
+                  enum: [INCOMING, OUTGOING, INTERNAL]
+      responses:
+        '201':
+          description: Document uploaded.
+        '413':
+          description: File exceeds the 25 MB cap.
+  /oficios/{id}/status:
+    patch:
+      tags: [Oficios]
+      summary: Transition the oficio status
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OficioStatusChangeInput'
+      responses:
+        '200':
+          description: Status changed.
+        '409':
+          description: Invalid status transition.
+  /oficios/import:
+    post:
+      tags: [Oficios]
+      summary: Bulk import oficios from CSV
+      responses:
+        '202':
+          description: Batch started; returns batch ID.
+  /oficios/import/batches:
+    get:
+      tags: [Oficios]
+      summary: List recent import batches
+      responses:
+        '200':
+          description: Batch list.
+  /oficios/import/batch/{id}:
+    get:
+      tags: [Oficios]
+      summary: Inspect a single import batch
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Batch detail.
+        '404':
+          description: Batch not found.
+  /equipment:
+    get:
+      tags: [Equipment]
+      summary: List equipment in the current organization
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: pageSize
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: status
+          in: query
+          schema: { type: string, enum: [AVAILABLE, ASSIGNED, IN_MAINTENANCE, DISPOSED, RETIRED] }
+      responses:
+        '200':
+          description: Equipment list.
+    post:
+      tags: [Equipment]
+      summary: Create a new equipment record
+      responses:
+        '201':
+          description: Equipment created.
+        '403':
+          description: Permission to `equipment.create` required.
+  /equipment/{id}:
+    get:
+      tags: [Equipment]
+      summary: Retrieve equipment by ID
+      responses:
+        '200':
+          description: Equipment detail.
+        '404':
+          description: Equipment not found in this organization.
+    patch:
+      tags: [Equipment]
+      summary: Update equipment attributes
+      responses:
+        '200':
+          description: Equipment updated.
+    delete:
+      tags: [Equipment]
+      summary: Mark equipment as retired
+      responses:
+        '204':
+          description: Equipment retired.
+  /equipment/stats:
+    get:
+      tags: [Equipment]
+      summary: Equipment aggregate statistics
+      responses:
+        '200':
+          description: Counts grouped by status and category.
+  /equipment-assignments:
+    get:
+      tags: [Equipment]
+      summary: List equipment assignments
+      responses:
+        '200':
+          description: Assignment list.
+    post:
+      tags: [Equipment]
+      summary: Create an equipment assignment
+      responses:
+        '201':
+          description: Assignment created.
+        '409':
+          description: Equipment already assigned.
+  /equipment-assignments/{id}/return:
+    post:
+      tags: [Equipment]
+      summary: Return an equipment assignment
+      responses:
+        '200':
+          description: Assignment returned.
+  /maintenance:
+    get:
+      tags: [Equipment]
+      summary: List maintenance records
+    post:
+      tags: [Equipment]
+      summary: Start a maintenance record
+  /maintenance/{id}:
+    patch:
+      tags: [Equipment]
+      summary: Complete a maintenance record
+  /purchases:
+    get:
+      tags: [Purchases]
+      summary: List purchase orders (legacy)
+      responses:
+        '200':
+          description: Order list.
+    post:
+      tags: [Purchases]
+      summary: Create a purchase order (legacy)
+  /purchases/{id}:
+    get:
+      tags: [Purchases]
+      summary: Retrieve a purchase order
+    patch:
+      tags: [Purchases]
+      summary: Update a purchase order
+    delete:
+      tags: [Purchases]
+      summary: Cancel a purchase order
+  /purchases/{id}/items:
+    get:
+      tags: [Purchases]
+      summary: List a purchase order's items
+    post:
+      tags: [Purchases]
+      summary: Add an item to a purchase order
+  /compras/ordenes:
+    get:
+      tags: [Purchases]
+      summary: List purchase orders (current API)
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: pageSize
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: status
+          in: query
+          schema: { type: string, enum: [BORRADOR, GENERADA, EMITIDA, CERRADA, ANULADA] }
+      responses:
+        '200':
+          description: Paginated list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccess_CompraOrdenList'
+    post:
+      tags: [Purchases]
+      summary: Create a purchase order draft
+      responses:
+        '201':
+          description: Draft created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccess_CompraOrden'
+  /compras/ordenes/{id}:
+    get:
+      tags: [Purchases]
+      summary: Retrieve a purchase order
+    patch:
+      tags: [Purchases]
+      summary: Update a purchase order
+    delete:
+      tags: [Purchases]
+      summary: Cancel a purchase order
+  /compras/ordenes/{id}/generar:
+    post:
+      tags: [Purchases]
+      summary: Generate (finalise) the purchase order PDF
+      responses:
+        '200':
+          description: Generated.
+        '422':
+          description: Validation failed; the order is missing required fields.
+  /compras/ordenes/{id}/emitir:
+    post:
+      tags: [Purchases]
+      summary: Issue (emit) the purchase order
+  /compras/ordenes/{id}/anular:
+    post:
+      tags: [Purchases]
+      summary: Cancel a purchase order
+  /compras/ordenes/{id}/regenerar-pdf:
+    post:
+      tags: [Purchases]
+      summary: Regenerate the purchase order PDF
+  /compras/ordenes/{id}/documentos:
+    get:
+      tags: [Purchases]
+      summary: List documents attached to the order
+    post:
+      tags: [Purchases]
+      summary: Upload a document for the order
+  /compras/ordenes/{id}/historial:
+    get:
+      tags: [Purchases]
+      summary: Audit history of the order
+  /compras/ordenes/preview:
+    post:
+      tags: [Purchases]
+      summary: Render a preview-server response for the PDF
+  /equipment-disposal:
+    get:
+      tags: [Disposals]
+      summary: List disposal records
+    post:
+      tags: [Disposals]
+      summary: Create a new disposal draft
+  /equipment-disposal/{id}:
+    get:
+      tags: [Disposals]
+      summary: Retrieve a disposal record
+    patch:
+      tags: [Disposals]
+      summary: Update a disposal draft
+  /equipment-disposal/{id}/submit:
+    post:
+      tags: [Disposals]
+      summary: Submit a disposal for approval
+  /equipment-disposal/{id}/approve:
+    post:
+      tags: [Disposals]
+      summary: Approve a disposal
+  /equipment-disposal/{id}/reject:
+    post:
+      tags: [Disposals]
+      summary: Reject a disposal
+  /equipment-disposal/{id}/cancel:
+    post:
+      tags: [Disposals]
+      summary: Cancel a disposal
+  /equipment-disposal/{id}/documents:
+    get:
+      tags: [Disposals]
+      summary: List documents attached to the disposal
+    post:
+      tags: [Disposals]
+      summary: Upload a document for the disposal
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: List notifications for the current user
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: pageSize
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: unreadOnly
+          in: query
+          schema: { type: boolean }
+      responses:
+        '200':
+          description: Paginated list.
+    post:
+      tags: [Notifications]
+      summary: Create a notification (admin only)
+      responses:
+        '201':
+          description: Notification created.
+  /notifications/{id}:
+    patch:
+      tags: [Notifications]
+      summary: Mark a notification as read
+      responses:
+        '200':
+          description: Marked as read.
+        '404':
+          description: Notification not found.
+        '403':
+          description: Notification is owned by another user.
+  /notifications/read-all:
+    post:
+      tags: [Notifications]
+      summary: Mark all of the current user's notifications as read
+      responses:
+        '200':
+          description: Updated count returned.
+  /notifications/unread-count:
+    get:
+      tags: [Notifications]
+      summary: Get the unread count for the current user
+      responses:
+        '200':
+          description: Unread count.
+  /reports/catalog:
+    get:
+      tags: [Reports]
+      summary: List the reporting catalog
+      responses:
+        '200':
+          description: Catalog entries with filters and export formats.
+  /audit-logs:
+    get:
+      tags: [Audits]
+      summary: List audit log records
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: pageSize
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: module
+          in: query
+          schema: { type: string }
+        - name: action
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Audit log list (tenant-scoped).
+  /integrations:
+    get:
+      tags: [Integrations]
+      summary: List organization integrations
+    post:
+      tags: [Integrations]
+      summary: Create an integration
+  /integrations/{id}:
+    get:
+      tags: [Integrations]
+      summary: Retrieve an integration
+    patch:
+      tags: [Integrations]
+      summary: Update an integration
+    delete:
+      tags: [Integrations]
+      summary: Disable an integration
+  /integrations/{id}/test:
+    post:
+      tags: [Integrations]
+      summary: Run a connection test against the integration
+  /integrations/{id}/history:
+    get:
+      tags: [Integrations]
+      summary: Inspect the execution history of the integration
+  /integrations/{id}/rotate-credentials:
+    post:
+      tags: [Integrations]
+      summary: Rotate the credentials of the integration
+  /integrations/{id}/retry:
+    post:
+      tags: [Integrations]
+      summary: Retry a failed execution
+  /integrations/webhooks/{id}:
+    post:
+      tags: [Integrations]
+      summary: Receive an incoming webhook
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Webhook accepted.
+        '401':
+          description: Missing signature.
+        '409':
+          description: Replay detected.
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: token
+  schemas:
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8 }
+    LoginOutput:
+      type: object
+      required: [user, token]
+      properties:
+        user: { $ref: '#/components/schemas/SessionUser' }
+        token: { type: string }
+    SessionUser:
+      type: object
+      required: [id, email, firstName, lastName, role, isActive]
+      properties:
+        id: { type: string }
+        email: { type: string, format: email }
+        firstName: { type: string }
+        lastName: { type: string }
+        role: { type: string, enum: [ADMIN, IT, RRHH, USER, AUDITOR, PROCUREMENT] }
+        isActive: { type: boolean }
+        employeeNumber: { type: string }
+        departmentId: { type: string, nullable: true }
+        positionId: { type: string, nullable: true }
+    PasswordChangeInput:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword: { type: string }
+        newPassword: { type: string, minLength: 12 }
+    PasswordChangeOutput:
+      type: object
+      required: [sessionsRevoked]
+      properties:
+        sessionsRevoked: { type: integer }
+    RegistrationInput:
+      type: object
+      required: [invitationToken, password, firstName, lastName]
+      properties:
+        invitationToken: { type: string }
+        password: { type: string, minLength: 12 }
+        firstName: { type: string }
+        lastName: { type: string }
+    Organization:
+      type: object
+      required: [id, name, slug, status, onboardingStatus]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        slug: { type: string }
+        status: { type: string, enum: [PROVISIONING, ACTIVE, SUSPENDED, ARCHIVED, PENDING_DELETION] }
+        onboardingStatus: { type: string, enum: [PENDING, IN_PROGRESS, COMPLETED, SKIPPED] }
+        timezone: { type: string }
+        locale: { type: string }
+        currency: { type: string }
+        primaryContactEmail: { type: string, nullable: true }
+        activatedAt: { type: string, format: date-time, nullable: true }
+    Oficio:
+      type: object
+      required: [id, organizationId, number, type, status, subject, createdById]
+      properties:
+        id: { type: string }
+        organizationId: { type: string }
+        number: { type: string }
+        systemNumber: { type: string }
+        type: { type: string, enum: [INCOMING, OUTGOING, INTERNAL] }
+        subject: { type: string }
+        status: { type: string, enum: [DRAFT, SENT, RECEIVED, COMPLETED, ARCHIVED, CANCELLED] }
+        oficioDate: { type: string, format: date-time }
+        institution: { type: string }
+        createdById: { type: string }
+        version: { type: integer }
+    OficioCreateInput:
+      type: object
+      required: [type, subject, institution]
+      properties:
+        type: { type: string, enum: [INCOMING, OUTGOING, INTERNAL] }
+        subject: { type: string }
+        institution: { type: string }
+        recipient: { type: string }
+        body: { type: string }
+        oficioDate: { type: string, format: date-time }
+    OficioStatusChangeInput:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [SENT, RECEIVED, COMPLETED, ARCHIVED, CANCELLED] }
+        note: { type: string }
+    OficioList:
+      type: object
+      required: [items, total, page, pageSize, totalPages]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Oficio' }
+        total: { type: integer }
+        page: { type: integer }
+        pageSize: { type: integer }
+        totalPages: { type: integer }
+    CompraOrden:
+      type: object
+      required: [id, organizationId, orderNumber, status, total]
+      properties:
+        id: { type: string }
+        organizationId: { type: string }
+        orderNumber: { type: string }
+        status: { type: string, enum: [BORRADOR, GENERADA, EMITIDA, CERRADA, ANULADA] }
+        sequenceNumber: { type: integer }
+        sequenceYear: { type: integer }
+        requestedByName: { type: string }
+        requesterJobTitle: { type: string }
+        supplierName: { type: string }
+        supplierRtn: { type: string }
+        purchaseJustification: { type: string }
+        subtotal: { type: number }
+        discount: { type: number }
+        tax: { type: number }
+        total: { type: number }
+        requestDate: { type: string, format: date-time }
+        requiredDate: { type: string, format: date-time }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/CompraOrdenItem' }
+    CompraOrdenItem:
+      type: object
+      required: [id, itemNumber, description, quantity, unitPrice, total]
+      properties:
+        id: { type: string }
+        itemNumber: { type: integer }
+        description: { type: string }
+        unit: { type: string }
+        quantity: { type: number }
+        unitPrice: { type: number }
+        total: { type: number }
+    CompraOrdenList:
+      type: object
+      required: [ordenes, total, page, pageSize, totalPages]
+      properties:
+        ordenes:
+          type: array
+          items: { $ref: '#/components/schemas/CompraOrden' }
+        total: { type: integer }
+        page: { type: integer }
+        pageSize: { type: integer }
+        totalPages: { type: integer }
+    ApiSuccess_LoginOutput:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/LoginOutput' }
+    ApiSuccess_SessionUser:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/SessionUser' }
+    ApiSuccess_PasswordChangeOutput:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/PasswordChangeOutput' }
+    ApiSuccess_Organization:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/Organization' }
+    ApiSuccess_Oficio:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/Oficio' }
+    ApiSuccess_OficioList:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/OficioList' }
+    ApiSuccess_CompraOrden:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/CompraOrden' }
+    ApiSuccess_CompraOrdenList:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/CompraOrdenList' }
+    ApiSuccessEnvelope:
+      type: object
+      required: [success, data, requestId]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: {}
+        meta: { type: object, additionalProperties: true }
+        requestId: { type: string }
+    ApiFailure:
+      type: object
+      required: [success, error, requestId]
+      properties:
+        success: { type: boolean, enum: [false] }
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { nullable: true }
+            stage: { type: string, nullable: true }
+        requestId: { type: string }

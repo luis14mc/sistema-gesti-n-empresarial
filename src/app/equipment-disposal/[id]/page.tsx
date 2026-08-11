@@ -1,6 +1,7 @@
 'use client';
 
 import { use } from 'react';
+import Link from 'next/link';
 import MainLayout from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -33,7 +34,7 @@ export default function EquipmentDisposalDetailPage({ params }: { params: Promis
     if (!confirmation.isConfirmed) return;
     try { await remove.mutateAsync(documentId); await swalSuccess('Evidencia eliminada'); } catch (error) { await swalError('No se pudo eliminar', getApiErrorMessage(error, 'Intente nuevamente.')); }
   };
-  return <MainLayout><div className="space-y-6 font-[Aptos,'Segoe_UI',sans-serif]"><PageHeader title={disposal.folio} description={`${disposal.brand} ${disposal.model}`}><Button variant="outline" asChild><a href="/equipment-disposal">Volver</a></Button>{disposal.status === 'APPROVED' ? <Button asChild><a href={`/api/equipment-disposal/${id}/pdf`}>Descargar PDF</a></Button> : null}</PageHeader>
+  return <MainLayout><div className="space-y-6"><PageHeader title={disposal.folio} description={`${disposal.brand} ${disposal.model}`}><Button variant="outline" asChild><Link href="/equipment-disposal">Volver</Link></Button>{disposal.status === 'APPROVED' ? <Button asChild><a href={`/api/equipment-disposal/${id}/pdf`}>Descargar PDF</a></Button> : null}</PageHeader>
     <Tabs defaultValue="asset"><TabsList className="flex h-auto flex-wrap"><TabsTrigger value="asset">Datos del activo</TabsTrigger><TabsTrigger value="evaluation">Evaluación técnica</TabsTrigger><TabsTrigger value="result">Resultado automático</TabsTrigger><TabsTrigger value="evidence">Evidencias</TabsTrigger><TabsTrigger value="preview">Vista previa</TabsTrigger><TabsTrigger value="history">Historial</TabsTrigger></TabsList>
       <TabsContent value="asset"><Card><CardContent className="grid gap-4 pt-6 sm:grid-cols-2"><Info label="Inventario" value={disposal.equipment.inventoryCode} /><Info label="Serie" value={disposal.serialNumber} /><Info label="Equipo" value={`${disposal.brand} ${disposal.model}`} /><Info label="Departamento" value={disposal.department} /></CardContent></Card></TabsContent>
       <TabsContent value="evaluation"><Card><CardContent className="grid gap-4 pt-6 sm:grid-cols-2"><Info label="Condición física" value={disposal.physicalCondition} /><Info label="Condición funcional" value={disposal.functionalCondition} /><Info label="Soporte de seguridad" value={disposal.securitySupportStatus} /><Info label="Costo de reparación" value={money(disposal.estimatedRepairCost)} /><div className="sm:col-span-2"><Info label="Notas técnicas" value={disposal.technicalNotes || 'Sin notas'} /></div></CardContent></Card></TabsContent>

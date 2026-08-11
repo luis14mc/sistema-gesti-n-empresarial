@@ -1,0 +1,98 @@
+{
+  "$schema": "https://openapi.itjungle.com/v4/schema/performance-baseline.schema.json",
+  "version": "1.0.0",
+  "generatedAt": "2026-08-03T00:00:00Z",
+  "windows": {
+    "p50_ms": 200,
+    "p95_ms": 800,
+    "p99_ms": 1500,
+    "error_rate_pct": 0.5,
+    "throughput_rps": 50
+  },
+  "scenarios": [
+    {
+      "name": "list-oficios",
+      "endpoint": "GET /api/oficios",
+      "window": "30s",
+      "targets": { "p50_ms": 200, "p95_ms": 700, "p99_ms": 1200, "error_rate_pct": 0.2, "throughput_rps": 30 },
+      "verified": true
+    },
+    {
+      "name": "list-equipment",
+      "endpoint": "GET /api/equipment",
+      "window": "30s",
+      "targets": { "p50_ms": 200, "p95_ms": 800, "p99_ms": 1500, "error_rate_pct": 0.5, "throughput_rps": 30 },
+      "verified": true
+    },
+    {
+      "name": "list-purchases",
+      "endpoint": "GET /api/compras/ordenes",
+      "window": "30s",
+      "targets": { "p50_ms": 250, "p95_ms": 1000, "p99_ms": 1800, "error_rate_pct": 0.5, "throughput_rps": 20 },
+      "verified": true
+    },
+    {
+      "name": "detail-oficio",
+      "endpoint": "GET /api/oficios/{id}",
+      "window": "30s",
+      "targets": { "p50_ms": 150, "p95_ms": 600, "p99_ms": 1000, "error_rate_pct": 0.2, "throughput_rps": 80 },
+      "verified": true
+    },
+    {
+      "name": "detail-purchase",
+      "endpoint": "GET /api/compras/ordenes/{id}",
+      "window": "30s",
+      "targets": { "p50_ms": 200, "p95_ms": 700, "p99_ms": 1300, "error_rate_pct": 0.5, "throughput_rps": 50 },
+      "verified": true
+    },
+    {
+      "name": "dashboard",
+      "endpoint": "GET /dashboard",
+      "window": "30s",
+      "targets": { "p50_ms": 400, "p95_ms": 1200, "p99_ms": 2000, "error_rate_pct": 0.5, "throughput_rps": 10 },
+      "verified": true
+    },
+    {
+      "name": "purchase-generation",
+      "endpoint": "POST /api/compras/ordenes/{id}/generar",
+      "window": "60s",
+      "targets": { "p50_ms": 1500, "p95_ms": 4000, "p99_ms": 8000, "error_rate_pct": 1.0, "throughput_rps": 5 },
+      "verified": true
+    },
+    {
+      "name": "disposal-approval",
+      "endpoint": "POST /api/equipment-disposal/{id}/approve",
+      "window": "60s",
+      "targets": { "p50_ms": 600, "p95_ms": 2000, "p99_ms": 4000, "error_rate_pct": 0.5, "throughput_rps": 10 },
+      "verified": true
+    },
+    {
+      "name": "report-generation",
+      "endpoint": "POST /api/reports/{id}/run",
+      "window": "60s",
+      "targets": { "p50_ms": 1000, "p95_ms": 3000, "p99_ms": 6000, "error_rate_pct": 1.0, "throughput_rps": 5 },
+      "verified": true
+    },
+    {
+      "name": "large-export",
+      "endpoint": "GET /api/reports/{id}/export.csv",
+      "window": "60s",
+      "targets": { "p50_ms": 2000, "p95_ms": 6000, "p99_ms": 12000, "error_rate_pct": 1.0, "throughput_rps": 1 },
+      "verified": true
+    },
+    {
+      "name": "notification-creation",
+      "endpoint": "POST /api/notifications",
+      "window": "30s",
+      "targets": { "p50_ms": 150, "p95_ms": 500, "p99_ms": 1000, "error_rate_pct": 0.5, "throughput_rps": 60 },
+      "verified": true
+    },
+    {
+      "name": "integration-call",
+      "endpoint": "POST /api/integrations/{id}/test",
+      "window": "60s",
+      "targets": { "p50_ms": 800, "p95_ms": 2500, "p99_ms": 5000, "error_rate_pct": 1.0, "throughput_rps": 5 },
+      "verified": true
+    }
+  ]
+}

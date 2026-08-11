@@ -8,6 +8,16 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
+    // E2E (.e2e.spec.ts) and accessibility helpers that depend on
+    // @playwright/test are executed by Playwright, not Vitest.
+    exclude: [
+      '**/node_modules/**',
+      '**/.next/**',
+      '**/coverage/**',
+      '**/dist/**',
+      'tests/e2e/**',
+      'tests/accessibility/**',
+    ],
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
@@ -25,6 +35,8 @@ export default defineConfig({
         'node_modules/',
         '.next/',
         'coverage/',
+        'tests/e2e/**',
+        'tests/accessibility/**',
         'src/lib/storage/s3.ts',
         'src/**/*.d.ts',
       ],

@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# scripts/test-env-up
+# Phase 10A — bring up the isolated PostgreSQL test database.
+#
+# Hard rules:
+#   - Refuses to run if DATABASE_URL points to a non-test host.
+#   - Refuses to run if APP_ENV is "production".
+#   - Never shares ports with the dev database.
+#   - Uses docker compose (running as the local user, not root).
+#   - Applies all migrations once the database is healthy.
+#
+# Usage:
+#   APP_ENV=test DATABASE_URL=postgresql://postgres:postgres@localhost:5432/sge_test \
+#     bash scripts/test-env-up
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
+
+: "${DATABASE_URL:?DATABASE_URL must be set, e.g. postgresql://postgres:postgres@localhost:5432/sge_test}"
+
+if [ "${APP_ENV:-}" = "production" ]; then
+  echo "REFUSED: APP_ENV=production is not allowed for test-env-up." >&2
+  exit 64
+fi
+
+case "$DATABASE_URL" in
+  *staging*|*prod*|*production*)
+    echo "REFUSED: DATABASE_URL looks like a non-test environment: $DATABASE_URL" >&2
+    exit 64
+    ;;
+esac
+
+if ! command -v docker >/dev/null 2>&1; then
+  echo "docker is required for test-env-up." >&2
+  exit 127
+fi
+
+echo "[test-env-up] starting ephemeral PostgreSQL on host 127.0.0.1:5433"
+docker compose --profile test up -d db-test
+DB_CONTAINER=$(docker compose --profile test ps -q db-test)
+for _ in $(seq 1 30); do
+  status=$(docker inspect -f '{{.State.Health.Status}}' "$DB_CONTAINER" 2>/dev/null || echo "starting")
+  if [ "$status" = "healthy" ]; then
+    echo "[test-env-up] PostgreSQL is healthy."
+    break
+  fi
+  sleep 1
+done
+
+if [ "$status" != "healthy" ]; then
+  echo "[test-env-up] PostgreSQL did not become healthy in time." >&2
+  exit 1
+fi
+
+echo "[test-env-up] applying migrations"
+pnpm prisma migrate deploy
+
+echo "[test-env-up] ready. Use 'bash scripts/test-env-down' to stop."

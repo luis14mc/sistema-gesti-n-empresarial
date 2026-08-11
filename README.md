@@ -279,10 +279,10 @@ Consulte `.env.example` para storage S3, `APP_URL` y demás opciones.
 El proyecto usa **pnpm** (lockfile incluido):
 
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
 ```
 
-Alternativa con npm: `npm install`.
+pnpm es el único gestor soportado. La versión revisada está fijada en `packageManager`.
 
 ### 4. Inicializar base de datos
 
@@ -294,7 +294,7 @@ pnpm prisma generate
 pnpm prisma:seed
 ```
 
-En desarrollo local también puede usarse `pnpm prisma:push`.
+Los cambios de esquema se realizan exclusivamente mediante migraciones revisadas. No use `prisma db push` como sustituto.
 
 ## Ejecución
 

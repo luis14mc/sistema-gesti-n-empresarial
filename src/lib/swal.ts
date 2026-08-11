@@ -4,7 +4,13 @@
 // Helpers preconfigurados con colores del sistema
 // y detección automática de dark mode.
 
-import Swal, { SweetAlertResult } from 'sweetalert2';
+import SweetAlert, { SweetAlertResult } from 'sweetalert2';
+
+const Swal = SweetAlert.mixin({
+    customClass: {
+        popup: 'font-[Aptos,"Segoe_UI",sans-serif]',
+    },
+});
 
 // ============================================
 // HELPERS

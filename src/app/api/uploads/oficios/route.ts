@@ -3,9 +3,13 @@ import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { canAccess } from '@/lib/permissions';
 import { saveOficioDocument } from '@/lib/oficios-storage';
 import type { Role } from '@/types';
+import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { oficioOrganizationFailure } from '@/modules/oficios/presentation/http';
 
 async function postHandler(req: AuthenticatedRequest) {
+  const requestId = crypto.randomUUID();
   try {
+    const organization = await requireOrganizationContext(req, requestId);
     const role = req.user!.role as Role;
 
     if (!canAccess(role, 'oficios', 'create')) {
@@ -25,10 +29,12 @@ async function postHandler(req: AuthenticatedRequest) {
       );
     }
 
-    const attachment = await saveOficioDocument(file);
+    const attachment = await saveOficioDocument(file, organization.organizationId);
 
     return NextResponse.json({ attachment }, { status: 201 });
   } catch (error) {
+    const organizationResponse = oficioOrganizationFailure(error, requestId);
+    if (organizationResponse) return organizationResponse;
     const message = error instanceof Error ? error.message : 'Error al subir el archivo';
     console.error('Error en upload de oficios:', error);
     return NextResponse.json({ error: message }, { status: 400 });

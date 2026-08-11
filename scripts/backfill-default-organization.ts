@@ -37,9 +37,11 @@ async function main() {
     }
 
     await Promise.all([
-      tx.equipment.updateMany({ where: { organizationId: null }, data: { organizationId: organization.id } }),
-      tx.compraOrden.updateMany({ where: { organizationId: null }, data: { organizationId: organization.id } }),
-      tx.auditRecord.updateMany({ where: { organizationId: null }, data: { organizationId: organization.id } }),
+      tx.$executeRaw`UPDATE "equipment" SET "organizationId" = ${organization.id} WHERE "organizationId" IS NULL`,
+      tx.$executeRaw`UPDATE "purchase_orders" SET "organizationId" = ${organization.id} WHERE "organizationId" IS NULL`,
+      tx.$executeRaw`UPDATE "equipment_assignments" SET "organizationId" = ${organization.id} WHERE "organizationId" IS NULL`,
+      tx.$executeRaw`UPDATE "tickets" SET "organizationId" = ${organization.id} WHERE "organizationId" IS NULL`,
+      tx.$executeRaw`UPDATE "audit_records" SET "organizationId" = ${organization.id} WHERE "organizationId" IS NULL`,
     ]);
 
     await tx.disposalPolicy.upsert({

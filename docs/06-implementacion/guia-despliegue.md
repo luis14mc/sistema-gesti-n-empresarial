@@ -1,42 +1,38 @@
-# Guía de Despliegue
+# Guía de despliegue
 
-## 1. Entorno Objetivo
-El sistema está diseñado preferencialmente para desplegarse en plataformas Serverless como Vercel o servidores Node.js gestionados mediante contenedores Docker.
+La arquitectura objetivo usa contenedores compatibles con ECS Fargate, PostgreSQL administrado y S3 privado. Los procedimientos controlados de staging, producción y rollback se completarán en las fases 5C y 5D.
 
-## 2. Requisitos Previos
-- Node.js versión 20.x o superior.
-- Base de datos PostgreSQL (idealmente aprovisionada).
-- Variables de entorno críticas configuradas (ver `SECURITY.md`).
+## Requisitos
 
-## 3. Pasos de Despliegue
+- Node.js 22.14.0 para el artefacto de producción.
+- pnpm 9.15.9 mediante Corepack.
+- PostgreSQL con conexión directa separada para migraciones.
+- Configuración válida según `docs/deployment/environments.md`.
 
-### Paso 1: Obtención de Código
+## Validación local
+
 ```bash
-git pull origin main
+pnpm install --frozen-lockfile
+pnpm prisma validate
+pnpm prisma generate
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+docker build .
 ```
 
-### Paso 2: Instalación Inmutable de Dependencias
+## Migraciones
+
+Las migraciones se ejecutan una vez mediante el target `migration`, nunca desde cada réplica web:
+
 ```bash
-npm ci
+docker build --target migration -t sge-migration .
+docker run --rm --env-file /ruta/segura/runtime.env sge-migration
 ```
 
-### Paso 3: Migración de Base de Datos
-Actualizar el esquema sin pérdida de datos:
-```bash
-npx prisma db push
-# O alternativamente, si se usan migraciones históricas:
-# npx prisma migrate deploy
-```
+No use `prisma db push` ni `prisma migrate reset` durante un despliegue.
 
-### Paso 4: Compilación Estática y Servidor
-```bash
-npm run build
-```
+## Inicio
 
-### Paso 5: Inicio del Servidor
-```bash
-npm run start
-```
-
-## 4. Notas Post-Despliegue
-Tras reiniciar el servicio, se debe verificar el archivo de log en búsqueda de advertencias (Warnings) al conectar con la base de datos.
+El target predeterminado inicia `node server.js` sobre la salida standalone. La activación del worker está bloqueada hasta implementar el procesador durable con claims y leases; consulte `docs/deployment/docker.md`.

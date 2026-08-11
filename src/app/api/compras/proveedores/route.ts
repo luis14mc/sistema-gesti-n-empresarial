@@ -5,11 +5,13 @@ import { canAccess } from '@/lib/permissions';
 import type { Role } from '@/types';
 import { createProveedorSchema } from '@/lib/compras/schemas';
 import { createProveedor } from '@/lib/compras/service';
-import { normalizeRtn, validateRtn } from '@/lib/compras/validation';
+import { validateRtn } from '@/lib/compras/validation';
+import { requireOrganizationContext } from '@/modules/organizations/application/context';
 
 async function getHandler(req: AuthenticatedRequest) {
   try {
     const role = req.user!.role as Role;
+    const { organizationId } = await requireOrganizationContext(req);
     if (!canAccess(role, 'purchases', 'read')) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
@@ -20,6 +22,7 @@ async function getHandler(req: AuthenticatedRequest) {
 
     const proveedores = await prisma.proveedor.findMany({
       where: {
+        organizationId,
         deletedAt: null,
         ...(activo === 'true' ? { activo: true } : {}),
         ...(search
@@ -44,6 +47,7 @@ async function getHandler(req: AuthenticatedRequest) {
 async function postHandler(req: AuthenticatedRequest) {
   try {
     const role = req.user!.role as Role;
+    const { organizationId } = await requireOrganizationContext(req);
     if (!canAccess(role, 'purchases', 'create')) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
@@ -58,7 +62,7 @@ async function postHandler(req: AuthenticatedRequest) {
       return NextResponse.json({ error: 'RTN inválido (14 dígitos)' }, { status: 400 });
     }
 
-    const proveedor = await createProveedor(parsed.data);
+    const proveedor = await createProveedor(parsed.data, organizationId);
     return NextResponse.json({ proveedor }, { status: 201 });
   } catch (error) {
     console.error('Error creating proveedor:', error);

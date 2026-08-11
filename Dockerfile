@@ -1,65 +1,70 @@
-# =====================================================
-# SGE — Dockerfile multi-stage para producción
-# Target: AWS Fargate / App Runner / cualquier Node 20 host
-# =====================================================
+# syntax=docker/dockerfile:1.7
 
-# -------- Stage 1: deps --------
-FROM node:20-bookworm-slim AS deps
-WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
+ARG NODE_VERSION=22.14.0
+ARG PNPM_VERSION=9.15.9
+
+FROM node:${NODE_VERSION}-bookworm-slim@sha256:1c18d9ab3af4585870b92e4dbc5cac5a0dc77dd13df1a5905cea89fc720eb05b AS base
+ARG PNPM_VERSION
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+RUN corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates openssl \
     && rm -rf /var/lib/apt/lists/*
-COPY package.json package-lock.json* ./
-RUN npm ci --prefer-offline --no-audit --progress=false
-
-# -------- Stage 2: builder --------
-FROM node:20-bookworm-slim AS builder
 WORKDIR /app
+
+FROM base AS dependencies
+COPY package.json pnpm-lock.yaml .npmrc ./
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile
+
+FROM base AS builder
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    chromium \
-    fonts-liberation \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
-ENV PUPPETEER_SKIP_DOWNLOAD=true
-COPY --from=deps /app/node_modules ./node_modules
+ENV APP_ENV=development
+ENV DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build
+ENV APP_URL=http://localhost:3000
+ENV JWT_SECRET=build-only-secret-not-used-at-runtime-000000000000
+ENV STORAGE_DRIVER=local
+ENV COOKIE_SECURE=false
+COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
-RUN npx prisma generate && npm run build
+RUN pnpm prisma generate && pnpm build
 
-# -------- Stage 3: runner --------
-FROM node:20-bookworm-slim AS runner
-WORKDIR /app
+FROM base AS migration
+ENV NODE_ENV=production
+COPY --from=dependencies /app/node_modules ./node_modules
+COPY package.json prisma.config.ts ./
+COPY prisma ./prisma
+CMD ["pnpm", "prisma", "migrate", "deploy"]
+
+FROM ghcr.io/puppeteer/puppeteer:25.3.0@sha256:9665f5b57abc5cc7080a641878964018de219055a4d2c9d8d050ceb1161778ba AS runtime
+USER root
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+ENV PUPPETEER_EXECUTABLE_PATH=/opt/chrome/chrome
 ENV PUPPETEER_SKIP_DOWNLOAD=true
+ENV NODE_PATH=/home/pptruser/node_modules
+WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    chromium \
-    fonts-liberation \
-    ca-certificates \
-    wget \
+RUN apt-get update && apt-get install -y --no-install-recommends dumb-init \
+    && cp -a /home/pptruser/.cache/puppeteer/chrome/linux-150.0.7871.24/chrome-linux64 /opt/chrome \
+    && /opt/chrome/chrome --version \
     && rm -rf /var/lib/apt/lists/*
 
-RUN groupadd --system --gid 1001 nodejs && \
-    useradd --system --uid 1001 --gid nodejs nextjs
+COPY --from=builder --chown=10042:10042 /app/.next/standalone ./
+COPY --from=builder --chown=10042:10042 /app/.next/static ./.next/static
+COPY --from=builder --chown=10042:10042 /app/public ./public
+COPY --from=builder --chown=10042:10042 /app/dist/worker ./dist/worker
+COPY --from=builder --chown=10042:10042 /app/prisma ./prisma
 
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/src/templates ./src/templates
-
-USER nextjs
-
+USER 10042
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/api/health || exit 1
+  CMD ["node", "-e", "fetch('http://127.0.0.1:3000/api/health/live').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
 
-CMD ["node_modules/.bin/next", "start"]
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "server.js"]

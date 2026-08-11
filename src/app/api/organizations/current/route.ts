@@ -7,10 +7,10 @@ async function handler(request: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   try {
     const context = await requireOrganizationContext(request, requestId);
-    const organization = await prisma.organization.findUnique({ where: { id: context.organizationId }, select: { id: true, slug: true, name: true, logoKey: true } });
+    const organization = await prisma.organization.findUnique({ where: { id: context.organizationId }, select: { id: true, slug: true, name: true, logoKey: true, timezone: true } });
     if (!organization) return apiFailure('ORGANIZATION_NOT_FOUND', 'La organización no existe.', { requestId, status: 404 });
     return apiSuccess({
-      organization: { id: organization.id, slug: organization.slug, name: organization.name, logoUrl: organization.logoKey },
+      organization: { id: organization.id, slug: organization.slug, name: organization.name, logoUrl: organization.logoKey, timezone: organization.timezone },
       membership: { id: context.membershipId, role: context.role },
     }, { requestId });
   } catch (error) {

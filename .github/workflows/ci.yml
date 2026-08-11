@@ -5,37 +5,173 @@ on:
     branches: [ "main", "develop" ]
   pull_request:
     branches: [ "main", "develop" ]
+  workflow_dispatch:
+    inputs:
+      gate:
+        description: 'Pipeline gate (pr, nightly, release)'
+        required: true
+        default: 'pr'
+        type: choice
+        options:
+          - pr
+          - nightly
+          - release
+
+permissions:
+  contents: read
+
+env:
+  DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/sge_test"
+  JWT_SECRET: "ci-test-secret-key-do-not-use-00000000"
 
 jobs:
-  build-and-test:
+  pr-checks:
+    name: PR checks
+    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.gate == 'pr') || (github.event_name == 'push' && github.ref != 'refs/heads/main')
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: sge_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
-        
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Type Check
-      run: npx tsc --noEmit
-      
-    - name: Run Linter
-      run: npm run lint
-      
-    - name: Run Tests
-      run: npx vitest run
-      env:
-        JWT_SECRET: "ci-test-secret-key-do-not-use"
-        
-    - name: Build Next.js
-      run: npm run build
-      env:
-        DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/dummy"
-        JWT_SECRET: "ci-test-secret-key-do-not-use"
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '9.15.9'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Validate Prisma schema
+        run: pnpm prisma validate
+      - name: Generate Prisma client
+        run: pnpm prisma generate
+      - name: Type Check
+        run: pnpm typecheck
+      - name: Run Linter
+        run: pnpm lint
+      - name: Run unit + integration + security regression tests
+        run: pnpm test
+      - name: Run security regression
+        run: pnpm test:regression
+      - name: Build Next.js
+        run: pnpm build
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/dummy"
+      - name: Upload JUnit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-pr
+          path: reports/junit.xml
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-pr
+          path: coverage/
+
+  nightly:
+    name: Nightly suite
+    if: github.event_name == 'workflow_dispatch' && inputs.gate == 'nightly'
+    needs: pr-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '9.15.9'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps
+      - name: Generate Prisma client
+        run: pnpm prisma generate
+      - name: Run full Vitest suite with coverage
+        run: pnpm test:ci
+      - name: Run full E2E (Chromium + Firefox + WebKit)
+        run: pnpm test:e2e
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-nightly
+          path: reports/playwright-html
+      - name: Upload accessibility report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: accessibility-nightly
+          path: reports/axe
+      - name: Publish coverage summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-nightly
+          path: coverage/
+
+  release:
+    name: Release gate
+    if: github.event_name == 'workflow_dispatch' && inputs.gate == 'release'
+    needs: pr-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '9.15.9'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps
+      - name: Generate Prisma client
+        run: pnpm prisma generate
+      - name: Run full suite + coverage
+        run: pnpm test:ci
+      - name: Run E2E (Chromium)
+        run: pnpm test:e2e --project=chromium
+      - name: Run smoke + load smoke against staging
+        run: bash scripts/release-quality-gates.sh
+        env:
+          STAGING_BASE_URL: ${{ secrets.STAGING_BASE_URL }}
+          STAGING_ADMIN_TOKEN: ${{ secrets.STAGING_ADMIN_TOKEN }}
+      - name: Generate release report
+        run: node scripts/release-report.mjs
+      - name: Upload release artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-report
+          path: reports/release-report.json

@@ -7,6 +7,15 @@
 **/.env
 **/.env.*
 !**/.env.example
+public/uploads
+data
+__tests__
+.agents
+.opencode
+infra
+scripts
+prisma/seed.ts
+package-lock.json
 **/coverage
 **/tsconfig.tsbuildinfo
 **/mockups

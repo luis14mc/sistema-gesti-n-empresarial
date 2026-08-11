@@ -50,6 +50,13 @@ export async function createAuditRecord({
   tx,
 }: CreateAuditRecordParams) {
   try {
+    const resolvedOrganizationId = organizationId ?? (await prisma.organizationMembership.findFirst({
+      where: { userId, status: 'ACTIVE', organization: { status: 'ACTIVE' } },
+      select: { organizationId: true },
+      orderBy: { createdAt: 'asc' },
+    }))?.organizationId;
+    if (!resolvedOrganizationId) throw new Error('No active organization is available for the audit record');
+
     return await (tx ?? prisma).auditRecord.create({
       data: {
         title,
@@ -61,7 +68,7 @@ export async function createAuditRecord({
         userId,
         entityId,
         entityType,
-        organizationId,
+        organizationId: resolvedOrganizationId,
         action,
         metadata: metadata ? JSON.parse(JSON.stringify(metadata)) : undefined,
         requestId,

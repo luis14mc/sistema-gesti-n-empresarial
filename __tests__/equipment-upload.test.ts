@@ -77,16 +77,17 @@ describe('saveEquipmentDocument', () => {
 
   it('guarda documento con StorageAdapter y retorna metadata tipada', async () => {
     const file = makePdfFile('factura-equipo.pdf');
-    const document = await saveEquipmentDocument(file, { tipoDocumento: 'FACTURA' });
+    const document = await saveEquipmentDocument(file, { organizationId: 'org-test', tipoDocumento: 'FACTURA' });
 
     expect(document.tipoDocumento).toBe('FACTURA');
-    expect(document.url).toMatch(/^\/uploads\/equipment\/facturas\/\d{4}\/\d{2}\//);
+    expect(document.url).toMatch(/^\/uploads\/organizations\/org-test\/equipment\/facturas\/\d{4}\/\d{2}\//);
     expect(document.mimeType).toBe('application/pdf');
     expect(document.originalName).toBe('factura-equipo.pdf');
   });
 
   it('acepta acta de asignación firmada', async () => {
     const document = await saveEquipmentDocument(makePdfFile(), {
+      organizationId: 'org-test',
       tipoDocumento: 'ACTA_ASIGNACION',
     });
     expect(document.url).toContain('/equipment/actas-asignacion/');
@@ -94,6 +95,7 @@ describe('saveEquipmentDocument', () => {
 
   it('acepta acta de devolución firmada', async () => {
     const document = await saveEquipmentDocument(makePdfFile(), {
+      organizationId: 'org-test',
       tipoDocumento: 'ACTA_DEVOLUCION',
     });
     expect(document.url).toContain('/equipment/actas-devolucion/');

@@ -83,6 +83,17 @@ export function parseOficioAttachments(raw: unknown): OficioAttachment[] {
     .filter((item): item is OficioAttachment => item !== null);
 }
 
+/**
+ * Verifica que la URL del adjunto apunte al prefijo de uploads del tenant.
+ * Seguridad: rechaza URLs absolutas http(s):// que no sean del storage local
+ * (mitiga XSS via iframe, tracking pixel, SSRF reflected).
+ */
+export function isOficioAttachmentUrlAllowed(url: string | undefined | null, organizationId: string): boolean {
+  if (!url || typeof url !== 'string') return false;
+  const tenantUploadPrefix = `/uploads/organizations/${organizationId}/oficios/`;
+  return url.startsWith(tenantUploadPrefix);
+}
+
 export function normalizeOficioAttachment(item: unknown): OficioAttachment | null {
   if (typeof item === 'string' && item.trim()) {
     const url = item.trim();

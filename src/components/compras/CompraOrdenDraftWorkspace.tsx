@@ -75,7 +75,10 @@ export function CompraOrdenDraftWorkspace({
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const pendingRef = useRef(pendingDocuments);
-  pendingRef.current = pendingDocuments;
+
+  useEffect(() => {
+    pendingRef.current = pendingDocuments;
+  }, [pendingDocuments]);
 
   useEffect(() => () => {
     for (const document of pendingRef.current) {

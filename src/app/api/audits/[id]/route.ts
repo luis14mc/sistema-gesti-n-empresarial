@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
+import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { auditWhere, findAudit } from '@/modules/audits/infrastructure/repository';
 
 // GET /api/audits/[id] - Obtener auditoría por ID
 async function getHandler(
@@ -9,8 +11,9 @@ async function getHandler(
   { params }: { params: { id: string } }
 ) {
   try {
-    const audit = await prisma.audit.findUnique({
-      where: { id: params.id },
+    const organization = await requireOrganizationContext(req);
+    const audit = await prisma.audit.findFirst({
+      where: auditWhere(organization.organizationId, { id: params.id }),
       include: {
         leadAuditor: {
           select: { id: true, firstName: true, lastName: true, email: true },
@@ -50,8 +53,9 @@ async function patchHandler(
   { params }: { params: { id: string } }
 ) {
   try {
+    const organization = await requireOrganizationContext(req);
     const data = await req.json();
-    const current = await prisma.audit.findUnique({ where: { id: params.id } });
+    const current = await findAudit(organization.organizationId, params.id);
 
     if (!current) {
       return NextResponse.json(
@@ -80,9 +84,12 @@ async function patchHandler(
       }
     });
 
-    const audit = await prisma.audit.update({
-      where: { id: params.id },
+    await prisma.audit.updateMany({
+      where: auditWhere(organization.organizationId, { id: params.id }),
       data: updateData,
+    });
+    const audit = await prisma.audit.findFirstOrThrow({
+      where: auditWhere(organization.organizationId, { id: params.id }),
       include: {
         leadAuditor: {
           select: { id: true, firstName: true, lastName: true, email: true },
@@ -100,6 +107,7 @@ async function patchHandler(
       category: 'UPDATE',
       userId: req.user!.userId,
       entityId: audit.id,
+      organizationId: organization.organizationId,
       previousData: { status: current.status },
       newData: { status: audit.status },
     });
@@ -120,7 +128,8 @@ async function deleteHandler(
   { params }: { params: { id: string } }
 ) {
   try {
-    const current = await prisma.audit.findUnique({ where: { id: params.id } });
+    const organization = await requireOrganizationContext(req);
+    const current = await findAudit(organization.organizationId, params.id);
     if (!current) {
       return NextResponse.json(
         { error: 'Auditoría no encontrada' },
@@ -128,7 +137,7 @@ async function deleteHandler(
       );
     }
 
-    await prisma.audit.delete({ where: { id: params.id } });
+    await prisma.audit.deleteMany({ where: auditWhere(organization.organizationId, { id: params.id }) });
 
     await createAuditRecord({
       title: 'Eliminación de auditoría',
@@ -137,6 +146,7 @@ async function deleteHandler(
       category: 'DELETE',
       userId: req.user!.userId,
       entityId: params.id,
+      organizationId: organization.organizationId,
       previousData: { code: current.code, title: current.title },
     });
 

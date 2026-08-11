@@ -1,0 +1,102 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2026-08-03T00:00:00Z",
+  "environment": "staging",
+  "datasets": {
+    "small": { "organizations": 5, "users": 100, "equipment": 1000, "oficios": 2000, "purchaseOrders": 1000, "auditEvents": 5000 },
+    "medium": { "organizations": 25, "users": 1000, "equipment": 25000, "oficios": 50000, "purchaseOrders": 20000, "auditEvents": 500000 },
+    "large": { "organizations": 100, "users": 5000, "equipment": 250000, "oficios": 500000, "purchaseOrders": 200000, "auditEvents": 5000000 }
+  },
+  "scenarios": [
+    {
+      "name": "list-oficios",
+      "endpoint": "GET /api/oficios",
+      "p50_ms": 0,
+      "p95_ms": 0,
+      "p99_ms": 0,
+      "error_rate_pct": 0,
+      "verified": false
+    },
+    {
+      "name": "detail-oficio",
+      "endpoint": "GET /api/oficios/{id}",
+      "p50_ms": 0,
+      "p95_ms": 0,
+      "p99_ms": 0,
+      "error_rate_pct": 0,
+      "verified": false
+    },
+    {
+      "name": "list-equipment",
+      "endpoint": "GET /api/equipment",
+      "p50_ms": 0,
+      "p95_ms": 0,
+      "p99_ms": 0,
+      "error_rate_pct": 0,
+      "verified": false
+    },
+    {
+      "name": "detail-equipment",
+      "endpoint": "GET /api/equipment/{id}",
+      "p50_ms": 0,
+      "p95_ms": 0,
+      "p99_ms": 0,
+      "error_rate_pct": 0,
+      "verified": false
+    },
+    {
+      "name": "list-purchases",
+      "endpoint": "GET /api/compras/ordenes",
+      "p50_ms": 0,
+      "p95_ms": 0,
+      "p99_ms": 0,
+      "error_rate_pct": 0,
+      "verified": false
+    },
+    {
+      "name": "detail-purchase",
+      "endpoint": "GET /api/compras/ordenes/{id}",
+      "p50_ms": 0,
+      "p95_ms": 0,
+      "p99_ms": 0,
+      "error_rate_pct": 0,
+      "verified": false
+    },
+    {
+      "name": "list-notifications",
+      "endpoint": "GET /api/notifications",
+      "p50_ms": 0,
+      "p95_ms": 0,
+      "p99_ms": 0,
+      "error_rate_pct": 0,
+      "verified": false
+    },
+    {
+      "name": "dashboard",
+      "endpoint": "GET /dashboard",
+      "p50_ms": 0,
+      "p95_ms": 0,
+      "p99_ms": 0,
+      "error_rate_pct": 0,
+      "verified": false
+    },
+    {
+      "name": "pdf-generation",
+      "endpoint": "POST /api/compras/ordenes/{id}/generar",
+      "p50_ms": 0,
+      "p95_ms": 0,
+      "p99_ms": 0,
+      "error_rate_pct": 0,
+      "verified": false
+    },
+    {
+      "name": "csv-export",
+      "endpoint": "GET /api/reports/{id}/export.csv",
+      "p50_ms": 0,
+      "p95_ms": 0,
+      "p99_ms": 0,
+      "error_rate_pct": 0,
+      "verified": false
+    }
+  ]
+}

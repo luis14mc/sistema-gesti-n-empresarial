@@ -21,9 +21,13 @@ async function getDashboardStats(): Promise<DashboardStats> {
     prisma.equipment.count(),
     prisma.equipment.count({ where: { status: 'AVAILABLE' } }),
     prisma.equipmentAssignment.count({ where: { status: 'ACTIVE' } }),
-    prisma.compraSolicitud.count({
+    // Phase 13 · C-1 remediation: purchasing KPIs must read the canonical
+    // purchase-order aggregate (`CompraOrden` → purchase_orders), the same
+    // records the operational UI creates — not the legacy `CompraSolicitud`.
+    // See docs/remediation/procurement-canonicalization.md.
+    prisma.compraOrden.count({
       where: {
-        estado: { in: ['BORRADOR', 'GENERADA'] },
+        status: { in: ['DRAFT', 'GENERATED'] },
         deletedAt: null,
       },
     }),

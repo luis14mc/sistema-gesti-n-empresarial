@@ -4,18 +4,21 @@ import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
 import { canAccess } from '@/lib/permissions';
 import { ORDEN_ESTADOS_PENDIENTES } from '@/lib/compras/orden/constants';
 import type { Role } from '@/types';
+import { requireOrganizationContext } from '@/modules/organizations/application/context';
 
 export const dynamic = 'force-dynamic';
 
 async function getHandler(req: AuthenticatedRequest) {
   try {
     const role = req.user!.role as Role;
+    const { organizationId } = await requireOrganizationContext(req);
     if (!canAccess(role, 'purchases', 'read')) {
       return NextResponse.json({ count: 0 });
     }
 
     const count = await prisma.compraOrden.count({
       where: {
+        organizationId,
         deletedAt: null,
         status: { in: [...ORDEN_ESTADOS_PENDIENTES] },
       },

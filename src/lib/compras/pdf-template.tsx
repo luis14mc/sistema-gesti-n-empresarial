@@ -14,12 +14,14 @@ const units: Record<string, PurchaseUnit> = {
   UNIDAD: 'UNIT', CAJA: 'BOX', PAQUETE: 'PACKAGE', SERVICIO: 'SERVICE', LOTE: 'LOT', MES: 'MONTH', HORA: 'HOUR', DIA: 'DAY', OTRO: 'OTHER',
 };
 const statuses: Record<string, PurchaseOrderStatus> = {
-  BORRADOR: 'DRAFT', GENERADA: 'GENERATED', EMITIDA: 'GENERATED', ANULADA: 'CANCELLED', CERRADA: 'GENERATED',
+  BORRADOR: 'DRAFT', GENERADA: 'GENERATED', EMITIDA: 'ISSUED', ANULADA: 'CANCELLED', CERRADA: 'CLOSED',
 };
 
-export async function construirHtmlOrdenCompra(orden: OrdenPdfData, _version = 1): Promise<string> {
+// Legacy CompraSolicitud renderer. Active CompraOrden workflows use orden/pdf.tsx.
+export async function construirHtmlOrdenCompra(orden: OrdenPdfData, _version = 1, organizationId?: string): Promise<string> {
+  if (!organizationId) throw new Error('LEGACY_PURCHASE_WORKFLOW_DISABLED');
   const { renderToStaticMarkup } = await import('react-dom/server');
-  const format = await getActiveTemplateConfig();
+  const format = await getActiveTemplateConfig(organizationId);
   const resolvedFormat = { ...format, logoUrl: format.logoUrl ? await resolveInstitutionLogoDataUri(format.logoUrl) : null };
   const requestedByName = orden.solicitadoPor ? `${orden.solicitadoPor.firstName} ${orden.solicitadoPor.lastName}` : '—';
   const taxable = Math.max(orden.subtotal - orden.descuento, 0);

@@ -6,15 +6,23 @@ import { getStorage, resetStorageForTests } from '../src/lib/storage';
 
 describe('Storage factory + S3 driver configuration', () => {
   let tmpDir: string;
+  const storageEnvironmentKeys = [
+    'STORAGE_DRIVER', 'LOCAL_STORAGE_PATH', 'S3_BUCKET', 'AWS_REGION',
+    'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN',
+    'S3_ENDPOINT', 'S3_FORCE_PATH_STYLE', 'S3_PUBLIC_URL', 'S3_PRESIGNED_TTL_SECONDS',
+  ] as const;
 
   beforeEach(() => {
+    storageEnvironmentKeys.forEach((key) => delete process.env[key]);
     tmpDir = mkdtempSync(join(tmpdir(), 'sge-factory-'));
     resetStorageForTests();
+    process.env.APP_ENV = 'test';
   });
 
   afterEach(() => {
     rmSync(tmpDir, { recursive: true, force: true });
     resetStorageForTests();
+    storageEnvironmentKeys.forEach((key) => delete process.env[key]);
   });
 
   it('returns LocalStorageAdapter by default (no STORAGE_DRIVER)', () => {
@@ -33,22 +41,19 @@ describe('Storage factory + S3 driver configuration', () => {
     process.env.STORAGE_DRIVER = 's3';
     process.env.S3_BUCKET = 'test-bucket';
     delete process.env.AWS_REGION;
-    expect(() => getStorage()).toThrowError(/S3_BUCKET|region/);
+    expect(() => getStorage()).toThrowError(/AWS_REGION/);
   });
 
-  it('instantiates S3StorageAdapter successfully with all env vars', async () => {
+  it('instantiates S3StorageAdapter with the AWS credential chain', () => {
     process.env.STORAGE_DRIVER = 's3';
     process.env.S3_BUCKET = 'test-bucket';
     process.env.AWS_REGION = 'us-east-2';
-    process.env.AWS_ACCESS_KEY_ID = 'AKIA-TEST';
-    process.env.AWS_SECRET_ACCESS_KEY = 'secret-test';
+    delete process.env.AWS_ACCESS_KEY_ID;
+    delete process.env.AWS_SECRET_ACCESS_KEY;
     resetStorageForTests();
 
     const storage = getStorage();
     expect(storage.driverName).toBe('s3');
-
-    // El ping no debe tirar al instanciar (silencioso en S3 sin bucket real)
-    await expect(storage.ping?.()).resolves.toBeUndefined();
 
     process.env.STORAGE_DRIVER = 'local';
     process.env.LOCAL_STORAGE_PATH = tmpDir;

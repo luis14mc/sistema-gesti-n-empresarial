@@ -19,11 +19,13 @@ export interface EquipmentDocumentMeta {
   mimeType: string;
   size: number;
   uploadedAt: string;
+  storageKey: string;
 }
 
 export async function saveEquipmentDocument(
   file: File,
   options: {
+    organizationId: string;
     tipoDocumento?: string | null;
     subfolder?: string | null;
   }
@@ -43,7 +45,7 @@ export async function saveEquipmentDocument(
   const desiredName = file.name.replace(/[^a-zA-Z0-9-_.]/g, '_').replace(/\s+/g, '_');
 
   const stored = await storage.put({
-    prefix: equipmentDocumentStoragePrefix(tipoDocumento),
+    prefix: `organizations/${options.organizationId}/${equipmentDocumentStoragePrefix(tipoDocumento)}`,
     originalName: `${baseName}${extension}`,
     mimeType,
     size: file.size,
@@ -59,5 +61,6 @@ export async function saveEquipmentDocument(
     mimeType,
     size: stored.size,
     uploadedAt: stored.uploadedAt,
+    storageKey: stored.key,
   };
 }

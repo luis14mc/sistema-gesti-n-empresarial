@@ -16,6 +16,48 @@ export type ApiErrorResponse = {
   requestId?: string;
 };
 
+export type NormalizedApiError = {
+  code?: string;
+  message: string;
+  details?: unknown;
+  stage?: string;
+  requestId?: string;
+  status?: number;
+};
+
+const API_ERROR_MESSAGES: Record<string, string> = {
+  INVALID_ORDER_DATA: 'Revise los datos obligatorios de la orden.',
+  TENANT_ACCESS_DENIED: 'No tiene acceso a esta organización o recurso.',
+  PDF_BROWSER_NOT_AVAILABLE: 'El servicio de generación de PDF no está disponible.',
+  DOCUMENT_NOT_FOUND: 'El documento solicitado no existe.',
+  ORGANIZATION_SELECTION_REQUIRED: 'Seleccione una organización para continuar.',
+};
+
+function nonEmptyString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value : undefined;
+}
+
+export function getApiError(error: unknown, fallback = 'Ocurrió un error inesperado.'): NormalizedApiError {
+  const status = getHttpStatus(error);
+  const raw = isAxiosError(error) ? error.response?.data as ApiErrorResponse | undefined : undefined;
+  const nested = raw?.error && typeof raw.error === 'object' && !Array.isArray(raw.error) ? raw.error : undefined;
+  const code = nonEmptyString(nested?.code) ?? (typeof raw?.error === 'string' ? raw.error : undefined);
+  const message = nonEmptyString(nested?.message)
+    ?? nonEmptyString(raw?.message)
+    ?? (code ? API_ERROR_MESSAGES[code] : undefined)
+    ?? (error instanceof Error ? nonEmptyString(error.message) : undefined)
+    ?? fallback;
+
+  return {
+    code,
+    message: code && message === code ? API_ERROR_MESSAGES[code] ?? fallback : message,
+    details: nested?.details ?? raw?.details,
+    stage: nested?.stage ?? raw?.stage,
+    requestId: raw?.requestId,
+    status,
+  };
+}
+
 export function getApiErrorData(error: unknown): ApiErrorResponse {
   if (typeof error === 'object' && error !== null && 'response' in error) {
     const axiosError = error as AxiosError<ApiErrorResponse>;
@@ -91,6 +133,8 @@ export function getPurchaseOrderValidationDetails(
 }
 
 export function getApiErrorMessage(error: unknown, fallback: string): string {
+  const normalized = getApiError(error, fallback);
+  if (normalized.message !== fallback) return normalized.message;
   if (isAxiosError(error)) {
     const data = error.response?.data as { error?: unknown; message?: string } | undefined;
 

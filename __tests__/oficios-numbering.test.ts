@@ -1,4 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import type { Prisma } from '@prisma/client';
+import { allocateOficioNumber } from '../src/modules/oficios/infrastructure/numbering';
 import {
   formatOficioNumber,
   parseOficioSequence,
@@ -9,6 +11,23 @@ import {
 } from '../src/lib/oficios-numbering';
 
 describe('Oficios numbering', () => {
+  it('allocates the next number atomically in the organization sequence', async () => {
+    const upsert = vi.fn().mockResolvedValue({ lastValue: 12 });
+    const tx = { documentSequence: { upsert } } as unknown as Prisma.TransactionClient;
+
+    await expect(allocateOficioNumber(tx, {
+      organizationId: 'org-a', scope: 'CNI', direction: 'OUTGOING', year: 2026,
+    })).resolves.toBe('0012-CNI-2026');
+    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        organizationId_documentType_year: {
+          organizationId: 'org-a', documentType: 'OFFICE_DOCUMENT', year: 2026,
+        },
+      },
+      update: { lastValue: { increment: 1 } },
+    }));
+  });
+
   describe('normalizeOficioScope', () => {
     it('maps legacy aliases to canonical scopes', () => {
       expect(normalizeOficioScope('CNI')).toBe('CNI');

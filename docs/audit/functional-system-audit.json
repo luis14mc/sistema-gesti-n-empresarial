@@ -1,0 +1,103 @@
+{
+  "auditPhase": "Phase 12 — Functional Information Systems Audit",
+  "auditType": "independent-external-functional",
+  "target": "Sistema de Gestión Empresarial (SGE)",
+  "repository": { "branch": "main", "commit": "8d3c867" },
+  "auditDate": "2026-08-03",
+  "verification": {
+    "prismaFormat": "pass",
+    "prismaValidate": "pass",
+    "prismaGenerate": "pass",
+    "lint": "pass",
+    "typecheck": "pass",
+    "test": { "result": "pass", "tests": 762, "failed": 0, "skipped": 1, "files": 91, "note": "1 skipped = gated live-DB assignment constraint test (SGE_LIVE_DB)" },
+    "build": "pass"
+  },
+  "overallScore": 71,
+  "scoreHistory": [
+    { "iteration": "Phase 12 audit", "score": 63 },
+    { "iteration": "Phase 13 (C-1, worker, classifications)", "score": 67 },
+    { "iteration": "Phase 13 Part 1-3 (assignment constraint, exports, nav)", "score": 71 }
+  ],
+  "classification": "Operational Beta",
+  "productionRecommendation": "GO_WITH_CONDITIONS",
+  "dimensionScores": {
+    "functionalModules": 64,
+    "criticalWorkflows": 77,
+    "dataIntegrity": 82,
+    "securityControls": 74,
+    "operationalReadiness": 58,
+    "uxUsability": 70
+  },
+  "liveIntegritySweep": {
+    "executedAgainst": "production Neon (read-only)",
+    "date": "2026-08-03",
+    "violations": 0,
+    "checks": ["duplicate_active_assignments", "orphan_assignments", "disposed_equipment_active_assignment", "approved_disposal_not_disposed", "duplicate_document_sequences", "purchase_total_inconsistent"],
+    "result": "CLEAN"
+  },
+  "criticalWorkflowsPassing": { "passing": 4, "total": 5, "detail": ["Correspondence", "EquipmentAssignment", "Disposal", "Procurement"], "conditional": ["Maintenance"] },
+  "modulesFullyOperational": { "count": 5, "total": 18 },
+  "modules": [
+    { "name": "Dashboard", "score": 3, "percent": 60, "status": "PARTIALLY_IMPLEMENTED", "critical": ["Purchases KPI reads CompraSolicitud not CompraOrden"] },
+    { "name": "Oficios", "score": 4, "percent": 80, "status": "IMPLEMENTED", "critical": [] },
+    { "name": "Equipos-Inventario", "score": 4, "percent": 80, "status": "IMPLEMENTED", "critical": [] },
+    { "name": "Asignaciones", "score": 4, "percent": 78, "status": "IMPLEMENTED", "critical": ["DB partial-unique guard added (migration pending prod deploy)"] },
+    { "name": "Mantenimiento", "score": 2, "percent": 45, "status": "PARTIALLY_IMPLEMENTED", "critical": ["no nav; not in reports"] },
+    { "name": "Baja-Disposal", "score": 5, "percent": 92, "status": "IMPLEMENTED", "critical": [] },
+    { "name": "Compras-Ordenes", "score": 3, "percent": 62, "status": "IMPLEMENTED", "critical": ["triple model duplication", "reports/dashboard mismatch"] },
+    { "name": "Proveedores", "score": 3, "percent": 65, "status": "IMPLEMENTED", "critical": ["hidden from nav"] },
+    { "name": "Empleados", "score": 4, "percent": 80, "status": "IMPLEMENTED", "critical": [] },
+    { "name": "Usuarios", "score": 3, "percent": 62, "status": "PARTIALLY_IMPLEMENTED", "critical": ["dual role systems", "no session-revoke/reset UI"] },
+    { "name": "Auditoria-Sistema", "score": 4, "percent": 80, "status": "IMPLEMENTED", "critical": [] },
+    { "name": "Auditoria-Institucional", "score": 2, "percent": 45, "status": "DISCONNECTED", "critical": ["built but absent from navigation"] },
+    { "name": "Notificaciones", "score": 1, "percent": 20, "status": "PARTIALLY_IMPLEMENTED", "critical": ["no UI", "no email backend", "only org-lifecycle trigger"] },
+    { "name": "Reportes", "score": 3, "percent": 50, "status": "PARTIALLY_IMPLEMENTED", "critical": ["only Purchase Order Summary has real CSV/XLSX export (canonical); other catalog reports lack data handlers"] },
+    { "name": "Configuracion", "score": 2, "percent": 40, "status": "PARTIALLY_IMPLEMENTED", "critical": ["only profile/password; no org/policy config UI"] },
+    { "name": "Organizacion-Plataforma", "score": 1, "percent": 20, "status": "FOUNDATION_ONLY", "critical": ["rich API, zero UI"] },
+    { "name": "Integraciones", "score": 1, "percent": 20, "status": "FOUNDATION_ONLY", "critical": ["no adapters/consumers/UI"] },
+    { "name": "BackgroundJobs-Outbox", "score": 1, "percent": 15, "status": "NOT_IMPLEMENTED", "critical": ["worker stub throws", "outbox never used"] }
+  ],
+  "workflows": [
+    { "name": "Correspondence", "score": 4, "percent": 80, "notifications": false, "reports": "partial" },
+    { "name": "EquipmentAssignment", "score": 3, "percent": 70, "notifications": false, "reports": false },
+    { "name": "Maintenance", "score": 2, "percent": 50, "notifications": false, "reports": false },
+    { "name": "Disposal", "score": 5, "percent": 92, "documents": true, "audit": true, "notifications": false, "reports": true },
+    { "name": "Procurement", "score": 3, "percent": 65, "documents": true, "audit": true, "notifications": false, "reports": "wrong-table" }
+  ],
+  "findings": [
+    { "id": "C-1", "severity": "CRITICAL", "category": "data-integrity", "status": "FAIL", "summary": "Dashboard KPI and purchase reports read CompraSolicitud while operational UI writes CompraOrden", "evidence": ["src/app/dashboard/page.tsx:24", "src/app/api/compras/reportes/route.ts:29-51", "src/app/compras/nueva/page.tsx"] },
+    { "id": "C-2", "severity": "CRITICAL", "category": "operational", "status": "PARTIALLY_IMPLEMENTED", "summary": "Background worker is a stub that throws BACKGROUND_JOB_PROCESSOR_NOT_IMPLEMENTED", "evidence": ["src/worker/index.ts"] },
+    { "id": "H-1", "severity": "HIGH", "category": "operational", "status": "FOUNDATION_ONLY", "summary": "Domain-event outbox never written and has no consumer", "evidence": ["src/platform/events/outbox.ts"] },
+    { "id": "H-2", "severity": "HIGH", "category": "functional-gap", "status": "DISCONNECTED", "summary": "Notifications have no UI, no email backend, dispatched only from org lifecycle", "evidence": ["src/modules/notifications/application/dispatcher.ts", "src/modules/organizations/application/lifecycle.ts", "src/components/layout/MainLayout.tsx"] },
+    { "id": "H-3", "severity": "HIGH", "category": "functional-gap", "status": "DISCONNECTED", "summary": "Institutional Audits module fully built but absent from navigation", "evidence": ["src/app/audits", "src/components/layout/MainLayout.tsx"] },
+    { "id": "H-4", "severity": "HIGH", "category": "duplicate", "status": "PARTIALLY_IMPLEMENTED", "summary": "Three parallel procurement models: CompraOrden (canonical), CompraSolicitud (parallel), CompraOrden*Legacy (dead)", "evidence": ["prisma/schema.prisma", "src/lib/deprecated-api.ts"] },
+    { "id": "H-5", "severity": "HIGH", "category": "functional-gap", "status": "PARTIALLY_RESOLVED", "summary": "Real CSV/XLSX exporters implemented; canonical Purchase Order Summary now exportable (endpoint + buttons, tenant-scoped, audited, formula-injection-safe). Other catalog reports still lack data handlers.", "evidence": ["src/platform/reporting/export/", "src/app/api/compras/reportes/export/route.ts", "src/lib/compras/reportes/purchase-order-export.ts"] },
+    { "id": "H-6", "severity": "HIGH", "category": "functional-gap", "status": "FOUNDATION_ONLY", "summary": "Organization/Platform admin and Integrations APIs have no UI", "evidence": ["src/app/api/organizations", "src/app/api/platform", "src/app/api/organizations/current/integrations"] },
+    { "id": "M-1", "severity": "MEDIUM", "category": "data-integrity", "status": "RESOLVED", "summary": "Partial unique index (one ACTIVE assignment per equipment) added with pre-check guard; P2002 mapped to EQUIPMENT_ALREADY_ASSIGNED in create+swap; real gated concurrency tests. Live sweep = 0 duplicates. Migration pending prod deploy.", "evidence": ["prisma/migrations/20260803120000_equipment_assignment_active_unique/migration.sql", "src/modules/equipment/assignment-errors.ts", "tests/integration/equipment-assignment-constraint.test.ts"] },
+    { "id": "M-2", "severity": "MEDIUM", "category": "security-control", "status": "PARTIALLY_IMPLEMENTED", "summary": "Dual RBAC: global Role enforced, org-scoped OrganizationRole unused", "evidence": ["src/lib/permissions.ts", "prisma/schema.prisma"] },
+    { "id": "M-3", "severity": "MEDIUM", "category": "ux-gap", "status": "DISCONNECTED", "summary": "Proveedores page exists but hidden from Compras navigation", "evidence": ["src/app/compras/proveedores/page.tsx", "src/components/layout/MainLayout.tsx"] },
+    { "id": "M-4", "severity": "MEDIUM", "category": "functional-gap", "status": "PARTIALLY_IMPLEMENTED", "summary": "Maintenance lacks navigation and report exposure", "evidence": ["src/app/api/maintenance"] },
+    { "id": "M-5", "severity": "MEDIUM", "category": "functional-gap", "status": "PARTIALLY_IMPLEMENTED", "summary": "Configuracion covers only profile/password; no institutional config UI", "evidence": ["src/app/settings/page.tsx"] },
+    { "id": "L-1", "severity": "LOW", "category": "ux-gap", "status": "IMPLEMENTED", "summary": "Nav label 'Ordenes de compra' links to /compras/solicitudes which renders CompraOrden data", "evidence": ["src/components/layout/MainLayout.tsx:89"] },
+    { "id": "L-2", "severity": "LOW", "category": "technical-debt", "status": "DEPRECATED", "summary": "Deprecated /api/purchases and /app/purchases redirect remain", "evidence": ["src/lib/deprecated-api.ts", "src/app/purchases/page.tsx"] },
+    { "id": "L-3", "severity": "LOW", "category": "dead-feature", "status": "NOT_APPLICABLE", "summary": "Ticket/TimeEntry/PromotionalItem/AttendancePolicy models without navigation", "evidence": ["prisma/schema.prisma"] },
+    { "id": "L-4", "severity": "LOW", "category": "ux-gap", "status": "IMPLEMENTED", "summary": "'Auditoria' term overloaded (institutional vs system) without disambiguation", "evidence": ["src/components/layout/MainLayout.tsx:95"] }
+  ],
+  "integrityChecks": {
+    "sequenceAllocationAtomic": "pass",
+    "disposalApprovalUpdatesEquipmentOnce": "pass",
+    "disposalRejectRestoresStatus": "pass",
+    "impossibleEquipmentStatesBlockedOnDisposal": "pass",
+    "singleActiveAssignment": "partial",
+    "purchaseFiguresReflectRealOrders": "fail",
+    "outboxEventuallyProcessed": "fail",
+    "notificationsDelivered": "fail",
+    "tenantScoping": "pass"
+  },
+  "priorities": {
+    "P0": ["C-1", "H-4", "C-2/H-1/H-2 eventing decision"],
+    "P1": ["H-3", "H-5", "M-1", "M-3", "M-4", "M-2"],
+    "P2": ["H-6", "M-5", "L-1", "L-2", "L-3", "L-4"]
+  }
+}

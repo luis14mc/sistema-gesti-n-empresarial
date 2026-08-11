@@ -8,7 +8,7 @@ import {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
-  HeadObjectCommand,
+  HeadBucketCommand,
   GetObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -18,8 +18,12 @@ import type { PutObjectInput, PutObjectResult, StorageAdapter } from './types';
 export interface S3AdapterConfig {
   bucket: string;
   region: string;
-  accessKeyId: string;
-  secretAccessKey: string;
+  accessKeyId?: string;
+  secretAccessKey?: string;
+  sessionToken?: string;
+  endpoint?: string;
+  forcePathStyle?: boolean;
+  requireTenantPrefix?: boolean;
   /**
    * URL base para archivos públicos (CloudFront o website endpoint).
    * Si se define, getUrl() la usa directamente sin firmar.
@@ -35,11 +39,6 @@ export interface S3AdapterConfig {
    * Default: 900 (15 min).
    */
   signedUrlTtlSeconds?: number;
-  /**
-   * ACL por defecto para objetos subidos.
-   * Default: "private" (forzar signed URL para descarga).
-   */
-  defaultAcl?: 'private' | 'public-read';
 }
 
 function sanitizeFilename(name: string): string {
@@ -70,6 +69,10 @@ function buildObjectKey(prefix: string, input: PutObjectInput): {
   };
 }
 
+export function assertTenantStoragePrefix(prefix: string): void {
+  if (!/^organizations\/[^/]+\/.+/.test(prefix)) throw new Error('TENANT_STORAGE_PREFIX_REQUIRED');
+}
+
 export class S3StorageAdapter implements StorageAdapter {
   readonly driverName = 's3';
   private readonly client: S3Client;
@@ -79,12 +82,18 @@ export class S3StorageAdapter implements StorageAdapter {
     if (!config.bucket) throw new Error('S3StorageAdapter: bucket requerido');
     if (!config.region) throw new Error('S3StorageAdapter: region requerida');
 
+    const credentials = config.accessKeyId && config.secretAccessKey
+      ? {
+          accessKeyId: config.accessKeyId,
+          secretAccessKey: config.secretAccessKey,
+          sessionToken: config.sessionToken,
+        }
+      : undefined;
     this.client = new S3Client({
       region: config.region,
-      credentials: {
-        accessKeyId: config.accessKeyId,
-        secretAccessKey: config.secretAccessKey,
-      },
+      credentials,
+      endpoint: config.endpoint,
+      forcePathStyle: config.forcePathStyle,
     });
 
     this.keyPrefix = (config.keyPrefix ?? '').replace(/^\/+|\/+$/g, '');
@@ -98,6 +107,7 @@ export class S3StorageAdapter implements StorageAdapter {
   }
 
   async put(input: PutObjectInput): Promise<PutObjectResult> {
+    if (this.config.requireTenantPrefix) assertTenantStoragePrefix(input.prefix);
     const { key, filename } = buildObjectKey(input.prefix, input);
     const fullKey = this.fullKey(key);
 
@@ -108,7 +118,6 @@ export class S3StorageAdapter implements StorageAdapter {
         Body: input.buffer,
         ContentType: input.mimeType,
         ContentLength: input.size,
-        ACL: this.config.defaultAcl ?? 'private',
         Metadata: {
           'original-name': encodeURIComponent(input.originalName.slice(0, 200)),
         },
@@ -184,18 +193,7 @@ export class S3StorageAdapter implements StorageAdapter {
     };
   }
 
-  /**
-   * Chequeo barato: HEAD sobre el bucket no es trivial en S3, así que
-   * usamos ListBuckets (autorización) como ping. Si falla, propagar.
-   */
   async ping(): Promise<void> {
-    await this.client.send(
-      new HeadObjectCommand({
-        Bucket: this.config.bucket,
-        Key: this.keyPrefix ? `${this.keyPrefix}/.keep` : '.keep',
-      })
-    ).catch(() => {
-      // Silenciar: el objeto puede no existir, sólo validamos permisos.
-    });
+    await this.client.send(new HeadBucketCommand({ Bucket: this.config.bucket }));
   }
 }

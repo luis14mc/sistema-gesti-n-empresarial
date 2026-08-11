@@ -1,56 +1,64 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { NextResponse } from 'next/server';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
+import { isOrganizationContextError, requireOrganizationContext, type OrganizationContext } from '@/modules/organizations/application/context';
+import { domainErrorResponse } from '@/platform/api/domain-error-response';
+import { PermissionDeniedError } from '@/platform/domain/errors';
+import { auditLogQueryService } from '@/platform/security/audit/audit-log-query-service';
+import { recordSecurityEventBestEffort } from '@/platform/security/audit/security-events';
 
 async function getHandler(req: AuthenticatedRequest) {
+    const requestId = crypto.randomUUID();
+    let securityContext: OrganizationContext | undefined;
     try {
+        const organization = await requireOrganizationContext(req, requestId);
+        securityContext = organization;
         const { searchParams } = new URL(req.url);
-        const userId = searchParams.get('userId');
-        const moduleFilter = searchParams.get('module');
-        const category = searchParams.get('action') || searchParams.get('category');
-        const page = parseInt(searchParams.get('page') || '1');
-        const pageSize = parseInt(searchParams.get('pageSize') || '20');
-        const skip = (page - 1) * pageSize;
-
-        const where: Record<string, string> = {};
-        if (userId) where.userId = userId;
-        if (moduleFilter) where.module = moduleFilter;
-        if (category) where.category = category;
-
-        const [logs, total] = await Promise.all([
-            prisma.auditRecord.findMany({
-                where,
-                include: {
-                    user: {
-                        select: {
-                            id: true,
-                            firstName: true,
-                            lastName: true,
-                            email: true,
-                        },
-                    },
-                },
-                orderBy: { createdAt: 'desc' },
-                skip,
-                take: pageSize,
-            }),
-            prisma.auditRecord.count({ where }),
-        ]);
-
-        return NextResponse.json({
-            logs,
-            total,
-            page,
-            pageSize,
-            totalPages: Math.ceil(total / pageSize),
+        const result = await auditLogQueryService.list(organization, {
+            userId: searchParams.get('userId') || undefined,
+            module: searchParams.get('module') || undefined,
+            action: searchParams.get('action') || searchParams.get('category') || undefined,
+            page: Number(searchParams.get('page') || 1),
+            pageSize: Number(searchParams.get('pageSize') || 20),
         });
+        await recordSecurityEventBestEffort({
+            organizationId: organization.organizationId,
+            userId: organization.userId,
+            eventType: 'audit.events.read',
+            outcome: 'SUCCESS',
+            severity: 'NOTICE',
+            module: 'security-audit',
+            entityType: 'AuditLog',
+            action: 'READ',
+            requestId,
+            attributes: { page: result.page, pageSize: result.pageSize },
+        });
+        return NextResponse.json(result, { headers: { 'x-request-id': requestId } });
     } catch (error) {
-        console.error('Error al obtener logs:', error);
-        return NextResponse.json(
-            { error: 'Error al obtener logs de auditoría' },
-            { status: 500 }
-        );
+        if (error instanceof PermissionDeniedError && securityContext) {
+            await recordSecurityEventBestEffort({
+                organizationId: securityContext.organizationId,
+                userId: securityContext.userId,
+                eventType: 'authorization.permission.denied',
+                outcome: 'DENIED',
+                severity: 'WARNING',
+                reasonCode: 'MISSING_CAPABILITY',
+                module: 'security-audit',
+                entityType: 'AuthorizationDecision',
+                action: 'READ',
+                requestId,
+                attributes: error.details && typeof error.details === 'object'
+                    ? error.details as Record<string, unknown>
+                    : undefined,
+            });
+        }
+        if (isOrganizationContextError(error)) {
+            return NextResponse.json(
+                { success: false, error: { code: error.code, message: 'No se pudo resolver el contexto de la organización.' }, requestId },
+                { status: error.status, headers: { 'x-request-id': requestId } },
+            );
+        }
+        return domainErrorResponse(error, requestId);
     }
 }
 
-export const GET = withAuth(getHandler, ['ADMIN']);
+export const GET = withAuth(getHandler);

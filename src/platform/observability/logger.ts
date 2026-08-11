@@ -16,7 +16,20 @@ type LogRecord = LogContext & {
   message: string;
 };
 
+const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
+  debug: 10,
+  info: 20,
+  warn: 30,
+  error: 40,
+};
+
+function configuredLogLevel(): LogLevel {
+  const value = process.env.LOG_LEVEL;
+  return value === 'debug' || value === 'warn' || value === 'error' ? value : 'info';
+}
+
 function write(level: LogLevel, record: LogRecord): void {
+  if (LOG_LEVEL_PRIORITY[level] < LOG_LEVEL_PRIORITY[configuredLogLevel()]) return;
   const serialized = JSON.stringify(record, (_key, value: unknown) => {
     if (value instanceof Error) {
       return { name: value.name, message: value.message, stack: value.stack };

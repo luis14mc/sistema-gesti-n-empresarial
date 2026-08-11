@@ -4,24 +4,11 @@ import { useState, useEffect, useTransition } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  LayoutDashboard,
-  FileText,
-  Monitor,
-  Users,
-  Contact,
-  Settings,
   Menu,
   LogOut,
   ChevronLeft,
   ChevronDown,
-  ClipboardList,
-  ShoppingCart,
-  ClipboardCheck,
   Loader2,
-  Inbox,
-  Building2,
-  BarChart3,
-  Plus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -29,73 +16,28 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { logoutAction } from '@/actions/auth';
-import { hasModuleAccess, type Module } from '@/lib/permissions';
+import { hasModuleAccess } from '@/lib/permissions';
 import { useBandejaContador } from '@/hooks/useBandejaContador';
 import { cn } from '@/lib/utils';
 import { BrandLogo } from '@/components/shared/BrandLogo';
 import { BRAND_APP_NAME } from '@/lib/brand';
+import { NAV_ITEMS, type NavItem, type NavSubItem } from '@/components/layout/nav-items';
 import type { SessionUser, Role } from '@/types';
 
-// ── NAV ITEMS ─────────────────────────────────────────────────
+// ── NAV VISIBILITY ────────────────────────────────────────────
+// A child may declare its own `module`; otherwise it inherits the parent's.
+// A group is visible when the role can see at least one of its children.
 
-interface NavSubItem {
-  label: string;
-  href: string;
-  /** Clave opcional para badge (ej: 'compras-bandeja'). */
-  badgeKey?: string;
+function visibleChildren(role: Role, item: NavItem): NavSubItem[] {
+  if (!item.children?.length) return [];
+  return item.children.filter((child) => hasModuleAccess(role, child.module ?? item.module));
 }
 
-interface NavItem {
-  label: string;
-  href: string;
-  icon: typeof LayoutDashboard;
-  module: Module;
-  children?: NavSubItem[];
+function isItemVisible(role: Role, item: NavItem): boolean {
+  return item.children?.length
+    ? visibleChildren(role, item).length > 0
+    : hasModuleAccess(role, item.module);
 }
-
-const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard',    href: '/dashboard',                icon: LayoutDashboard, module: 'dashboard' },
-  {
-    label: 'Oficios',
-    href: '/oficios/todos',
-    icon: FileText,
-    module: 'oficios',
-    children: [
-      { label: 'Todos los oficios',      href: '/oficios/todos' },
-      { label: 'Internos / Memos',       href: '/oficios/internos' },
-      { label: 'Externos CNI',           href: '/oficios/cni' },
-      { label: 'Externos Despacho',      href: '/oficios/despacho' },
-      { label: 'Importar oficios',       href: '/oficios/importar' },
-    ],
-  },
-  {
-    label: 'Equipos',
-    href: '/equipment',
-    icon: Monitor,
-    module: 'equipment',
-    children: [
-      { label: 'Inventario', href: '/equipment' },
-      { label: 'Dictámenes de baja', href: '/equipment-disposal' },
-    ],
-  },
-  { label: 'Empleados',    href: '/employees',                icon: Contact,         module: 'employees' },
-  { label: 'Asignaciones', href: '/assignments',              icon: ClipboardList,   module: 'assignments' },
-  {
-    label: 'Compras',
-    href: '/compras/solicitudes',
-    icon: ShoppingCart,
-    module: 'purchases',
-    children: [
-      { label: 'Órdenes de compra',   href: '/compras/solicitudes' },
-      { label: 'Nueva orden',         href: '/compras/nueva' },
-      { label: 'Formato CNI',         href: '/compras/configuracion' },
-      { label: 'Reportes',             href: '/compras/reportes' },
-    ],
-  },
-  { label: 'Auditoría',    href: '/audit/logs',               icon: ClipboardCheck,  module: 'audit-records' },
-  { label: 'Usuarios',     href: '/users',                    icon: Users,           module: 'users' },
-  { label: 'Ajustes',      href: '/settings',                 icon: Settings,        module: 'settings' },
-];
 
 // ── SIDEBAR NAV ───────────────────────────────────────────────
 
@@ -123,9 +65,7 @@ function SidebarNav({
 }) {
   const pathname = usePathname();
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
-  const filteredItems = NAV_ITEMS.filter((item) =>
-    hasModuleAccess(role, item.module)
-  );
+  const filteredItems = NAV_ITEMS.filter((item) => isItemVisible(role, item));
 
   // Expandir automáticamente el grupo cuando una subruta coincide.
   // Depende solo de `pathname` y `role` (no de `filteredItems`, que cambia
@@ -137,7 +77,7 @@ function SidebarNav({
       const next = { ...prev };
 
       NAV_ITEMS.forEach((item) => {
-        if (!hasModuleAccess(role, item.module)) return;
+        if (!isItemVisible(role, item)) return;
         if (!item.children?.length) return;
 
         const isGroupActive = item.children.some(
@@ -161,9 +101,10 @@ function SidebarNav({
   return (
     <nav className="flex flex-col gap-1 px-3">
       {filteredItems.map((item) => {
-        const hasChildren = Boolean(item.children?.length);
+        const childItems = visibleChildren(role, item);
+        const hasChildren = childItems.length > 0;
         const childrenActive = hasChildren
-          ? item.children!.some(
+          ? childItems.some(
               (child) => pathname === child.href || pathname.startsWith(child.href + '/')
             )
           : false;
@@ -177,7 +118,7 @@ function SidebarNav({
             <div key={item.href} className="flex flex-col gap-0.5">
               <div className="flex items-stretch gap-0.5">
                 <Link
-                  href={item.children![0].href}
+                  href={childItems[0].href}
                   onClick={onNavClick}
                   className={cn(
                     'flex flex-1 items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
@@ -212,7 +153,7 @@ function SidebarNav({
               </div>
               {isExpanded && (
                 <div className="ml-4 flex flex-col gap-0.5 border-l border-border/60 pl-2">
-                  {item.children!.map((child) => {
+                  {childItems.map((child) => {
                     const isChildActive =
                       pathname === child.href || pathname.startsWith(child.href + '/');
                     return (

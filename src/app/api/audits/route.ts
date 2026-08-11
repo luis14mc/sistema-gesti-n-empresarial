@@ -3,10 +3,13 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
+import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { auditWhere } from '@/modules/audits/infrastructure/repository';
 
 // GET /api/audits - Listar auditorías
 async function getHandler(req: AuthenticatedRequest) {
   try {
+    const organization = await requireOrganizationContext(req);
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
     const type = searchParams.get('type');
@@ -15,7 +18,7 @@ async function getHandler(req: AuthenticatedRequest) {
     const pageSize = parseInt(searchParams.get('pageSize') || '10');
     const skip = (page - 1) * pageSize;
 
-    const where: Prisma.AuditWhereInput = {};
+    const where: Prisma.AuditWhereInput = auditWhere(organization.organizationId);
 
     if (status) where.status = status as Prisma.EnumAuditStatusFilter;
     if (type) where.type = type as Prisma.EnumAuditTypeFilter;
@@ -65,6 +68,7 @@ async function getHandler(req: AuthenticatedRequest) {
 // POST /api/audits - Crear auditoría
 async function postHandler(req: AuthenticatedRequest) {
   try {
+    const organization = await requireOrganizationContext(req);
     const {
       title,
       description,
@@ -89,7 +93,7 @@ async function postHandler(req: AuthenticatedRequest) {
     const audit = await prisma.$transaction(async (tx) => {
       const year = new Date().getFullYear();
       const lastAudit = await tx.audit.findFirst({
-        where: { code: { startsWith: 'AUD-' } },
+        where: auditWhere(organization.organizationId, { code: { startsWith: 'AUD-' } }),
         orderBy: { code: 'desc' },
       });
 
@@ -103,6 +107,7 @@ async function postHandler(req: AuthenticatedRequest) {
 
       return tx.audit.create({
         data: {
+          organizationId: organization.organizationId,
           code,
           title,
           description,
@@ -115,7 +120,7 @@ async function postHandler(req: AuthenticatedRequest) {
           leadAuditorId: leadAuditorId || null,
           plannedDate: plannedDate ? new Date(plannedDate) : null,
           createdById: req.user!.userId,
-        },
+        } as Prisma.AuditUncheckedCreateInput,
         include: {
           leadAuditor: {
             select: { id: true, firstName: true, lastName: true, email: true },
@@ -134,6 +139,7 @@ async function postHandler(req: AuthenticatedRequest) {
       category: 'CREATE',
       userId: req.user!.userId,
       entityId: audit.id,
+      organizationId: organization.organizationId,
       newData: { code: audit.code, title, type },
     });
 
