@@ -73,7 +73,8 @@ export default function CompraDetallePage({ params }: { params: Promise<{ id: st
   const { user } = useAuth();
   const [generating, setGenerating] = useState(false);
   const { data: orden, isLoading, refetch } = useCompraOrden(id);
-  const { data: proveedores = [] } = useProveedores();
+  const { data: proveedoresData } = useProveedores({ pageSize: 100 });
+  const proveedores = proveedoresData?.proveedores ?? [];
   const { updateOrden, runWorkflow, uploadDocumento, deleteDocumento, deleteOrden, isSaving } = useCompraOrdenes();
 
   if (!user) return null;
@@ -193,7 +194,7 @@ export default function CompraDetallePage({ params }: { params: Promise<{ id: st
     <MainLayout>
       <div className="font-[Aptos,'Segoe_UI',sans-serif]">
       <PageHeader
-        title="Orden de Compra"
+         title="Solicitud y orden de compra"
         description={`${orderNumber ?? 'Borrador'} · ${requestedBy}`}
       >
         <CompraStatusBadge estado={status as never} label={ORDER_STATUS_LABELS[status]} />

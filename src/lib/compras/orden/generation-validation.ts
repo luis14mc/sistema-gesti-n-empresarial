@@ -6,9 +6,12 @@ export type PurchaseOrderValidationError = {
   message: string;
 };
 
-export type PurchaseOrderWithItems = Prisma.CompraOrdenGetPayload<{
+type PersistedPurchaseOrderWithItems = Prisma.CompraOrdenGetPayload<{
   include: { items: true };
 }>;
+export type PurchaseOrderWithItems = Omit<PersistedPurchaseOrderWithItems, 'requesterEmployeeId'> & {
+  requesterEmployeeId?: string | null;
+};
 
 export class InvalidPurchaseOrderError extends Error {
   readonly validationErrors: PurchaseOrderValidationError[];

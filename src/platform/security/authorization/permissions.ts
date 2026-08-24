@@ -17,6 +17,12 @@ export const ORGANIZATION_PERMISSIONS = [
   'offices.cancel',
   'offices.import',
   'offices.download',
+  'oficios.read',
+  'oficios.create',
+  'oficios.update',
+  'oficios.deactivate',
+  'oficios.export',
+  'oficios.attachments',
   'equipment.read',
   'equipment.create',
   'equipment.update',
@@ -38,6 +44,9 @@ export const ORGANIZATION_PERMISSIONS = [
   'purchase-orders.generate',
   'purchase-orders.cancel',
   'purchase-orders.download',
+  'suppliers.read',
+  'suppliers.create',
+  'suppliers.update',
   'reports.view',
   'reports.export',
   'reports.financial',
@@ -146,6 +155,24 @@ const ORGANIZATION_ROLE_PERMISSIONS: Record<OrganizationRole, readonly Permissio
     'dashboard.view',
     'notifications.read',
   ],
+  ADMINISTRACION: [
+    'equipment.read', 'equipment.assign', 'equipment.maintain', 'equipment.dispose',
+    'equipment-disposal.read', 'equipment-disposal.create', 'equipment-disposal.update',
+    'equipment-disposal.submit', 'equipment-disposal.approve', 'equipment-disposal.reject',
+    'equipment-disposal.cancel', 'equipment-disposal.configure', 'equipment-disposal.download',
+    'purchase-orders.read', 'purchase-orders.create', 'purchase-orders.update',
+    'purchase-orders.generate', 'purchase-orders.cancel', 'purchase-orders.download',
+    'suppliers.read', 'suppliers.create', 'suppliers.update',
+    'reports.view', 'reports.export', 'reports.financial', 'reports.financial.purchases',
+    'reports.financial.equipment', 'dashboard.view', 'notifications.read',
+  ],
+  SECRETARIA: [
+    'oficios.read', 'oficios.create', 'oficios.update', 'oficios.deactivate',
+    'oficios.export', 'oficios.attachments',
+  ],
+  DIRECTOR: [
+    'dashboard.view', 'reports.view', 'reports.export',
+  ],
 };
 
 void NOTIFICATION_ADMIN;
@@ -184,4 +211,21 @@ export function requirePermission(context: PermissionContext, permission: Permis
       scope: context.authorizationScope,
     });
   }
+}
+
+export type PermissionOverride = Readonly<{
+  permission: Permission;
+  effect: 'ALLOW' | 'DENY';
+}>;
+
+/** Applies user exceptions after role defaults. DENY always wins. */
+export function canWithOverrides(
+  scopedRole: ScopedRole,
+  permission: Permission,
+  overrides: readonly PermissionOverride[],
+): boolean {
+  const matching = overrides.filter((override) => override.permission === permission);
+  if (matching.some((override) => override.effect === 'DENY')) return false;
+  if (matching.some((override) => override.effect === 'ALLOW')) return true;
+  return can(scopedRole, permission);
 }

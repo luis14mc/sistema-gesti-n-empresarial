@@ -13,6 +13,8 @@ export type OrganizationContext = {
   role: OrganizationRole;
 };
 
+const DEFAULT_ORGANIZATION_TIMEZONE = 'America/Tegucigalpa';
+
 export class AuthenticationRequiredError extends Error {
   readonly code = 'AUTHENTICATION_REQUIRED';
   readonly status = 401;
@@ -66,7 +68,10 @@ export async function requireOrganizationContext(
 
   const memberships = await prisma.organizationMembership.findMany({
     where: { userId: user.id },
-    include: { organization: { select: { id: true, slug: true, status: true, timezone: true } } },
+    // Keep authorization independent from optional lifecycle columns. Older
+    // CNI databases may not yet have `organizations.timezone`; it is not part
+    // of the tenant boundary or permission decision.
+    include: { organization: { select: { id: true, slug: true, status: true } } },
     orderBy: { createdAt: 'asc' },
   });
   const activeMemberships = memberships.filter(
@@ -97,12 +102,23 @@ export async function requireOrganizationContext(
   // but is no longer thrown from the normal flow.
   const membership = selectedMembership ?? activeMemberships[0];
 
+  if (process.env.NODE_ENV !== 'production') {
+    console.info('[organization.context]', JSON.stringify({
+      requestId,
+      userId: user.id,
+      selectedOrganizationId,
+      resolvedOrganizationId: membership.organizationId,
+      membershipRole: membership.role,
+      membershipStatus: membership.status,
+    }));
+  }
+
   return {
     authorizationScope: 'organization',
     userId: user.id,
     organizationId: membership.organizationId,
     organizationSlug: membership.organization.slug,
-    timezone: membership.organization.timezone,
+    timezone: DEFAULT_ORGANIZATION_TIMEZONE,
     membershipId: membership.id,
     role: membership.role,
   };

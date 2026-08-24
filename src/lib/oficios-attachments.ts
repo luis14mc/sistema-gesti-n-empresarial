@@ -90,8 +90,11 @@ export function parseOficioAttachments(raw: unknown): OficioAttachment[] {
  */
 export function isOficioAttachmentUrlAllowed(url: string | undefined | null, organizationId: string): boolean {
   if (!url || typeof url !== 'string') return false;
-  const tenantUploadPrefix = `/uploads/organizations/${organizationId}/oficios/`;
-  return url.startsWith(tenantUploadPrefix);
+  const tenantUploadPrefixes = [
+    `/uploads/organizations/${organizationId}/oficios/`,
+    `/uploads/development/organizations/${organizationId}/oficios/`,
+  ];
+  return tenantUploadPrefixes.some((prefix) => url.startsWith(prefix));
 }
 
 export function normalizeOficioAttachment(item: unknown): OficioAttachment | null {

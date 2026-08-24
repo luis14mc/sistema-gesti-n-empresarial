@@ -109,10 +109,19 @@ export function useCompraSolicitud(id: string) {
   });
 }
 
-export function useProveedores(search?: string) {
+export type ProveedoresListParams = {
+  search?: string;
+  page?: number;
+  pageSize?: number;
+};
+
+export function useProveedores(params: ProveedoresListParams = {}) {
+  const { search, page = 1, pageSize = 25 } = params;
   return useQuery({
-    queryKey: compraKeys.proveedores(search),
-    queryFn: async () => (await comprasService.listProveedores(search)).data.proveedores,
+    queryKey: [...compraKeys.proveedores(search), page, pageSize] as const,
+    queryFn: async () => (await comprasService.listProveedores(search, page, pageSize)).data,
+    placeholderData: (previousData) => previousData,
+    staleTime: 30_000,
   });
 }
 
@@ -121,6 +130,25 @@ export function useCreateProveedor() {
   return useMutation({
     mutationFn: async (data: CreateProveedorData) =>
       (await comprasService.createProveedor(data)).data.proveedor,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: compraKeys.proveedores() }),
+  });
+}
+
+export function useUpdateProveedor() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<CreateProveedorData> & { activo?: boolean } }) =>
+      (await comprasService.updateProveedor(id, data)).data.proveedor,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: compraKeys.proveedores() }),
+  });
+}
+
+export function useDeleteProveedor() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await comprasService.deleteProveedor(id);
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: compraKeys.proveedores() }),
   });
 }

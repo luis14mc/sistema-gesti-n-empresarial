@@ -257,7 +257,7 @@ describe('S4 Equipment — regresión de fixes críticos y altos', () => {
     it('la migración hace backfill de sequences con max(inventoryCode)', async () => {
       const fs = await import('fs');
       const content = fs.readFileSync(
-        'prisma/migrations/20260807130000_equipment_asset_code_sequence/migration.sql',
+        'prisma/migrations/20260807130100_equipment_asset_code_backfill/migration.sql',
         'utf-8'
       );
       expect(content).toMatch(/MAX\(/);
@@ -267,7 +267,7 @@ describe('S4 Equipment — regresión de fixes críticos y altos', () => {
     it('la migración usa ON CONFLICT para idempotencia', async () => {
       const fs = await import('fs');
       const content = fs.readFileSync(
-        'prisma/migrations/20260807130000_equipment_asset_code_sequence/migration.sql',
+        'prisma/migrations/20260807130100_equipment_asset_code_backfill/migration.sql',
         'utf-8'
       );
       expect(content).toMatch(/ON CONFLICT/);

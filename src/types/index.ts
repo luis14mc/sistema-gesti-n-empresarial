@@ -79,6 +79,7 @@ export interface SessionUser {
   id: string;
   employeeNumber: string;
   email: string;
+  hireDate: string | null;
   firstName: string;
   lastName: string;
   phone: string | null;
@@ -397,6 +398,8 @@ export interface Equipment {
   processor: string | null;
   storage: string | null;
   os: string | null;
+  includedAccessories?: string | null;
+  installedSoftware?: string | null;
   location?: string | null;
   notes?: string | null;
   assignedTo?: string | null;
@@ -430,6 +433,7 @@ export interface Employee {
   lastName: string;
   fullName: string;
   email: string;
+  hireDate: string | null;
   phone: string | null;
   dni: string | null;
   departmentId: string | null;
@@ -453,6 +457,19 @@ export interface EquipmentAssignment {
   returnedDate: string | null;
   departmentAtTime: string | null;
   positionAtTime: string | null;
+  employeeNameSnapshot?: string | null;
+  departmentSnapshot?: string | null;
+  positionSnapshot?: string | null;
+  inventoryNumberSnapshot?: string | null;
+  brandSnapshot?: string | null;
+  modelSnapshot?: string | null;
+  serialNumberSnapshot?: string | null;
+  ramSnapshot?: string | null;
+  processorSnapshot?: string | null;
+  storageSnapshot?: string | null;
+  operatingSystemSnapshot?: string | null;
+  accessoriesSnapshot?: string | null;
+  softwareSnapshot?: string | null;
   employeeNameAtTime?: string | null;
   employeeEmailAtTime?: string | null;
   assigneeName?: string | null;
@@ -707,6 +724,8 @@ export interface CreateEquipmentData {
   processor?: string;
   storage?: string;
   os?: string;
+  includedAccessories?: string;
+  installedSoftware?: string;
 }
 
 export interface UpdateEquipmentData extends Partial<CreateEquipmentData> {
@@ -786,6 +805,7 @@ export interface EquipmentFilters extends PaginationParams {
 }
 
 export interface AssignmentFilters extends PaginationParams {
+  search?: string;
   status?: string;
   equipmentId?: string;
   userId?: string;
@@ -910,14 +930,15 @@ export interface SwapEquipmentData {
 }
 
 export interface CreateEmployeeData {
-  employeeCode?: string;
+  employeeCode: string;
   firstName: string;
   lastName: string;
   email: string;
+  hireDate: string;
   phone?: string;
   dni?: string;
-  departmentId?: string;
-  positionId?: string;
+  departmentId: string;
+  positionId: string;
 }
 
 export interface UpdateEmployeeData extends Partial<CreateEmployeeData> {
@@ -928,6 +949,9 @@ export interface EmployeeFilters extends PaginationParams {
   search?: string;
   departmentId?: string;
   isActive?: boolean;
+  positionId?: string;
+  hireDateFrom?: string;
+  hireDateTo?: string;
 }
 
 export interface EquipmentStats {

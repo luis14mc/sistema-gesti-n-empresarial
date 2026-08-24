@@ -19,25 +19,29 @@ async function getHandler(req: AuthenticatedRequest) {
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search');
     const activo = searchParams.get('activo');
+    const page = Math.max(Number.parseInt(searchParams.get('page') ?? '1', 10) || 1, 1);
+    const pageSize = Math.min(Math.max(Number.parseInt(searchParams.get('pageSize') ?? '10', 10) || 10, 1), 50);
+    const skip = (page - 1) * pageSize;
+    const where = {
+      organizationId,
+      deletedAt: null,
+      ...(activo === 'true' ? { activo: true } : {}),
+      ...(search
+        ? {
+            OR: [
+              { nombreRazonSocial: { contains: search, mode: 'insensitive' as const } },
+              { rtn: { contains: search.replace(/[^0-9]/g, ''), mode: 'insensitive' as const } },
+            ],
+          }
+        : {}),
+    };
 
-    const proveedores = await prisma.proveedor.findMany({
-      where: {
-        organizationId,
-        deletedAt: null,
-        ...(activo === 'true' ? { activo: true } : {}),
-        ...(search
-          ? {
-              OR: [
-                { nombreRazonSocial: { contains: search, mode: 'insensitive' } },
-                { rtn: { contains: search, mode: 'insensitive' } },
-              ],
-            }
-          : {}),
-      },
-      orderBy: { nombreRazonSocial: 'asc' },
-    });
+    const [proveedores, total] = await Promise.all([
+      prisma.proveedor.findMany({ where, skip, take: pageSize, orderBy: { nombreRazonSocial: 'asc' } }),
+      prisma.proveedor.count({ where }),
+    ]);
 
-    return NextResponse.json({ proveedores });
+    return NextResponse.json({ proveedores, total, page, pageSize, totalPages: Math.ceil(total / pageSize) });
   } catch (error) {
     console.error('Error listing proveedores:', error);
     return NextResponse.json({ error: 'Error al listar proveedores' }, { status: 500 });

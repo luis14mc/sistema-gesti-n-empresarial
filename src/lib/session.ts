@@ -59,6 +59,6 @@ export async function requireSession(): Promise<{ user: SessionUser }> {
  */
 export async function requireRole(...roles: SessionUser['role'][]): Promise<{ user: SessionUser }> {
   const session = await requireSession();
-  if (!roles.includes(session.user.role)) redirect('/dashboard');
+  if (!roles.includes(session.user.role)) redirect('/forbidden');
   return session;
 }

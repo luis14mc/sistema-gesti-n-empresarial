@@ -107,6 +107,8 @@ const EMPTY_EQUIPMENT_FORM = {
     processor: '',
     storage: '',
     os: '',
+    includedAccessories: '',
+    installedSoftware: '',
     notes: '',
 };
 
@@ -170,6 +172,8 @@ export default function EquipmentPage() {
                 processor: isComputer ? form.processor || undefined : undefined,
                 storage: isComputer ? form.storage || undefined : undefined,
                 os: isComputer ? form.os || undefined : undefined,
+                includedAccessories: form.includedAccessories || undefined,
+                installedSoftware: form.installedSoftware || undefined,
                 notes: !isComputer ? form.notes || undefined : undefined,
             } as any);
             sileo.success({ title: 'Equipo creado', description: 'Se registró correctamente' });
@@ -207,7 +211,7 @@ export default function EquipmentPage() {
                                     <DialogDescription>Registra un nuevo equipo en el inventario.</DialogDescription>
                                 </DialogHeader>
                                 <form onSubmit={handleCreate} className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-3">
+                                             <div className="grid grid-cols-2 gap-3">
                                         <div className="space-y-2">
                                             <Label>Tipo *</Label>
                                             <Select
@@ -225,7 +229,11 @@ export default function EquipmentPage() {
                                                     ))}
                                                 </SelectContent>
                                             </Select>
-                                        </div>
+                                             </div>
+                                             <div className="grid grid-cols-2 gap-3">
+                                                 <div className="space-y-2"><Label>Accesorios incluidos</Label><Textarea rows={2} value={form.includedAccessories} onChange={(e) => setForm(f => ({ ...f, includedAccessories: e.target.value }))} /></div>
+                                                 <div className="space-y-2"><Label>Software instalado</Label><Textarea rows={2} value={form.installedSoftware} onChange={(e) => setForm(f => ({ ...f, installedSoftware: e.target.value }))} /></div>
+                                             </div>
                                         <div className="space-y-2">
                                             <Label>Número de inventario</Label>
                                             <Input

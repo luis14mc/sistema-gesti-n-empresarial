@@ -236,17 +236,25 @@ export default function MainLayout({ children, user: propUser }: MainLayoutProps
     const abortController = new AbortController();
 
     fetch('/api/auth/me', { signal: abortController.signal })
-      .then((r) => {
-        if (!r.ok) throw new Error('No auth');
+      .then(async (r) => {
+        if (!r.ok) {
+          if (r.status === 401) {
+            router.push('/login');
+            return null;
+          }
+          throw new Error(`Auth profile request failed with ${r.status}`);
+        }
         return r.json();
       })
       .then((data) => {
+        if (!data) return;
         setFetchedUser(data.user);
         setIsFetching(false);
       })
       .catch((err) => {
         if (err.name === 'AbortError') return;
-        router.push('/login');
+        console.error('[AUTH PROFILE] Could not load profile', err);
+        setIsFetching(false);
       });
 
     return () => abortController.abort();

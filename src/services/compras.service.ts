@@ -58,11 +58,17 @@ export const comprasService = {
     );
   },
 
-  listProveedores: (search?: string) =>
-    apiHelpers.get<{ proveedores: Proveedor[] }>(`${BASE}/proveedores`, { search, activo: 'true' }),
+  listProveedores: (search?: string, page = 1, pageSize = 10) =>
+    apiHelpers.get<{ proveedores: Proveedor[]; total: number; page: number; pageSize: number; totalPages: number }>(`${BASE}/proveedores`, { search, activo: 'true', page, pageSize }),
 
   createProveedor: (data: CreateProveedorData) =>
     apiHelpers.post<{ proveedor: Proveedor }>(`${BASE}/proveedores`, data),
+
+  updateProveedor: (id: string, data: Partial<CreateProveedorData> & { activo?: boolean }) =>
+    apiHelpers.patch<{ proveedor: Proveedor }>(`${BASE}/proveedores/${id}`, data),
+
+  deleteProveedor: (id: string) =>
+    apiHelpers.delete<{ ok: true }>(`${BASE}/proveedores/${id}`),
 
   getInstitution: () =>
     apiHelpers.get<{

@@ -306,5 +306,46 @@ export async function createProveedor(data: {
   return prisma.proveedor.create({ data: { ...data, organizationId } });
 }
 
+export async function updateProveedor(
+  id: string,
+  data: {
+    nombreRazonSocial?: string;
+    rtn?: string | null;
+    telefono?: string | null;
+    email?: string | null;
+    personaContacto?: string | null;
+    direccion?: string | null;
+    activo?: boolean;
+  },
+  organizationId: string,
+) {
+  const existing = await prisma.proveedor.findFirst({
+    where: { id, organizationId, deletedAt: null },
+    select: { id: true },
+  });
+  if (!existing) throw new Error('PROVEEDOR_NOT_FOUND');
+
+  return prisma.proveedor.update({
+    where: { id },
+    data: { ...data, version: { increment: 1 } },
+  });
+}
+
+export async function deleteProveedor(id: string, organizationId: string) {
+  const existing = await prisma.proveedor.findFirst({
+    where: { id, organizationId, deletedAt: null },
+    select: { id: true, comprasSolicitudes: { select: { id: true }, take: 1 }, comprasOrdenes: { select: { id: true }, take: 1 } },
+  });
+  if (!existing) throw new Error('PROVEEDOR_NOT_FOUND');
+  if (existing.comprasSolicitudes.length > 0 || existing.comprasOrdenes.length > 0) {
+    throw new Error('PROVEEDOR_HAS_DEPENDENCIES');
+  }
+
+  return prisma.proveedor.update({
+    where: { id },
+    data: { deletedAt: new Date(), activo: false, version: { increment: 1 } },
+  });
+}
+
 // Legacy alias
 export const generarPdfSolicitud = getOrdenHtmlPreview;

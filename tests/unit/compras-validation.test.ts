@@ -25,13 +25,15 @@ describe('validateRtn', () => {
     expect(validateRtn('0801-1999-123-456')).toBe(true);
   });
 
-  it('returns false for an RTN with fewer than 14 digits', () => {
-    expect(validateRtn('123')).toBe(false);
-    expect(validateRtn('0801199912345')).toBe(false);
+  it('accepts RTNs between 8 and 15 digits', () => {
+    expect(validateRtn('08011999')).toBe(true);
+    expect(validateRtn('0801199912345')).toBe(true);
+    expect(validateRtn('080119991234567')).toBe(true);
   });
 
-  it('returns false for an RTN with more than 14 digits', () => {
-    expect(validateRtn('080119991234567')).toBe(false);
+  it('returns false for an RTN outside the supported length', () => {
+    expect(validateRtn('123')).toBe(false);
+    expect(validateRtn('0801199912345678')).toBe(false);
   });
 });
 

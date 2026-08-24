@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
-import { buildFullName } from '@/lib/employees';
+import { buildFullName, validateHireDate } from '@/lib/employees';
 import { requireOrganizationContext } from '@/modules/organizations/application/context';
 
 async function getHandler(
@@ -51,11 +51,21 @@ async function patchHandler(
     const updateData: Record<string, unknown> = {};
     const fields = [
       'employeeCode', 'firstName', 'lastName', 'email', 'phone', 'dni',
-      'departmentId', 'positionId', 'isActive', 'userId',
+      'departmentId', 'positionId', 'hireDate', 'isActive', 'userId',
     ];
     fields.forEach((field) => {
       if (data[field] !== undefined) updateData[field] = data[field];
     });
+
+    if (data.hireDate !== undefined) updateData.hireDate = validateHireDate(data.hireDate);
+    if (data.email !== undefined && !/^\S+@\S+\.\S+$/.test(String(data.email))) {
+      return NextResponse.json({ error: 'Correo inválido' }, { status: 400 });
+    }
+    for (const field of ['employeeCode', 'departmentId', 'positionId']) {
+      if (data[field] !== undefined && !String(data[field]).trim()) {
+        return NextResponse.json({ error: `${field} es obligatorio` }, { status: 400 });
+      }
+    }
 
     if (data.firstName || data.lastName) {
       updateData.fullName = buildFullName(

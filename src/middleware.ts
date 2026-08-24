@@ -16,8 +16,29 @@ import {
 
 const TOKEN_COOKIE = 'token';
 const AUTH_ROUTES  = ['/login', '/register'];
+
+export function buildRequestRedirectUrl(request: NextRequest, path: string, environment = process.env.NODE_ENV): URL {
+  const url = new URL(path, request.url);
+  if (environment !== 'production' && (url.hostname === 'localhost' || url.hostname === '127.0.0.1')) {
+    url.protocol = 'http:';
+    url.port = '3000';
+  }
+  return url;
+}
 // Next.js espera 'x-nonce' y parsea el nonce desde Content-Security-Policy del request.
 const NONCE_HEADER = 'x-nonce';
+
+function logAuthorizationDecision(input: {
+  requestedPath: string;
+  resolvedModule: string | null;
+  userId?: string;
+  role?: string;
+  authorizationDecision: 'ALLOW' | 'DENY' | 'LOGIN';
+  redirectReason?: string;
+}): void {
+  if (process.env.NODE_ENV !== 'development' && process.env.APP_ENV !== 'e2e') return;
+  console.info('[navigation.authorization]', JSON.stringify(input));
+}
 
 function generateNonce(): string {
   const arr = new Uint8Array(16);
@@ -173,7 +194,13 @@ export async function middleware(request: NextRequest) {
 
   // 1) Ruta protegida sin token → /login con callback
   if (access && !token) {
-    const res = NextResponse.redirect(new URL('/login', request.url));
+    logAuthorizationDecision({
+      requestedPath: pathname,
+      resolvedModule: access.module,
+      authorizationDecision: 'LOGIN',
+      redirectReason: 'AUTHENTICATION_REQUIRED',
+    });
+    const res = NextResponse.redirect(buildRequestRedirectUrl(request, '/login'));
     applySecurityHeaders(res, nonce);
     return res;
   }
@@ -182,15 +209,32 @@ export async function middleware(request: NextRequest) {
   if (access && token && access.roles) {
     const payload = await decodeAndVerifyJwt(token);
     if (!payload || !access.roles.includes(payload.role)) {
-      const res = NextResponse.redirect(new URL('/dashboard', request.url));
+      logAuthorizationDecision({
+        requestedPath: pathname,
+        resolvedModule: access.module,
+        userId: payload?.userId,
+        role: payload?.role,
+        authorizationDecision: 'DENY',
+        redirectReason: payload ? 'ROLE_NOT_ALLOWED' : 'INVALID_SESSION',
+      });
+      const forbiddenUrl = buildRequestRedirectUrl(request, '/forbidden');
+      forbiddenUrl.searchParams.set('from', pathname);
+      const res = NextResponse.redirect(forbiddenUrl);
       applySecurityHeaders(res, nonce);
       return res;
     }
+    logAuthorizationDecision({
+      requestedPath: pathname,
+      resolvedModule: access.module,
+      userId: payload.userId,
+      role: payload.role,
+      authorizationDecision: 'ALLOW',
+    });
   }
 
   // 3) Auth route con sesión activa → dashboard
   if (authRoute && token) {
-    const res = NextResponse.redirect(new URL('/dashboard', request.url));
+    const res = NextResponse.redirect(buildRequestRedirectUrl(request, '/dashboard'));
     applySecurityHeaders(res, nonce);
     return res;
   }
@@ -198,7 +242,7 @@ export async function middleware(request: NextRequest) {
   // 4) Raíz "/" → según sesión
   if (pathname === '/') {
     const res = NextResponse.redirect(
-      new URL(token ? '/dashboard' : '/login', request.url)
+      buildRequestRedirectUrl(request, token ? '/dashboard' : '/login')
     );
     applySecurityHeaders(res, nonce);
     return res;

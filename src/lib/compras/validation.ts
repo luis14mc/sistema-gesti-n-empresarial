@@ -1,7 +1,10 @@
 export function validateRtn(rtn?: string | null): boolean {
   if (!rtn) return true;
   const digits = rtn.replace(/\D/g, '');
-  return digits.length === 14;
+  if (!digits) return true;
+  if (digits.length < 8 || digits.length > 15) return false;
+  if (/^0+$/.test(digits)) return false;
+  return true;
 }
 
 export function normalizeRtn(rtn?: string | null): string | null {

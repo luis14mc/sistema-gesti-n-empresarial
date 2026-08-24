@@ -65,6 +65,7 @@ export function serializePurchaseOrder(order: OrderWithRelations) {
     requiredDate: order.requiredDate.toISOString(),
     requestedByName: order.requestedByName,
     requesterJobTitle: order.requesterJobTitle,
+    requesterEmployeeId: order.requesterEmployeeId,
     createdById: order.createdById,
     supplierId: order.supplierId,
     supplierName: order.supplierName,

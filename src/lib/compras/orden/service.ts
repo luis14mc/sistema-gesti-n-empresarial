@@ -30,6 +30,7 @@ import { purchaseOrderChildScope, purchaseOrderScope } from './tenant';
 export const orderInclude = {
   createdBy: { select: { id: true, firstName: true, lastName: true } },
   supplier: { select: { id: true, nombreRazonSocial: true } },
+  requesterEmployee: { select: { id: true, fullName: true, position: { select: { id: true, name: true } } } },
   items: { orderBy: { itemNumber: 'asc' as const } },
   documentos: {
     orderBy: { uploadedAt: 'desc' as const },
@@ -50,24 +51,39 @@ const listInclude = {
 } satisfies Prisma.CompraOrdenInclude;
 
 async function resolveSupplierSnapshot(input: DraftPurchaseOrderInput, _organizationId: string) {
-  if (input.supplierId) {
-    const supplier = await prisma.proveedor.findFirst({
-      where: { id: input.supplierId, deletedAt: null, activo: true },
-    });
-    if (supplier) {
-      return {
-        supplierId: supplier.id,
-        supplierName: supplier.nombreRazonSocial,
-        supplierRtn: supplier.rtn ?? input.supplierRtn,
-        supplierPhone: supplier.telefono ?? input.supplierPhone,
-      };
-    }
+  if (!input.supplierId) throw new Error('SUPPLIER_REQUIRED');
+  const supplier = await prisma.proveedor.findFirst({
+    where: { id: input.supplierId, organizationId: _organizationId, deletedAt: null, activo: true },
+  });
+  if (supplier) {
+    return {
+      supplierId: supplier.id,
+      supplierName: supplier.nombreRazonSocial,
+      supplierRtn: supplier.rtn ?? '',
+      supplierPhone: supplier.telefono ?? '',
+    };
   }
+  throw new Error('SUPPLIER_NOT_AVAILABLE');
+}
+
+async function resolveRequesterSnapshot(input: DraftPurchaseOrderInput, organizationId: string) {
+  if (!input.requesterEmployeeId) {
+    return {
+      requesterEmployeeId: null,
+      requestedByName: input.requestedByName ?? '',
+      requesterJobTitle: input.requesterJobTitle ?? '',
+    };
+  }
+  const employee = await prisma.employee.findFirst({
+    where: { id: input.requesterEmployeeId, organizationId, isActive: true },
+    include: { position: { select: { name: true } } },
+  });
+  if (!employee) throw new Error('REQUESTER_NOT_AVAILABLE');
+  if (!employee.position?.name?.trim()) throw new Error('REQUESTER_POSITION_REQUIRED');
   return {
-    supplierId: input.supplierId ?? null,
-    supplierName: input.supplierName,
-    supplierRtn: input.supplierRtn,
-    supplierPhone: input.supplierPhone,
+    requesterEmployeeId: employee.id,
+    requestedByName: employee.fullName,
+    requesterJobTitle: employee.position.name,
   };
 }
 
@@ -108,7 +124,8 @@ function buildDraftItems(input: DraftPurchaseOrderInput) {
     requiredDate: input.requiredDate ?? input.requestDate ?? new Date().toISOString().slice(0, 10),
     requestedByName: input.requestedByName ?? '',
     requesterJobTitle: input.requesterJobTitle ?? '',
-    supplierId: input.supplierId ?? null,
+    requesterEmployeeId: input.requesterEmployeeId!,
+    supplierId: input.supplierId!,
     supplierName: input.supplierName ?? '',
     supplierRtn: input.supplierRtn ?? '',
     supplierPhone: input.supplierPhone ?? '',
@@ -169,6 +186,7 @@ function buildItems(input: CreatePurchaseOrderInput) {
 export async function createPurchaseOrder(input: DraftPurchaseOrderInput, userId: string, organizationId: string) {
   await ensureDefaultTemplate(organizationId, userId);
   const supplier = await resolveSupplierSnapshot(input, organizationId);
+  const requester = await resolveRequesterSnapshot(input, organizationId);
   const { requestDate, requiredDate } = resolveDraftDates(input);
   const { mapped, subtotal, discountType, discountValue, discount, taxRate, tax, total } =
     buildDraftItems(input);
@@ -190,8 +208,7 @@ export async function createPurchaseOrder(input: DraftPurchaseOrderInput, userId
         purchaseReference: input.purchaseReference ?? '',
         requestDate,
         requiredDate,
-        requestedByName: input.requestedByName ?? '',
-        requesterJobTitle: input.requesterJobTitle ?? '',
+         ...requester,
         createdById: userId,
         ...supplier,
         purchaseJustification: input.purchaseJustification ?? '',
@@ -239,6 +256,7 @@ export async function updatePurchaseOrder(id: string, input: UpdatePurchaseOrder
   if (existing.status !== 'DRAFT') throw new Error('Solo se pueden editar borradores');
 
   const supplier = await resolveSupplierSnapshot(input, organizationId);
+  const requester = await resolveRequesterSnapshot(input, organizationId);
   const { requestDate, requiredDate } = resolveDraftDates(input);
   const { mapped, subtotal, discountType, discountValue, discount, taxRate, tax, total } =
     buildDraftItems(input);
@@ -251,8 +269,7 @@ export async function updatePurchaseOrder(id: string, input: UpdatePurchaseOrder
         purchaseReference: input.purchaseReference ?? '',
         requestDate,
         requiredDate,
-        requestedByName: input.requestedByName ?? '',
-        requesterJobTitle: input.requesterJobTitle ?? '',
+         ...requester,
         ...supplier,
         purchaseJustification: input.purchaseJustification ?? '',
         subtotal,

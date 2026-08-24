@@ -18,6 +18,7 @@ async function getHandler(req: AuthenticatedRequest) {
     const userId = searchParams.get('userId');
     const employeeId = searchParams.get('employeeId');
     const equipmentId = searchParams.get('equipmentId');
+    const search = searchParams.get('search')?.trim();
     const page = parseInt(searchParams.get('page') || '1');
     const pageSize = parseInt(searchParams.get('pageSize') || '100');
     const skip = (page - 1) * pageSize;
@@ -27,6 +28,17 @@ async function getHandler(req: AuthenticatedRequest) {
     if (userId) where.userId = userId;
     if (employeeId) where.employeeId = employeeId;
     if (equipmentId) where.equipmentId = equipmentId;
+    if (search) {
+      where.OR = [
+        { employeeNameSnapshot: { contains: search, mode: 'insensitive' } },
+        { departmentSnapshot: { contains: search, mode: 'insensitive' } },
+        { positionSnapshot: { contains: search, mode: 'insensitive' } },
+        { inventoryNumberSnapshot: { contains: search, mode: 'insensitive' } },
+        { serialNumberSnapshot: { contains: search, mode: 'insensitive' } },
+        { brandSnapshot: { contains: search, mode: 'insensitive' } },
+        { modelSnapshot: { contains: search, mode: 'insensitive' } },
+      ];
+    }
 
     const [assignments, total] = await Promise.all([
       prisma.equipmentAssignment.findMany({
@@ -115,11 +127,12 @@ async function postHandler(req: AuthenticatedRequest) {
     const result = await prisma.$transaction(async (tx) => {
       const equipment = await tx.equipment.findFirst({
         where: { id: equipmentId, organizationId },
-        include: { assignments: { where: { status: 'ACTIVE' } } },
+        include: { assignments: { where: { status: 'ACTIVE' } }, disposals: { where: { status: { in: ['DRAFT', 'PENDING_APPROVAL', 'APPROVED'] } }, select: { id: true } } },
       });
 
       if (!equipment) throw new Error('NOT_FOUND');
       if (equipment.status !== 'AVAILABLE') throw new Error('NOT_AVAILABLE');
+      if (equipment.disposals.length > 0) throw new Error('DISPOSAL_IN_PROGRESS');
       if (equipment.assignments.length > 0) throw new Error('ALREADY_ASSIGNED');
 
       const assignment = await tx.equipmentAssignment.create({
@@ -133,7 +146,20 @@ async function postHandler(req: AuthenticatedRequest) {
           departmentAtTime: snapshot.departmentAtTime,
           positionAtTime: snapshot.positionAtTime,
           employeeEmailAtTime: snapshot.employeeEmailAtTime,
-          employeeNameAtTime: snapshot.employeeNameAtTime,
+           employeeNameAtTime: snapshot.employeeNameAtTime,
+           employeeNameSnapshot: snapshot.employeeNameAtTime,
+           departmentSnapshot: snapshot.departmentAtTime,
+           positionSnapshot: snapshot.positionAtTime,
+           inventoryNumberSnapshot: equipment.inventoryCode,
+           brandSnapshot: equipment.brand,
+           modelSnapshot: equipment.model,
+           serialNumberSnapshot: equipment.serialNumber,
+           ramSnapshot: equipment.ram,
+           processorSnapshot: equipment.processor,
+           storageSnapshot: equipment.storage,
+           operatingSystemSnapshot: equipment.os,
+           accessoriesSnapshot: equipment.includedAccessories,
+           softwareSnapshot: equipment.installedSoftware,
           deliveryReason,
           assignmentNotes: combinedNotes || undefined,
           notes: combinedNotes || undefined,
@@ -202,7 +228,7 @@ async function postHandler(req: AuthenticatedRequest) {
       );
     }
     if (message === 'NOT_FOUND') return NextResponse.json({ error: 'Equipo no encontrado' }, { status: 404 });
-    if (message === 'NOT_AVAILABLE' || message === 'ALREADY_ASSIGNED') {
+     if (message === 'NOT_AVAILABLE' || message === 'ALREADY_ASSIGNED' || message === 'DISPOSAL_IN_PROGRESS') {
       return NextResponse.json({ error: 'El equipo no está disponible para asignación' }, { status: 400 });
     }
     return equipmentApiFailure(error, requestId, { code: 'ASSIGNMENT_CREATE_FAILED', message: 'Error al crear asignación', stage: 'CREATE_ASSIGNMENT' });

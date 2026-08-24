@@ -60,6 +60,7 @@ export interface CompraOrden {
   requiredDate: string;
   requestedByName: string;
   requesterJobTitle: string;
+  requesterEmployeeId?: string | null;
   createdById: string;
   supplierId?: string | null;
   supplierName: string;
@@ -109,6 +110,7 @@ export interface CreateCompraOrdenData {
   requiredDate: string;
   requestedByName: string;
   requesterJobTitle: string;
+  requesterEmployeeId?: string | null;
   supplierId?: string | null;
   supplierName: string;
   supplierRtn: string;

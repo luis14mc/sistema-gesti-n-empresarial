@@ -41,6 +41,8 @@ const equipmentCreateSchema = z.object({
   processor: z.string().max(200).optional().nullable(),
   storage: z.string().max(60).optional().nullable(),
   os: z.string().max(100).optional().nullable(),
+  includedAccessories: z.string().max(2000).optional().nullable(),
+  installedSoftware: z.string().max(2000).optional().nullable(),
   ipAddress: z.string().refine((v) => v === '' || /^(\d{1,3}\.){3}\d{1,3}$/.test(v), { message: 'ipAddress inválida' }).optional().nullable(),
   macAddress: z.string().regex(/^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$|^$/, { message: 'MAC inválida' }).optional().nullable(),
   location: z.string().max(200).optional().nullable(),

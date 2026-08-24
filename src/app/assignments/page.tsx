@@ -82,11 +82,11 @@ function getAssigneeName(a: EquipmentAssignment) {
 
 export default function AssignmentsPage() {
     const { user } = useAuth();
-    const { assignments, isLoading, createAssignment, isCreating, returnAssignment, isReturning, swapEquipment, isSwapping, attachDocument } = useAssignments();
-    const { equipment } = useEquipment({ pageSize: 200 });
-    const { employees } = useEmployees({ isActive: true, pageSize: 200 });
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('ALL');
+    const { assignments, isLoading, createAssignment, isCreating, returnAssignment, isReturning, swapEquipment, isSwapping, attachDocument } = useAssignments({ search: search || undefined, status: statusFilter === 'ALL' ? undefined : statusFilter });
+    const { equipment } = useEquipment({ pageSize: 200 });
+    const { employees } = useEmployees({ isActive: true, pageSize: 200 });
     const [dialogOpen, setDialogOpen] = useState(false);
     const [returnDialogOpen, setReturnDialogOpen] = useState(false);
     const [swapDialogOpen, setSwapDialogOpen] = useState(false);
@@ -134,6 +134,7 @@ export default function AssignmentsPage() {
     });
 
     const selectedEmployee = employees.find((e) => e.id === form.employeeId);
+    const selectedEquipment = equipment.find((e) => e.id === form.equipmentId);
     const activeAssignments = assignments.filter((a) => a.status === 'ACTIVE');
 
     const handleCreate = async (e: React.FormEvent) => {
@@ -248,7 +249,7 @@ export default function AssignmentsPage() {
                                     <DialogDescription>Devuelve el equipo anterior y asigna uno nuevo al mismo empleado.</DialogDescription>
                                 </DialogHeader>
                                 <form onSubmit={handleSwap} className="space-y-4">
-                                    <div className="space-y-2">
+                                     <div className="space-y-2">
                                         <Label>Asignación activa (equipo anterior)</Label>
                                         <Select value={swapForm.oldAssignmentId} onValueChange={(v) => setSwapForm((f) => ({ ...f, oldAssignmentId: v }))}>
                                             <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
@@ -260,8 +261,8 @@ export default function AssignmentsPage() {
                                                 ))}
                                             </SelectContent>
                                         </Select>
-                                    </div>
-                                    <div className="space-y-2">
+                                     </div>
+                                     <div className="space-y-2">
                                         <Label>Equipo nuevo</Label>
                                         <Select value={swapForm.newEquipmentId} onValueChange={(v) => setSwapForm((f) => ({ ...f, newEquipmentId: v }))}>
                                             <SelectTrigger><SelectValue placeholder="Equipo disponible" /></SelectTrigger>
@@ -270,8 +271,25 @@ export default function AssignmentsPage() {
                                                     <SelectItem key={eq.id} value={eq.id}>{eq.code} — {eq.name}</SelectItem>
                                                 ))}
                                             </SelectContent>
-                                        </Select>
-                                    </div>
+                                         </Select>
+                                     </div>
+                                     {selectedEquipment && (
+                                         <div className="grid grid-cols-2 gap-2 rounded-md bg-muted/40 p-3 text-xs text-muted-foreground">
+                                             <span>Inventario: <strong>{selectedEquipment.inventoryCode}</strong></span>
+                                             <span>Marca / Modelo: <strong>{selectedEquipment.brand} {selectedEquipment.model}</strong></span>
+                                             <span>Serie: <strong>{selectedEquipment.serialNumber ?? '—'}</strong></span>
+                                             <span>RAM: <strong>{selectedEquipment.ram ?? '—'}</strong></span>
+                                             <span>Procesador: <strong>{selectedEquipment.processor ?? '—'}</strong></span>
+                                             <span>Almacenamiento: <strong>{selectedEquipment.storage ?? '—'}</strong></span>
+                                             <span>Sistema operativo: <strong>{selectedEquipment.os ?? '—'}</strong></span>
+                                             <span>Accesorios: <strong>{selectedEquipment.includedAccessories ?? '—'}</strong></span>
+                                             <span>Software: <strong>{selectedEquipment.installedSoftware ?? '—'}</strong></span>
+                                         </div>
+                                     )}
+                                     <div className="space-y-2">
+                                         <Label>Fecha de entrega</Label>
+                                         <Input type="date" defaultValue={new Date().toISOString().slice(0, 10)} disabled />
+                                     </div>
                                     <div className="space-y-2">
                                         <Label>Estado del equipo anterior</Label>
                                         <Select value={swapForm.returnCondition} onValueChange={(v) => setSwapForm((f) => ({ ...f, returnCondition: v }))}>
@@ -423,35 +441,49 @@ export default function AssignmentsPage() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Equipo</TableHead>
-                                        <TableHead>Empleado</TableHead>
-                                        <TableHead className="hidden md:table-cell">Departamento</TableHead>
-                                        <TableHead>Estado</TableHead>
-                                        <TableHead className="hidden md:table-cell">Fecha Asig.</TableHead>
-                                        <TableHead className="text-right">Acciones</TableHead>
+                                            <TableHead>No.</TableHead>
+                                            <TableHead>Nombre</TableHead>
+                                            <TableHead>N° Inventario</TableHead>
+                                            <TableHead className="hidden md:table-cell">Unidad / Dpto</TableHead>
+                                            <TableHead className="hidden lg:table-cell">Cargo</TableHead>
+                                            <TableHead className="hidden md:table-cell">Fecha de entrega</TableHead>
+                                            <TableHead className="hidden xl:table-cell">Marca / Modelo</TableHead>
+                                            <TableHead className="hidden xl:table-cell">N° de serie</TableHead>
+                                            <TableHead className="hidden 2xl:table-cell">RAM</TableHead>
+                                            <TableHead className="hidden 2xl:table-cell">Procesador</TableHead>
+                                            <TableHead className="hidden 2xl:table-cell">Almacenamiento</TableHead>
+                                            <TableHead className="hidden 2xl:table-cell">Sistema Operativo</TableHead>
+                                            <TableHead className="hidden 2xl:table-cell">Accesorios</TableHead>
+                                            <TableHead className="hidden 2xl:table-cell">Software instalado</TableHead>
+                                            <TableHead>Estado</TableHead>
+                                            <TableHead className="text-right">Acciones</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {filtered.map((assignment: EquipmentAssignment) => (
+                                    {filtered.map((assignment: EquipmentAssignment, index) => {
+                                        const equipment = assignment.equipment;
+                                        return (
                                         <TableRow key={assignment.id} className="hover:bg-muted/50">
-                                            <TableCell>
-                                                <p className="text-sm font-medium">{assignment.equipment?.name ?? '—'}</p>
-                                                <p className="text-xs text-muted-foreground">{assignment.equipment?.code ?? ''}</p>
-                                            </TableCell>
-                                            <TableCell>
-                                                <p className="text-sm">{getAssigneeName(assignment)}</p>
-                                                <p className="text-xs text-muted-foreground">{assignment.positionAtTime ?? ''}</p>
-                                            </TableCell>
+                                            <TableCell>{index + 1}</TableCell>
+                                            <TableCell>{assignment.employeeNameSnapshot ?? getAssigneeName(assignment)}</TableCell>
+                                            <TableCell>{assignment.inventoryNumberSnapshot ?? equipment?.inventoryCode ?? '—'}</TableCell>
                                             <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
-                                                {assignment.departmentAtTime ?? '—'}
+                                                {assignment.departmentSnapshot ?? assignment.departmentAtTime ?? '—'}
                                             </TableCell>
+                                            <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{assignment.positionSnapshot ?? assignment.positionAtTime ?? '—'}</TableCell>
+                                            <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{formatDate(assignment.assignedDate)}</TableCell>
+                                            <TableCell className="hidden xl:table-cell">{assignment.brandSnapshot ?? equipment?.brand} {assignment.modelSnapshot ?? equipment?.model}</TableCell>
+                                            <TableCell className="hidden xl:table-cell">{assignment.serialNumberSnapshot ?? equipment?.serialNumber ?? '—'}</TableCell>
+                                            <TableCell className="hidden 2xl:table-cell">{assignment.ramSnapshot ?? equipment?.ram ?? '—'}</TableCell>
+                                            <TableCell className="hidden 2xl:table-cell">{assignment.processorSnapshot ?? equipment?.processor ?? '—'}</TableCell>
+                                            <TableCell className="hidden 2xl:table-cell">{assignment.storageSnapshot ?? equipment?.storage ?? '—'}</TableCell>
+                                            <TableCell className="hidden 2xl:table-cell">{assignment.operatingSystemSnapshot ?? equipment?.os ?? '—'}</TableCell>
+                                            <TableCell className="hidden 2xl:table-cell">{assignment.accessoriesSnapshot ?? equipment?.includedAccessories ?? '—'}</TableCell>
+                                            <TableCell className="hidden 2xl:table-cell">{assignment.softwareSnapshot ?? equipment?.installedSoftware ?? '—'}</TableCell>
                                             <TableCell>
                                                 <Badge variant="outline" className={statusColors[assignment.status]}>
                                                     {statusLabels[assignment.status] ?? assignment.status}
                                                 </Badge>
-                                            </TableCell>
-                                            <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
-                                                {formatDate(assignment.assignedDate)}
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 {assignment.status === 'ACTIVE' && canCreate && (
@@ -467,7 +499,8 @@ export default function AssignmentsPage() {
                                                 )}
                                             </TableCell>
                                         </TableRow>
-                                    ))}
+                                    );
+                                    })}
                                 </TableBody>
                             </Table>
                         </div>

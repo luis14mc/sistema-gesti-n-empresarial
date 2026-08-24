@@ -12,14 +12,15 @@ import {
 import { useCompraOrdenes } from '@/hooks/useCompraOrden';
 import { useProveedores } from '@/hooks/useCompras';
 import { useAuth } from '@/hooks/useAuth';
-import type { CreatePurchaseOrderInput, DraftPurchaseOrderInput } from '@/lib/compras/orden/schemas';
+import type { DraftPurchaseOrderInput } from '@/lib/compras/orden/schemas';
 import type { PendingPurchaseDocument } from '@/types/compra-orden-documents';
 import { getPurchaseOrderApiErrorMessage } from '@/lib/api-error';
 
 export default function NuevaCompraPage() {
   const { user } = useAuth();
   const router = useRouter();
-  const { data: proveedores = [] } = useProveedores();
+  const { data: proveedoresData } = useProveedores({ pageSize: 100 });
+  const proveedores = proveedoresData?.proveedores ?? [];
   const { createOrden, uploadDocumento, isSaving } = useCompraOrdenes();
   const [pendingDocuments, setPendingDocuments] = useState<PendingPurchaseDocument[]>([]);
 
@@ -63,7 +64,7 @@ export default function NuevaCompraPage() {
   return (
     <MainLayout>
       <div className="font-[Aptos,'Segoe_UI',sans-serif]">
-      <PageHeader title="Nueva Orden de Compra" description="Complete la ficha institucional CNI" />
+      <PageHeader title="Nueva Solicitud y orden de compra" description="Complete la ficha institucional CNI" />
       <CompraOrdenDraftWorkspace
         proveedores={proveedores}
         pendingDocuments={pendingDocuments}

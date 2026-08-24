@@ -69,6 +69,16 @@ export const createProveedorSchema = z.object({
   direccion: z.string().optional().nullable(),
 });
 
+export const updateProveedorSchema = z.object({
+  nombreRazonSocial: z.string().min(2).optional(),
+  rtn: z.string().optional().nullable(),
+  telefono: z.string().optional().nullable(),
+  email: z.string().email().optional().nullable().or(z.literal('')),
+  personaContacto: z.string().optional().nullable(),
+  direccion: z.string().optional().nullable(),
+  activo: z.boolean().optional(),
+});
+
 export type BorradorOrdenInput = z.infer<typeof borradorOrdenSchema>;
 export type UpdateOrdenInput = z.infer<typeof updateOrdenSchema>;
 export type CreateProveedorInput = z.infer<typeof createProveedorSchema>;

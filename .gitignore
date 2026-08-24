@@ -47,3 +47,6 @@ public/uploads/compras/**
 public/uploads/institution/**
 !public/uploads/institution/.gitkeep
 
+# Uploads locales con almacenamiento segmentado por entorno (runtime)
+public/uploads/development/**
+

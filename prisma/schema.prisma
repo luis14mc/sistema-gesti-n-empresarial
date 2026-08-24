@@ -50,6 +50,7 @@ model Organization {
   systemAuditEvents      SystemAuditEvent[]
   domainEventOutbox      DomainEventOutbox[]
   notifications          Notification[]
+  permissionOverrides    UserPermissionOverride[]   @relation("PermissionOverrideOrganization")
   integrations           OrganizationIntegration[]
   employees              Employee[]
 
@@ -74,6 +75,24 @@ model OrganizationMembership {
   @@index([userId])
   @@index([organizationId, role])
   @@map("organization_memberships")
+}
+
+model UserPermissionOverride {
+  id             String           @id @default(cuid())
+  organizationId String
+  userId         String
+  permission     String
+  effect         PermissionEffect
+  createdById    String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  organization   Organization     @relation("PermissionOverrideOrganization", fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User             @relation("UserPermissionOverrides", fields: [userId], references: [id], onDelete: Cascade)
+  createdBy      User?            @relation("PermissionOverrideCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, userId, permission])
+  @@index([userId, organizationId])
+  @@map("user_permission_overrides")
 }
 
 model Department {
@@ -170,6 +189,8 @@ model User {
   disposalDocumentsUploaded    DisposalDocument[]           @relation("DisposalDocumentUploader")
   disposalHistory              EquipmentDisposalHistory[]   @relation("DisposalHistoryPerformer")
   notifications                Notification[]
+  permissionOverrides          UserPermissionOverride[]     @relation("UserPermissionOverrides")
+  permissionOverridesCreated   UserPermissionOverride[]     @relation("PermissionOverrideCreator")
 
   @@index([departmentId])
   @@index([positionId])
@@ -408,6 +429,7 @@ model Employee {
   lastName       String
   fullName       String
   email          String
+  hireDate       DateTime?             @db.Date
   phone          String?
   dni            String?
   userId         String?               @unique
@@ -421,6 +443,7 @@ model Employee {
   position       JobPosition?          @relation(fields: [positionId], references: [id])
   user           User?                 @relation(fields: [userId], references: [id])
   assignments    EquipmentAssignment[]
+  purchaseOrders CompraOrden[]         @relation("CompraOrdenRequester")
 
   @@unique([organizationId, email])
   @@unique([organizationId, employeeCode])
@@ -445,6 +468,8 @@ model Equipment {
   processor              String?
   storage                String?
   os                     String?
+  includedAccessories    String?                 @db.Text
+  installedSoftware      String?                 @db.Text
   retirementReason       String?
   retiredAt              DateTime?
   createdAt              DateTime                @default(now())
@@ -478,36 +503,49 @@ model Equipment {
 }
 
 model EquipmentAssignment {
-  id                  String           @id @default(cuid())
-  equipmentId         String
-  userId              String?
-  assignedDate        DateTime         @default(now())
-  returnedDate        DateTime?
-  departmentAtTime    String?
-  positionAtTime      String?
-  notes               String?
-  urlNotaPdf          String?
-  assignedById        String?
-  assignmentNotes     String?
-  createdAt           DateTime         @default(now())
-  deliveryDocumentUrl String?
-  deliveryReason      String?
-  employeeEmailAtTime String?
-  employeeId          String?
-  employeeNameAtTime  String?
-  returnCondition     String?
-  returnDocumentUrl   String?
-  returnNotes         String?
-  returnReason        String?
-  returnedById        String?
-  updatedAt           DateTime         @default(now()) @updatedAt
-  version             Int              @default(1)
-  status              AssignmentStatus @default(ACTIVE)
-  organizationId      String
-  organization        Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  employee            Employee?        @relation(fields: [employeeId], references: [id], onDelete: Restrict)
-  equipment           Equipment        @relation(fields: [equipmentId], references: [id])
-  user                User?            @relation(fields: [userId], references: [id])
+  id                      String           @id @default(cuid())
+  equipmentId             String
+  userId                  String?
+  assignedDate            DateTime         @default(now())
+  returnedDate            DateTime?
+  departmentAtTime        String?
+  positionAtTime          String?
+  notes                   String?
+  urlNotaPdf              String?
+  assignedById            String?
+  assignmentNotes         String?
+  createdAt               DateTime         @default(now())
+  deliveryDocumentUrl     String?
+  deliveryReason          String?
+  employeeEmailAtTime     String?
+  employeeId              String?
+  employeeNameAtTime      String?
+  returnCondition         String?
+  returnDocumentUrl       String?
+  returnNotes             String?
+  returnReason            String?
+  returnedById            String?
+  updatedAt               DateTime         @default(now()) @updatedAt
+  version                 Int              @default(1)
+  status                  AssignmentStatus @default(ACTIVE)
+  organizationId          String
+  employeeNameSnapshot    String?
+  departmentSnapshot      String?
+  positionSnapshot        String?
+  inventoryNumberSnapshot String?
+  brandSnapshot           String?
+  modelSnapshot           String?
+  serialNumberSnapshot    String?
+  ramSnapshot             String?
+  processorSnapshot       String?
+  storageSnapshot         String?
+  operatingSystemSnapshot String?
+  accessoriesSnapshot     String?          @db.Text
+  softwareSnapshot        String?          @db.Text
+  organization            Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  employee                Employee?        @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  equipment               Equipment        @relation(fields: [equipmentId], references: [id])
+  user                    User?            @relation(fields: [userId], references: [id])
 
   @@index([equipmentId])
   @@index([employeeId])
@@ -886,6 +924,7 @@ model CompraOrden {
   version               Int                 @default(1)
   deletedAt             DateTime?
   organizationId        String
+  requesterEmployeeId   String?
 
   createdBy              User                    @relation("CompraOrdenCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   generatedBy            User?                   @relation("CompraOrdenGeneratedBy", fields: [generatedById], references: [id], onDelete: SetNull)
@@ -893,6 +932,7 @@ model CompraOrden {
   cancelledBy            User?                   @relation("CompraOrdenCancelledBy", fields: [cancelledById], references: [id], onDelete: SetNull)
   closedBy               User?                   @relation("CompraOrdenClosedBy", fields: [closedById], references: [id], onDelete: SetNull)
   supplier               Proveedor?              @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  requesterEmployee      Employee?               @relation("CompraOrdenRequester", fields: [requesterEmployeeId], references: [id], onDelete: SetNull)
   template               CompraOrdenTemplate?    @relation(fields: [templateId], references: [id], onDelete: SetNull)
   items                  CompraOrdenItem[]
   documentos             CompraOrdenDocumento[]
@@ -907,6 +947,7 @@ model CompraOrden {
   @@index([requestDate])
   @@index([requiredDate])
   @@index([supplierId])
+  @@index([requesterEmployeeId])
   @@index([createdById])
   @@index([sequenceYear])
   @@index([organizationId, status])
@@ -1416,6 +1457,14 @@ enum OrganizationRole {
   HR
   AUDITOR
   USER
+  ADMINISTRACION
+  SECRETARIA
+  DIRECTOR
+}
+
+enum PermissionEffect {
+  ALLOW
+  DENY
 }
 
 enum OnboardingStatus {

@@ -1,6 +1,7 @@
 'use client';
 
-import { forwardRef, useEffect, useImperativeHandle, useMemo } from 'react';
+import { forwardRef, useDeferredValue, useEffect, useImperativeHandle, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useForm, useFieldArray, useWatch, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Trash2 } from 'lucide-react';
@@ -26,7 +27,10 @@ import {
 } from '@/lib/compras/orden/schemas';
 import type { CompraOrden } from '@/types/compra-orden';
 import type { Proveedor } from '@/types/compras';
+import { comprasService } from '@/services/compras.service';
 import type { FieldErrors } from 'react-hook-form';
+import { employeesService } from '@/services/employees.service';
+import type { Employee } from '@/types';
 
 interface CompraOrdenFormProps {
   proveedores?: Proveedor[];
@@ -60,7 +64,8 @@ function mapDefaults(v?: Partial<CompraOrden>): Partial<CreatePurchaseOrderInput
     requiredDate: toDateInput(v.requiredDate ?? v.fechaRequerida),
     requestedByName: v.requestedByName ?? v.solicitadoPorNombre ?? '',
     requesterJobTitle: v.requesterJobTitle ?? v.cargoSolicitante ?? '',
-    supplierId: v.supplierId ?? v.proveedorId ?? null,
+    requesterEmployeeId: v.requesterEmployeeId ?? undefined,
+    supplierId: v.supplierId ?? v.proveedorId ?? undefined,
     supplierName: v.supplierName ?? v.proveedorNombre ?? '',
     supplierRtn: v.supplierRtn ?? v.proveedorRtn ?? '',
     supplierPhone: v.supplierPhone ?? v.proveedorTelefono ?? '',
@@ -91,7 +96,6 @@ function FieldError({ message }: { message?: string }) {
 
 export const CompraOrdenForm = forwardRef<CompraOrdenFormHandle, CompraOrdenFormProps>(
 function CompraOrdenForm({
-  proveedores = [],
   defaultValues,
   onSubmit,
   onValuesChange,
@@ -102,6 +106,23 @@ function CompraOrdenForm({
   hideActions = false,
 }, ref) {
   const mapped = mapDefaults(defaultValues);
+  const [employeeSearch, setEmployeeSearch] = useState(mapped.requestedByName ?? '');
+  const [showEmployeeResults, setShowEmployeeResults] = useState(false);
+  const [supplierSearch, setSupplierSearch] = useState(mapped.supplierName ?? '');
+  const [showSupplierResults, setShowSupplierResults] = useState(false);
+  const deferredSupplierSearch = useDeferredValue(supplierSearch);
+  const employeeQuery = useQuery({
+    queryKey: ['purchase-requester-employees', employeeSearch],
+    queryFn: () => employeesService.list({ search: employeeSearch, isActive: true, page: 1, pageSize: 10 }),
+    enabled: !readOnly && employeeSearch.trim().length > 1,
+    staleTime: 30_000,
+  });
+  const supplierQuery = useQuery({
+    queryKey: ['purchase-suppliers', deferredSupplierSearch],
+    queryFn: () => comprasService.listProveedores(deferredSupplierSearch.trim() || undefined, 1, 10),
+    enabled: !readOnly && showSupplierResults,
+    staleTime: 30_000,
+  });
   const form = useForm<DraftPurchaseOrderInput>({
     resolver: zodResolver(draftPurchaseOrderSchema) as Resolver<DraftPurchaseOrderInput>,
     mode: 'onChange',
@@ -112,7 +133,8 @@ function CompraOrdenForm({
       purchaseReference: mapped.purchaseReference ?? '',
       requestedByName: mapped.requestedByName ?? '',
       requesterJobTitle: mapped.requesterJobTitle ?? '',
-      supplierId: mapped.supplierId ?? null,
+      requesterEmployeeId: mapped.requesterEmployeeId ?? undefined,
+      supplierId: mapped.supplierId ?? undefined,
       supplierName: mapped.supplierName ?? '',
       supplierRtn: mapped.supplierRtn ?? '',
       supplierPhone: mapped.supplierPhone ?? '',
@@ -166,18 +188,29 @@ function CompraOrdenForm({
     }
   };
 
-  const handleSupplierSelect = (supplierId: string) => {
-    if (!supplierId) {
-      form.setValue('supplierId', null);
-      return;
-    }
-    const p = proveedores.find((x) => x.id === supplierId);
-    form.setValue('supplierId', supplierId);
-    if (p) {
-      form.setValue('supplierName', p.nombreRazonSocial);
-      form.setValue('supplierRtn', p.rtn ?? '');
-      form.setValue('supplierPhone', p.telefono ?? '');
-    }
+  const clearSupplier = () => {
+    form.setValue('supplierId', null, { shouldDirty: true, shouldValidate: true });
+    form.setValue('supplierName', '', { shouldDirty: true, shouldValidate: true });
+    form.setValue('supplierRtn', '', { shouldDirty: true, shouldValidate: true });
+    form.setValue('supplierPhone', '', { shouldDirty: true, shouldValidate: true });
+    setSupplierSearch('');
+  };
+
+  const handleSupplierSelect = (p: Proveedor) => {
+    form.setValue('supplierId', p.id, { shouldDirty: true, shouldValidate: true });
+    form.setValue('supplierName', p.nombreRazonSocial, { shouldDirty: true, shouldValidate: true });
+    form.setValue('supplierRtn', p.rtn ?? '', { shouldDirty: true, shouldValidate: true });
+    form.setValue('supplierPhone', p.telefono ?? '', { shouldDirty: true, shouldValidate: true });
+    setSupplierSearch(p.nombreRazonSocial);
+    setShowSupplierResults(false);
+  };
+
+  const handleEmployeeSelect = (employee: Employee) => {
+    form.setValue('requesterEmployeeId', employee.id, { shouldDirty: true, shouldValidate: true });
+    form.setValue('requestedByName', employee.fullName, { shouldDirty: true, shouldValidate: true });
+    form.setValue('requesterJobTitle', employee.position?.name ?? '', { shouldDirty: true, shouldValidate: true });
+    setEmployeeSearch(employee.fullName);
+    setShowEmployeeResults(false);
   };
 
   useImperativeHandle(ref, () => ({
@@ -245,14 +278,14 @@ function CompraOrdenForm({
     >
 
       <Card>
-        <CardHeader><CardTitle>1. Información general</CardTitle></CardHeader>
+        <CardHeader><CardTitle>1. Datos del solicitante</CardTitle></CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="requestDate">Fecha solicitud</Label>
             <Input
               id="requestDate"
               type="date"
-              disabled
+               disabled={readOnly}
               aria-invalid={Boolean(errors.requestDate)}
               className={cn(errors.requestDate && 'border-destructive')}
               {...form.register('requestDate')}
@@ -273,21 +306,23 @@ function CompraOrdenForm({
           </div>
           <div className="space-y-2">
             <Label htmlFor="requestedByName">Solicitado por *</Label>
-            <Input
-              id="requestedByName"
-              disabled={readOnly}
-              placeholder="Nombre de quien solicita"
-              aria-invalid={Boolean(errors.requestedByName)}
-              className={cn(errors.requestedByName && 'border-destructive')}
-              {...form.register('requestedByName')}
-            />
+             <div className="relative">
+               <Input id="requesterSearch" value={employeeSearch} disabled={readOnly} placeholder="Buscar empleado..." aria-invalid={Boolean(errors.requesterEmployeeId)} className={cn(errors.requesterEmployeeId && 'border-destructive')} onChange={(event) => { setEmployeeSearch(event.target.value); setShowEmployeeResults(true); form.setValue('requesterEmployeeId', null, { shouldDirty: true, shouldValidate: true }); form.setValue('requestedByName', '', { shouldDirty: true }); form.setValue('requesterJobTitle', '', { shouldDirty: true }); }} onFocus={() => setShowEmployeeResults(true)} autoComplete="off" />
+               {showEmployeeResults && !readOnly && employeeSearch.trim().length > 1 ? <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-md border bg-background shadow-lg">
+                 {employeeQuery.isLoading ? <p className="p-3 text-sm text-muted-foreground">Buscando empleados...</p> : null}
+                 {employeeQuery.isError ? <p className="p-3 text-sm text-destructive">No se pudo cargar el personal.</p> : null}
+                 {!employeeQuery.isLoading && !employeeQuery.isError && !(employeeQuery.data?.data.employees.length) ? <p className="p-3 text-sm text-muted-foreground">No se encontraron empleados activos.</p> : null}
+                 {employeeQuery.data?.data.employees.map((employee) => <button type="button" key={employee.id} className="block w-full px-3 py-2 text-left text-sm hover:bg-muted" onMouseDown={(event) => event.preventDefault()} onClick={() => handleEmployeeSelect(employee)}><span className="block font-medium">{employee.fullName}</span><span className="block text-xs text-muted-foreground">{employee.position?.name ?? 'Sin cargo asignado'}</span></button>)}
+               </div> : null}
+             </div>
+             <input type="hidden" {...form.register('requesterEmployeeId')} />
             <FieldError message={errors.requestedByName?.message} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="requesterJobTitle">Cargo *</Label>
             <Input
               id="requesterJobTitle"
-              disabled={readOnly}
+               disabled
               placeholder="Cargo del solicitante"
               aria-invalid={Boolean(errors.requesterJobTitle)}
               className={cn(errors.requesterJobTitle && 'border-destructive')}
@@ -310,26 +345,27 @@ function CompraOrdenForm({
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>2. Proveedor</CardTitle></CardHeader>
+        <CardHeader><CardTitle>2. Datos del proveedor</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          {!readOnly && proveedores.length > 0 && (
-            <select
-              className="w-full rounded-md border px-3 py-2 text-sm"
-              value={watchedSupplierId ?? ''}
-              onChange={(e) => handleSupplierSelect(e.target.value)}
-            >
-              <option value="">— Manual —</option>
-              {proveedores.map((p) => (
-                <option key={p.id} value={p.id}>{p.nombreRazonSocial}</option>
-              ))}
-            </select>
-          )}
+          {!readOnly ? <div className="relative">
+            <Label htmlFor="supplierSearch">Proveedor *</Label>
+            <div className="mt-2 flex gap-2">
+              <Input id="supplierSearch" value={supplierSearch} placeholder="Buscar proveedor por nombre, razón social o RTN..." autoComplete="off" onFocus={() => setShowSupplierResults(true)} onChange={(event) => { setSupplierSearch(event.target.value); setShowSupplierResults(true); form.setValue('supplierId', null, { shouldDirty: true, shouldValidate: true }); form.setValue('supplierName', '', { shouldDirty: true }); form.setValue('supplierRtn', '', { shouldDirty: true }); form.setValue('supplierPhone', '', { shouldDirty: true }); }} />
+              {watchedSupplierId ? <Button type="button" variant="outline" onClick={clearSupplier}>Cambiar</Button> : null}
+            </div>
+            {showSupplierResults ? <div className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-md border bg-background shadow-lg">
+              {supplierQuery.isLoading ? <p className="p-3 text-sm text-muted-foreground">Buscando proveedores...</p> : null}
+              {supplierQuery.isError ? <p className="p-3 text-sm text-destructive">No se pudo cargar proveedores.</p> : null}
+              {!supplierQuery.isLoading && !supplierQuery.isError && !(supplierQuery.data?.data.proveedores.length) ? <p className="p-3 text-sm text-muted-foreground">No se encontraron proveedores.</p> : null}
+              {supplierQuery.data?.data.proveedores.map((supplier) => <button type="button" key={supplier.id} className="block w-full px-3 py-2 text-left text-sm hover:bg-muted" onMouseDown={(event) => event.preventDefault()} onClick={() => handleSupplierSelect(supplier)}><span className="block font-medium">{supplier.nombreRazonSocial}</span><span className="block text-xs text-muted-foreground">RTN: {supplier.rtn ?? '—'}</span></button>)}
+            </div> : null}
+          </div> : null}
           <div className="grid gap-4 md:grid-cols-2">
             <div className="md:col-span-2 space-y-2">
               <Label htmlFor="supplierName">Nombre / razón social *</Label>
               <Input
                 id="supplierName"
-                disabled={readOnly}
+                disabled
                 aria-invalid={Boolean(errors.supplierName)}
                 className={cn(errors.supplierName && 'border-destructive')}
                 {...form.register('supplierName')}
@@ -340,7 +376,7 @@ function CompraOrdenForm({
               <Label htmlFor="supplierRtn">RTN *</Label>
               <Input
                 id="supplierRtn"
-                disabled={readOnly}
+                disabled
                 aria-invalid={Boolean(errors.supplierRtn)}
                 className={cn(errors.supplierRtn && 'border-destructive')}
                 {...form.register('supplierRtn')}
@@ -351,7 +387,7 @@ function CompraOrdenForm({
               <Label htmlFor="supplierPhone">Teléfono *</Label>
               <Input
                 id="supplierPhone"
-                disabled={readOnly}
+                disabled
                 aria-invalid={Boolean(errors.supplierPhone)}
                 className={cn(errors.supplierPhone && 'border-destructive')}
                 {...form.register('supplierPhone')}
@@ -364,10 +400,10 @@ function CompraOrdenForm({
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>3. Detalle de compra</CardTitle>
+          <CardTitle>3. Detalle de producto o servicio</CardTitle>
           {!readOnly && (
             <Button type="button" variant="outline" size="sm" onClick={() => append({ ...defaultItem })}>
-              <Plus className="h-4 w-4 mr-1" />Ítem
+              <Plus className="h-4 w-4 mr-1" />Agregar detalle
             </Button>
           )}
         </CardHeader>
@@ -543,7 +579,7 @@ function CompraOrdenForm({
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>4. Justificación</CardTitle></CardHeader>
+        <CardHeader><CardTitle>4. Justificación de compra</CardTitle></CardHeader>
         <CardContent>
           <div className="space-y-2">
             <Label htmlFor="purchaseJustification">Justificación de compra *</Label>

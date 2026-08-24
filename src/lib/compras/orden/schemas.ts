@@ -35,6 +35,7 @@ export const draftPurchaseOrderSchema = z.object({
   requiredDate: z.string().default(''),
   requestedByName: z.string().trim().default(''),
   requesterJobTitle: z.string().trim().default(''),
+  requesterEmployeeId: z.string().trim().nullable().optional(),
   supplierId: z.string().nullable().optional(),
   supplierName: z.string().trim().default(''),
   supplierRtn: z.string().trim().default(''),
@@ -52,7 +53,8 @@ export const createPurchaseOrderSchema = z.object({
   requiredDate: z.string().min(1, 'Fecha requerida obligatoria'),
   requestedByName: z.string().trim().min(2, 'Nombre del solicitante requerido'),
   requesterJobTitle: z.string().trim().min(2, 'Cargo del solicitante requerido'),
-  supplierId: z.string().optional().nullable(),
+  requesterEmployeeId: z.string().trim().min(1, 'Seleccione un empleado del catálogo de Personas').nullable().optional(),
+  supplierId: z.string().min(1, 'Seleccione un proveedor').nullable().optional(),
   supplierName: z.string().trim().min(2, 'Nombre del proveedor requerido'),
   supplierRtn: z
     .string()

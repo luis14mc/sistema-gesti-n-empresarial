@@ -43,11 +43,9 @@ export const purchaseOrderDocumentCss = `
   .po-total-final td { padding-top: 6px; border-top: 2px solid var(--po-primary); color: var(--po-primary); font-size: 12px; font-weight: 700; }
   .po-justification { min-height: 36px; margin: 0; padding: 2px 8px; white-space: pre-wrap; }
   .po-note { margin: 6px 8px 0; color: #526072; font-style: italic; }
-  .po-signature { width: 360px; min-height: 210px; margin: 24px auto 0; padding: 18px 20px; border: 1px solid #334155; break-inside: avoid; }
-  .po-signature-title { margin: 0; color: var(--po-primary); font-size: 11px; font-weight: 700; text-align: center; text-transform: uppercase; }
-  .po-signature-space { height: 62px; }
-  .po-signature-line { margin: 0 0 12px; }
-  .po-stamp { margin: 17px 0 0; font-size: 9px; text-align: center; text-transform: uppercase; }
+  .po-signature { width: 360px; min-height: 150px; margin: 36px auto 0; padding-top: 74px; text-align: center; break-inside: avoid; page-break-inside: avoid; }
+  .po-signature-line { width: 100%; margin: 0 auto 8px; border-top: 1px solid #172033; padding-top: 8px; }
+  .po-signature-name, .po-signature-position { margin: 0; font-weight: 600; }
   .po-footer { margin-top: 18px; padding-top: 6px; border-top: 1px solid #ccd4df; color: #687587; font-size: 8px; text-align: center; }
   @media print { .po-document { min-height: auto; } }
 `;
@@ -87,7 +85,7 @@ export function PurchaseOrderDocument({ order, format, draft = false }: Purchase
             {meta.map((line) => <p className="po-institution-meta" key={line}>{line}</p>)}
           </div>
           <div className="po-document-id">
-            <p className="po-document-title">{format.documentTitle}</p>
+            <p className="po-document-title">SOLICITUD Y ORDEN DE COMPRA</p>
             <p className="po-number">{number}</p>
             <p className="po-status">{status}</p>
           </div>
@@ -101,22 +99,22 @@ export function PurchaseOrderDocument({ order, format, draft = false }: Purchase
         </div>
 
         <section className="po-section">
-          <h2 className="po-section-title">Información de la orden</h2>
+           <h2 className="po-section-title">Datos del solicitante</h2>
           <div className="po-grid"><div className="po-field"><strong>Solicitado por:</strong> {order.requestedByName}</div><div className="po-field"><strong>Cargo:</strong> {order.requesterJobTitle}</div></div>
         </section>
         <section className="po-section">
-          <h2 className="po-section-title">Proveedor</h2>
+           <h2 className="po-section-title">Datos del proveedor</h2>
           <div className="po-grid"><div className="po-field"><strong>Nombre o razón social:</strong> {order.supplierName}</div><div className="po-field"><strong>RTN:</strong> {order.supplierRtn}</div><div className="po-field"><strong>Teléfono:</strong> {order.supplierPhone}</div></div>
         </section>
         <section className="po-section">
-          <h2 className="po-section-title">Ítems y totales</h2>
-          <table className="po-table"><thead><tr><th>Ítem</th><th>Descripción</th><th>Unidad</th><th>Cantidad</th><th>Precio unitario</th><th>Total</th></tr></thead><tbody>
+           <h2 className="po-section-title">DETALLE DE PRODUCTO O SERVICIO</h2>
+           <table className="po-table"><thead><tr><th>#</th><th>Descripción</th><th>Unidad</th><th>Cantidad</th><th>Precio unitario</th><th>Total</th></tr></thead><tbody>
             {order.items.map((item) => <tr key={item.itemNumber}><td className="po-center">{item.itemNumber}</td><td>{item.description}</td><td className="po-center">{UNIT_LABELS[item.unit]}</td><td className="po-right">{item.quantity}</td><td className="po-right">{money(item.unitPrice)}</td><td className="po-right">{money(item.total)}</td></tr>)}
           </tbody></table>
           <table className="po-totals"><tbody><tr><td>Subtotal</td><td className="po-right">{money(order.subtotal)}</td></tr><tr><td>Descuento</td><td className="po-right">{money(order.discount)}</td></tr><tr><td>Base gravable</td><td className="po-right">{money(order.taxableBase)}</td></tr><tr><td>ISV {order.taxRate}%</td><td className="po-right">{money(order.tax)}</td></tr><tr className="po-total-final"><td>TOTAL</td><td className="po-right">{money(order.total)}</td></tr></tbody></table>
         </section>
-        <section className="po-section"><h2 className="po-section-title">Justificación de la compra</h2><p className="po-justification">{order.purchaseJustification}</p>{format.additionalNote ? <p className="po-note">{format.additionalNote}</p> : null}</section>
-        <section className="po-signature"><p className="po-signature-title">{format.signatureTitle || 'ÁREA ADMINISTRATIVA'}</p><div className="po-signature-space" /><p className="po-signature-line">Firma: ____________________________________</p><p className="po-signature-line">Nombre: ___________________________________</p><p className="po-signature-line">Fecha: ____________________________________</p><p className="po-stamp">Espacio para sello</p></section>
+         <section className="po-section"><h2 className="po-section-title">Justificación de compra</h2><p className="po-justification">{order.purchaseJustification}</p>{format.additionalNote ? <p className="po-note">{format.additionalNote}</p> : null}</section>
+         <section className="po-signature"><p className="po-signature-line">&nbsp;</p><p className="po-signature-name">Yenfri Garcia</p><p className="po-signature-position">Jefe de Presupuesto</p></section>
         <footer className="po-footer">Consejo Nacional de Inversiones · Orden: {number} · Fecha de generación: {new Date().toLocaleDateString('es-HN')} · {draft ? 'Estado: Borrador · ' : ''}Página 1</footer>
       </div>
     </article>

@@ -30,12 +30,18 @@ import type { Role, Employee } from '@/types';
 export default function EmployeesPage() {
   const { user } = useAuth();
   const [search, setSearch] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('');
+  const [positionFilter, setPositionFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const { departments } = useDepartments();
   const { employees, isLoading, createEmployee, isCreating, updateEmployee, isUpdating } = useEmployees({
     search: search || undefined,
+    departmentId: departmentFilter || undefined,
+    positionId: positionFilter || undefined,
+    isActive: statusFilter === '' ? undefined : statusFilter === 'active',
     pageSize: 100,
   });
 
@@ -45,12 +51,12 @@ export default function EmployeesPage() {
 
   const [form, setForm] = useState({
     employeeCode: '', firstName: '', lastName: '', email: '', phone: '', dni: '',
-    departmentId: '', positionId: '',
+    hireDate: '', departmentId: '', positionId: '',
   });
 
   const [editForm, setEditForm] = useState({
     employeeCode: '', firstName: '', lastName: '', email: '', phone: '', dni: '',
-    departmentId: '', positionId: '',
+    hireDate: '', departmentId: '', positionId: '',
   });
 
   const positionsFor = (departmentId: string) =>
@@ -70,18 +76,19 @@ export default function EmployeesPage() {
     e.preventDefault();
     try {
       await createEmployee({
-        employeeCode: form.employeeCode || undefined,
+        employeeCode: form.employeeCode,
         firstName: form.firstName,
         lastName: form.lastName,
         email: form.email,
+        hireDate: form.hireDate,
         phone: form.phone || undefined,
         dni: form.dni || undefined,
-        departmentId: form.departmentId || undefined,
-        positionId: form.positionId || undefined,
+        departmentId: form.departmentId,
+        positionId: form.positionId,
       });
       sileo.success({ title: 'Empleado registrado' });
       setDialogOpen(false);
-      setForm({ employeeCode: '', firstName: '', lastName: '', email: '', phone: '', dni: '', departmentId: '', positionId: '' });
+      setForm({ employeeCode: '', firstName: '', lastName: '', email: '', phone: '', dni: '', hireDate: '', departmentId: '', positionId: '' });
     } catch {
       sileo.error({ title: 'Error', description: 'No se pudo registrar el empleado' });
     }
@@ -94,6 +101,7 @@ export default function EmployeesPage() {
       firstName: employee.firstName,
       lastName: employee.lastName,
       email: employee.email,
+      hireDate: employee.hireDate?.slice(0, 10) || '',
       phone: employee.phone || '',
       dni: employee.dni || '',
       departmentId: employee.departmentId || '',
@@ -113,10 +121,11 @@ export default function EmployeesPage() {
           firstName: editForm.firstName,
           lastName: editForm.lastName,
           email: editForm.email,
+          hireDate: editForm.hireDate,
           phone: editForm.phone || undefined,
           dni: editForm.dni || undefined,
-          departmentId: editForm.departmentId || undefined,
-          positionId: editForm.positionId || undefined,
+          departmentId: editForm.departmentId,
+          positionId: editForm.positionId,
         },
       });
       sileo.success({ title: 'Empleado actualizado' });
@@ -190,11 +199,15 @@ export default function EmployeesPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <Label>Código empleado</Label>
+                     <Label>Código empleado *</Label>
                       <Input
                         value={form.employeeCode}
                         onChange={(e) => setForm((f) => ({ ...f, employeeCode: e.target.value }))}
                       />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Fecha de ingreso *</Label>
+                      <Input type="date" value={form.hireDate} max={new Date().toISOString().slice(0, 10)} onChange={(e) => setForm((f) => ({ ...f, hireDate: e.target.value }))} required />
                     </div>
                     <div className="space-y-2">
                       <Label>DPI / DNI</Label>
@@ -210,18 +223,18 @@ export default function EmployeesPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <Label>Departamento</Label>
+                      <Label>Departamento *</Label>
                       <Select value={form.departmentId} onValueChange={(v) => setForm((f) => ({ ...f, departmentId: v, positionId: '' }))}>
-                        <SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger>
+                         <SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger>
                         <SelectContent>
                           {departments.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label>Puesto</Label>
+                      <Label>Puesto *</Label>
                       <Select value={form.positionId} onValueChange={(v) => setForm((f) => ({ ...f, positionId: v }))} disabled={!form.departmentId}>
-                        <SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger>
+                         <SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger>
                         <SelectContent>
                           {positionsFor(form.departmentId).map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                         </SelectContent>
@@ -248,6 +261,20 @@ export default function EmployeesPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Select value={departmentFilter || 'all'} onValueChange={(value) => { setDepartmentFilter(value === 'all' ? '' : value); setPositionFilter(''); }}>
+            <SelectTrigger><SelectValue placeholder="Filtrar departamento" /></SelectTrigger>
+            <SelectContent><SelectItem value="all">Todos los departamentos</SelectItem>{departments.map((department) => <SelectItem key={department.id} value={department.id}>{department.name}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={positionFilter || 'all'} onValueChange={(value) => setPositionFilter(value === 'all' ? '' : value)}>
+            <SelectTrigger><SelectValue placeholder="Filtrar puesto" /></SelectTrigger>
+            <SelectContent><SelectItem value="all">Todos los puestos</SelectItem>{(departmentFilter ? positionsFor(departmentFilter) : departments.flatMap((department) => department.positions ?? [])).map((position) => <SelectItem key={position.id} value={position.id}>{position.name}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={statusFilter || 'all'} onValueChange={(value) => setStatusFilter(value === 'all' ? '' : value)}>
+            <SelectTrigger><SelectValue placeholder="Filtrar estado" /></SelectTrigger>
+            <SelectContent><SelectItem value="all">Todos los estados</SelectItem><SelectItem value="active">Activo</SelectItem><SelectItem value="inactive">Inactivo</SelectItem></SelectContent>
+          </Select>
+        </div>
 
         {isLoading ? (
           <div className="space-y-3">
@@ -265,31 +292,33 @@ export default function EmployeesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Empleado</TableHead>
-                    <TableHead>Correo</TableHead>
-                    <TableHead className="hidden md:table-cell">Departamento</TableHead>
-                    <TableHead className="hidden lg:table-cell">Equipos activos</TableHead>
+                   <TableHead>Código</TableHead>
+                   <TableHead>Nombre</TableHead>
+                   <TableHead>Apellido</TableHead>
+                   <TableHead>Correo</TableHead>
+                   <TableHead className="hidden md:table-cell">Departamento</TableHead>
+                   <TableHead className="hidden md:table-cell">Puesto</TableHead>
+                   <TableHead className="hidden lg:table-cell">Fecha de ingreso</TableHead>
                     <TableHead>Estado</TableHead>
                     {canUpdate && <TableHead className="text-right">Acciones</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filtered.map((employee: Employee) => {
-                    const activeCount = employee.assignments?.length ?? 0;
                     return (
                       <TableRow key={employee.id}>
-                        <TableCell>
-                          <p className="font-medium">{employee.fullName}</p>
-                          {employee.employeeCode && (
-                            <p className="text-xs text-muted-foreground font-mono">{employee.employeeCode}</p>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-sm">{employee.email}</TableCell>
+                         <TableCell className="font-mono text-sm">{employee.employeeCode ?? '—'}</TableCell>
+                         <TableCell>{employee.firstName}</TableCell>
+                         <TableCell>{employee.lastName}</TableCell>
+                         <TableCell className="text-sm">{employee.email}</TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
                           {employee.department?.name ?? '—'}
                         </TableCell>
-                        <TableCell className="hidden lg:table-cell">
-                          <Badge variant="outline">{activeCount}</Badge>
+                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
+                           {employee.position?.name ?? '—'}
+                         </TableCell>
+                         <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
+                           {employee.hireDate ? new Date(`${employee.hireDate.slice(0, 10)}T00:00:00`).toLocaleDateString('es-HN') : '—'}
                         </TableCell>
                         <TableCell>
                           <Badge variant={employee.isActive ? 'default' : 'secondary'}>
@@ -341,8 +370,16 @@ export default function EmployeesPage() {
               <Input type="email" value={editForm.email} onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))} required />
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Departamento</Label>
+                  <div className="space-y-2">
+                    <Label>Código empleado *</Label>
+                    <Input value={editForm.employeeCode} onChange={(e) => setEditForm((f) => ({ ...f, employeeCode: e.target.value }))} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Fecha de ingreso *</Label>
+                    <Input type="date" value={editForm.hireDate} max={new Date().toISOString().slice(0, 10)} onChange={(e) => setEditForm((f) => ({ ...f, hireDate: e.target.value }))} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Departamento</Label>
                 <Select value={editForm.departmentId} onValueChange={(v) => setEditForm((f) => ({ ...f, departmentId: v, positionId: '' }))}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>
@@ -351,7 +388,7 @@ export default function EmployeesPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Puesto</Label>
+                  <Label>Puesto *</Label>
                 <Select value={editForm.positionId} onValueChange={(v) => setEditForm((f) => ({ ...f, positionId: v }))} disabled={!editForm.departmentId}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>

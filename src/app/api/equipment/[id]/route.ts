@@ -72,7 +72,7 @@ async function patchHandler(
 
     const allowedFields = [
       'type', 'category', 'brand', 'model', 'serialNumber', 'status',
-      'ram', 'processor', 'storage', 'os', 'purchaseDate', 'purchaseOrder',
+      'ram', 'processor', 'storage', 'os', 'includedAccessories', 'installedSoftware', 'purchaseDate', 'purchaseOrder',
       'supplier', 'warrantyDate', 'cost', 'ipAddress', 'macAddress',
       'location', 'notes', 'retirementReason',
     ];

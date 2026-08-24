@@ -57,7 +57,7 @@ export function mapAssignmentResponse(
   }
 ) {
   const assigneeName =
-    assignment.employeeNameAtTime ||
+    assignment.employeeNameSnapshot || assignment.employeeNameAtTime ||
     assignment.employee?.fullName ||
     (assignment.user ? `${assignment.user.firstName} ${assignment.user.lastName}` : null);
 

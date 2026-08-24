@@ -1,6 +1,6 @@
 import type { PurchaseOrderStatus, PurchaseUnit } from '@prisma/client';
 import type { CreatePurchaseOrderInput } from './schemas';
-import { calculatePurchaseOrder, decimalToNumber, toDecimal } from './calculos';
+import { calculatePurchaseOrder, toDecimal } from './calculos';
 import type { PurchaseOrderTemplateConfig } from './template-config';
 import { ORDER_STATUS_LABELS } from './constants';
 
@@ -39,7 +39,9 @@ export type PurchaseOrderPreviewData = {
   statusLabel: string;
 };
 
-type PurchaseOrderPreviewInput = Partial<Omit<CreatePurchaseOrderInput, 'items'>> & {
+type PurchaseOrderPreviewInput = Partial<Omit<CreatePurchaseOrderInput, 'items' | 'supplierId' | 'requesterEmployeeId'>> & {
+  supplierId?: string | null;
+  requesterEmployeeId?: string | null;
   items?: Array<Partial<CreatePurchaseOrderInput['items'][number]> | null>;
 };
 
