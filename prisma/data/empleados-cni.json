@@ -1,0 +1,164 @@
+[
+  {
+    "email": "lguzman@cni.hn",
+    "firstName": "Luding Noel",
+    "lastName": "Guzman Vasquez",
+    "employeeCode": "CNI001",
+    "departmentName": "Dirección de marketing",
+    "positionName": "Oficial de Multimedia",
+    "hireDate": "2018-11-26"
+  },
+  {
+    "email": "asandoval@cni.hn",
+    "firstName": "Aida Celeste",
+    "lastName": "Sandoval Rojas",
+    "employeeCode": "CNI002",
+    "departmentName": "Dirección técnica de proyectos",
+    "positionName": "Jefe de proyectos",
+    "hireDate": "2023-03-03"
+  },
+  {
+    "email": "jfuentes@cni.hn",
+    "firstName": "Jose Ricardo",
+    "lastName": "Fuentes Cruz",
+    "employeeCode": "CNI003",
+    "departmentName": "Secretaria General",
+    "positionName": "Secretario general",
+    "hireDate": "2023-11-02"
+  },
+  {
+    "email": "ygarcia@cni.hn",
+    "firstName": "Yenfri Lemarie",
+    "lastName": "Garcia Zambrano",
+    "employeeCode": "CNI004",
+    "departmentName": "Dirección Administrativa",
+    "positionName": "Jefe de Presupuesto",
+    "hireDate": "2024-01-03"
+  },
+  {
+    "email": "mmejia@cni.hn",
+    "firstName": "Mario Alexander",
+    "lastName": "Peña Mejia",
+    "employeeCode": "CNI006",
+    "departmentName": "Dirección de Inversiones",
+    "positionName": "Jefe de Inteligencia de Datos",
+    "hireDate": "2024-02-05"
+  },
+  {
+    "email": "aavila@cni.hn",
+    "firstName": "Alejandro Jesset",
+    "lastName": "Avila Flores",
+    "employeeCode": "CNI007",
+    "departmentName": "Secretaria General",
+    "positionName": "Oficial Legal",
+    "hireDate": "2024-03-01"
+  },
+  {
+    "email": "amartinez@cni.hn",
+    "firstName": "Luis Andres",
+    "lastName": "Martínez Cerrato",
+    "employeeCode": "CNI008",
+    "departmentName": "Dirección Administrativa",
+    "positionName": "Oficial de TI",
+    "hireDate": "2024-03-04"
+  },
+  {
+    "email": "opantoja@cni.hn",
+    "firstName": "Omar",
+    "lastName": "Pantoja",
+    "employeeCode": "CNI009",
+    "departmentName": "Dirección de marketing",
+    "positionName": "Oficial de Multimedia",
+    "hireDate": "2024-04-10"
+  },
+  {
+    "email": "gaguilar@cni.hn",
+    "firstName": "Gabriela Paola",
+    "lastName": "Aguilar Martínez",
+    "employeeCode": "CNI010",
+    "departmentName": "Dirección de Inversiones",
+    "positionName": "Oficial de Atención al Inversionista",
+    "hireDate": "2024-10-07"
+  },
+  {
+    "email": "ggranados@cni.hn",
+    "firstName": "Gonzalo Gabriel",
+    "lastName": "Granados nuñez",
+    "employeeCode": "CNI011",
+    "departmentName": "Dirección de Inversiones",
+    "positionName": "Oficial de Inteligencia de Datos",
+    "hireDate": "2025-01-17"
+  },
+  {
+    "email": "prensa@cni.hn",
+    "firstName": "Karen Cecilia",
+    "lastName": "Alvarenga Abrego",
+    "employeeCode": "CNI012",
+    "departmentName": "Dirección de marketing",
+    "positionName": "Jefe de Prensa",
+    "hireDate": "2025-01-20"
+  },
+  {
+    "email": "daguilera@cni.hn",
+    "firstName": "Daniel eduardo",
+    "lastName": "Aguilera Vasquez",
+    "employeeCode": "CNI013",
+    "departmentName": "Dirección de marketing",
+    "positionName": "Oficial de marketing digital",
+    "hireDate": "2025-02-03"
+  },
+  {
+    "email": "crivera@cni.hn",
+    "firstName": "Carmen Maria",
+    "lastName": "Rivera Mejia",
+    "employeeCode": "CNI014",
+    "departmentName": "Dirección técnica de proyectos",
+    "positionName": "Directora Tecnica de Desarrollo Scetorial",
+    "hireDate": "2025-02-03"
+  },
+  {
+    "email": "mjimenez@cni.hn",
+    "firstName": "Marcio Leonardo",
+    "lastName": "Andino Jimenez",
+    "employeeCode": "CNI015",
+    "departmentName": "Dirección de marketing",
+    "positionName": "Director de Mercadeo e Imagen",
+    "hireDate": "2025-02-03"
+  },
+  {
+    "email": "blozano@cni.hn",
+    "firstName": "Brenda Banessa",
+    "lastName": "Lozano Martínez",
+    "employeeCode": "CNI016",
+    "departmentName": "Dirección Administrativa",
+    "positionName": "Recepcionista",
+    "hireDate": "2026-01-19"
+  },
+  {
+    "email": "dbulnes@cni.hn",
+    "firstName": "Diego Alejandro",
+    "lastName": "Bulnes Quiroz",
+    "employeeCode": "CNI017",
+    "departmentName": "Dirección de marketing",
+    "positionName": "Oficial de Promoción",
+    "hireDate": "2026-01-26"
+  },
+  {
+    "email": "oficinasps@cni.hn",
+    "firstName": "Jesus Jafet",
+    "lastName": "Reyes Hernandez",
+    "employeeCode": "CNI018",
+    "departmentName": "Dirección de Inversiones",
+    "positionName": "Oficial de Oficina Zona Norte",
+    "hireDate": "2026-04-06"
+  },
+  {
+    "email": "rhandal@cni.hn",
+    "firstName": "Regina elizabeth",
+    "lastName": "Handal Vesdiski",
+    "employeeCode": "CNI019",
+    "departmentName": "Dirección de Inversiones",
+    "positionName": "Agregada de Inversiones Zona Norte",
+    "hireDate": "2026-04-15"
+  }
+]
