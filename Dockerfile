@@ -95,6 +95,7 @@ COPY --from=builder --chown=node:node /app/dist/worker ./dist/worker
 COPY --from=builder --chown=node:node /app/prisma ./prisma
 COPY --from=builder --chown=node:node /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder --chown=node:node /app/package.json ./package.json
+COPY --from=builder --chown=node:node /app/railway-predeploy.sh ./railway-predeploy.sh
 
 USER node
 
