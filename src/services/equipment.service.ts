@@ -3,7 +3,7 @@
 // Endpoints: /api/equipment/*
 // ============================================
 
-import { apiHelpers } from '@/utils/api';
+import { api, apiHelpers } from '@/utils/api';
 import type {
   Equipment,
   EquipmentFilters,
@@ -42,6 +42,24 @@ export interface MaintenanceResponse {
   maintenance: EquipmentMaintenance;
 }
 
+export interface EquipmentImportError {
+  row: number;
+  field: string;
+  code: string;
+  message: string;
+}
+
+export interface EquipmentImportResponse {
+  success: true;
+  data: {
+    totalRows: number;
+    imported: number;
+    skipped: number;
+    errors: EquipmentImportError[];
+  };
+  requestId: string;
+}
+
 export const equipmentService = {
   /** Listar equipos con filtros opcionales (status, type) */
   list: (filters?: EquipmentFilters) =>
@@ -54,6 +72,15 @@ export const equipmentService = {
   /** Crear nuevo equipo */
   create: (data: CreateEquipmentData) =>
     apiHelpers.post<EquipmentResponse>(BASE, data),
+
+  importExcel: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return api.post<EquipmentImportResponse>(`${BASE}/import`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60_000,
+    });
+  },
 
   /** Actualizar equipo existente */
   update: (id: string, data: UpdateEquipmentData) =>

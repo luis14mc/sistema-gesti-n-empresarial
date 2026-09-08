@@ -1,16 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
-import { createAuditRecord } from '@/lib/audit';
 import { Prisma } from '@prisma/client';
-import {
-  generateAssetCode,
-  resolveEquipmentCategory,
-  CATEGORY_LABELS,
-} from '@/lib/equipment-asset-code';
-import { logEquipmentHistory } from '@/lib/equipment-history';
 import { mapEquipmentResponse } from '@/lib/equipment-mapper';
 import { isOrganizationContextError, requireOrganizationContext } from '@/modules/organizations/application/context';
+import { createEquipmentRecord } from '@/modules/equipment/import-export/equipment-create';
+import { equipmentInputSchema } from '@/modules/equipment/import-export/schemas';
 import { apiFailure, apiSuccess } from '@/platform/api/response';
 import { z } from 'zod';
 
@@ -22,35 +17,6 @@ const equipmentListQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(10),
 });
-
-// M3 fix: validación Zod para crear equipment (longitudes razonables, fechas válidas).
-const equipmentCreateSchema = z.object({
-  type: z.string().max(100).optional(),
-  category: z.string().max(60).optional(),
-  brand: z.string().min(1).max(120),
-  model: z.string().min(1).max(120),
-  serialNumber: z.string().max(120).optional().nullable(),
-  inventoryCode: z.string().max(60).optional(),
-  assetCode: z.string().max(60).optional(),
-  purchaseDate: z.coerce.date().optional().nullable(),
-  purchaseOrder: z.string().max(120).optional().nullable(),
-  supplier: z.string().max(200).optional().nullable(),
-  warrantyDate: z.coerce.date().optional().nullable(),
-  cost: z.coerce.number().nonnegative().optional().nullable(),
-  ram: z.string().max(60).optional().nullable(),
-  processor: z.string().max(200).optional().nullable(),
-  storage: z.string().max(60).optional().nullable(),
-  os: z.string().max(100).optional().nullable(),
-  includedAccessories: z.string().max(2000).optional().nullable(),
-  installedSoftware: z.string().max(2000).optional().nullable(),
-  ipAddress: z.string().refine((v) => v === '' || /^(\d{1,3}\.){3}\d{1,3}$/.test(v), { message: 'ipAddress inválida' }).optional().nullable(),
-  macAddress: z.string().regex(/^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$|^$/, { message: 'MAC inválida' }).optional().nullable(),
-  location: z.string().max(200).optional().nullable(),
-  notes: z.string().max(2000).optional().nullable(),
-}).refine(
-  (data) => !data.warrantyDate || !data.purchaseDate || data.warrantyDate >= data.purchaseDate,
-  { message: 'warrantyDate debe ser >= purchaseDate', path: ['warrantyDate'] }
-);
 
 function organizationFailure(error: unknown, requestId: string) {
   if (!isOrganizationContextError(error)) return null;
@@ -156,85 +122,17 @@ async function postHandler(req: AuthenticatedRequest) {
   try {
     const organization = await requireOrganizationContext(req, requestId);
     const body = await req.json();
-    const parsed = equipmentCreateSchema.safeParse(body);
+    const parsed = equipmentInputSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
         { error: 'Datos inválidos', issues: parsed.error.flatten() },
         { status: 400 }
       );
     }
-    const {
-      type,
-      category,
-      brand,
-      model,
-      serialNumber,
-      inventoryCode,
-      assetCode,
-      purchaseDate,
-      purchaseOrder,
-      supplier,
-      warrantyDate,
-      cost,
-      ram,
-      processor,
-      storage,
-      os,
-      ipAddress,
-      macAddress,
-      location,
-      notes,
-    } = parsed.data;
-
-    const resolvedCategory = resolveEquipmentCategory(category, type);
-    const code = inventoryCode || assetCode || (await generateAssetCode(organization.organizationId, resolvedCategory));
-    const displayType = type || CATEGORY_LABELS[resolvedCategory];
-
-    const equipment = await prisma.equipment.create({
-      data: {
-        inventoryCode: code,
-        organizationId: organization.organizationId,
-        category: resolvedCategory,
-        type: displayType,
-        brand,
-        model,
-        serialNumber: serialNumber || null,
-        purchaseDate: purchaseDate ?? null,
-        purchaseOrder: purchaseOrder ?? null,
-        supplier: supplier ?? null,
-        warrantyDate: warrantyDate ?? null,
-        cost: cost ?? null,
-        ram: ram ?? null,
-        processor: processor ?? null,
-        storage: storage ?? null,
-        os: os ?? null,
-        ipAddress: ipAddress ?? null,
-        macAddress: macAddress ?? null,
-        location: location ?? null,
-        notes: notes ?? null,
-      },
-    });
-
-    await logEquipmentHistory({
-      equipmentId: equipment.id,
-      action: 'CREATED',
-      title: 'Equipo registrado',
-      description: `Activo ${code} (${brand} ${model}) registrado en inventario.`,
-      newData: { inventoryCode: code, category: resolvedCategory, brand, model },
-      performedById: req.user!.userId,
-    });
-
-    await createAuditRecord({
-      title: 'Creación de equipo',
-      description: `Se creó equipo: ${code} (${brand} ${model})`,
-      module: 'EQUIPOS',
-      category: 'CREATE',
-      userId: req.user!.userId,
-      entityId: equipment.id,
-      entityType: 'Equipment',
+    const equipment = await createEquipmentRecord(parsed.data, {
       organizationId: organization.organizationId,
-      action: 'EQUIPMENT_CREATED',
-      newData: { inventoryCode: code, category: resolvedCategory, brand, model },
+      userId: req.user!.userId,
+      requestId,
     });
 
     return NextResponse.json({ equipment: mapEquipmentResponse(equipment) }, { status: 201 });

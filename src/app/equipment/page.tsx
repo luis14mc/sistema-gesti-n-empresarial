@@ -41,6 +41,7 @@ import { Pagination } from '@/components/shared/Pagination';
 import { AssignmentNoteContent } from '@/components/equipment/AssignmentNoteContent';
 import { ReturnNoteContent } from '@/components/equipment/ReturnNoteContent';
 import { EquipmentFileUpload } from '@/components/equipment/EquipmentFileUpload';
+import { EquipmentExcelActions } from '@/components/equipment/EquipmentExcelActions';
 import { equipmentAssignmentsService } from '@/services/equipment-assignments.service';
 import { canAccess } from '@/lib/permissions';
 import { sileo } from 'sileo';
@@ -135,6 +136,8 @@ export default function EquipmentPage() {
         isLoading,
         createEquipment,
         isCreating,
+        importEquipment,
+        isImporting,
         deleteEquipment,
         isDeleting
     } = useEquipment({
@@ -150,6 +153,7 @@ export default function EquipmentPage() {
 
     const role = (user?.role ?? 'USER') as Role;
     const canCreate = canAccess(role, 'equipment', 'create');
+    const canRead = canAccess(role, 'equipment', 'read');
     const canDelete = canAccess(role, 'equipment', 'delete');
     const { stats, isLoading: statsLoading } = useEquipmentStats();
 
@@ -307,6 +311,17 @@ export default function EquipmentPage() {
                             </DialogContent>
                         </Dialog>
                     )}
+                    <EquipmentExcelActions
+                        canImport={canCreate}
+                        canExport={canRead}
+                        filters={{
+                            search: debouncedSearch || undefined,
+                            status: statusFilter === 'ALL' ? undefined : statusFilter as EquipmentStatus,
+                            type: typeFilter === 'ALL' ? undefined : typeFilter,
+                        }}
+                        onImport={importEquipment}
+                        importing={isImporting}
+                    />
                 </PageHeader>
 
                 {/* Dashboard stats */}
