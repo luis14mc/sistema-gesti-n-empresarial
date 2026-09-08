@@ -23,8 +23,6 @@ WORKDIR /app
 
 # --------------------------------------------------
 # Dependencies
-# Railway cache mounts require a service-specific id. Keeping the Dockerfile
-# repository-portable is preferable to hardcoding a Railway service id here.
 # --------------------------------------------------
 FROM base AS dependencies
 
@@ -56,9 +54,6 @@ RUN pnpm prisma generate \
 
 # --------------------------------------------------
 # Runtime
-# Uses Debian Chromium so the browser path is deterministic on Railway.
-# Prisma CLI dependencies are retained because Railway runs migrations during
-# pre-deploy and again as an idempotent startup fallback before Next.js.
 # --------------------------------------------------
 FROM node:${NODE_VERSION}-bookworm-slim AS runtime
 
@@ -85,8 +80,8 @@ RUN corepack enable \
     && chromium --version \
     && rm -rf /var/lib/apt/lists/*
 
-# Full node_modules is intentionally retained for Prisma CLI during Railway
-# migration execution. Next.js itself still runs from standalone output.
+# Full node_modules is intentionally retained for Prisma CLI and the one-time
+# bootstrap helper. Next.js itself still runs from standalone output.
 COPY --from=dependencies --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
@@ -97,10 +92,9 @@ COPY --from=builder --chown=node:node /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder --chown=node:node /app/package.json ./package.json
 COPY --from=builder --chown=node:node /app/railway-predeploy.sh ./railway-predeploy.sh
 COPY --from=builder --chown=node:node /app/railway-start.sh ./railway-start.sh
+COPY --from=builder --chown=node:node /app/railway-bootstrap-admin.mjs ./railway-bootstrap-admin.mjs
 
 USER node
 
-# Railway injects PORT dynamically. The startup script first applies pending
-# Prisma migrations, then execs the standalone Next.js server.
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["sh", "railway-start.sh"]
