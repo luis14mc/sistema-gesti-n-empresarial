@@ -39,3 +39,17 @@ echo "[railway-predeploy] Applying migrations to PostgreSQL"
 pnpm exec prisma migrate deploy --schema=prisma/schema.prisma
 
 echo "[railway-predeploy] Prisma migrations completed successfully"
+
+if [ "${SEED_CNI_MASTER_DATA:-true}" = "true" ]; then
+  if [ ! -f prisma/seed-railway.ts ]; then
+    echo "[railway-predeploy] WARNING: prisma/seed-railway.ts missing; skipping master data seed"
+  elif [ ! -f prisma/data/proveedores-cni.json ] || [ ! -f prisma/data/empleados-cni.json ]; then
+    echo "[railway-predeploy] WARNING: CNI master data JSON missing; skipping master data seed"
+  else
+    echo "[railway-predeploy] Running CNI master data seed (proveedores + empleados)"
+    ALLOW_PRODUCTION_SEED=true pnpm exec tsx prisma/seed-railway.ts
+    echo "[railway-predeploy] CNI master data seed completed"
+  fi
+else
+  echo "[railway-predeploy] CNI master data seed disabled (SEED_CNI_MASTER_DATA=false)"
+fi
