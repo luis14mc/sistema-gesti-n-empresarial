@@ -81,6 +81,25 @@ describe('equipment workbook parser', () => {
     ]));
     expect(parsed.errors[0].code).toBe('FORMULA_NOT_ALLOWED');
   });
+
+  it('accepts exactly 1000 data rows and rejects the 1001st', async () => {
+    const validRows = Array.from({ length: 1000 }, (_, index) => [
+      `TI-LAP-${String(index + 1).padStart(4, '0')}`,
+      'LAPTOP',
+      'Dell',
+      `Modelo ${index + 1}`,
+      `SERIAL-${index + 1}`,
+    ]);
+
+    const parsed = await parseEquipmentWorkbook(await workbookBuffer(validRows));
+    expect(parsed.totalRows).toBe(1000);
+    expect(parsed.rows).toHaveLength(1000);
+
+    await expect(parseEquipmentWorkbook(await workbookBuffer([
+      ...validRows,
+      ['TI-LAP-1001', 'LAPTOP', 'Dell', 'Modelo 1001', 'SERIAL-1001'],
+    ]))).rejects.toThrow('ROW_LIMIT_EXCEEDED');
+  });
 });
 
 describe('equipment import orchestration', () => {
