@@ -36,6 +36,14 @@ echo "[railway-start] Applying Prisma migrations to PostgreSQL"
 pnpm exec prisma migrate deploy --schema=prisma/schema.prisma
 
 echo "[railway-start] Prisma migrations completed successfully"
+
+if [ "${BOOTSTRAP_ADMIN_ENABLED:-false}" = "true" ]; then
+  echo "[railway-start] Running one-time admin bootstrap"
+  node railway-bootstrap-admin.mjs
+else
+  echo "[railway-start] Admin bootstrap disabled"
+fi
+
 echo "[railway-start] Starting Next.js"
 
 exec node server.js
