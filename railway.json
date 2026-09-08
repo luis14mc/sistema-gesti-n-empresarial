@@ -6,7 +6,7 @@
   },
   "deploy": {
     "preDeployCommand": [
-      "pnpm prisma migrate deploy"
+      "sh railway-predeploy.sh"
     ],
     "healthcheckPath": "/api/health/ready",
     "healthcheckTimeout": 300,
