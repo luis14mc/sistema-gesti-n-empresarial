@@ -58,6 +58,17 @@ export function useEquipment(
         },
     });
 
+    const importMutation = useMutation({
+        mutationFn: async (file: File) => {
+            const response = await equipmentService.importExcel(file);
+            return response.data.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: equipmentKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: equipmentKeys.stats() });
+        },
+    });
+
     const updateMutation = useMutation({
         mutationFn: async ({ id, data }: { id: string; data: UpdateEquipmentData }) => {
             const response = await equipmentService.update(id, data);
@@ -104,6 +115,9 @@ export function useEquipment(
 
         createEquipment: createMutation.mutateAsync,
         isCreating: createMutation.isPending,
+
+        importEquipment: importMutation.mutateAsync,
+        isImporting: importMutation.isPending,
 
         updateEquipment: updateMutation.mutateAsync,
         isUpdating: updateMutation.isPending,
