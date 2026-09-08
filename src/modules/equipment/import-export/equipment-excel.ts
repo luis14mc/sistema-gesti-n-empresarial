@@ -48,15 +48,16 @@ export async function parseEquipmentWorkbook(buffer: Buffer): Promise<{
   const rows: EquipmentImportRow[] = [];
   const errors: EquipmentImportError[] = [];
   let totalRows = 0;
-  const lastRow = Math.min(sheet.actualRowCount, EQUIPMENT_IMPORT_MAX_ROWS + 2);
-  if (sheet.actualRowCount - 1 > EQUIPMENT_IMPORT_MAX_ROWS + 1) throw new Error('ROW_LIMIT_EXCEEDED');
 
-  for (let rowNumber = 2; rowNumber <= lastRow; rowNumber += 1) {
+  for (let rowNumber = 2; rowNumber <= sheet.actualRowCount; rowNumber += 1) {
     const row = sheet.getRow(rowNumber);
     const values = EQUIPMENT_IMPORT_HEADERS.map((_, index) => row.getCell(index + 1).value);
     if (values.every((value) => textValue(value) === undefined)) continue;
     if (textValue(values[0])?.toUpperCase().startsWith('EJEMPLO')) continue;
+
     totalRows += 1;
+    if (totalRows > EQUIPMENT_IMPORT_MAX_ROWS) throw new Error('ROW_LIMIT_EXCEEDED');
+
     const formulaColumn = values.findIndex((value) => typeof value === 'object' && value !== null && 'formula' in value);
     if (formulaColumn >= 0) {
       errors.push({ row: rowNumber, field: EQUIPMENT_IMPORT_HEADERS[formulaColumn], code: 'FORMULA_NOT_ALLOWED', message: 'No se permiten fórmulas en el archivo de importación.' });
