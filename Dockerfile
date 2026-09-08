@@ -57,8 +57,8 @@ RUN pnpm prisma generate \
 # --------------------------------------------------
 # Runtime
 # Uses Debian Chromium so the browser path is deterministic on Railway.
-# Prisma CLI dependencies are retained because Railway runs migrations as a
-# pre-deploy command from the final application image.
+# Prisma CLI dependencies are retained because Railway runs migrations during
+# pre-deploy and again as an idempotent startup fallback before Next.js.
 # --------------------------------------------------
 FROM node:${NODE_VERSION}-bookworm-slim AS runtime
 
@@ -86,7 +86,7 @@ RUN corepack enable \
     && rm -rf /var/lib/apt/lists/*
 
 # Full node_modules is intentionally retained for Prisma CLI during Railway
-# pre-deploy migrations. Next.js itself still runs from standalone output.
+# migration execution. Next.js itself still runs from standalone output.
 COPY --from=dependencies --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
@@ -96,10 +96,11 @@ COPY --from=builder --chown=node:node /app/prisma ./prisma
 COPY --from=builder --chown=node:node /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder --chown=node:node /app/package.json ./package.json
 COPY --from=builder --chown=node:node /app/railway-predeploy.sh ./railway-predeploy.sh
+COPY --from=builder --chown=node:node /app/railway-start.sh ./railway-start.sh
 
 USER node
 
-# Railway injects PORT dynamically. Next standalone reads process.env.PORT;
-# do not hardcode a container port or Docker HEALTHCHECK here.
+# Railway injects PORT dynamically. The startup script first applies pending
+# Prisma migrations, then execs the standalone Next.js server.
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "server.js"]
+CMD ["sh", "railway-start.sh"]
