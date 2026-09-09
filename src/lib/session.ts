@@ -4,6 +4,7 @@ import { cache } from 'react';
 import { verifyToken } from './auth';
 import { prisma } from './prisma';
 import type { SessionUser } from '@/types';
+import { resolveSessionRole } from '@/platform/security/authorization/session-role';
 
 const SESSION_COOKIE = 'token';
 
@@ -41,7 +42,8 @@ export const getSession = cache(async (): Promise<{ user: SessionUser } | null> 
   });
 
   if (!user) return null;
-  return { user: user as unknown as SessionUser };
+  const role = await resolveSessionRole(user.id, user.role);
+  return { user: { ...user, role } as unknown as SessionUser };
 });
 
 /**

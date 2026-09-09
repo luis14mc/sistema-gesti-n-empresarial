@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
+import { sessionRoleMatchesAllowlist } from '@/platform/security/authorization/roles';
 
 export interface AuthenticatedRequest extends NextRequest {
   user?: {
@@ -41,7 +42,7 @@ export function withAuth(
       }
 
       // Verificar roles permitidos
-      if (allowedRoles && !allowedRoles.includes(payload.role)) {
+      if (allowedRoles && !sessionRoleMatchesAllowlist(payload.role, allowedRoles)) {
         return NextResponse.json(
           { success: false, error: { code: 'FORBIDDEN', message: 'No tiene permisos para esta acción.' }, requestId },
           { status: 403, headers: { 'x-request-id': requestId } }

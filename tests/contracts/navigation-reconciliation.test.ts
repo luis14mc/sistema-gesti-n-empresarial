@@ -94,7 +94,9 @@ describe('navigation reconciliation', () => {
     // Only ADMIN reaches it.
     expect(reachableModules('ADMIN')).toContain('audits');
     expect(reachableModules('USER')).not.toContain('audits');
-    expect(reachableModules('IT')).not.toContain('audits');
+    expect(reachableModules('IT')).toContain('audits');
+    expect(reachableModules('ADMINISTRACION')).not.toContain('audits');
+    expect(reachableModules('SECRETARIA')).not.toContain('audits');
   });
 
   it('contains no dead legacy purchase navigation', () => {

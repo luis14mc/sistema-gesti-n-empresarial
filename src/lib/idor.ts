@@ -28,7 +28,7 @@ export interface IdorOptions {
     | 'none'
     | { customWhere: Prisma.Args<unknown, 'findMany'>['where'] };
   /** Restricción WHERE para roles con menos de ADMIN: e.g. RRHH ve su depto */
-  extraForStaff?: Record<Role, Prisma.Args<unknown, 'findMany'>['where'] | undefined>;
+  extraForStaff?: Partial<Record<Role, Prisma.Args<unknown, 'findMany'>['where'] | undefined>>;
 }
 
 /**

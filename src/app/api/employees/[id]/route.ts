@@ -3,7 +3,15 @@ import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
 import { buildFullName, validateHireDate } from '@/lib/employees';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { isOrganizationContextError } from '@/modules/organizations/application/context';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
+import { PermissionDeniedError } from '@/platform/domain/errors';
+import type { Permission } from '@/platform/security/authorization/permissions';
+
+function patchPermission(data: Record<string, unknown>): Permission {
+  if (Object.prototype.hasOwnProperty.call(data, 'isActive')) return 'employees.deactivate';
+  return 'employees.update';
+}
 
 async function getHandler(
   req: AuthenticatedRequest,
@@ -12,7 +20,7 @@ async function getHandler(
   const requestId = crypto.randomUUID();
   try {
     const { id } = await params;
-    const { organizationId } = await requireOrganizationContext(req, requestId);
+    const { organizationId } = await authorizeOrganization(req, requestId, 'employees.read');
     const employee = await prisma.employee.findFirst({
       where: { id, organizationId },
       include: {
@@ -32,6 +40,12 @@ async function getHandler(
     return NextResponse.json({ employee });
   } catch (error) {
     console.error('Error al obtener empleado:', error);
+    if (error instanceof PermissionDeniedError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
+    if (isOrganizationContextError(error)) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     return NextResponse.json({ error: 'Error al obtener empleado' }, { status: 500 });
   }
 }
@@ -43,8 +57,8 @@ async function patchHandler(
   const requestId = crypto.randomUUID();
   try {
     const { id } = await params;
-    const { organizationId } = await requireOrganizationContext(req, requestId);
     const data = await req.json();
+    const { organizationId } = await authorizeOrganization(req, requestId, patchPermission(data));
     const current = await prisma.employee.findFirst({ where: { id, organizationId } });
     if (!current) return NextResponse.json({ error: 'Empleado no encontrado' }, { status: 404 });
 
@@ -104,9 +118,15 @@ async function patchHandler(
     return NextResponse.json({ employee });
   } catch (error) {
     console.error('Error al actualizar empleado:', error);
+    if (error instanceof PermissionDeniedError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
+    if (isOrganizationContextError(error)) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     return NextResponse.json({ error: 'Error al actualizar empleado' }, { status: 500 });
   }
 }
 
-export const GET = withAuth(getHandler, ['ADMIN', 'IT', 'RRHH']);
-export const PATCH = withAuth(patchHandler, ['ADMIN', 'IT', 'RRHH']);
+export const GET = withAuth(getHandler);
+export const PATCH = withAuth(patchHandler);

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
+import { resolveSessionRole } from '@/platform/security/authorization/session-role';
 
 async function getHandler(req: AuthenticatedRequest) {
   try {
@@ -31,7 +32,8 @@ async function getHandler(req: AuthenticatedRequest) {
       );
     }
 
-    return NextResponse.json({ user });
+    const role = await resolveSessionRole(user.id, user.role);
+    return NextResponse.json({ user: { ...user, role } });
   } catch (error) {
     console.error('Error al obtener perfil:', error);
     return NextResponse.json(

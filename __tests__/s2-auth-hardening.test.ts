@@ -41,14 +41,16 @@ describe('S2 Auth hardening — JWT validación estricta', () => {
       expect(JWT_AUDIENCE).toBe('sge-web');
     });
 
-    it('roles válidos son solo ADMIN/USER/RRHH/IT', () => {
-      expect(VALID_ROLES.size).toBe(4);
+    it('acepta perfiles CNI promovidos y conserva roles JWT legado', () => {
       expect(VALID_ROLES.has('ADMIN')).toBe(true);
+      expect(VALID_ROLES.has('ADMINISTRACION')).toBe(true);
+      expect(VALID_ROLES.has('SECRETARIA')).toBe(true);
+      expect(VALID_ROLES.has('IT_MANAGER')).toBe(true);
       expect(VALID_ROLES.has('USER')).toBe(true);
       expect(VALID_ROLES.has('RRHH')).toBe(true);
       expect(VALID_ROLES.has('IT')).toBe(true);
-      expect(VALID_ROLES.has('PROCUREMENT')).toBe(false);
-      expect(VALID_ROLES.has('AUDITOR')).toBe(false);
+      expect(VALID_ROLES.has('PROCUREMENT')).toBe(true);
+      expect(VALID_ROLES.has('AUDITOR')).toBe(true);
       expect(VALID_ROLES.has('ADMIN ')).toBe(false);
       expect(VALID_ROLES.has('admin')).toBe(false);
     });
@@ -120,7 +122,7 @@ describe('S2 Auth hardening — JWT validación estricta', () => {
 
     it('rechaza token con role fuera de la matriz', () => {
       const bad = jwt.sign(
-        { userId: 'u-1', email: 'u@test.test', role: 'PROCUREMENT' },
+        { userId: 'u-1', email: 'u@test.test', role: 'SUPERUSER' },
         TEST_SECRET,
         { algorithm: 'HS256', expiresIn: '5m', issuer: JWT_ISSUER, audience: JWT_AUDIENCE }
       );
@@ -190,7 +192,7 @@ describe('S2 Auth hardening — JWT validación estricta', () => {
     });
 
     it('generateToken rechaza role inválido', () => {
-      expect(() => generateToken({ userId: 'u-1', email: 'u@test.test', role: 'PROCUREMENT' as Role }))
+      expect(() => generateToken({ userId: 'u-1', email: 'u@test.test', role: 'SUPERUSER' as Role }))
         .toThrow(/role inválido/);
     });
   });
@@ -240,7 +242,7 @@ describe('S2 Auth hardening — JWT validación estricta', () => {
     });
 
     it('rechaza payload con role inválido', () => {
-      expect(validateTokenClaims({ ...validClaims, role: 'PROCUREMENT' })).toBeNull();
+      expect(validateTokenClaims({ ...validClaims, role: 'SUPERUSER' })).toBeNull();
       expect(validateTokenClaims({ ...validClaims, role: '' })).toBeNull();
       expect(validateTokenClaims({ ...validClaims, role: 1 as unknown as Role })).toBeNull();
     });

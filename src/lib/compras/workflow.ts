@@ -34,11 +34,11 @@ export function canPerformCompraAction(
     case 'generar_orden':
     case 'emitir':
     case 'regenerar_pdf':
-      return !!ctx.isOwner || role === 'ADMIN' || role === 'IT';
+      return !!ctx.isOwner || role === 'ADMIN' || role === 'OWNER' || role === 'ADMINISTRACION';
     case 'anular':
-      return role === 'ADMIN' || (estado === 'BORRADOR' && !!ctx.isOwner);
+      return role === 'ADMIN' || role === 'OWNER' || role === 'ADMINISTRACION' || (estado === 'BORRADOR' && !!ctx.isOwner);
     case 'cerrar':
-      return role === 'ADMIN' || role === 'IT';
+      return role === 'ADMIN' || role === 'OWNER' || role === 'ADMINISTRACION';
     default:
       return false;
   }

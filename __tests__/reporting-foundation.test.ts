@@ -28,7 +28,7 @@ describe('Phase 4A reporting foundation', () => {
   });
 
   it('does not grant platform reports through any organization role', () => {
-    const roles: OrganizationRole[] = ['OWNER', 'ADMIN', 'IT_MANAGER', 'IT_TECHNICIAN', 'PROCUREMENT', 'HR', 'AUDITOR', 'USER'];
+    const roles: OrganizationRole[] = ['OWNER', 'ADMIN', 'IT_MANAGER', 'IT_TECHNICIAN', 'PROCUREMENT', 'HR', 'AUDITOR', 'USER', 'ADMINISTRACION', 'SECRETARIA', 'DIRECTOR'];
     expect(roles.every((role) => !can(organizationRole(role), 'reports.platform'))).toBe(true);
     expect(listAvailableReports('USER')).toEqual([]);
     expect(listAvailableReports('PROCUREMENT').some((report) => report.code === 'PURCHASE_ORDER_TAX_ANALYSIS')).toBe(true);

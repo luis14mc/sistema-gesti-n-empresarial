@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
-import { Prisma, type Role } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { isOrganizationContextError } from '@/modules/organizations/application/context';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
+import { PermissionDeniedError } from '@/platform/domain/errors';
+import { parsePromotedOrganizationRole, persistUserAccountRoles, presentAccountRole } from '@/platform/security/authorization/user-account-roles';
+import type { OrganizationRole } from '@prisma/client';
 
 // ============================================
 // GET /api/users — Listar usuarios miembros de la organización actual
@@ -12,7 +16,7 @@ import { requireOrganizationContext } from '@/modules/organizations/application/
 async function getHandler(req: AuthenticatedRequest) {
     const requestId = crypto.randomUUID();
     try {
-        const { organizationId } = await requireOrganizationContext(req, requestId);
+        const { organizationId } = await authorizeOrganization(req, requestId, 'users.read');
         const { searchParams } = new URL(req.url);
         const role = searchParams.get('role');
         const search = searchParams.get('search');
@@ -22,13 +26,17 @@ async function getHandler(req: AuthenticatedRequest) {
         const pageSize = parseInt(searchParams.get('pageSize') || '100');
         const skip = (page - 1) * pageSize;
 
-        const where: Prisma.UserWhereInput = {
-            organizationMemberships: {
-                some: { organizationId, status: 'ACTIVE' },
+        const membershipFilter: Prisma.OrganizationMembershipListRelationFilter = {
+            some: {
+                organizationId,
+                status: 'ACTIVE',
+                ...(role ? { role: role as OrganizationRole } : {}),
             },
         };
 
-        if (role) where.role = role as Role;
+        const where: Prisma.UserWhereInput = {
+            organizationMemberships: membershipFilter,
+        };
         if (isActive !== null && isActive !== undefined && isActive !== '') {
             where.isActive = isActive === 'true';
         }
@@ -59,6 +67,11 @@ async function getHandler(req: AuthenticatedRequest) {
                     positionId: true,
                     createdAt: true,
                     updatedAt: true,
+                    organizationMemberships: {
+                        where: { organizationId, status: 'ACTIVE' },
+                        select: { role: true },
+                        take: 1,
+                    },
                 },
                 orderBy: { createdAt: 'desc' },
             }),
@@ -66,7 +79,10 @@ async function getHandler(req: AuthenticatedRequest) {
         ]);
 
         return NextResponse.json({
-            users,
+            users: users.map(({ organizationMemberships, ...user }) => ({
+                ...user,
+                role: presentAccountRole(organizationMemberships[0]?.role, user.role),
+            })),
             total,
             page,
             pageSize,
@@ -74,6 +90,12 @@ async function getHandler(req: AuthenticatedRequest) {
         });
     } catch (error) {
         console.error('Error al obtener usuarios:', error);
+        if (error instanceof PermissionDeniedError) {
+            return NextResponse.json({ error: error.message }, { status: 403 });
+        }
+        if (isOrganizationContextError(error)) {
+            return NextResponse.json({ error: error.message }, { status: error.status });
+        }
         return NextResponse.json(
             { error: 'Error al obtener usuarios' },
             { status: 500 }
@@ -89,7 +111,8 @@ async function getHandler(req: AuthenticatedRequest) {
 async function patchHandler(req: AuthenticatedRequest) {
     const requestId = crypto.randomUUID();
     try {
-        const { organizationId } = await requireOrganizationContext(req, requestId);
+        const context = await authorizeOrganization(req, requestId, 'users.update');
+        const { organizationId } = context;
         const body = await req.json();
         const { id, ...data } = body;
 
@@ -107,9 +130,21 @@ async function patchHandler(req: AuthenticatedRequest) {
             );
         }
 
+        let nextRoles: ReturnType<typeof persistUserAccountRoles> | null = null;
+        if (data.role) {
+            const promoted = parsePromotedOrganizationRole(data.role);
+            if (!promoted) {
+                return NextResponse.json({ error: 'Rol no permitido para asignación' }, { status: 400 });
+            }
+            await authorizeOrganization(req, requestId, 'memberships.manage');
+            nextRoles = persistUserAccountRoles(promoted);
+        }
+
         const membership = await prisma.organizationMembership.findFirst({
             where: { userId: id, organizationId, status: 'ACTIVE' },
             select: {
+                id: true,
+                role: true,
                 user: {
                     select: { role: true, isActive: true, firstName: true, lastName: true },
                 },
@@ -120,33 +155,43 @@ async function patchHandler(req: AuthenticatedRequest) {
         }
         const previousUser = membership.user;
 
-        const user = await prisma.user.update({
-            where: { id },
-            data: {
-                ...(data.firstName && { firstName: data.firstName }),
-                ...(data.lastName && { lastName: data.lastName }),
-                ...(data.email && { email: data.email }),
-                ...(data.phone !== undefined && { phone: data.phone }),
-                ...(data.role && { role: data.role }),
-                ...(data.isActive !== undefined && { isActive: data.isActive }),
-                ...(data.departmentId !== undefined && { departmentId: data.departmentId }),
-                ...(data.positionId !== undefined && { positionId: data.positionId }),
-            },
-            select: {
-                id: true,
-                employeeNumber: true,
-                email: true,
-                firstName: true,
-                lastName: true,
-                phone: true,
-                role: true,
-                isActive: true,
-                departmentId: true,
-                positionId: true,
-                createdAt: true,
-                updatedAt: true,
-            },
+        const user = await prisma.$transaction(async (tx) => {
+            if (nextRoles) {
+                await tx.organizationMembership.update({
+                    where: { id: membership.id },
+                    data: { role: nextRoles.membershipRole },
+                });
+            }
+            return tx.user.update({
+                where: { id },
+                data: {
+                    ...(data.firstName && { firstName: data.firstName }),
+                    ...(data.lastName && { lastName: data.lastName }),
+                    ...(data.email && { email: data.email }),
+                    ...(data.phone !== undefined && { phone: data.phone }),
+                    ...(nextRoles ? { role: nextRoles.prismaUserRole } : {}),
+                    ...(data.isActive !== undefined && { isActive: data.isActive }),
+                    ...(data.departmentId !== undefined && { departmentId: data.departmentId }),
+                    ...(data.positionId !== undefined && { positionId: data.positionId }),
+                },
+                select: {
+                    id: true,
+                    employeeNumber: true,
+                    email: true,
+                    firstName: true,
+                    lastName: true,
+                    phone: true,
+                    role: true,
+                    isActive: true,
+                    departmentId: true,
+                    positionId: true,
+                    createdAt: true,
+                    updatedAt: true,
+                },
+            });
         });
+
+        const presentedRole = presentAccountRole(nextRoles?.membershipRole ?? membership.role, user.role);
 
         await createAuditRecord({
             title: 'Actualización de usuario',
@@ -160,12 +205,18 @@ async function patchHandler(req: AuthenticatedRequest) {
               role: previousUser.role,
               isActive: previousUser.isActive,
             },
-            newData: { role: user.role, isActive: user.isActive },
+            newData: { role: presentedRole, isActive: user.isActive },
         });
 
-        return NextResponse.json({ user });
+        return NextResponse.json({ user: { ...user, role: presentedRole } });
     } catch (error) {
         console.error('Error al actualizar usuario:', error);
+        if (error instanceof PermissionDeniedError) {
+            return NextResponse.json({ error: error.message }, { status: 403 });
+        }
+        if (isOrganizationContextError(error)) {
+            return NextResponse.json({ error: error.message }, { status: error.status });
+        }
         return NextResponse.json(
             { error: 'Error al actualizar usuario' },
             { status: 500 }
@@ -181,7 +232,7 @@ async function patchHandler(req: AuthenticatedRequest) {
 async function postHandler(req: AuthenticatedRequest) {
     const requestId = crypto.randomUUID();
     try {
-        const { organizationId } = await requireOrganizationContext(req, requestId);
+        const { organizationId } = await authorizeOrganization(req, requestId, 'users.create');
         const body = await req.json();
         const { firstName, lastName, email, password, role, employeeNumber, phone, departmentId, positionId } = body;
 
@@ -191,6 +242,13 @@ async function postHandler(req: AuthenticatedRequest) {
                 { status: 400 }
             );
         }
+
+        const promoted = parsePromotedOrganizationRole(role);
+        if (!promoted) {
+            return NextResponse.json({ error: 'Seleccione un perfil CNI válido' }, { status: 400 });
+        }
+        await authorizeOrganization(req, requestId, 'memberships.manage');
+        const accountRoles = persistUserAccountRoles(promoted);
 
         const existing = await prisma.user.findUnique({ where: { email } });
         if (existing) {
@@ -212,7 +270,7 @@ async function postHandler(req: AuthenticatedRequest) {
                 email,
                 password: hashedPassword,
                 phone,
-                role: role || 'USER',
+                role: accountRoles.prismaUserRole,
                 departmentId,
                 positionId,
             },
@@ -235,7 +293,7 @@ async function postHandler(req: AuthenticatedRequest) {
             data: {
               organizationId,
               userId: created.id,
-              role: 'USER',
+              role: accountRoles.membershipRole,
               status: 'ACTIVE',
             },
           });
@@ -250,12 +308,18 @@ async function postHandler(req: AuthenticatedRequest) {
             userId: req.user!.userId,
             entityId: user.id,
             organizationId,
-            newData: { email: user.email, role: user.role, employeeNumber: user.employeeNumber },
+            newData: { email: user.email, role: accountRoles.membershipRole, employeeNumber: user.employeeNumber },
         });
 
-        return NextResponse.json({ user }, { status: 201 });
+        return NextResponse.json({ user: { ...user, role: accountRoles.membershipRole } }, { status: 201 });
     } catch (error) {
         console.error('Error al crear usuario:', error);
+        if (error instanceof PermissionDeniedError) {
+            return NextResponse.json({ error: error.message }, { status: 403 });
+        }
+        if (isOrganizationContextError(error)) {
+            return NextResponse.json({ error: error.message }, { status: error.status });
+        }
         return NextResponse.json(
             { error: 'Error al crear usuario' },
             { status: 500 }
@@ -263,6 +327,6 @@ async function postHandler(req: AuthenticatedRequest) {
     }
 }
 
-export const GET = withAuth(getHandler, ['ADMIN', 'RRHH']);
-export const POST = withAuth(postHandler, ['ADMIN']);
-export const PATCH = withAuth(patchHandler, ['ADMIN']);
+export const GET = withAuth(getHandler);
+export const POST = withAuth(postHandler);
+export const PATCH = withAuth(patchHandler);

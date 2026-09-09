@@ -32,20 +32,22 @@ import { sileo } from 'sileo';
 import { swalConfirm } from '@/lib/swal';
 import { getInitials, formatDate } from '@/utils/helpers';
 import type { Role, User, UpdateUserData, CreateUserData } from '@/types';
+import { ROLE_LABELS } from '@/types';
+import { PROMOTED_ORGANIZATION_ROLES, organizationRoleLabel } from '@/platform/security/authorization/roles';
 
 // ============================================
 // ROLE CONFIG
 // ============================================
 
-const roleLabels: Record<string, string> = {
-    ADMIN: 'Administrador', USER: 'Usuario', RRHH: 'Recursos Humanos', IT: 'Sistemas / TI',
-};
+const roleLabels: Record<string, string> = Object.fromEntries(
+    PROMOTED_ORGANIZATION_ROLES.map((role) => [role, organizationRoleLabel(role)]),
+);
 
 const roleColors: Record<string, string> = {
     ADMIN: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900',
-    USER: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800',
-    RRHH: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-900',
-    IT: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900',
+    ADMINISTRACION: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-900',
+    SECRETARIA: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800',
+    IT_MANAGER: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900',
 };
 
 // ============================================
@@ -53,7 +55,7 @@ const roleColors: Record<string, string> = {
 // ============================================
 
 const emptyCreateForm: CreateUserData = {
-    firstName: '', lastName: '', email: '', password: '', role: 'USER' as Role, employeeNumber: '',
+    firstName: '', lastName: '', email: '', password: '', role: 'ADMINISTRACION' as Role, employeeNumber: '',
 };
 
 // ============================================
@@ -308,8 +310,8 @@ export default function UsersPage() {
                                                 {user.email}
                                             </TableCell>
                                             <TableCell>
-                                                <Badge variant="outline" className={roleColors[user.role]}>
-                                                    {roleLabels[user.role]}
+                                                <Badge variant="outline" className={roleColors[user.role] ?? 'bg-muted text-muted-foreground'}>
+                                                    {roleLabels[user.role] ?? ROLE_LABELS[user.role] ?? user.role}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="hidden md:table-cell">
@@ -379,7 +381,7 @@ export default function UsersPage() {
                             </div>
                             <div className="space-y-2">
                                 <Label>Rol</Label>
-                                <Select value={editForm.role ?? 'USER'} onValueChange={(v) => setEditForm(f => ({ ...f, role: v as Role }))}>
+                                <Select value={editForm.role ?? 'ADMINISTRACION'} onValueChange={(v) => setEditForm(f => ({ ...f, role: v as Role }))}>
                                     <SelectTrigger><SelectValue /></SelectTrigger>
                                     <SelectContent>
                                         {Object.entries(roleLabels).map(([k, v]) => (

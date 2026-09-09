@@ -28,19 +28,19 @@ describe('RBAC — permissions matrix', () => {
     it('can manage equipment and assignments but not delete', () => {
       expect(canAccess('IT', 'equipment', 'create')).toBe(true);
       expect(canAccess('IT', 'equipment', 'update')).toBe(true);
-      expect(canAccess('IT', 'equipment', 'delete')).toBe(false);
+      expect(canAccess('IT', 'equipment', 'delete')).toBe(true);
     });
 
-    it('cannot access oficios or users', () => {
+    it('cannot access oficios', () => {
       expect(canAccess('IT', 'oficios', 'read')).toBe(false);
-      expect(canAccess('IT', 'users', 'read')).toBe(false);
+      expect(canAccess('IT', 'users', 'read')).toBe(true);
     });
   });
 
   describe('RRHH', () => {
     it('can manage users and read audit-records', () => {
       expect(canAccess('RRHH', 'users', 'update')).toBe(true);
-      expect(canAccess('RRHH', 'audit-records', 'read')).toBe(true);
+      expect(canAccess('RRHH', 'audit-records', 'read')).toBe(false);
     });
 
     it('cannot manage equipment or assignments', () => {
@@ -109,19 +109,24 @@ describe('RBAC — permissions matrix', () => {
     it('resolves /oficios/sub-routes to the oficios module', () => {
       const access = routeToAccess('/oficios/cni');
       expect(access?.module).toBe('oficios');
-      expect(access?.roles).toBeNull();
+      expect(access?.roles).toContain('ADMINISTRACION');
+      expect(access?.roles).toContain('SECRETARIA');
+      expect(access?.roles).not.toContain('IT_MANAGER');
     });
 
-    it('resolves /equipment to any authenticated role (read-only)', () => {
+    it('resolves /equipment to equipment operators, not correspondence', () => {
       const access = routeToAccess('/equipment');
       expect(access?.module).toBe('equipment');
-      expect(access?.roles).toBeNull();
+      expect(access?.roles).toContain('IT_MANAGER');
+      expect(access?.roles).not.toContain('ADMINISTRACION');
+      expect(access?.roles).not.toContain('SECRETARIA');
     });
 
     it('resolves legacy /audit-records AND new /audit/logs to audit-records module', () => {
       expect(routeToAccess('/audit-records')?.module).toBe('audit-records');
       expect(routeToAccess('/audit/logs')?.module).toBe('audit-records');
-      expect(routeToAccess('/audit/logs')?.roles).toEqual(['ADMIN']);
+      expect(routeToAccess('/audit/logs')?.roles).toContain('ADMIN');
+      expect(routeToAccess('/audit/logs')?.roles).toContain('IT_MANAGER');
     });
 
     it('returns null for unprotected routes', () => {
@@ -147,19 +152,17 @@ describe('RBAC — permissions matrix', () => {
       expect(canAccessRoute('USER', '/audit/logs')).toBe(false);
     });
 
-    it('IT cannot access /users or /settings', () => {
-      expect(canAccessRoute('IT', '/users')).toBe(false);
-      expect(canAccessRoute('IT', '/settings')).toBe(false);
+    it('IT (TI) can access /users and /settings', () => {
+      expect(canAccessRoute('IT', '/users')).toBe(true);
+      expect(canAccessRoute('IT', '/settings')).toBe(true);
     });
 
-    it('RRHH can access employees/users/purchases and view equipment (read)', () => {
+    it('RRHH can access employees/users/purchases and cannot open equipment routes', () => {
       expect(canAccessRoute('RRHH', '/employees')).toBe(true);
       expect(canAccessRoute('RRHH', '/users')).toBe(true);
       expect(canAccessRoute('RRHH', '/compras')).toBe(true);
       expect(canAccessRoute('RRHH', '/compras/nueva')).toBe(true);
-      // RRHH no tiene módulo equipment en PERMISSIONS → sidebar lo oculta,
-      // pero el middleware es permisivo. La acción final la decide API+UI.
-      expect(canAccessRoute('RRHH', '/equipment')).toBe(true);
+      expect(canAccessRoute('RRHH', '/equipment')).toBe(false);
     });
   });
 });

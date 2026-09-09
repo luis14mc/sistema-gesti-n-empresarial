@@ -4,7 +4,16 @@
 
 // ── Enums (mirror de Prisma) ──────────────────────────────────
 
-export type Role = 'ADMIN' | 'USER' | 'RRHH' | 'IT';
+import type { SessionRole } from '@/platform/security/authorization/roles';
+import { ORGANIZATION_ROLE_LABELS, organizationRoleLabel } from '@/platform/security/authorization/roles';
+
+export type Role = SessionRole;
+
+export const ROLE_LABELS: Record<string, string> = {
+  ...ORGANIZATION_ROLE_LABELS,
+  RRHH: organizationRoleLabel('RRHH'),
+  IT: organizationRoleLabel('IT'),
+};
 
 export type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED' | 'CANCELLED';
 export type TicketPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
@@ -18,14 +27,6 @@ export type AttendanceStatus = 'ON_TIME' | 'LATE' | 'ABSENT' | 'EXCUSED';
 export type EquipmentStatus = 'AVAILABLE' | 'ASSIGNED' | 'IN_MAINTENANCE' | 'DAMAGED' | 'RETIRED' | 'LOST';
 
 export type MovementType = 'EXIT' | 'RETURN';
-
-// Constantes legibles para selects/badges
-export const ROLE_LABELS: Record<Role, string> = {
-  ADMIN: 'Administrador',
-  USER: 'Usuario',
-  RRHH: 'Recursos Humanos',
-  IT: 'Tecnología',
-};
 
 export const TICKET_STATUS_LABELS: Record<TicketStatus, string> = {
   OPEN: 'Abierto',

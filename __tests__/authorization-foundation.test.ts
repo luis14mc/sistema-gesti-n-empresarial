@@ -11,7 +11,7 @@ import {
 } from '@/platform/security/authorization/permissions';
 import { AuditLogQueryService } from '@/platform/security/audit/audit-log-query-service';
 
-const organizationRoles: OrganizationRole[] = ['OWNER', 'ADMIN', 'IT_MANAGER', 'IT_TECHNICIAN', 'PROCUREMENT', 'HR', 'AUDITOR', 'USER'];
+const organizationRoles: OrganizationRole[] = ['OWNER', 'ADMIN', 'IT_MANAGER', 'IT_TECHNICIAN', 'PROCUREMENT', 'HR', 'AUDITOR', 'USER', 'ADMINISTRACION', 'SECRETARIA', 'DIRECTOR'];
 const platformRoles: PlatformRole[] = ['PLATFORM_ADMIN', 'SUPPORT_ADMIN'];
 
 describe('Phase 6A capability authorization', () => {

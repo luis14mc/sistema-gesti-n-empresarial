@@ -4,15 +4,16 @@ import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
 import { Prisma } from '@prisma/client';
 import { toEmployeeCreateData, validateHireDate } from '@/lib/employees';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
 import { isOrganizationContextError } from '@/modules/organizations/application/context';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
+import { PermissionDeniedError } from '@/platform/domain/errors';
 
 async function getHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   const startedAt = performance.now();
   try {
     const contextStartedAt = performance.now();
-    const { organizationId } = await requireOrganizationContext(req, requestId);
+    const { organizationId } = await authorizeOrganization(req, requestId, 'employees.read');
     const contextMs = performance.now() - contextStartedAt;
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search');
@@ -75,6 +76,9 @@ async function getHandler(req: AuthenticatedRequest) {
     });
   } catch (error) {
     console.error('Error al obtener empleados:', { requestId, error });
+    if (error instanceof PermissionDeniedError) {
+      return NextResponse.json({ success: false, error: { code: error.code, message: error.message }, requestId }, { status: 403, headers: { 'x-request-id': requestId } });
+    }
     if (isOrganizationContextError(error)) {
       return NextResponse.json({ success: false, error: { code: error.code, message: error.message }, requestId }, { status: error.status, headers: { 'x-request-id': requestId } });
     }
@@ -89,7 +93,7 @@ async function getHandler(req: AuthenticatedRequest) {
 async function postHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   try {
-    const { organizationId } = await requireOrganizationContext(req, requestId);
+    const { organizationId } = await authorizeOrganization(req, requestId, 'employees.create');
     const body = await req.json();
     const { firstName, lastName, email, employeeCode, hireDate, departmentId, positionId } = body;
 
@@ -139,6 +143,12 @@ async function postHandler(req: AuthenticatedRequest) {
     return NextResponse.json({ employee }, { status: 201 });
   } catch (error) {
     console.error('Error al crear empleado:', error);
+    if (error instanceof PermissionDeniedError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
+    if (isOrganizationContextError(error)) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return NextResponse.json({ error: 'Correo o código de empleado ya registrado en esta organización' }, { status: 409 });
     }
@@ -146,5 +156,5 @@ async function postHandler(req: AuthenticatedRequest) {
   }
 }
 
-export const GET = withAuth(getHandler, ['ADMIN', 'IT', 'RRHH']);
-export const POST = withAuth(postHandler, ['ADMIN', 'IT', 'RRHH']);
+export const GET = withAuth(getHandler);
+export const POST = withAuth(postHandler);

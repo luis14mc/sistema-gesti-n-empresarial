@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { comparePassword, generateToken, hashPassword } from '@/lib/auth';
 import { loginSchema, registerSchema } from '@/lib/zod-schemas';
 import { createAuditRecord } from '@/lib/audit';
+import { resolveSessionRole } from '@/platform/security/authorization/session-role';
 import type { ActionResult, SessionUser } from '@/types';
 
 const COOKIE_NAME = 'token';
@@ -66,10 +67,11 @@ export async function loginAction(
     return { success: false, error: 'Credenciales inválidas' };
   }
 
+  const sessionRole = await resolveSessionRole(user.id, user.role);
   const token = generateToken({
     userId: user.id,
     email: user.email,
-    role: user.role,
+    role: sessionRole,
   });
 
   await setAuthCookie(token);
@@ -83,7 +85,7 @@ export async function loginAction(
   });
 
   const { password: _, ...sessionUser } = user;
-  return { success: true, data: sessionUser as unknown as SessionUser };
+  return { success: true, data: { ...sessionUser, role: sessionRole } as unknown as SessionUser };
 }
 
 // ── REGISTER ──────────────────────────────────────────────────

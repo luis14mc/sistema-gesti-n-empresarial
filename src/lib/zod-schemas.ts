@@ -143,7 +143,7 @@ export const createUserSchema = z.object({
   firstName: z.string().min(1, 'Nombre requerido'),
   lastName: z.string().min(1, 'Apellido requerido'),
   phone: z.string().optional(),
-  role: z.enum(['ADMIN', 'USER', 'RRHH', 'IT']),
+  role: z.enum(['ADMIN', 'ADMINISTRACION', 'SECRETARIA', 'IT_MANAGER']),
   departmentId: z.string().optional(),
   positionId: z.string().optional(),
 });
