@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { routeToAccess } from '@/lib/permissions';
-import { isDeprecatedFrontendPath } from '@/lib/deprecated-api';
+import { isDeprecatedFrontendPath } from '@/lib/deprecated-frontend-paths';
 import {
   JWT_ALGORITHM,
   validateTokenClaims,
   type TokenClaims,
 } from '@/lib/jwt-config';
-import { postLoginPath } from '@/platform/security/authorization/roles';
 
 // ============================================
 // NEXT.JS MIDDLEWARE — Protección de rutas + RBAC + CSP nonce
@@ -15,8 +14,11 @@ import { postLoginPath } from '@/platform/security/authorization/roles';
 // S2: validación JWT estricta en Edge (alg=HS256, exp, iss, aud, claims).
 // ============================================
 
-const TOKEN_COOKIE = 'token';
 const AUTH_ROUTES  = ['/login', '/register'];
+
+function postLoginPathForRole(role?: string | null): string {
+  return role === 'SECRETARIA' ? '/oficios/todos' : '/dashboard';
+}
 
 export function buildRequestRedirectUrl(request: NextRequest, path: string, environment = process.env.NODE_ENV): URL {
   const url = new URL(path, request.url);
@@ -233,14 +235,17 @@ export async function middleware(request: NextRequest) {
     });
   }
 
-  // 3) Auth route con sesión activa → landing del perfil
+  // 3) Auth route con sesión válida → landing del perfil.
+  // Token inválido/expirado: dejar ver /login (no redirigir a dashboard).
   if (authRoute && token) {
     const payload = await decodeAndVerifyJwt(token);
-    const res = NextResponse.redirect(
-      buildRequestRedirectUrl(request, postLoginPath(payload?.role ?? '')),
-    );
-    applySecurityHeaders(res, nonce);
-    return res;
+    if (payload) {
+      const res = NextResponse.redirect(
+        buildRequestRedirectUrl(request, postLoginPathForRole(payload.role)),
+      );
+      applySecurityHeaders(res, nonce);
+      return res;
+    }
   }
 
   // 4) Raíz "/" → según sesión
@@ -248,7 +253,7 @@ export async function middleware(request: NextRequest) {
     let landing = '/login';
     if (token) {
       const payload = await decodeAndVerifyJwt(token);
-      landing = postLoginPath(payload?.role ?? '');
+      landing = payload ? postLoginPathForRole(payload.role) : '/login';
     }
     const res = NextResponse.redirect(buildRequestRedirectUrl(request, landing));
     applySecurityHeaders(res, nonce);

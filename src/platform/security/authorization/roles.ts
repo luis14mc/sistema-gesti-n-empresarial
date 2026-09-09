@@ -1,4 +1,8 @@
 import type { OrganizationRole, Role as PrismaUserRole } from '@prisma/client';
+import { VALID_SESSION_ROLES, type SessionRole } from '@/lib/session-roles';
+
+export { SESSION_ROLES, VALID_SESSION_ROLES } from '@/lib/session-roles';
+export type { SessionRole };
 
 /**
  * Promoted CNI operating profiles. These are the only organization roles
@@ -45,20 +49,6 @@ export const ORGANIZATION_ROLE_LABELS: Record<OrganizationRole, string> = {
 export const LEGACY_JWT_USER_ROLES = ['RRHH', 'IT'] as const;
 
 export type LegacyJwtUserRole = (typeof LEGACY_JWT_USER_ROLES)[number];
-
-/**
- * Session/JWT role: organization membership role plus leftover User.role
- * values (`RRHH`, `IT`) so existing tokens keep working until re-login.
- */
-export type SessionRole = OrganizationRole | LegacyJwtUserRole;
-
-export const SESSION_ROLES: readonly SessionRole[] = [
-  ...PROMOTED_ORGANIZATION_ROLES,
-  ...LEGACY_ORGANIZATION_ROLES,
-  ...LEGACY_JWT_USER_ROLES,
-];
-
-export const VALID_SESSION_ROLES = new Set<string>(SESSION_ROLES);
 
 export function isPromotedOrganizationRole(role: string): role is PromotedOrganizationRole {
   return (PROMOTED_ORGANIZATION_ROLES as readonly string[]).includes(role);

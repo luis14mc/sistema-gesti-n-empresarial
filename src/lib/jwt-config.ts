@@ -3,7 +3,7 @@
  * Single source of truth para algoritmo, issuer, audience y roles válidos.
  */
 
-import { VALID_SESSION_ROLES, type SessionRole } from '@/platform/security/authorization/roles';
+import { VALID_SESSION_ROLES, type SessionRole } from '@/lib/session-roles';
 
 export const JWT_ALGORITHM = 'HS256' as const;
 export const JWT_ISSUER = 'sge';
