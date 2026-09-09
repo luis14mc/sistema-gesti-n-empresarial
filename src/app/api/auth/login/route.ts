@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  let stage = 'LOOKUP_USER';
   try {
     const body = await req.json();
     const parsed = loginSchema.safeParse(body);
@@ -81,6 +82,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    stage = 'VERIFY_PASSWORD';
     const isPasswordValid = await comparePassword(password, user.password);
 
     if (!isPasswordValid) {
@@ -97,8 +99,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    stage = 'RESOLVE_SESSION_ROLE';
     const sessionRole = await resolveSessionRole(user.id, user.role);
 
+    stage = 'GENERATE_TOKEN';
     const token = generateToken({
       userId: user.id,
       email: user.email,
@@ -107,12 +111,18 @@ export async function POST(req: NextRequest) {
 
     const { password: _omit, ...userWithoutPassword } = user;
 
+    stage = 'AUDIT_LOGIN';
     await createAuditRecord({
       title: 'Inicio de sesión (API)',
       description: `${user.firstName} ${user.lastName} inició sesión`,
       module: 'USUARIOS',
       category: 'LOGIN',
       userId: user.id,
+    }).catch((error) => {
+      console.error('[Login] audit failed', {
+        userId: user.id,
+        error: error instanceof Error ? error.message : 'UNKNOWN_ERROR',
+      });
     });
 
     return NextResponse.json(
@@ -120,7 +130,11 @@ export async function POST(req: NextRequest) {
       { status: 200, headers }
     );
   } catch (error) {
-    console.error('[Login] Error:', error);
+    console.error('[Login] Error', {
+      errorName: error instanceof Error ? error.name : 'UnknownError',
+      errorMessage: error instanceof Error ? error.message : 'UNKNOWN_ERROR',
+      stage,
+    });
     return NextResponse.json(
       { error: 'Error al iniciar sesión' },
       { status: 500, headers }
