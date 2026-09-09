@@ -1,4 +1,6 @@
-import { type Role } from '@/types';
+import type { SessionRole } from '@/lib/session-roles';
+
+type Role = SessionRole;
 
 export type Module =
   | 'dashboard'

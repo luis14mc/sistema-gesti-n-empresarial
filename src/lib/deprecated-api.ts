@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/middleware';
+export {
+  DEPRECATED_FRONTEND_PREFIXES,
+  isDeprecatedFrontendPath,
+} from '@/lib/deprecated-frontend-paths';
 
 export const DEPRECATED_API_MESSAGES = {
   tickets:
@@ -18,17 +22,4 @@ export function deprecatedApiResponse(message: string) {
 
 export function deprecatedApiHandler(message: string) {
   return withAuth(async () => deprecatedApiResponse(message));
-}
-
-/** Rutas frontend legacy fuera de alcance — redirigir al dashboard */
-export const DEPRECATED_FRONTEND_PREFIXES = [
-  '/tickets',
-  '/inventory',
-  '/time-entries',
-] as const;
-
-export function isDeprecatedFrontendPath(pathname: string): boolean {
-  return DEPRECATED_FRONTEND_PREFIXES.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
-  );
 }
