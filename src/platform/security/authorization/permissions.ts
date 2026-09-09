@@ -47,6 +47,7 @@ export const ORGANIZATION_PERMISSIONS = [
   'purchase-orders.create',
   'purchase-orders.update',
   'purchase-orders.generate',
+  'purchase-orders.approve',
   'purchase-orders.cancel',
   'purchase-orders.download',
   'suppliers.read',
@@ -86,6 +87,9 @@ export const PLATFORM_PERMISSIONS = [
 
 export const PERMISSIONS = [...ORGANIZATION_PERMISSIONS, ...PLATFORM_PERMISSIONS] as const;
 export type Permission = (typeof PERMISSIONS)[number];
+
+/** Capability required to issue / approve a generated purchase order. */
+export const PURCHASE_ORDER_APPROVE: Permission = 'purchase-orders.approve';
 
 export type ScopedRole =
   | Readonly<{ scope: 'organization'; role: OrganizationRole }>
@@ -137,6 +141,7 @@ const ORGANIZATION_ROLE_PERMISSIONS: Record<OrganizationRole, readonly Permissio
   ADMINISTRACION: [
     ...OFICIOS_OPERATIONAL,
     ...PURCHASES_OPERATIONAL,
+    'purchase-orders.approve',
     ...EMPLOYEES_OPERATIONAL,
     'dashboard.view',
     ...NOTIFICATION_BASELINE,

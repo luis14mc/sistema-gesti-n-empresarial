@@ -38,6 +38,8 @@ function mapDocument(doc: OrderDocument) {
 type OrderWithRelations = Prisma.CompraOrdenGetPayload<{
   include: {
     createdBy: { select: { id: true; firstName: true; lastName: true } };
+    generatedBy: { select: { id: true; firstName: true; lastName: true } };
+    issuedBy: { select: { id: true; firstName: true; lastName: true } };
     supplier: { select: { id: true; nombreRazonSocial: true } };
     items: true;
     documentos: { include: { uploadedBy: { select: { id: true; firstName: true; lastName: true } } } };
@@ -84,6 +86,18 @@ export function serializePurchaseOrder(order: OrderWithRelations) {
     templateVersion: order.templateVersion,
     pdfUrl: pdfDoc?.url ?? null,
     pdfVersion: pdfDoc?.version ?? 0,
+    generatedById: order.generatedById,
+    generatedAt: order.generatedAt?.toISOString() ?? null,
+    generatedBy: order.generatedBy ?? null,
+    generatedByName: order.generatedBy
+      ? `${order.generatedBy.firstName} ${order.generatedBy.lastName}`.replace(/\s+/g, ' ').trim()
+      : null,
+    issuedById: order.issuedById,
+    issuedAt: order.issuedAt?.toISOString() ?? null,
+    issuedBy: order.issuedBy ?? null,
+    issuedByName: order.issuedBy
+      ? `${order.issuedBy.firstName} ${order.issuedBy.lastName}`.replace(/\s+/g, ' ').trim()
+      : null,
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
     createdBy: order.createdBy,

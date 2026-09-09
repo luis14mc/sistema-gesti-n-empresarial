@@ -54,6 +54,7 @@ describe('CNI effective permission matrix', () => {
     expect(can(role, 'purchase-orders.read')).toBe(true);
     expect(can(role, 'purchase-orders.create')).toBe(true);
     expect(can(role, 'purchase-orders.update')).toBe(true);
+    expect(can(role, 'purchase-orders.approve')).toBe(true);
     expect(can(role, 'suppliers.read')).toBe(true);
     expect(can(role, 'suppliers.update')).toBe(true);
     expect(can(role, 'employees.read')).toBe(true);
@@ -104,6 +105,7 @@ describe('CNI effective permission matrix', () => {
     expect(can(role, 'employees.read')).toBe(true);
     expect(can(role, 'purchase-orders.create')).toBe(false);
     expect(can(role, 'purchase-orders.update')).toBe(false);
+    expect(can(role, 'purchase-orders.approve')).toBe(false);
     expect(can(role, 'employees.create')).toBe(false);
     expect(can(role, 'employees.update')).toBe(false);
   });

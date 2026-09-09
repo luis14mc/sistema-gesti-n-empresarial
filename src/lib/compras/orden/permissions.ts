@@ -55,7 +55,12 @@ export function canOrdenAction(
     return role === 'ADMIN' || role === 'OWNER' || role === 'ADMINISTRACION';
   }
 
-  if (action === 'emitir' || action === 'cerrar') {
+  if (action === 'emitir') {
+    if (ctx.status && ctx.status !== 'GENERATED') return false;
+    return role === 'ADMIN' || role === 'OWNER' || role === 'ADMINISTRACION';
+  }
+
+  if (action === 'cerrar') {
     return role === 'ADMIN' || role === 'OWNER' || role === 'ADMINISTRACION';
   }
 

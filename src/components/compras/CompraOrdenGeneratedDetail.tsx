@@ -152,7 +152,16 @@ export function CompraOrdenGeneratedDetail({
             const result = await Swal.fire({ icon: 'warning', title: 'Anular orden', input: 'textarea', inputLabel: 'Motivo de anulación', inputPlaceholder: 'Escriba el motivo...', showCancelButton: true, confirmButtonText: 'Anular', cancelButtonText: 'Cancelar', reverseButtons: true, inputValidator: (value) => value.trim().length >= 5 ? undefined : 'Ingrese un motivo de al menos 5 caracteres.' });
             if (result.isConfirmed) await onWorkflow('anular', result.value);
           }}>Anular</DropdownMenuItem></DropdownMenuContent></DropdownMenu> : null}
-          {pdfDownloadUrl ? <Button asChild className="ml-auto"><a href={pdfDownloadUrl} download><Download className="mr-2 h-4 w-4" />Descargar PDF</a></Button> : null}
+          {canOrdenAction(role, 'emitir', { isCreator, status }) ? (
+            <Button className="ml-auto" disabled={working || isSaving} onClick={() => void runAction('emitir')}>
+              {ACTION_LABELS.emitir}
+            </Button>
+          ) : null}
+          {pdfDownloadUrl ? (
+            <Button asChild className={canOrdenAction(role, 'emitir', { isCreator, status }) ? undefined : 'ml-auto'}>
+              <a href={pdfDownloadUrl} download><Download className="mr-2 h-4 w-4" />Descargar PDF</a>
+            </Button>
+          ) : null}
         </div>
       </div>
     </div>

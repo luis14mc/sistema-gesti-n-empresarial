@@ -11,6 +11,7 @@ describe('CNI organization roles', () => {
 
     expect(can(role, 'oficios.create')).toBe(true);
     expect(can(role, 'purchase-orders.create')).toBe(true);
+    expect(can(role, 'purchase-orders.approve')).toBe(true);
     expect(can(role, 'employees.create')).toBe(true);
     expect(can(role, 'users.create')).toBe(false);
     expect(can(role, 'equipment.maintain')).toBe(false);

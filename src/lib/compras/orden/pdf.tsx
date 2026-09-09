@@ -24,7 +24,15 @@ type OrderPdfData = Pick<
   | 'tax'
   | 'total'
   | 'status'
-> & { items: CompraOrdenItem[] };
+> & {
+  items: CompraOrdenItem[];
+  generatedAt?: Date | string | null;
+  issuedAt?: Date | string | null;
+  generatedBy?: { firstName: string; lastName: string } | null;
+  issuedBy?: { firstName: string; lastName: string } | null;
+  generatedByName?: string | null;
+  issuedByName?: string | null;
+};
 
 export async function buildPurchaseOrderHtml(
   order: OrderPdfData,

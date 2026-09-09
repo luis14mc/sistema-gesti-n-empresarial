@@ -7,7 +7,7 @@ import { authorizeOrganization } from '@/platform/security/authorization/http';
 
 export const POST = withAuth(async (req: AuthenticatedRequest, { params }) => {
   const role = req.user!.role as Role;
-  const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.update');
+  const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.approve');
   const { id } = await params;
   const existing = await getCompraOrden(id, organizationId);
   if (!existing) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });

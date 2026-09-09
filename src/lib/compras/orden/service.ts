@@ -29,6 +29,8 @@ import { purchaseOrderChildScope, purchaseOrderScope } from './tenant';
 
 export const orderInclude = {
   createdBy: { select: { id: true, firstName: true, lastName: true } },
+  generatedBy: { select: { id: true, firstName: true, lastName: true } },
+  issuedBy: { select: { id: true, firstName: true, lastName: true } },
   supplier: { select: { id: true, nombreRazonSocial: true } },
   requesterEmployee: { select: { id: true, fullName: true, position: { select: { id: true, name: true } } } },
   items: { orderBy: { itemNumber: 'asc' as const } },
@@ -409,7 +411,11 @@ async function saveOrderPdf(
 ) {
   const order = await client.compraOrden.findFirst({
     where: { id: orderId, organizationId },
-    include: { items: { orderBy: { itemNumber: 'asc' } } },
+    include: {
+      items: { orderBy: { itemNumber: 'asc' } },
+      generatedBy: { select: { firstName: true, lastName: true } },
+      issuedBy: { select: { firstName: true, lastName: true } },
+    },
   });
   if (!order) throw new Error('Orden no encontrada');
 
@@ -546,7 +552,21 @@ export async function generatePurchaseOrder(
 
   onStage?.('GENERATE_PDF');
   console.info('[PURCHASE ORDER] Rendering HTML');
-  const html = await buildPurchaseOrderHtml(recalculatedOrder, templateSnapshot, version);
+  const generator = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { firstName: true, lastName: true },
+  });
+  const html = await buildPurchaseOrderHtml(
+    {
+      ...recalculatedOrder,
+      generatedBy: generator,
+      generatedAt: new Date(),
+      issuedBy: null,
+      issuedAt: null,
+    },
+    templateSnapshot,
+    version,
+  );
   const buffer = await renderHtmlToPdf(html);
   if (!buffer.length) throw new Error('EMPTY_PURCHASE_ORDER_PDF');
 
@@ -688,6 +708,12 @@ export async function issuePurchaseOrder(id: string, userId: string, organizatio
       tx,
     });
   });
+
+  try {
+    await saveOrderPdf(id, userId, organizationId);
+  } catch (error) {
+    console.error('[PURCHASE ORDER] Failed to refresh PDF after issue', error);
+  }
 
   return getPurchaseOrder(id, organizationId);
 }
@@ -949,7 +975,11 @@ export async function readPurchaseOrderDocumentFile(orderId: string, documentId:
 export async function getPurchaseOrderHtmlPreview(orderId: string, organizationId: string): Promise<string> {
   const order = await prisma.compraOrden.findFirst({
     where: { id: orderId, organizationId, deletedAt: null },
-    include: { items: { orderBy: { itemNumber: 'asc' } } },
+    include: {
+      items: { orderBy: { itemNumber: 'asc' } },
+      generatedBy: { select: { firstName: true, lastName: true } },
+      issuedBy: { select: { firstName: true, lastName: true } },
+    },
   });
   if (!order) throw new Error('Orden no encontrada');
   const template = await resolveTemplateForOrder(order);

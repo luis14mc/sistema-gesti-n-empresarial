@@ -161,6 +161,14 @@ describe('canOrdenAction', () => {
   it('impide anular cerrada', () => {
     expect(canOrdenAction('ADMIN', 'anular', { status: 'CLOSED' })).toBe(false);
   });
+
+  it('restringe emitir a perfiles con aprobación, solo en GENERATED', () => {
+    expect(canOrdenAction('ADMINISTRACION', 'emitir', { status: 'GENERATED' })).toBe(true);
+    expect(canOrdenAction('ADMIN', 'emitir', { status: 'GENERATED' })).toBe(true);
+    expect(canOrdenAction('PROCUREMENT', 'emitir', { status: 'GENERATED' })).toBe(false);
+    expect(canOrdenAction('ADMINISTRACION', 'emitir', { status: 'DRAFT' })).toBe(false);
+    expect(canOrdenAction('ADMIN', 'emitir', { status: 'ISSUED' })).toBe(false);
+  });
 });
 
 describe('Prisma Decimal', () => {
