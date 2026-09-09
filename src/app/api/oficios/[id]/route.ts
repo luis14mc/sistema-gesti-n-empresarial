@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
 import { oficioOrganizationFailure } from '@/modules/oficios/presentation/http';
 import { oficioScope } from '@/modules/oficios/infrastructure/tenant-scope';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -16,7 +16,7 @@ async function getHandler(
   const { id } = await context.params;
   const requestId = crypto.randomUUID();
   try {
-    const organization = await requireOrganizationContext(req, requestId);
+    const organization = await authorizeOrganization(req, requestId, 'oficios.read');
     const oficio = await prisma.oficio.findFirst({
       where: oficioScope(organization.organizationId, id),
       include: {
@@ -87,7 +87,7 @@ async function patchHandler(
   const { id } = await context.params;
   const requestId = crypto.randomUUID();
   try {
-    const organization = await requireOrganizationContext(req, requestId);
+    const organization = await authorizeOrganization(req, requestId, 'oficios.update');
     const data = await req.json();
 
     // Obtener estado anterior para auditoría
@@ -178,7 +178,7 @@ async function deleteHandler(
   const { id } = await context.params;
   const requestId = crypto.randomUUID();
   try {
-    const organization = await requireOrganizationContext(req, requestId);
+    const organization = await authorizeOrganization(req, requestId, 'oficios.deactivate');
     const current = await prisma.oficio.findFirst({ where: oficioScope(organization.organizationId, id) });
     if (!current) {
       return NextResponse.json(
@@ -187,8 +187,7 @@ async function deleteHandler(
       );
     }
 
-    // IDOR: USER no elimina oficios ajenos (y de hecho no debería poder
-    // eliminar nada; pero esta salvaguarda evita bypass por role confusion).
+    // IDOR: USER no desactiva oficios ajenos.
     if (req.user!.role === 'USER' && current.createdById !== req.user!.userId) {
       return NextResponse.json(
         { error: 'Oficio no encontrado' },
@@ -196,23 +195,24 @@ async function deleteHandler(
       );
     }
 
-    await prisma.oficio.deleteMany({
+    await prisma.oficio.updateMany({
       where: oficioScope(organization.organizationId, id),
+      data: { status: 'ARCHIVED' },
     });
 
-    // Registrar en auditoría
     await createAuditRecord({
-      title: 'Eliminación de oficio',
-      description: `Se eliminó oficio: ${current.number} - ${current.subject}`,
+      title: 'Desactivación de oficio',
+      description: `Se desactivó oficio: ${current.number} - ${current.subject}`,
       module: 'OFICIOS',
       category: 'DELETE',
       userId: req.user!.userId,
       entityId: id,
       organizationId: organization.organizationId,
       previousData: { number: current.number, subject: current.subject, status: current.status },
+      newData: { status: 'ARCHIVED' },
     });
 
-    return NextResponse.json({ message: 'Oficio eliminado' });
+    return NextResponse.json({ message: 'Oficio desactivado' });
   } catch (error) {
     const organizationResponse = oficioOrganizationFailure(error, requestId);
     if (organizationResponse) return organizationResponse;
@@ -226,4 +226,4 @@ async function deleteHandler(
 
 export const GET = withAuth(getHandler);
 export const PATCH = withAuth(patchHandler);
-export const DELETE = withAuth(deleteHandler, ['ADMIN']);
+export const DELETE = withAuth(deleteHandler);

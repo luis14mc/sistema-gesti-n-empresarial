@@ -15,11 +15,15 @@ export type OrderAction =
   | 'historial'
   | 'template';
 
-const MATRIX: Record<Role, OrderAction[]> = {
+const MATRIX: Record<string, OrderAction[]> = {
   ADMIN: ['read', 'create', 'update', 'delete', 'generar', 'emitir', 'anular', 'cerrar', 'regenerar_pdf', 'documentos', 'historial', 'template'],
-  IT: ['read', 'create', 'update', 'delete', 'generar', 'documentos', 'historial'],
+  OWNER: ['read', 'create', 'update', 'delete', 'generar', 'emitir', 'anular', 'cerrar', 'regenerar_pdf', 'documentos', 'historial', 'template'],
+  ADMINISTRACION: ['read', 'create', 'update', 'delete', 'generar', 'emitir', 'anular', 'cerrar', 'regenerar_pdf', 'documentos', 'historial'],
+  PROCUREMENT: ['read', 'create', 'update', 'delete', 'generar', 'documentos', 'historial'],
+  IT: ['read'],
+  IT_MANAGER: ['read'],
   RRHH: ['read', 'create', 'update', 'delete', 'historial'],
-  USER: ['read', 'create', 'update', 'delete', 'historial'],
+  USER: ['read'],
 };
 
 export function canOrdenAction(
@@ -48,15 +52,15 @@ export function canOrdenAction(
 
   if (action === 'anular') {
     if (ctx.status === 'CLOSED') return false;
-    return role === 'ADMIN';
+    return role === 'ADMIN' || role === 'OWNER' || role === 'ADMINISTRACION';
   }
 
   if (action === 'emitir' || action === 'cerrar') {
-    return role === 'ADMIN';
+    return role === 'ADMIN' || role === 'OWNER' || role === 'ADMINISTRACION';
   }
 
   if (action === 'template') {
-    return role === 'ADMIN';
+    return role === 'ADMIN' || role === 'OWNER';
   }
 
   if (action === 'read' || action === 'historial' || action === 'documentos') {

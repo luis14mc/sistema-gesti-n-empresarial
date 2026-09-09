@@ -4,7 +4,7 @@ import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
 import { uploadCompraOrdenDocumento, getCompraOrden, getPurchaseOrderDocuments } from '@/lib/compras/orden/service';
 import { canOrdenAction } from '@/lib/compras/orden/permissions';
 import type { Role } from '@/types';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
 
 const TIPO_MAP: Record<string, PurchaseDocumentType> = {
   QUOTATION: 'QUOTATION',
@@ -22,7 +22,7 @@ const TIPO_MAP: Record<string, PurchaseDocumentType> = {
 
 export const GET = withAuth(async (req: AuthenticatedRequest, { params }) => {
   const role = req.user!.role as Role;
-  const { organizationId } = await requireOrganizationContext(req);
+  const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.read');
   const { id } = await params;
   const orden = await getCompraOrden(id, organizationId);
   if (!orden) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
@@ -35,7 +35,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest, { params }) => {
 
 export const POST = withAuth(async (req: AuthenticatedRequest, { params }) => {
   const role = req.user!.role as Role;
-  const { organizationId } = await requireOrganizationContext(req);
+  const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.update');
   const { id } = await params;
   const orden = await getCompraOrden(id, organizationId);
   if (!orden) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });

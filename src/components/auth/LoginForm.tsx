@@ -7,6 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginInput } from '@/lib/zod-schemas';
 import { loginAction } from '@/actions/auth';
+import { postLoginPath } from '@/platform/security/authorization/roles';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,7 +21,6 @@ import { LogIn, Eye, EyeOff } from 'lucide-react';
 export function LoginFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
 
   const [showPw, setShowPw] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -51,7 +51,9 @@ export function LoginFormContent() {
         description: `Hola, ${result.data?.firstName}`,
       });
 
-      router.push(callbackUrl);
+      const requested = searchParams.get('callbackUrl');
+      const landing = result.data?.role ? postLoginPath(result.data.role) : '/dashboard';
+      router.push(requested && requested !== '/dashboard' ? requested : landing);
       router.refresh();
     });
   };

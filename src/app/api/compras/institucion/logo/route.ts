@@ -2,12 +2,13 @@ import { NextResponse } from 'next/server';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
 import { getInstitutionConfig, saveInstitutionLogo } from '@/lib/compras/institution';
 import { saveInstitutionSettings } from '@/lib/compras/institution-store';
-import type { Role } from '@/types';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
+import { handlePrismaRouteError } from '@/lib/compras/orden/prisma-error';
 
 async function postHandler(req: AuthenticatedRequest) {
   try {
-    const role = req.user!.role as Role;
-    if (role !== 'ADMIN') {
+    const { role } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.update');
+    if (role !== 'ADMIN' && role !== 'OWNER') {
       return NextResponse.json({ error: 'Solo administradores pueden editar' }, { status: 403 });
     }
 
@@ -23,11 +24,7 @@ async function postHandler(req: AuthenticatedRequest) {
 
     return NextResponse.json({ settings, logoUrl: config.logoUrl });
   } catch (error) {
-    console.error('Error subiendo logo:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Error al subir logo' },
-      { status: 500 }
-    );
+    return handlePrismaRouteError(error, 'POST /api/compras/institucion/logo');
   }
 }
 

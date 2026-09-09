@@ -6,8 +6,8 @@ import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
 
 import { logEquipmentHistory } from '@/lib/equipment-history';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
 import { equipmentApiFailure, maintenanceScope } from '@/modules/equipment/tenant';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
 
 const MAINTENANCE_TYPES = ['PREVENTIVE', 'CORRECTIVE', 'UPDATE', 'INSPECTION'] as const;
 const MAINTENANCE_STATUSES = ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'] as const;
@@ -31,7 +31,7 @@ const maintenanceCreateSchema = z.object({
 async function getHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   try {
-    const { organizationId } = await requireOrganizationContext(req, requestId);
+    const { organizationId } = await authorizeOrganization(req, requestId, 'equipment.maintain');
     const { searchParams } = new URL(req.url);
     const equipmentId = searchParams.get('equipmentId');
     const status = searchParams.get('status');
@@ -83,7 +83,7 @@ async function getHandler(req: AuthenticatedRequest) {
 async function postHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   try {
-    const { organizationId } = await requireOrganizationContext(req, requestId);
+    const { organizationId } = await authorizeOrganization(req, requestId, 'equipment.maintain');
     const body = await req.json();
     const parsed = maintenanceCreateSchema.safeParse(body);
     if (!parsed.success) {
@@ -190,4 +190,4 @@ async function postHandler(req: AuthenticatedRequest) {
 }
 
 export const GET = withAuth(getHandler);
-export const POST = withAuth(postHandler, ['ADMIN', 'IT']);
+export const POST = withAuth(postHandler);

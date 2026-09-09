@@ -9,10 +9,11 @@ describe('CNI organization roles', () => {
   it('gives administration operational access without user administration', () => {
     const role = organizationRole('ADMINISTRACION');
 
-    expect(can(role, 'equipment.maintain')).toBe(true);
+    expect(can(role, 'oficios.create')).toBe(true);
     expect(can(role, 'purchase-orders.create')).toBe(true);
+    expect(can(role, 'employees.create')).toBe(true);
     expect(can(role, 'users.create')).toBe(false);
-    expect(can(role, 'offices.create')).toBe(false);
+    expect(can(role, 'equipment.maintain')).toBe(false);
   });
 
   it('gives secretaria Oficios lifecycle access without hard delete', () => {

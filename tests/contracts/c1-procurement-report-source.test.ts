@@ -39,7 +39,7 @@ describe('C-1 · purchasing metrics read the canonical purchase-order aggregate'
 
   it('purchasing report route is tenant-scoped by organizationId', () => {
     const src = read('src/app/api/compras/reportes/route.ts');
-    expect(src).toMatch(/requireOrganizationContext/);
+    expect(src).toMatch(/authorizeOrganization/);
     expect(src).toMatch(/organizationId/);
   });
 

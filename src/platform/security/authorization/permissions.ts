@@ -8,6 +8,10 @@ export const ORGANIZATION_PERMISSIONS = [
   'users.create',
   'users.update',
   'users.deactivate',
+  'employees.read',
+  'employees.create',
+  'employees.update',
+  'employees.deactivate',
   'offices.read',
   'offices.create',
   'offices.update',
@@ -23,6 +27,7 @@ export const ORGANIZATION_PERMISSIONS = [
   'oficios.deactivate',
   'oficios.export',
   'oficios.attachments',
+  'oficios.import',
   'equipment.read',
   'equipment.create',
   'equipment.update',
@@ -99,25 +104,63 @@ const NOTIFICATION_ADMIN = [...NOTIFICATION_BASELINE, 'notifications.manage-orga
 const INTEGRATIONS_BASELINE = ['integrations.read'] as const;
 const INTEGRATIONS_OPERATOR = ['integrations.read', 'integrations.test', 'integrations.view-history'] as const;
 
+const OFICIOS_OPERATIONAL = [
+  'oficios.read', 'oficios.create', 'oficios.update', 'oficios.deactivate',
+  'oficios.export', 'oficios.attachments', 'oficios.import',
+] as const;
+
+const PURCHASES_OPERATIONAL = [
+  'purchase-orders.read', 'purchase-orders.create', 'purchase-orders.update',
+  'purchase-orders.generate', 'purchase-orders.cancel', 'purchase-orders.download',
+  'suppliers.read', 'suppliers.create', 'suppliers.update',
+] as const;
+
+const EMPLOYEES_OPERATIONAL = [
+  'employees.read', 'employees.create', 'employees.update', 'employees.deactivate',
+] as const;
+
+const EQUIPMENT_LIFECYCLE = [
+  'equipment.read', 'equipment.create', 'equipment.update', 'equipment.assign',
+  'equipment.maintain', 'equipment.dispose',
+] as const;
+
+const DISPOSAL_WORKFLOW = [
+  ...DISPOSAL_READ,
+  'equipment-disposal.create', 'equipment-disposal.update', 'equipment-disposal.submit',
+  'equipment-disposal.approve', 'equipment-disposal.reject', 'equipment-disposal.cancel',
+  'equipment-disposal.configure',
+] as const;
+
 const ORGANIZATION_ROLE_PERMISSIONS: Record<OrganizationRole, readonly Permission[]> = {
   OWNER: ORGANIZATION_PERMISSIONS,
   ADMIN: ORGANIZATION_PERMISSIONS,
+  ADMINISTRACION: [
+    ...OFICIOS_OPERATIONAL,
+    ...PURCHASES_OPERATIONAL,
+    ...EMPLOYEES_OPERATIONAL,
+    'dashboard.view',
+    ...NOTIFICATION_BASELINE,
+  ],
+  SECRETARIA: [
+    ...OFICIOS_OPERATIONAL,
+  ],
   IT_MANAGER: [
-    'users.read',
-    'offices.read', 'offices.download',
-    'equipment.read', 'equipment.create', 'equipment.update', 'equipment.assign', 'equipment.maintain', 'equipment.dispose',
-    ...DISPOSAL_READ, 'equipment-disposal.create', 'equipment-disposal.update', 'equipment-disposal.submit',
-    'equipment-disposal.approve', 'equipment-disposal.reject', 'equipment-disposal.cancel',
-    'purchase-orders.read', 'purchase-orders.download',
-    ...REPORT_READ, 'reports.financial', 'reports.financial.equipment',
+    ...EQUIPMENT_LIFECYCLE,
+    ...DISPOSAL_WORKFLOW,
+    'employees.read',
+    'users.read', 'users.create', 'users.update', 'users.deactivate',
+    'memberships.manage',
+    'audit.read',
+    'dashboard.view',
+    ...REPORT_READ, 'reports.financial.equipment',
     ...NOTIFICATION_OWN_PREFERENCES,
     ...INTEGRATIONS_OPERATOR,
   ],
+  // Legacy / non-promoted — kept for existing memberships only.
   IT_TECHNICIAN: [
     'offices.read', 'offices.download',
     'equipment.read', 'equipment.create', 'equipment.update', 'equipment.assign', 'equipment.maintain',
     ...DISPOSAL_READ, 'equipment-disposal.create', 'equipment-disposal.update', 'equipment-disposal.submit',
-    'purchase-orders.read', 'purchase-orders.download',
     ...REPORT_READ,
     ...NOTIFICATION_BASELINE,
   ],
@@ -125,15 +168,14 @@ const ORGANIZATION_ROLE_PERMISSIONS: Record<OrganizationRole, readonly Permissio
     'users.read',
     'offices.read', 'offices.create', 'offices.update', 'offices.send', 'offices.receive', 'offices.complete', 'offices.cancel', 'offices.download',
     'equipment.read', ...DISPOSAL_READ,
-    'purchase-orders.read', 'purchase-orders.create', 'purchase-orders.update', 'purchase-orders.generate', 'purchase-orders.cancel', 'purchase-orders.download',
+    ...PURCHASES_OPERATIONAL,
     ...REPORT_READ, 'reports.financial', 'reports.financial.purchases',
     ...NOTIFICATION_BASELINE,
   ],
   HR: [
     'users.read', 'users.create', 'users.update',
+    ...EMPLOYEES_OPERATIONAL,
     'offices.read', 'offices.create', 'offices.update', 'offices.send', 'offices.receive', 'offices.complete', 'offices.cancel', 'offices.download',
-    'equipment.read', ...DISPOSAL_READ,
-    'purchase-orders.read', 'purchase-orders.download',
     ...REPORT_READ,
     ...NOTIFICATION_BASELINE,
   ],
@@ -148,27 +190,13 @@ const ORGANIZATION_ROLE_PERMISSIONS: Record<OrganizationRole, readonly Permissio
     ...INTEGRATIONS_OPERATOR,
   ],
   USER: [
+    'dashboard.view',
+    'oficios.read',
     'offices.read',
     'equipment.read',
     'equipment-disposal.read',
     'purchase-orders.read',
-    'dashboard.view',
     'notifications.read',
-  ],
-  ADMINISTRACION: [
-    'equipment.read', 'equipment.assign', 'equipment.maintain', 'equipment.dispose',
-    'equipment-disposal.read', 'equipment-disposal.create', 'equipment-disposal.update',
-    'equipment-disposal.submit', 'equipment-disposal.approve', 'equipment-disposal.reject',
-    'equipment-disposal.cancel', 'equipment-disposal.configure', 'equipment-disposal.download',
-    'purchase-orders.read', 'purchase-orders.create', 'purchase-orders.update',
-    'purchase-orders.generate', 'purchase-orders.cancel', 'purchase-orders.download',
-    'suppliers.read', 'suppliers.create', 'suppliers.update',
-    'reports.view', 'reports.export', 'reports.financial', 'reports.financial.purchases',
-    'reports.financial.equipment', 'dashboard.view', 'notifications.read',
-  ],
-  SECRETARIA: [
-    'oficios.read', 'oficios.create', 'oficios.update', 'oficios.deactivate',
-    'oficios.export', 'oficios.attachments',
   ],
   DIRECTOR: [
     'dashboard.view', 'reports.view', 'reports.export',

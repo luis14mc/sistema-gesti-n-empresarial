@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { canAccess } from '@/lib/permissions';
 import { getInstitutionConfig } from '@/lib/compras/institution';
 import { getInstitutionSettings, saveInstitutionSettings } from '@/lib/compras/institution-store';
 import { z } from 'zod';
-import type { Role } from '@/types';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
+import { handlePrismaRouteError } from '@/lib/compras/orden/prisma-error';
 
 const institutionSchema = z.object({
   name: z.string().min(2).max(200),
@@ -15,10 +15,7 @@ const institutionSchema = z.object({
 
 async function getHandler(req: AuthenticatedRequest) {
   try {
-    const role = req.user!.role as Role;
-    if (!canAccess(role, 'purchases', 'read')) {
-      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
-    }
+    await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.read');
 
     const [settings, config] = await Promise.all([
       getInstitutionSettings(),
@@ -30,15 +27,14 @@ async function getHandler(req: AuthenticatedRequest) {
       logoUrl: config.logoUrl,
     });
   } catch (error) {
-    console.error('Error leyendo institución:', error);
-    return NextResponse.json({ error: 'Error al leer configuración' }, { status: 500 });
+    return handlePrismaRouteError(error, 'GET /api/compras/institucion');
   }
 }
 
 async function putHandler(req: AuthenticatedRequest) {
   try {
-    const role = req.user!.role as Role;
-    if (role !== 'ADMIN') {
+    const { role } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.update');
+    if (role !== 'ADMIN' && role !== 'OWNER') {
       return NextResponse.json({ error: 'Solo administradores pueden editar' }, { status: 403 });
     }
 
@@ -53,11 +49,7 @@ async function putHandler(req: AuthenticatedRequest) {
 
     return NextResponse.json({ settings, logoUrl: config.logoUrl });
   } catch (error) {
-    console.error('Error guardando institución:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Error al guardar' },
-      { status: 500 }
-    );
+    return handlePrismaRouteError(error, 'PUT /api/compras/institucion');
   }
 }
 

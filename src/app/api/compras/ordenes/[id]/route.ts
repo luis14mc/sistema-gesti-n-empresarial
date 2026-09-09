@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { canAccess } from '@/lib/permissions';
 import {
   getCompraOrden,
   updateCompraOrden,
@@ -10,7 +9,7 @@ import { updateCompraOrdenSchema, normalizePurchaseOrderPayload } from '@/lib/co
 import { canOrdenAction } from '@/lib/compras/orden/permissions';
 import { handlePrismaRouteError } from '@/lib/compras/orden/prisma-error';
 import type { Role } from '@/types';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
 
 async function getHandler(
   req: AuthenticatedRequest,
@@ -18,7 +17,7 @@ async function getHandler(
 ) {
   try {
     const role = req.user!.role as Role;
-    const { organizationId } = await requireOrganizationContext(req);
+    const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.read');
     const { id } = await params;
     const orden = await getCompraOrden(id, organizationId);
     if (!orden) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
@@ -43,7 +42,7 @@ async function patchHandler(
 ) {
   try {
     const role = req.user!.role as Role;
-    const { organizationId } = await requireOrganizationContext(req);
+    const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.update');
     const { id } = await params;
     const existing = await getCompraOrden(id, organizationId);
     if (!existing) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
@@ -82,7 +81,7 @@ async function deleteHandler(
 ) {
   try {
     const role = req.user!.role as Role;
-    const { organizationId } = await requireOrganizationContext(req);
+    const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.update');
     const { id } = await params;
     const existing = await getCompraOrden(id, organizationId);
     if (!existing) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });

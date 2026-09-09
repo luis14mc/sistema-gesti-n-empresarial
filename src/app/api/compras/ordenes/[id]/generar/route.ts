@@ -5,7 +5,7 @@ import { canOrdenAction } from '@/lib/compras/orden/permissions';
 import type { Role } from '@/types';
 import { isMissingBrowserError } from '@/lib/compras/pdf-renderer';
 import { InvalidPurchaseOrderError } from '@/lib/compras/orden/generation-validation';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
 
 async function postHandler(
   req: AuthenticatedRequest,
@@ -16,7 +16,7 @@ async function postHandler(
   let stage = 'LOAD_ORDER';
   try {
     const role = req.user!.role as Role;
-    const { organizationId } = await requireOrganizationContext(req, requestId);
+    const { organizationId } = await authorizeOrganization(req, requestId, 'purchase-orders.generate');
     const { id } = await params;
     orderId = id;
     console.info('[PURCHASE ORDER VALIDATION START]', { requestId, orderId });

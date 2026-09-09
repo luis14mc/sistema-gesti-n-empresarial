@@ -6,6 +6,9 @@ const prismaMock = vi.hoisted(() => ({
     findMany: vi.fn(),
     count: vi.fn(),
   },
+  userPermissionOverride: {
+    findMany: vi.fn(),
+  },
 }));
 
 vi.mock('@/lib/prisma', () => ({ prisma: prismaMock }));
@@ -25,6 +28,8 @@ const ADMIN_CONTEXT = {
 beforeEach(() => {
   prismaMock.auditRecord.findMany.mockReset();
   prismaMock.auditRecord.count.mockReset();
+  prismaMock.userPermissionOverride.findMany.mockReset();
+  prismaMock.userPermissionOverride.findMany.mockResolvedValue([]);
 });
 
 describe('auditLogQueryService.list — shape', () => {

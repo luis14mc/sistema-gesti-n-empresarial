@@ -148,8 +148,10 @@ describe('formatOrderNumber', () => {
 });
 
 describe('canOrdenAction', () => {
-  it('permite editar borrador al creador', () => {
-    expect(canOrdenAction('IT', 'update', { isCreator: true, status: 'DRAFT' })).toBe(true);
+  it('permite editar borrador al perfil administrativo, no a TI', () => {
+    expect(canOrdenAction('ADMINISTRACION', 'update', { isCreator: true, status: 'DRAFT' })).toBe(true);
+    expect(canOrdenAction('IT', 'update', { isCreator: true, status: 'DRAFT' })).toBe(false);
+    expect(canOrdenAction('IT_MANAGER', 'update', { isCreator: true, status: 'DRAFT' })).toBe(false);
   });
 
   it('impide editar orden emitida', () => {

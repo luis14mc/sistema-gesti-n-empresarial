@@ -2,9 +2,8 @@ import { NextResponse } from 'next/server';
 import type { PurchaseOrderStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { canAccess } from '@/lib/permissions';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
-import type { Role } from '@/types';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
+import { handlePrismaRouteError } from '@/lib/compras/orden/prisma-error';
 
 // ─────────────────────────────────────────────────────────────
 // Phase 13 · C-1 remediation
@@ -32,15 +31,7 @@ const STATUS_TO_ESTADO: Record<PurchaseOrderStatus, string> = {
 
 async function getHandler(req: AuthenticatedRequest) {
   try {
-    const role = req.user!.role as Role;
-    const { organizationId } = await requireOrganizationContext(req);
-
-    if (!canAccess(role, 'purchases', 'read')) {
-      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
-    }
-    if (role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Reportes solo para roles autorizados' }, { status: 403 });
-    }
+    const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.read');
 
     const { searchParams } = new URL(req.url);
     const year = Number.parseInt(searchParams.get('year') || `${new Date().getFullYear()}`, 10);
@@ -99,8 +90,7 @@ async function getHandler(req: AuthenticatedRequest) {
       anuladas,
     });
   } catch (error) {
-    console.error('Error generating compras reportes:', error);
-    return NextResponse.json({ error: 'Error al generar reportes' }, { status: 500 });
+    return handlePrismaRouteError(error, 'GET /api/compras/reportes');
   }
 }
 

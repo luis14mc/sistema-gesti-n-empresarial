@@ -1,23 +1,13 @@
 import { NextResponse } from 'next/server';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
-import { canAccess } from '@/lib/permissions';
 import { saveOficioDocument } from '@/lib/oficios-storage';
-import type { Role } from '@/types';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
 import { oficioOrganizationFailure } from '@/modules/oficios/presentation/http';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
 
 async function postHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   try {
-    const organization = await requireOrganizationContext(req, requestId);
-    const role = req.user!.role as Role;
-
-    if (!canAccess(role, 'oficios', 'create')) {
-      return NextResponse.json(
-        { error: 'No tienes permisos para subir documentos de oficios' },
-        { status: 403 }
-      );
-    }
+    const organization = await authorizeOrganization(req, requestId, 'oficios.attachments');
 
     const formData = await req.formData();
     const file = formData.get('file');

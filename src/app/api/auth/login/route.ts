@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { comparePassword, generateToken } from '@/lib/auth';
 import { createAuditRecord } from '@/lib/audit';
+import { resolveSessionRole } from '@/platform/security/authorization/session-role';
 import { loginSchema } from '@/lib/zod-schemas';
 import {
   createRateLimiter,
@@ -96,10 +97,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const sessionRole = await resolveSessionRole(user.id, user.role);
+
     const token = generateToken({
       userId: user.id,
       email: user.email,
-      role: user.role,
+      role: sessionRole,
     });
 
     const { password: _omit, ...userWithoutPassword } = user;
@@ -113,7 +116,7 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(
-      { user: userWithoutPassword, token },
+      { user: { ...userWithoutPassword, role: sessionRole }, token },
       { status: 200, headers }
     );
   } catch (error) {

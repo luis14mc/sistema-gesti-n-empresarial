@@ -3,6 +3,8 @@
  * Single source of truth para algoritmo, issuer, audience y roles válidos.
  */
 
+import { VALID_SESSION_ROLES, type SessionRole } from '@/platform/security/authorization/roles';
+
 export const JWT_ALGORITHM = 'HS256' as const;
 export const JWT_ISSUER = 'sge';
 export const JWT_AUDIENCE = 'sge-web';
@@ -11,9 +13,9 @@ export const JWT_EXPIRES_IN = '1h';
 /** Máxima edad aceptada para un token (anti-replay de tokens viejos). */
 export const JWT_MAX_AGE_SECONDS = 60 * 60; // 1h, alineado con expiresIn
 
-export const VALID_ROLES = new Set(['ADMIN', 'USER', 'RRHH', 'IT']);
+export const VALID_ROLES = VALID_SESSION_ROLES;
 
-export type Role = 'ADMIN' | 'USER' | 'RRHH' | 'IT';
+export type Role = SessionRole;
 
 export interface TokenClaims {
   userId: string;

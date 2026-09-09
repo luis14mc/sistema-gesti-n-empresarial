@@ -2,7 +2,10 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { isOrganizationContextError } from '@/modules/organizations/application/context';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
+import { PermissionDeniedError } from '@/platform/domain/errors';
+import { parsePromotedOrganizationRole, persistUserAccountRoles, presentAccountRole } from '@/platform/security/authorization/user-account-roles';
 
 // ============================================
 // GET /api/users/[id] — Obtener usuario por id (ADMIN, RRHH)
@@ -13,11 +16,12 @@ async function getHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ id
     const requestId = crypto.randomUUID();
     try {
         const { id } = await ctx.params;
-        const { organizationId } = await requireOrganizationContext(req, requestId);
+        const { organizationId } = await authorizeOrganization(req, requestId, 'users.read');
 
         const membership = await prisma.organizationMembership.findFirst({
             where: { userId: id, organizationId, status: 'ACTIVE' },
             select: {
+                role: true,
                 user: {
                     select: {
                         id: true,
@@ -43,9 +47,20 @@ async function getHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ id
             return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
         }
 
-        return NextResponse.json({ user: membership.user });
+        return NextResponse.json({
+            user: {
+                ...membership.user,
+                role: presentAccountRole(membership.role, membership.user.role),
+            },
+        });
     } catch (error) {
         console.error('Error al obtener usuario:', error);
+        if (error instanceof PermissionDeniedError) {
+            return NextResponse.json({ error: error.message }, { status: 403 });
+        }
+        if (isOrganizationContextError(error)) {
+            return NextResponse.json({ error: error.message }, { status: error.status });
+        }
         return NextResponse.json({ error: 'Error al obtener usuario' }, { status: 500 });
     }
 }
@@ -59,12 +74,24 @@ async function patchHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ 
     const requestId = crypto.randomUUID();
     try {
         const { id } = await ctx.params;
-        const { organizationId } = await requireOrganizationContext(req, requestId);
+        const { organizationId } = await authorizeOrganization(req, requestId, 'users.update');
         const body = await req.json();
+
+        let nextRoles: ReturnType<typeof persistUserAccountRoles> | null = null;
+        if (body.role) {
+            const promoted = parsePromotedOrganizationRole(body.role);
+            if (!promoted) {
+                return NextResponse.json({ error: 'Rol no permitido para asignación' }, { status: 400 });
+            }
+            await authorizeOrganization(req, requestId, 'memberships.manage');
+            nextRoles = persistUserAccountRoles(promoted);
+        }
 
         const membership = await prisma.organizationMembership.findFirst({
             where: { userId: id, organizationId, status: 'ACTIVE' },
             select: {
+                id: true,
+                role: true,
                 user: {
                     select: { role: true, isActive: true, firstName: true, lastName: true, email: true },
                 },
@@ -82,14 +109,21 @@ async function patchHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ 
             );
         }
 
-        const user = await prisma.user.update({
+        const user = await prisma.$transaction(async (tx) => {
+            if (nextRoles) {
+                await tx.organizationMembership.update({
+                    where: { id: membership.id },
+                    data: { role: nextRoles.membershipRole },
+                });
+            }
+            return tx.user.update({
             where: { id },
             data: {
                 ...(body.firstName && { firstName: body.firstName }),
                 ...(body.lastName && { lastName: body.lastName }),
                 ...(body.email && { email: body.email }),
                 ...(body.phone !== undefined && { phone: body.phone }),
-                ...(body.role && { role: body.role }),
+                ...(nextRoles ? { role: nextRoles.prismaUserRole } : {}),
                 ...(body.isActive !== undefined && { isActive: body.isActive }),
                 ...(body.departmentId !== undefined && { departmentId: body.departmentId }),
                 ...(body.positionId !== undefined && { positionId: body.positionId }),
@@ -108,7 +142,10 @@ async function patchHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ 
                 createdAt: true,
                 updatedAt: true,
             },
+            });
         });
+
+        const presentedRole = presentAccountRole(nextRoles?.membershipRole ?? membership.role, user.role);
 
         await createAuditRecord({
             title: 'Actualización de usuario',
@@ -119,12 +156,18 @@ async function patchHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ 
             entityId: user.id,
             organizationId,
             previousData: { role: existing.role, isActive: existing.isActive },
-            newData: { role: user.role, isActive: user.isActive },
+            newData: { role: presentedRole, isActive: user.isActive },
         });
 
-        return NextResponse.json({ user });
+        return NextResponse.json({ user: { ...user, role: presentedRole } });
     } catch (error) {
         console.error('Error al actualizar usuario:', error);
+        if (error instanceof PermissionDeniedError) {
+            return NextResponse.json({ error: error.message }, { status: 403 });
+        }
+        if (isOrganizationContextError(error)) {
+            return NextResponse.json({ error: error.message }, { status: error.status });
+        }
         return NextResponse.json({ error: 'Error al actualizar usuario' }, { status: 500 });
     }
 }
@@ -138,7 +181,7 @@ async function deleteHandler(req: AuthenticatedRequest, ctx: { params: Promise<{
     const requestId = crypto.randomUUID();
     try {
         const { id } = await ctx.params;
-        const { organizationId } = await requireOrganizationContext(req, requestId);
+        const { organizationId } = await authorizeOrganization(req, requestId, 'users.deactivate');
 
         if (id === req.user!.userId) {
             return NextResponse.json(
@@ -181,10 +224,16 @@ async function deleteHandler(req: AuthenticatedRequest, ctx: { params: Promise<{
         return NextResponse.json({ user });
     } catch (error) {
         console.error('Error al eliminar usuario:', error);
+        if (error instanceof PermissionDeniedError) {
+            return NextResponse.json({ error: error.message }, { status: 403 });
+        }
+        if (isOrganizationContextError(error)) {
+            return NextResponse.json({ error: error.message }, { status: error.status });
+        }
         return NextResponse.json({ error: 'Error al eliminar usuario' }, { status: 500 });
     }
 }
 
-export const GET    = withAuth(getHandler,    ['ADMIN', 'RRHH']);
-export const PATCH  = withAuth(patchHandler,  ['ADMIN']);
-export const DELETE = withAuth(deleteHandler, ['ADMIN']);
+export const GET = withAuth(getHandler);
+export const PATCH = withAuth(patchHandler);
+export const DELETE = withAuth(deleteHandler);

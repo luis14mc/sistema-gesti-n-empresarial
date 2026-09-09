@@ -44,7 +44,8 @@ describe('compras workflow orden institucional', () => {
 
   it('permite cerrar solo a ADMIN', () => {
     expect(canPerformCompraAction('ADMIN', 'cerrar', 'EMITIDA')).toBe(true);
-    expect(canPerformCompraAction('IT', 'cerrar', 'EMITIDA')).toBe(true);
+    expect(canPerformCompraAction('ADMINISTRACION', 'cerrar', 'EMITIDA')).toBe(true);
+    expect(canPerformCompraAction('IT', 'cerrar', 'EMITIDA')).toBe(false);
     expect(canPerformCompraAction('RRHH', 'cerrar', 'EMITIDA')).toBe(false);
   });
 });

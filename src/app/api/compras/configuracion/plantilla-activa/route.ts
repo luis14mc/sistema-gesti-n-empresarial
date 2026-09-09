@@ -3,11 +3,11 @@ import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
 import { ensureDefaultTemplate, getActiveTemplateConfig } from '@/lib/compras/orden/template';
 import { canOrdenAction } from '@/lib/compras/orden/permissions';
 import type { Role } from '@/types';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
 
 export const GET = withAuth(async (req: AuthenticatedRequest) => {
   const role = req.user!.role as Role;
-  const { organizationId } = await requireOrganizationContext(req);
+  const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.read');
   if (!canOrdenAction(role, 'read')) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
   }

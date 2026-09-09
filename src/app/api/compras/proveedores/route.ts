@@ -1,20 +1,17 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { canAccess } from '@/lib/permissions';
-import type { Role } from '@/types';
 import { createProveedorSchema } from '@/lib/compras/schemas';
 import { createProveedor } from '@/lib/compras/service';
 import { validateRtn } from '@/lib/compras/validation';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
+import { PermissionDeniedError } from '@/platform/domain/errors';
+import { isOrganizationContextError } from '@/modules/organizations/application/context';
 
 async function getHandler(req: AuthenticatedRequest) {
   try {
-    const role = req.user!.role as Role;
-    const { organizationId } = await requireOrganizationContext(req);
-    if (!canAccess(role, 'purchases', 'read')) {
-      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
-    }
+    const requestId = crypto.randomUUID();
+    const { organizationId } = await authorizeOrganization(req, requestId, 'suppliers.read');
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search');
@@ -43,6 +40,8 @@ async function getHandler(req: AuthenticatedRequest) {
 
     return NextResponse.json({ proveedores, total, page, pageSize, totalPages: Math.ceil(total / pageSize) });
   } catch (error) {
+    if (error instanceof PermissionDeniedError) return NextResponse.json({ error: error.message }, { status: 403 });
+    if (isOrganizationContextError(error)) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error('Error listing proveedores:', error);
     return NextResponse.json({ error: 'Error al listar proveedores' }, { status: 500 });
   }
@@ -50,11 +49,8 @@ async function getHandler(req: AuthenticatedRequest) {
 
 async function postHandler(req: AuthenticatedRequest) {
   try {
-    const role = req.user!.role as Role;
-    const { organizationId } = await requireOrganizationContext(req);
-    if (!canAccess(role, 'purchases', 'create')) {
-      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
-    }
+    const requestId = crypto.randomUUID();
+    const { organizationId } = await authorizeOrganization(req, requestId, 'suppliers.create');
 
     const body = await req.json();
     const parsed = createProveedorSchema.safeParse(body);
@@ -69,6 +65,8 @@ async function postHandler(req: AuthenticatedRequest) {
     const proveedor = await createProveedor(parsed.data, organizationId);
     return NextResponse.json({ proveedor }, { status: 201 });
   } catch (error) {
+    if (error instanceof PermissionDeniedError) return NextResponse.json({ error: error.message }, { status: 403 });
+    if (isOrganizationContextError(error)) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error('Error creating proveedor:', error);
     return NextResponse.json({ error: 'Error al crear proveedor' }, { status: 500 });
   }

@@ -1,8 +1,8 @@
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
-import { requireOrganizationContext, isOrganizationContextError } from '@/modules/organizations/application/context';
-import { canForOrganization } from '@/platform/security/authorization/effective-permissions';
+import { isOrganizationContextError } from '@/modules/organizations/application/context';
 import { apiFailure, apiSuccess } from '@/platform/api/response';
+import { authorizeOrganization, authorizationFailure } from '@/platform/security/authorization/http';
 import { EQUIPMENT_IMPORT_MAX_BYTES } from '@/modules/equipment/import-export/equipment-excel';
 import { importEquipmentWorkbook } from '@/modules/equipment/import-export/equipment-import';
 
@@ -11,10 +11,7 @@ const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.s
 async function postHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   try {
-    const organization = await requireOrganizationContext(req, requestId);
-    if (!await canForOrganization(organization.userId, organization.organizationId, organization.role, 'equipment.create')) {
-      return apiFailure('PERMISSION_DENIED', 'No tiene permiso para importar equipos.', { requestId, status: 403, details: [], stage: 'AUTHORIZE_EQUIPMENT_IMPORT' });
-    }
+    const organization = await authorizeOrganization(req, requestId, 'equipment.create');
     const form = await req.formData();
     const file = form.get('file');
     if (!(file instanceof File)) return apiFailure('FILE_REQUIRED', 'Seleccione un archivo XLSX.', { requestId, status: 400, details: [], stage: 'VALIDATE_UPLOAD' });
@@ -39,6 +36,8 @@ async function postHandler(req: AuthenticatedRequest) {
     });
     return apiSuccess(result, { requestId });
   } catch (error) {
+    const denied = authorizationFailure(error, requestId);
+    if (denied) return denied;
     if (isOrganizationContextError(error)) return apiFailure(error.code, 'No fue posible resolver el contexto de organización.', { requestId, status: error.status, details: [], stage: 'RESOLVE_ORGANIZATION_CONTEXT' });
     const code = error instanceof Error ? error.message : '';
     const known: Record<string, string> = {

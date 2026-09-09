@@ -1,20 +1,15 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { canAccess } from '@/lib/permissions';
 import { ORDEN_ESTADOS_PENDIENTES } from '@/lib/compras/orden/constants';
-import type { Role } from '@/types';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
+import { handlePrismaRouteError } from '@/lib/compras/orden/prisma-error';
 
 export const dynamic = 'force-dynamic';
 
 async function getHandler(req: AuthenticatedRequest) {
   try {
-    const role = req.user!.role as Role;
-    const { organizationId } = await requireOrganizationContext(req);
-    if (!canAccess(role, 'purchases', 'read')) {
-      return NextResponse.json({ count: 0 });
-    }
+    const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.read');
 
     const count = await prisma.compraOrden.count({
       where: {
@@ -26,8 +21,7 @@ async function getHandler(req: AuthenticatedRequest) {
 
     return NextResponse.json({ count });
   } catch (error) {
-    console.error('Error contando solicitudes pendientes:', error);
-    return NextResponse.json({ count: 0 });
+    return handlePrismaRouteError(error, 'GET /api/compras/bandeja/contador');
   }
 }
 
