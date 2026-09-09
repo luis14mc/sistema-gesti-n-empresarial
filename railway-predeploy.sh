@@ -40,21 +40,18 @@ pnpm exec prisma migrate deploy --schema=prisma/schema.prisma
 
 echo "[railway-predeploy] Prisma migrations completed successfully"
 
-# Master data seeding is intentionally opt-in. Enable it only for the controlled
-# deployment that should load/update the versioned CNI provider/employee catalog,
-# then set SEED_CNI_MASTER_DATA=false (or remove the variable) afterwards.
-if [ "${SEED_CNI_MASTER_DATA:-false}" = "true" ]; then
+# Idempotent upsert of versioned CNI provider/employee catalogs on every deploy.
+# Disable with SEED_CNI_MASTER_DATA=false if you need to skip it temporarily.
+if [ "${SEED_CNI_MASTER_DATA:-true}" != "false" ]; then
   if [ ! -f prisma/seed-railway.ts ]; then
-    echo "[railway-predeploy] ERROR: prisma/seed-railway.ts missing while SEED_CNI_MASTER_DATA=true"
-    exit 1
+    echo "[railway-predeploy] WARNING: prisma/seed-railway.ts missing; skipping master data seed"
   elif [ ! -f prisma/data/proveedores-cni.json ] || [ ! -f prisma/data/empleados-cni.json ]; then
-    echo "[railway-predeploy] ERROR: CNI master data JSON missing while SEED_CNI_MASTER_DATA=true"
-    exit 1
+    echo "[railway-predeploy] WARNING: CNI master data JSON missing; skipping master data seed"
   else
-    echo "[railway-predeploy] Running controlled CNI master data seed (proveedores + empleados)"
+    echo "[railway-predeploy] Running CNI master data seed (proveedores + empleados)"
     ALLOW_PRODUCTION_SEED=true pnpm exec tsx prisma/seed-railway.ts
     echo "[railway-predeploy] CNI master data seed completed"
   fi
 else
-  echo "[railway-predeploy] CNI master data seed disabled (set SEED_CNI_MASTER_DATA=true only for a controlled seed deploy)"
+  echo "[railway-predeploy] CNI master data seed disabled (SEED_CNI_MASTER_DATA=false)"
 fi
