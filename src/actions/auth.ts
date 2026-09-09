@@ -82,6 +82,11 @@ export async function loginAction(
     module: 'USUARIOS',
     category: 'LOGIN',
     userId: user.id,
+  }).catch((error) => {
+    console.error('[Login] audit failed', {
+      userId: user.id,
+      error: error instanceof Error ? error.message : 'UNKNOWN_ERROR',
+    });
   });
 
   const { password: _, ...sessionUser } = user;
