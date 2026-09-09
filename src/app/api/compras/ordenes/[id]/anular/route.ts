@@ -4,11 +4,11 @@ import { anularCompraOrden, getCompraOrden } from '@/lib/compras/orden/service';
 import { anularOrdenSchema } from '@/lib/compras/orden/schemas';
 import { canOrdenAction } from '@/lib/compras/orden/permissions';
 import type { Role } from '@/types';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
 
 export const POST = withAuth(async (req: AuthenticatedRequest, { params }) => {
   const role = req.user!.role as Role;
-  const { organizationId } = await requireOrganizationContext(req);
+  const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.cancel');
   const { id } = await params;
   const existing = await getCompraOrden(id, organizationId);
   if (!existing) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });

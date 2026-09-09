@@ -3,8 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { logEquipmentHistory } from '@/lib/equipment-history';
 import { mapAssignmentResponse } from '@/lib/equipment-mapper';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
 import { assignmentScope, equipmentApiFailure } from '@/modules/equipment/tenant';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
 
 async function patchHandler(
   req: AuthenticatedRequest,
@@ -12,7 +12,7 @@ async function patchHandler(
 ) {
   const requestId = crypto.randomUUID();
   try {
-    const { organizationId } = await requireOrganizationContext(req, requestId);
+    const { organizationId } = await authorizeOrganization(req, requestId, 'equipment.assign');
     const { id } = await params;
     const { documentType, documentUrl } = await req.json();
 
@@ -67,4 +67,4 @@ async function patchHandler(
   }
 }
 
-export const PATCH = withAuth(patchHandler, ['ADMIN', 'IT']);
+export const PATCH = withAuth(patchHandler);

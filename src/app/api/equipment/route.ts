@@ -3,8 +3,9 @@ import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { Prisma } from '@prisma/client';
 import { mapEquipmentResponse } from '@/lib/equipment-mapper';
-import { isOrganizationContextError, requireOrganizationContext } from '@/modules/organizations/application/context';
+import { isOrganizationContextError } from '@/modules/organizations/application/context';
 import { createEquipmentRecord } from '@/modules/equipment/import-export/equipment-create';
+import { authorizeOrganization, authorizationFailure } from '@/platform/security/authorization/http';
 import { equipmentInputSchema } from '@/modules/equipment/import-export/schemas';
 import { apiFailure, apiSuccess } from '@/platform/api/response';
 import { z } from 'zod';
@@ -31,7 +32,7 @@ function organizationFailure(error: unknown, requestId: string) {
 async function getHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   try {
-    const organization = await requireOrganizationContext(req, requestId);
+    const organization = await authorizeOrganization(req, requestId, 'equipment.read');
     const { status, type, category, search, page, pageSize } = equipmentListQuerySchema.parse(
       Object.fromEntries(req.nextUrl.searchParams),
     );
@@ -107,6 +108,8 @@ async function getHandler(req: AuthenticatedRequest) {
       meta: { total, page, pageSize, totalPages: Math.ceil(total / pageSize) },
     }, { requestId });
   } catch (error) {
+    const denied = authorizationFailure(error, requestId);
+    if (denied) return denied;
     const failure = organizationFailure(error, requestId);
     if (failure) return failure;
     if (error instanceof z.ZodError) {
@@ -120,7 +123,7 @@ async function getHandler(req: AuthenticatedRequest) {
 async function postHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   try {
-    const organization = await requireOrganizationContext(req, requestId);
+    const organization = await authorizeOrganization(req, requestId, 'equipment.create');
     const body = await req.json();
     const parsed = equipmentInputSchema.safeParse(body);
     if (!parsed.success) {
@@ -137,6 +140,8 @@ async function postHandler(req: AuthenticatedRequest) {
 
     return NextResponse.json({ equipment: mapEquipmentResponse(equipment) }, { status: 201 });
   } catch (error) {
+    const denied = authorizationFailure(error, requestId);
+    if (denied) return denied;
     const failure = organizationFailure(error, requestId);
     if (failure) return failure;
     console.error('Error al crear equipo:', error);
@@ -148,4 +153,4 @@ async function postHandler(req: AuthenticatedRequest) {
 }
 
 export const GET = withAuth(getHandler);
-export const POST = withAuth(postHandler, ['ADMIN', 'IT']);
+export const POST = withAuth(postHandler);

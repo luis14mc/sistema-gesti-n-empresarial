@@ -10,7 +10,7 @@ import { findDisposal, listDisposals } from '../infrastructure/repository';
 import { generateAndStoreDisposalPdf } from '../infrastructure/pdf';
 import { removeStoredDocument } from '@/lib/compras/orden/document-access';
 import { allocateDocumentSequence } from '@/platform/sequences/document-sequence';
-import { requirePermission } from '@/platform/security/authorization/permissions';
+import { requireOrganizationPermission } from '@/platform/security/authorization/effective-permissions';
 import { appendSecurityEvent } from '@/platform/security/audit/security-events';
 
 function mapPolicy(policy: {
@@ -176,20 +176,20 @@ async function restoreAndClose(
 }
 
 export const equipmentDisposalService = {
-  list(context: OrganizationContext, input: { page: number; pageSize: number; status?: DisposalStatus; search?: string }) {
-    requirePermission(context, 'equipment-disposal.read');
+  async list(context: OrganizationContext, input: { page: number; pageSize: number; status?: DisposalStatus; search?: string }) {
+    await requireOrganizationPermission(context.userId, context.organizationId, context.role, 'equipment-disposal.read');
     return listDisposals({ organizationId: context.organizationId, ...input });
   },
 
   async get(context: OrganizationContext, id: string) {
-    requirePermission(context, 'equipment-disposal.read');
+    await requireOrganizationPermission(context.userId, context.organizationId, context.role, 'equipment-disposal.read');
     const disposal = await findDisposal(context.organizationId, id);
     if (!disposal) throw new EquipmentDisposalError('DISPOSAL_NOT_FOUND', 404);
     return disposal;
   },
 
   async createDraft(context: OrganizationContext, input: DisposalEvaluationInput, requestId: string) {
-    requirePermission(context, 'equipment-disposal.create');
+    await requireOrganizationPermission(context.userId, context.organizationId, context.role, 'equipment-disposal.create');
     return prisma.$transaction(async (tx) => {
       const [equipment, policy] = await Promise.all([
         tx.equipment.findFirst({
@@ -266,7 +266,7 @@ export const equipmentDisposalService = {
   },
 
   async updateDraft(context: OrganizationContext, id: string, input: DisposalEvaluationInput & { version: number }, requestId: string) {
-    requirePermission(context, 'equipment-disposal.update');
+    await requireOrganizationPermission(context.userId, context.organizationId, context.role, 'equipment-disposal.update');
     return prisma.$transaction(async (tx) => {
       const [disposal, policy] = await Promise.all([
         tx.equipmentDisposal.findFirst({ where: { id, organizationId: context.organizationId } }),
@@ -310,22 +310,22 @@ export const equipmentDisposalService = {
   },
 
   async submit(context: OrganizationContext, id: string, requestId: string) {
-    requirePermission(context, 'equipment-disposal.submit');
+    await requireOrganizationPermission(context.userId, context.organizationId, context.role, 'equipment-disposal.submit');
     return transition(context, id, 'PENDING_APPROVAL', 'DISPOSAL_SUBMITTED', requestId);
   },
 
   async reject(context: OrganizationContext, id: string, reason: string, requestId: string) {
-    requirePermission(context, 'equipment-disposal.reject');
+    await requireOrganizationPermission(context.userId, context.organizationId, context.role, 'equipment-disposal.reject');
     return restoreAndClose(context, id, 'REJECTED', 'DISPOSAL_REJECTED', reason, requestId);
   },
 
   async cancel(context: OrganizationContext, id: string, reason: string, requestId: string) {
-    requirePermission(context, 'equipment-disposal.cancel');
+    await requireOrganizationPermission(context.userId, context.organizationId, context.role, 'equipment-disposal.cancel');
     return restoreAndClose(context, id, 'CANCELLED', 'DISPOSAL_CANCELLED', reason, requestId);
   },
 
   async approve(context: OrganizationContext, id: string, requestId: string) {
-    requirePermission(context, 'equipment-disposal.approve');
+    await requireOrganizationPermission(context.userId, context.organizationId, context.role, 'equipment-disposal.approve');
     const existing = await findDisposal(context.organizationId, id);
     if (!existing) throw new EquipmentDisposalError('DISPOSAL_NOT_FOUND', 404);
     if (existing.status === 'APPROVED') return existing;

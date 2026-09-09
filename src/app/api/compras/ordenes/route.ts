@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { canAccess } from '@/lib/permissions';
 import {
   createCompraOrden,
   listCompraOrdenes,
@@ -9,15 +8,13 @@ import { createCompraOrdenSchema, normalizePurchaseOrderPayload } from '@/lib/co
 import { canOrdenAction } from '@/lib/compras/orden/permissions';
 import { handlePrismaRouteError, mapLegacyEstadoFilter } from '@/lib/compras/orden/prisma-error';
 import type { Role } from '@/types';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
 
 async function getHandler(req: AuthenticatedRequest) {
   try {
+    const requestId = crypto.randomUUID();
     const role = req.user!.role as Role;
-    const { organizationId } = await requireOrganizationContext(req);
-    if (!canAccess(role, 'purchases', 'read')) {
-      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
-    }
+    const { organizationId } = await authorizeOrganization(req, requestId, 'purchase-orders.read');
 
     const { searchParams } = new URL(req.url);
     const mine = searchParams.get('mine') === 'true' || role === 'USER';
@@ -42,8 +39,9 @@ async function getHandler(req: AuthenticatedRequest) {
 
 async function postHandler(req: AuthenticatedRequest) {
   try {
+    const requestId = crypto.randomUUID();
     const role = req.user!.role as Role;
-    const { organizationId } = await requireOrganizationContext(req);
+    const { organizationId } = await authorizeOrganization(req, requestId, 'purchase-orders.create');
     if (!canOrdenAction(role, 'create')) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }

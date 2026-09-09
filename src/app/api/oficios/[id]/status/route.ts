@@ -2,11 +2,10 @@ import { NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { canAccess } from '@/lib/permissions';
 import { createAuditRecord } from '@/lib/audit';
-import type { OficioStatus, Role } from '@/types';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import type { OficioStatus } from '@/types';
 import { oficioOrganizationFailure } from '@/modules/oficios/presentation/http';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
 import { oficioScope } from '@/modules/oficios/infrastructure/tenant-scope';
 
 export const dynamic = 'force-dynamic';
@@ -20,12 +19,8 @@ const ALLOWED: OficioStatus[] = ['DRAFT', 'SENT', 'RECEIVED', 'IN_PROCESS', 'COM
 async function patchHandler(req: AuthenticatedRequest, context: RouteContext) {
   const requestId = crypto.randomUUID();
   try {
-    const organization = await requireOrganizationContext(req, requestId);
+    const organization = await authorizeOrganization(req, requestId, 'oficios.update');
     const { id } = await context.params;
-    const role = req.user!.role as Role;
-    if (!canAccess(role, 'oficios', 'update')) {
-      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
-    }
 
     const body = await req.json();
     const next = body?.status as OficioStatus | undefined;
@@ -41,7 +36,7 @@ async function patchHandler(req: AuthenticatedRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Oficio no encontrado' }, { status: 404 });
     }
 
-    if (role === 'USER' && current.createdById !== req.user!.userId) {
+    if (req.user!.role === 'USER' && current.createdById !== req.user!.userId) {
       return NextResponse.json({ error: 'Oficio no encontrado' }, { status: 404 });
     }
 

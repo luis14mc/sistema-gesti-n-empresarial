@@ -100,10 +100,13 @@ describe('RBAC — permissions matrix', () => {
   });
 
   describe('routeToAccess (URL → module + roles)', () => {
-    it('resolves /dashboard to module dashboard (null = any role)', () => {
+    it('resolves /dashboard to an allowlist that excludes Correspondencia', () => {
       const access = routeToAccess('/dashboard');
       expect(access?.module).toBe('dashboard');
-      expect(access?.roles).toBeNull();
+      expect(access?.roles).toContain('ADMIN');
+      expect(access?.roles).toContain('ADMINISTRACION');
+      expect(access?.roles).toContain('IT_MANAGER');
+      expect(access?.roles).not.toContain('SECRETARIA');
     });
 
     it('resolves /oficios/sub-routes to the oficios module', () => {
@@ -150,6 +153,16 @@ describe('RBAC — permissions matrix', () => {
       expect(canAccessRoute('USER', '/equipment')).toBe(true);
       expect(canAccessRoute('USER', '/settings')).toBe(false);
       expect(canAccessRoute('USER', '/audit/logs')).toBe(false);
+    });
+
+    it('Correspondencia can only open oficios routes', () => {
+      expect(canAccessRoute('SECRETARIA', '/oficios')).toBe(true);
+      expect(canAccessRoute('SECRETARIA', '/oficios/todos')).toBe(true);
+      expect(canAccessRoute('SECRETARIA', '/dashboard')).toBe(false);
+      expect(canAccessRoute('SECRETARIA', '/equipment')).toBe(false);
+      expect(canAccessRoute('SECRETARIA', '/compras')).toBe(false);
+      expect(canAccessRoute('SECRETARIA', '/employees')).toBe(false);
+      expect(canAccessRoute('SECRETARIA', '/users')).toBe(false);
     });
 
     it('IT (TI) can access /users and /settings', () => {

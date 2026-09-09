@@ -113,3 +113,8 @@ export function fromPrismaUserRole(role: PrismaUserRole): SessionRole {
   if (role === 'RRHH') return 'RRHH';
   return 'USER';
 }
+
+/** Landing path after login. Correspondencia has no dashboard entitlement. */
+export function postLoginPath(role: string): string {
+  return role === 'SECRETARIA' ? '/oficios/todos' : '/dashboard';
+}

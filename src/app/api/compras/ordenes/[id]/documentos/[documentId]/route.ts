@@ -3,11 +3,11 @@ import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
 import { deletePurchaseOrderDocument, getCompraOrden } from '@/lib/compras/orden/service';
 import { canOrdenAction } from '@/lib/compras/orden/permissions';
 import type { Role } from '@/types';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
 
 export const DELETE = withAuth(async (req: AuthenticatedRequest, { params }) => {
   const role = req.user!.role as Role;
-  const { organizationId } = await requireOrganizationContext(req);
+  const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.update');
   const { id, documentId } = await params;
   const orden = await getCompraOrden(id, organizationId);
   if (!orden) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });

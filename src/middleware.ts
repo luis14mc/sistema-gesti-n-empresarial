@@ -6,6 +6,7 @@ import {
   validateTokenClaims,
   type TokenClaims,
 } from '@/lib/jwt-config';
+import { postLoginPath } from '@/platform/security/authorization/roles';
 
 // ============================================
 // NEXT.JS MIDDLEWARE — Protección de rutas + RBAC + CSP nonce
@@ -232,18 +233,24 @@ export async function middleware(request: NextRequest) {
     });
   }
 
-  // 3) Auth route con sesión activa → dashboard
+  // 3) Auth route con sesión activa → landing del perfil
   if (authRoute && token) {
-    const res = NextResponse.redirect(buildRequestRedirectUrl(request, '/dashboard'));
+    const payload = await decodeAndVerifyJwt(token);
+    const res = NextResponse.redirect(
+      buildRequestRedirectUrl(request, postLoginPath(payload?.role ?? '')),
+    );
     applySecurityHeaders(res, nonce);
     return res;
   }
 
   // 4) Raíz "/" → según sesión
   if (pathname === '/') {
-    const res = NextResponse.redirect(
-      buildRequestRedirectUrl(request, token ? '/dashboard' : '/login')
-    );
+    let landing = '/login';
+    if (token) {
+      const payload = await decodeAndVerifyJwt(token);
+      landing = postLoginPath(payload?.role ?? '');
+    }
+    const res = NextResponse.redirect(buildRequestRedirectUrl(request, landing));
     applySecurityHeaders(res, nonce);
     return res;
   }

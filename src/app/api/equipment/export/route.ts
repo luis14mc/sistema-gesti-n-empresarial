@@ -3,9 +3,8 @@ import { NextResponse } from 'next/server';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
 import { prisma } from '@/lib/prisma';
 import { createAuditRecord } from '@/lib/audit';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
-import { canForOrganization } from '@/platform/security/authorization/effective-permissions';
 import { apiFailure } from '@/platform/api/response';
+import { authorizeOrganization, authorizationFailure } from '@/platform/security/authorization/http';
 import { EQUIPMENT_EXCEL_TYPES } from '@/modules/equipment/import-export/types';
 import { buildEquipmentExport } from '@/modules/equipment/import-export/equipment-export';
 
@@ -14,10 +13,7 @@ const STATUSES: EquipmentStatus[] = ['AVAILABLE', 'ASSIGNED', 'IN_MAINTENANCE', 
 async function getHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   try {
-    const organization = await requireOrganizationContext(req, requestId);
-    if (!await canForOrganization(organization.userId, organization.organizationId, organization.role, 'equipment.read')) {
-      return apiFailure('PERMISSION_DENIED', 'No tiene permiso para exportar equipos.', { requestId, status: 403, details: [], stage: 'AUTHORIZE_EQUIPMENT_EXPORT' });
-    }
+    const organization = await authorizeOrganization(req, requestId, 'equipment.read');
     const search = req.nextUrl.searchParams.get('search')?.trim() || undefined;
     const statusValue = req.nextUrl.searchParams.get('status')?.toUpperCase();
     const typeValue = req.nextUrl.searchParams.get('type')?.toUpperCase();
@@ -35,6 +31,8 @@ async function getHandler(req: AuthenticatedRequest) {
       'Content-Length': String(artifact.body.byteLength), 'Cache-Control': 'no-store', 'x-request-id': requestId,
     } });
   } catch (error) {
+    const denied = authorizationFailure(error, requestId);
+    if (denied) return denied;
     console.error('[EQUIPMENT EXPORT ERROR]', { requestId, error });
     return apiFailure('EQUIPMENT_EXPORT_FAILED', 'No se pudo exportar el inventario.', { requestId, status: 500, details: [], stage: 'EXPORT_EQUIPMENT' });
   }

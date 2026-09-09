@@ -173,16 +173,16 @@ describe('canonical purchase-order export builder', () => {
 // ── endpoint authz/format contract (10, 11) ─────────────────
 describe('export endpoint contract', () => {
   const src = read('src/app/api/compras/reportes/export/route.ts');
-  it('10. rejects non-admin / unauthorized', () => {
-    expect(src).toMatch(/role !== 'ADMIN'/);
-    expect(src).toMatch(/status: 403/);
+  it('10. rejects unauthorized callers via organization permission', () => {
+    expect(src).toMatch(/authorizeOrganization/);
+    expect(src).toMatch(/purchase-orders\.download/);
   });
   it('11. rejects unsupported format before doing work', () => {
     expect(src).toMatch(/isSupportedExportFormat/);
     expect(src).toMatch(/UNSUPPORTED_FORMAT/);
   });
   it('is tenant-scoped and audited', () => {
-    expect(src).toMatch(/requireOrganizationContext/);
+    expect(src).toMatch(/authorizeOrganization/);
     expect(src).toMatch(/createAuditRecord/);
   });
 });

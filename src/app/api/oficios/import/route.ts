@@ -3,12 +3,10 @@ import { createHash } from 'crypto';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { canAccess } from '@/lib/permissions';
 import { saveOficioDocument } from '@/lib/oficios-storage';
 import { createAuditRecord } from '@/lib/audit';
-import type { Role } from '@/types';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
 import { oficioOrganizationFailure } from '@/modules/oficios/presentation/http';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
 import { oficioDocumentTenantScope, oficioTenantScope } from '@/modules/oficios/infrastructure/tenant-scope';
 
 export const dynamic = 'force-dynamic';
@@ -31,11 +29,7 @@ interface ImportPayload {
 async function postHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   try {
-    const organization = await requireOrganizationContext(req, requestId);
-    const role = req.user!.role as Role;
-    if (!canAccess(role, 'oficios', 'create')) {
-      return NextResponse.json({ error: 'Sin permisos para importar oficios' }, { status: 403 });
-    }
+    const organization = await authorizeOrganization(req, requestId, 'oficios.import');
 
     const formData = await req.formData();
     const payloadRaw = formData.get('payload');

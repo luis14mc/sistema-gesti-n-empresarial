@@ -11,6 +11,7 @@ import {
   ORGANIZATION_ROLE_LABELS,
   PROMOTED_ORGANIZATION_ROLES,
   isPromotedOrganizationRole,
+  postLoginPath,
   sessionRoleMatchesAllowlist,
 } from '@/platform/security/authorization/roles';
 import { hasModuleAccess } from '@/lib/permissions';
@@ -33,6 +34,8 @@ describe('CNI effective permission matrix', () => {
     expect(PROMOTED_ORGANIZATION_ROLES.every(isPromotedOrganizationRole)).toBe(true);
     expect(isPromotedOrganizationRole('USER')).toBe(false);
     expect(isPromotedOrganizationRole('HR')).toBe(false);
+    expect(postLoginPath('SECRETARIA')).toBe('/oficios/todos');
+    expect(postLoginPath('ADMINISTRACION')).toBe('/dashboard');
   });
 
   it('ADMIN can access representative organization capabilities', () => {
@@ -81,6 +84,7 @@ describe('CNI effective permission matrix', () => {
     expect(can(role, 'oficios.export')).toBe(true);
     expect(can(role, 'oficios.attachments')).toBe(true);
     expect(can(role, 'oficios.import')).toBe(true);
+    expect(can(role, 'dashboard.view')).toBe(false);
     expect(can(role, 'purchase-orders.read')).toBe(false);
     expect(can(role, 'employees.read')).toBe(false);
     expect(can(role, 'equipment.read')).toBe(false);
@@ -147,6 +151,7 @@ describe('CNI effective permission matrix', () => {
     expect(hasModuleAccess('ADMINISTRACION', 'users')).toBe(false);
     expect(hasModuleAccess('ADMINISTRACION', 'equipment')).toBe(false);
     expect(hasModuleAccess('SECRETARIA', 'oficios')).toBe(true);
+    expect(hasModuleAccess('SECRETARIA', 'dashboard')).toBe(false);
     expect(hasModuleAccess('SECRETARIA', 'purchases')).toBe(false);
     expect(hasModuleAccess('IT_MANAGER', 'users')).toBe(true);
     expect(hasModuleAccess('IT_MANAGER', 'equipment')).toBe(true);

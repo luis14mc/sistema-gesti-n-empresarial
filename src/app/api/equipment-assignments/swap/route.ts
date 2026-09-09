@@ -5,15 +5,15 @@ import { createAuditRecord } from '@/lib/audit';
 import { resolveEmployeeSnapshot } from '@/lib/employees';
 import { logEquipmentHistory, mapReturnConditionToStatus } from '@/lib/equipment-history';
 import { mapAssignmentResponse } from '@/lib/equipment-mapper';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
 import { assignmentScope, equipmentApiFailure } from '@/modules/equipment/tenant';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
 import { isActiveAssignmentConflict } from '@/modules/equipment/assignment-errors';
 
 /** Cambio de equipo: devuelve el anterior y asigna el nuevo en una transacción */
 async function postHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   try {
-    const { organizationId } = await requireOrganizationContext(req, requestId);
+    const { organizationId } = await authorizeOrganization(req, requestId, 'equipment.assign');
     const {
       oldAssignmentId,
       newEquipmentId,
@@ -169,4 +169,4 @@ async function postHandler(req: AuthenticatedRequest) {
   }
 }
 
-export const POST = withAuth(postHandler, ['ADMIN', 'IT']);
+export const POST = withAuth(postHandler);

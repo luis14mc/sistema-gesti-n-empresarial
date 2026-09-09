@@ -2,10 +2,8 @@ import { NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { canAccess } from '@/lib/permissions';
-import type { Role } from '@/types';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
 import { oficioOrganizationFailure } from '@/modules/oficios/presentation/http';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
 import { oficioTenantScope, oficioUserAccessScope } from '@/modules/oficios/infrastructure/tenant-scope';
 
 export const dynamic = 'force-dynamic';
@@ -27,11 +25,7 @@ export const dynamic = 'force-dynamic';
 async function getHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   try {
-    const organization = await requireOrganizationContext(req, requestId);
-    const role = req.user!.role as Role;
-    if (!canAccess(role, 'oficios', 'read')) {
-      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
-    }
+    const organization = await authorizeOrganization(req, requestId, 'oficios.read');
 
     const { searchParams } = new URL(req.url);
     const q = searchParams.get('q')?.trim();
@@ -51,7 +45,7 @@ async function getHandler(req: AuthenticatedRequest) {
     const andConditions: Prisma.OficioWhereInput[] = [];
 
     // RBAC: USER solo ve los propios
-    if (role === 'USER') {
+    if (req.user!.role === 'USER') {
       andConditions.push(oficioUserAccessScope(req.user!.userId, req.user!.email));
     }
 

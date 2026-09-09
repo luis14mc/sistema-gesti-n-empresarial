@@ -1,7 +1,6 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -13,7 +12,6 @@ import { sileo } from 'sileo';
 import { UserPlus, Eye, EyeOff } from 'lucide-react';
 
 export default function RegisterPage() {
-  const router = useRouter();
   const { register, isRegistering } = useAuth();
   const headingId = useId();
   const [form, setForm] = useState({
@@ -41,8 +39,7 @@ export default function RegisterPage() {
         email: form.email,
         password: form.password,
       });
-      sileo.success({ title: 'Cuenta creada', description: 'Redirigiendo al dashboard...' });
-      router.push('/dashboard');
+      sileo.success({ title: 'Cuenta creada', description: 'Redirigiendo...' });
     } catch {
       sileo.error({ title: 'Error', description: 'No se pudo crear la cuenta' });
     }

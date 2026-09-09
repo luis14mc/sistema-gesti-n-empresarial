@@ -3,8 +3,8 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
 import { equipmentApiFailure, maintenanceScope } from '@/modules/equipment/tenant';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
 
 const MAINTENANCE_STATUSES = ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'] as const;
 const MAINTENANCE_TYPES = ['PREVENTIVE', 'CORRECTIVE', 'UPDATE', 'INSPECTION'] as const;
@@ -35,7 +35,7 @@ async function getHandler(
   const requestId = crypto.randomUUID();
   try {
     const { id } = await params;
-    const { organizationId } = await requireOrganizationContext(req, requestId);
+    const { organizationId } = await authorizeOrganization(req, requestId, 'equipment.maintain');
     const maintenance = await prisma.equipmentMaintenance.findFirst({
       where: { id, ...maintenanceScope(organizationId) },
       include: {
@@ -74,7 +74,7 @@ async function patchHandler(
   const requestId = crypto.randomUUID();
   try {
     const { id } = await params;
-    const { organizationId } = await requireOrganizationContext(req, requestId);
+    const { organizationId } = await authorizeOrganization(req, requestId, 'equipment.maintain');
     const data = await req.json();
     const current = await prisma.equipmentMaintenance.findFirst({
       where: { id, ...maintenanceScope(organizationId) },
@@ -179,7 +179,7 @@ async function deleteHandler(
   const requestId = crypto.randomUUID();
   try {
     const { id } = await params;
-    const { organizationId } = await requireOrganizationContext(req, requestId);
+    const { organizationId } = await authorizeOrganization(req, requestId, 'equipment.maintain');
     const current = await prisma.equipmentMaintenance.findFirst({
       where: { id, ...maintenanceScope(organizationId) },
     });
@@ -214,5 +214,5 @@ async function deleteHandler(
 }
 
 export const GET = withAuth(getHandler);
-export const PATCH = withAuth(patchHandler, ['ADMIN', 'IT']);
-export const DELETE = withAuth(deleteHandler, ['ADMIN']);
+export const PATCH = withAuth(patchHandler);
+export const DELETE = withAuth(deleteHandler);

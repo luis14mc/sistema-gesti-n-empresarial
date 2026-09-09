@@ -3,13 +3,11 @@ import { Prisma, OficioType as PrismaOficioType } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
-import { canAccess } from '@/lib/permissions';
 import {
   createRateLimiter,
   RATE_LIMIT_RULES,
   rateLimitHeaders,
 } from '@/lib/rate-limit';
-import type { Role } from '@/types';
 import {
   normalizeOficioDirection,
   normalizeOficioScope,
@@ -19,10 +17,10 @@ import {
 } from '@/lib/oficios-numbering';
 import { buildMetaScopeFilter } from '@/lib/oficios-meta';
 import { parseOficioAttachments, isOficioAttachmentUrlAllowed } from '@/lib/oficios-attachments';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
-import { oficioOrganizationFailure } from '@/modules/oficios/presentation/http';
 import { oficioTenantScope, oficioUserAccessScope } from '@/modules/oficios/infrastructure/tenant-scope';
 import { allocateOficioNumber } from '@/modules/oficios/infrastructure/numbering';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
+import { oficioOrganizationFailure } from '@/modules/oficios/presentation/http';
 
 /** Rate-limit por usuario para creación de oficios: 30/min. */
 const oficioCreateLimiter = createRateLimiter({
@@ -87,7 +85,7 @@ function toPrismaOficioType(direction: OficioDirection): PrismaOficioType {
 async function getHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   try {
-    const organization = await requireOrganizationContext(req, requestId);
+    const organization = await authorizeOrganization(req, requestId, 'oficios.read');
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
     const type = searchParams.get('type');
@@ -182,14 +180,7 @@ async function getHandler(req: AuthenticatedRequest) {
 async function postHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   try {
-    const organization = await requireOrganizationContext(req, requestId);
-
-    if (!canAccess(req.user!.role as Role, 'oficios', 'create')) {
-      return NextResponse.json(
-        { error: 'No tiene permisos para crear oficios' },
-        { status: 403 }
-      );
-    }
+    const organization = await authorizeOrganization(req, requestId, 'oficios.create');
 
     // Rate-limit por usuario (mitiga consumo de secuencia + abuso)
     const rateKey = `${req.user!.userId}:${organization.organizationId}`;

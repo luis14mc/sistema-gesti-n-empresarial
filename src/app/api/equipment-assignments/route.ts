@@ -5,14 +5,14 @@ import { createAuditRecord } from '@/lib/audit';
 import { resolveEmployeeSnapshot } from '@/lib/employees';
 import { logEquipmentHistory } from '@/lib/equipment-history';
 import { mapAssignmentResponse } from '@/lib/equipment-mapper';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
 import { assignmentScope, equipmentApiFailure } from '@/modules/equipment/tenant';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
 import { isActiveAssignmentConflict } from '@/modules/equipment/assignment-errors';
 
 async function getHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   try {
-    const { organizationId } = await requireOrganizationContext(req, requestId);
+    const { organizationId } = await authorizeOrganization(req, requestId, 'equipment.read');
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
     const userId = searchParams.get('userId');
@@ -79,7 +79,7 @@ async function getHandler(req: AuthenticatedRequest) {
 async function postHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   try {
-    const { organizationId } = await requireOrganizationContext(req, requestId);
+    const { organizationId } = await authorizeOrganization(req, requestId, 'equipment.assign');
     const {
       equipmentId,
       employeeId,
@@ -236,4 +236,4 @@ async function postHandler(req: AuthenticatedRequest) {
 }
 
 export const GET = withAuth(getHandler);
-export const POST = withAuth(postHandler, ['ADMIN', 'IT']);
+export const POST = withAuth(postHandler);

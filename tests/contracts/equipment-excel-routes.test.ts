@@ -24,7 +24,7 @@ describe('equipment Excel route security contracts', () => {
 
   it('derives organization scope from authenticated context and never reads it from input', () => {
     for (const route of [importRoute, templateRoute, exportRoute]) {
-      expect(route).toMatch(/requireOrganizationContext/);
+      expect(route).toMatch(/authorizeOrganization/);
       expect(route).not.toMatch(/searchParams\.get\(['"]organizationId/);
       expect(route).not.toMatch(/form\.get\(['"]organizationId/);
     }

@@ -14,6 +14,7 @@ import { AxiosError } from 'axios';
 
 import { authService } from '@/services/auth.service';
 import { useAuthStore } from '@/stores/authStore';
+import { postLoginPath } from '@/platform/security/authorization/roles';
 import type {
   LoginCredentials,
   RegisterData,
@@ -104,10 +105,8 @@ export function useAuth() {
     onSuccess: (data: AuthResponse) => {
       // Guardar en store (persiste en localStorage + cookie)
       storeLogin(data.user, data.token);
-      // Invalidar query de /me para que se refresque
       queryClient.invalidateQueries({ queryKey: authKeys.me() });
-      // Navegar al dashboard
-      router.push('/dashboard');
+      router.push(postLoginPath(data.user.role));
     },
   });
 
@@ -121,12 +120,9 @@ export function useAuth() {
       return response.data;
     },
     onSuccess: (data: AuthResponse) => {
-      // Guardar en store (persiste en localStorage + cookie)
       storeLogin(data.user, data.token);
-      // Invalidar query de /me
       queryClient.invalidateQueries({ queryKey: authKeys.me() });
-      // Navegar al dashboard
-      router.push('/dashboard');
+      router.push(postLoginPath(data.user.role));
     },
   });
 

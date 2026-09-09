@@ -1,7 +1,7 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import type { OrganizationContext } from '@/modules/organizations/application/context';
-import { requirePermission } from '@/platform/security/authorization/permissions';
+import { requireOrganizationPermission } from '@/platform/security/authorization/effective-permissions';
 
 export type AuditLogQuery = Readonly<{
   userId?: string;
@@ -13,7 +13,7 @@ export type AuditLogQuery = Readonly<{
 
 export class AuditLogQueryService {
   async list(context: OrganizationContext, query: AuditLogQuery) {
-    requirePermission(context, 'audit.read');
+    await requireOrganizationPermission(context.userId, context.organizationId, context.role, 'audit.read');
 
     const page = Number.isSafeInteger(query.page) && query.page > 0 ? query.page : 1;
     const pageSize = Number.isSafeInteger(query.pageSize)

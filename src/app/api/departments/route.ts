@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
+import { handlePrismaRouteError } from '@/lib/compras/orden/prisma-error';
 
 async function getHandler(req: AuthenticatedRequest) {
   try {
-    const { organizationId } = await requireOrganizationContext(req);
+    const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'employees.read');
     const departments = await prisma.department.findMany({
       where: { organizationId, isActive: true },
       include: {
@@ -20,8 +21,7 @@ async function getHandler(req: AuthenticatedRequest) {
 
     return NextResponse.json({ departments });
   } catch (error) {
-    console.error('Error al obtener departamentos:', error);
-    return NextResponse.json({ error: 'Error al obtener departamentos' }, { status: 500 });
+    return handlePrismaRouteError(error, 'GET /api/departments');
   }
 }
 

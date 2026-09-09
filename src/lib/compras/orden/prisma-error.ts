@@ -1,5 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { NextResponse } from 'next/server';
+import { isOrganizationContextError } from '@/modules/organizations/application/context';
+import { PermissionDeniedError } from '@/platform/domain/errors';
 
 function statusFromPrismaCode(code: string): number {
   switch (code) {
@@ -16,6 +18,12 @@ function statusFromPrismaCode(code: string): number {
 }
 
 export function handlePrismaRouteError(error: unknown, context: string) {
+  if (error instanceof PermissionDeniedError) {
+    return NextResponse.json({ error: error.message }, { status: 403 });
+  }
+  if (isOrganizationContextError(error)) {
+    return NextResponse.json({ error: error.message }, { status: error.status });
+  }
   console.error(`[${context}]`, error);
 
   if (error instanceof Prisma.PrismaClientKnownRequestError) {

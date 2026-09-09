@@ -1,5 +1,12 @@
 import type { OrganizationRole, PlatformRole } from '@prisma/client';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@/lib/prisma', () => ({
+  prisma: {
+    userPermissionOverride: { findMany: vi.fn().mockResolvedValue([]) },
+    auditRecord: { findMany: vi.fn(), count: vi.fn() },
+  },
+}));
 import { PermissionDeniedError } from '@/platform/domain/errors';
 import {
   ORGANIZATION_PERMISSIONS,

@@ -143,7 +143,6 @@ const ORGANIZATION_ROLE_PERMISSIONS: Record<OrganizationRole, readonly Permissio
   ],
   SECRETARIA: [
     ...OFICIOS_OPERATIONAL,
-    'dashboard.view',
   ],
   IT_MANAGER: [
     ...EQUIPMENT_LIFECYCLE,

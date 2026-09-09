@@ -2,13 +2,13 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { CATEGORY_LABELS } from '@/lib/equipment-asset-code';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
 import { assignmentScope, equipmentApiFailure, equipmentScope } from '@/modules/equipment/tenant';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
 
 async function getHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   try {
-    const { organizationId } = await requireOrganizationContext(req, requestId);
+    const { organizationId } = await authorizeOrganization(req, requestId, 'equipment.read');
     const scoped = equipmentScope(organizationId);
     const now = new Date();
     const in30Days = new Date();

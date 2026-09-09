@@ -47,7 +47,6 @@ const PERMISSIONS: Record<Role, Partial<Record<Module, Action[]>>> = {
     employees: ['read', 'create', 'update', 'delete'],
   },
   SECRETARIA: {
-    dashboard: ['read'],
     oficios: ['read', 'create', 'update', 'delete'],
   },
   IT_MANAGER: TI,
@@ -113,7 +112,7 @@ export function getModuleActions(role: Role, module: Module): Action[] {
 }
 
 export const ROUTE_ACCESS_BY_MODULE: Record<Module, Role[] | null> = {
-  dashboard: null,
+  dashboard: ['ADMIN', 'OWNER', 'ADMINISTRACION', 'IT_MANAGER', 'IT', 'IT_TECHNICIAN', 'PROCUREMENT', 'HR', 'RRHH', 'AUDITOR', 'USER', 'DIRECTOR'],
   oficios: ['ADMIN', 'OWNER', 'ADMINISTRACION', 'SECRETARIA', 'USER', 'HR', 'RRHH', 'PROCUREMENT'],
   equipment: ['ADMIN', 'OWNER', 'IT_MANAGER', 'IT', 'IT_TECHNICIAN', 'AUDITOR', 'USER'],
   assignments: ['ADMIN', 'OWNER', 'IT_MANAGER', 'IT', 'IT_TECHNICIAN', 'USER'],

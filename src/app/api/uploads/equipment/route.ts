@@ -1,23 +1,16 @@
 import { NextResponse } from 'next/server';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
-import { canAccess } from '@/lib/permissions';
 import { EQUIPMENT_DOCUMENT_TYPES } from '@/lib/equipment-document-types';
 import { saveEquipmentDocument } from '@/lib/equipment-storage';
-import type { Role } from '@/types';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
 import { isOrganizationContextError } from '@/modules/organizations/application/context';
 import { equipmentApiFailure } from '@/modules/equipment/tenant';
 import { apiFailure } from '@/platform/api/response';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
 
 async function postHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   try {
-    const organization = await requireOrganizationContext(req, requestId);
-    const role = req.user!.role as Role;
-
-    if (!canAccess(role, 'equipment', 'update') && !canAccess(role, 'assignments', 'update')) {
-      return apiFailure('EQUIPMENT_UPLOAD_FORBIDDEN', 'Sin permisos para subir documentos', { requestId, status: 403 });
-    }
+    const organization = await authorizeOrganization(req, requestId, 'equipment.update');
 
     const formData = await req.formData();
     const file = formData.get('file');
@@ -43,4 +36,4 @@ async function postHandler(req: AuthenticatedRequest) {
   }
 }
 
-export const POST = withAuth(postHandler, ['ADMIN', 'IT']);
+export const POST = withAuth(postHandler);

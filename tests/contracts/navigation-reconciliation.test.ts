@@ -97,6 +97,7 @@ describe('navigation reconciliation', () => {
     expect(reachableModules('IT')).toContain('audits');
     expect(reachableModules('ADMINISTRACION')).not.toContain('audits');
     expect(reachableModules('SECRETARIA')).not.toContain('audits');
+    expect(reachableModules('SECRETARIA')).toEqual(['oficios']);
   });
 
   it('contains no dead legacy purchase navigation', () => {

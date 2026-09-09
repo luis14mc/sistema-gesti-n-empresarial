@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import type { PurchaseOrderStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { canAccess } from '@/lib/permissions';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
+import { handlePrismaRouteError } from '@/lib/compras/orden/prisma-error';
 import { createAuditRecord } from '@/lib/audit';
 import {
   isSupportedExportFormat,
@@ -14,7 +14,6 @@ import {
   buildPurchaseOrderExportDataset,
   PurchaseExportTooLargeError,
 } from '@/lib/compras/reportes/purchase-order-export';
-import type { Role } from '@/types';
 
 const VALID_STATUSES: readonly PurchaseOrderStatus[] = ['DRAFT', 'GENERATED', 'ISSUED', 'CANCELLED', 'CLOSED'];
 
@@ -27,12 +26,7 @@ const VALID_STATUSES: readonly PurchaseOrderStatus[] = ['DRAFT', 'GENERATED', 'I
 async function getHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   try {
-    const role = req.user!.role as Role;
-    const { organizationId } = await requireOrganizationContext(req, requestId);
-
-    if (!canAccess(role, 'purchases', 'read') || role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Sin permisos para exportar reportes' }, { status: 403 });
-    }
+    const { organizationId } = await authorizeOrganization(req, requestId, 'purchase-orders.download');
 
     const { searchParams } = new URL(req.url);
     const format = (searchParams.get('format') || 'csv').toLowerCase();
@@ -95,8 +89,7 @@ async function getHandler(req: AuthenticatedRequest) {
         { status: 413 },
       );
     }
-    console.error('Error exporting compras report:', error);
-    return NextResponse.json({ error: 'Error al exportar el reporte' }, { status: 500 });
+    return handlePrismaRouteError(error, 'GET /api/compras/reportes/export');
   }
 }
 

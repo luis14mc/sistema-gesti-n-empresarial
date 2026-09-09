@@ -4,8 +4,8 @@ import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
 import { logEquipmentHistory } from '@/lib/equipment-history';
 import { mapEquipmentResponse } from '@/lib/equipment-mapper';
-import { requireOrganizationContext } from '@/modules/organizations/application/context';
 import { equipmentApiFailure } from '@/modules/equipment/tenant';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
 
 async function getHandler(
   req: AuthenticatedRequest,
@@ -14,7 +14,7 @@ async function getHandler(
   const requestId = crypto.randomUUID();
   try {
     const { id } = await params;
-    const organization = await requireOrganizationContext(req, requestId);
+    const organization = await authorizeOrganization(req, requestId, 'equipment.read');
     const equipment = await prisma.equipment.findFirst({
       where: { id, organizationId: organization.organizationId },
       include: {
@@ -56,7 +56,7 @@ async function patchHandler(
   const requestId = crypto.randomUUID();
   try {
     const { id } = await params;
-    const organization = await requireOrganizationContext(req, requestId);
+    const organization = await authorizeOrganization(req, requestId, 'equipment.update');
     const data = await req.json();
     const current = await prisma.equipment.findFirst({ where: { id, organizationId: organization.organizationId } });
 
@@ -125,7 +125,7 @@ async function deleteHandler(
   const requestId = crypto.randomUUID();
   try {
     await params;
-    await requireOrganizationContext(req, requestId);
+    await authorizeOrganization(req, requestId, 'equipment.dispose');
     return NextResponse.json(
       { error: 'Use el flujo de dictamen técnico para dar de baja el equipo.' },
       { status: 409 },
@@ -137,5 +137,5 @@ async function deleteHandler(
 }
 
 export const GET = withAuth(getHandler);
-export const PATCH = withAuth(patchHandler, ['ADMIN', 'IT']);
-export const DELETE = withAuth(deleteHandler, ['ADMIN', 'IT']);
+export const PATCH = withAuth(patchHandler);
+export const DELETE = withAuth(deleteHandler);
