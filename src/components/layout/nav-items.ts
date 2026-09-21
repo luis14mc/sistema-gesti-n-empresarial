@@ -59,15 +59,14 @@ export const NAV_ITEMS: NavItem[] = [
   // Correspondencia
   {
     label: 'Correspondencia',
-    href: '/oficios/todos',
+    href: '/oficios',
     icon: FileText,
     module: 'oficios',
     children: [
-      { label: 'Todos los oficios', href: '/oficios/todos' },
-      { label: 'Oficios internos', href: '/oficios/internos' },
-      { label: 'Oficios CNI', href: '/oficios/cni' },
-      { label: 'Oficios Despacho', href: '/oficios/despacho' },
-      { label: 'Importar oficios', href: '/oficios/importar' },
+      { label: 'Todos', href: '/oficios' },
+      { label: 'Entradas', href: '/oficios/entradas' },
+      { label: 'Salidas', href: '/oficios/salidas' },
+      { label: 'Importar', href: '/oficios/importar' },
     ],
   },
 
@@ -129,6 +128,9 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/settings',
     icon: Settings,
     module: 'settings',
-    children: [{ label: 'Configuración', href: '/settings', module: 'settings' }],
+    children: [
+      { label: 'Configuración', href: '/settings', module: 'settings' },
+      { label: 'Correspondencia', href: '/settings/correspondencia', module: 'settings' },
+    ],
   },
 ];

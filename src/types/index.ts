@@ -67,9 +67,14 @@ export const EQUIPMENT_STATUS_LABELS: Record<EquipmentStatus, string> = {
 
 export const OFICIO_STATUS_LABELS: Record<OficioStatus, string> = {
   DRAFT: 'Borrador',
+  PENDING_SIGNATURE: 'Pendiente de firma',
+  SIGNED: 'Firmado',
   SENT: 'Enviado',
+  ACKNOWLEDGED: 'Acuse recibido',
   RECEIVED: 'Recibido',
+  ASSIGNED: 'Asignado',
   IN_PROCESS: 'En proceso',
+  RESPONDED: 'Respondido',
   COMPLETED: 'Completado',
   ARCHIVED: 'Archivado',
 };
@@ -206,7 +211,11 @@ export type OficioTrackingAction =
   | 'ARCHIVED'
   | 'DOCUMENT_ADDED'
   | 'STATUS_CHANGED'
-  | 'COMMENT_ADDED';
+  | 'COMMENT_ADDED'
+  | 'NUMBER_GENERATED'
+  | 'RELATIONSHIP_LINKED'
+  | 'RELATIONSHIP_UNLINKED'
+  | 'DOCUMENT_REMOVED';
 
 export type OficioImportBatchStatus =
   | 'PENDING'
@@ -249,6 +258,10 @@ export const OFICIO_TRACKING_ACTION_LABELS: Record<OficioTrackingAction, string>
   DOCUMENT_ADDED: 'Documento agregado',
   STATUS_CHANGED: 'Estado cambiado',
   COMMENT_ADDED: 'Comentario agregado',
+  NUMBER_GENERATED: 'Número generado',
+  RELATIONSHIP_LINKED: 'Relación vinculada',
+  RELATIONSHIP_UNLINKED: 'Relación desvinculada',
+  DOCUMENT_REMOVED: 'Documento eliminado',
 };
 
 export const OFICIO_DOCUMENT_TYPE_LABELS: Record<OficioDocumentType, string> = {
@@ -335,6 +348,7 @@ export interface Oficio {
   systemNumber: string | null;
   type: OficioType;
   scope?: OficioScope | string | null;
+  documentKind?: string | null;
   subject: string;
   recipient?: string | null;
   institution?: string | null;
@@ -351,13 +365,27 @@ export interface Oficio {
   oficioDate: string;
   receivedDate?: string | null;
   sentDate?: string | null;
+  sequenceYear?: number | null;
+  senderName?: string | null;
+  senderPosition?: string | null;
+  recipientName?: string | null;
+  recipientPosition?: string | null;
+  cc?: string | null;
+  responseToId?: string | null;
+  signerId?: string | null;
+  responsibleEmployeeId?: string | null;
+  archivedAt?: string | null;
   createdById: string;
+  updatedById?: string | null;
   createdAt: string;
   updatedAt: string;
   createdBy?: Pick<User, 'id' | 'firstName' | 'lastName'>;
   importedBy?: Pick<User, 'id' | 'firstName' | 'lastName'> | null;
   documents?: OficioDocument[];
   tracking?: OficioTracking[];
+  responseTo?: Pick<Oficio, 'id' | 'number' | 'type' | 'subject' | 'oficioDate' | 'scope'> | null;
+  responses?: Pick<Oficio, 'id' | 'number' | 'type' | 'subject' | 'oficioDate' | 'scope'>[];
+  signer?: { id: string; name: string; positionTitle: string; dependency: string | null } | null;
 }
 
 export interface TimeEntry {
@@ -609,7 +637,18 @@ export interface PaginatedResult<T> {
 // type aliases para no romper páginas aún no migradas.
 
 export type TicketCategory = string;
-export type OficioStatus = 'DRAFT' | 'SENT' | 'RECEIVED' | 'IN_PROCESS' | 'COMPLETED' | 'ARCHIVED';
+export type OficioStatus =
+  | 'DRAFT'
+  | 'SENT'
+  | 'RECEIVED'
+  | 'IN_PROCESS'
+  | 'COMPLETED'
+  | 'ARCHIVED'
+  | 'ASSIGNED'
+  | 'PENDING_SIGNATURE'
+  | 'SIGNED'
+  | 'ACKNOWLEDGED'
+  | 'RESPONDED';
 export type EntryType = 'CHECK_IN' | 'CHECK_OUT' | 'BREAK_START' | 'BREAK_END';
 export type EquipmentType = string;
 export type AssignmentStatus = 'ACTIVE' | 'RETURNED' | 'REPLACED' | 'LOST' | 'CANCELLED';
@@ -676,15 +715,26 @@ export interface CreateOficioData {
   number?: string;
   externalNumber?: string;
   scope: OficioScope;
+  dependency?: OficioScope;
   direction: OficioDirection;
-  recipient: string;
+  documentKind?: string;
+  recipient?: string;
   institution: string;
   subject: string;
-  preparedBy: string;
+  preparedBy?: string;
   oficioDate: string;
   receivedDate?: string;
   sentDate?: string;
   attachments: OficioAttachment[];
+  comments?: string;
+  senderName?: string;
+  senderPosition?: string;
+  recipientName?: string;
+  recipientPosition?: string;
+  cc?: string;
+  responseToId?: string;
+  signerId?: string;
+  responsibleEmployeeId?: string;
 }
 
 export interface UpdateOficioData {
@@ -697,6 +747,16 @@ export interface UpdateOficioData {
   oficioDate?: string;
   receivedDate?: string;
   sentDate?: string;
+  comments?: string;
+  senderName?: string;
+  senderPosition?: string;
+  recipientName?: string;
+  recipientPosition?: string;
+  cc?: string;
+  responseToId?: string | null;
+  signerId?: string | null;
+  responsibleEmployeeId?: string | null;
+  documentKind?: string;
 }
 
 export interface CreateTimeEntryData {
@@ -776,6 +836,9 @@ export interface OficioFilters extends PaginationParams {
   type?: OficioType;
   scope?: OficioScope;
   direction?: OficioDirection;
+  dependency?: OficioScope;
+  documentKind?: string;
+  year?: string | number;
 }
 
 export interface TimeEntryFilters extends PaginationParams {

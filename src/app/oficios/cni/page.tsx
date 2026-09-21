@@ -1,5 +1,6 @@
-import { OficiosScopePage } from '@/components/oficios/OficiosScopePage';
+import { redirect } from 'next/navigation';
 
+/** Legacy URL → unified hub filtered by CNI */
 export default function OficiosCniPage() {
-  return <OficiosScopePage scope="CNI" />;
+  redirect('/oficios?dependency=CNI');
 }

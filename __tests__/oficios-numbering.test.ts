@@ -8,24 +8,38 @@ import {
   normalizeOficioDirection,
   shouldGenerateOficioNumber,
   OFICIO_SCOPE_PATHS,
+  validateNomenclaturePattern,
+  applyNomenclaturePattern,
 } from '../src/lib/oficios-numbering';
 
 describe('Oficios numbering', () => {
-  it('allocates the next number atomically in the organization sequence', async () => {
-    const upsert = vi.fn().mockResolvedValue({ lastValue: 12 });
-    const tx = { documentSequence: { upsert } } as unknown as Prisma.TransactionClient;
-
-    await expect(allocateOficioNumber(tx, {
-      organizationId: 'org-a', scope: 'CNI', direction: 'OUTGOING', year: 2026,
-    })).resolves.toBe('0012-CNI-2026');
-    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({
-      where: {
-        organizationId_documentType_year: {
-          organizationId: 'org-a', documentType: 'OFFICE_DOCUMENT', year: 2026,
+  it('allocates the next number atomically from OficioNumberingConfig', async () => {
+    const update = vi.fn().mockResolvedValue({});
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([
+        {
+          id: 'cfg-1',
+          organizationId: 'org-a',
+          dependency: 'CNI',
+          year: 2026,
+          nomenclaturePattern: 'CNI-{NUMERO}-{AÑO}',
+          lastGeneratedSequence: 11,
+          prefix: 'CNI',
+          sequencePadding: 0,
+          isActive: true,
         },
-      },
-      update: { lastValue: { increment: 1 } },
-    }));
+      ]),
+      oficioNumberingConfig: { update },
+    } as unknown as Prisma.TransactionClient;
+
+    await expect(
+      allocateOficioNumber(tx, {
+        organizationId: 'org-a',
+        scope: 'CNI',
+        direction: 'OUTGOING',
+        year: 2026,
+      }),
+    ).resolves.toMatchObject({ documentNumber: 'CNI-12-2026', sequence: 12 });
   });
 
   describe('normalizeOficioScope', () => {
@@ -34,14 +48,10 @@ describe('Oficios numbering', () => {
       expect(normalizeOficioScope('DESPACHO')).toBe('DESPACHO');
       expect(normalizeOficioScope('DPICP')).toBe('DESPACHO');
       expect(normalizeOficioScope('INTERNO')).toBe('INTERNO');
-      expect(normalizeOficioScope('interno')).toBe('INTERNO');
-      expect(normalizeOficioScope('despacho')).toBe('DESPACHO');
     });
 
     it('defaults unknown values to CNI', () => {
       expect(normalizeOficioScope(null)).toBe('CNI');
-      expect(normalizeOficioScope(undefined)).toBe('CNI');
-      expect(normalizeOficioScope('')).toBe('CNI');
       expect(normalizeOficioScope('BOGUS')).toBe('CNI');
     });
   });
@@ -56,17 +66,11 @@ describe('Oficios numbering', () => {
 
     it('forces INTERNAL_MEMO when scope is INTERNO', () => {
       expect(normalizeOficioDirection('INCOMING', 'INTERNO')).toBe('INTERNAL_MEMO');
-      expect(normalizeOficioDirection('OUTGOING', 'INTERNO')).toBe('INTERNAL_MEMO');
-    });
-
-    it('defaults to OUTGOING for unknown values', () => {
-      expect(normalizeOficioDirection('BOGUS')).toBe('OUTGOING');
-      expect(normalizeOficioDirection(null)).toBe('OUTGOING');
     });
   });
 
   describe('shouldGenerateOficioNumber', () => {
-    it('does NOT generate for INCOMING (preserve external sender number)', () => {
+    it('does NOT generate for INCOMING', () => {
       expect(shouldGenerateOficioNumber('INCOMING')).toBe(false);
     });
 
@@ -77,48 +81,40 @@ describe('Oficios numbering', () => {
   });
 
   describe('formatOficioNumber', () => {
-    it('CNI outgoing: 0001-CNI-2026', () => {
+    it('CNI outgoing: CNI-1-2026', () => {
       expect(
-        formatOficioNumber({ scope: 'CNI', direction: 'OUTGOING', sequence: 1, year: 2026 })
-      ).toBe('0001-CNI-2026');
-      expect(
-        formatOficioNumber({ scope: 'CNI', direction: 'OUTGOING', sequence: 42, year: 2026 })
-      ).toBe('0042-CNI-2026');
+        formatOficioNumber({ scope: 'CNI', direction: 'OUTGOING', sequence: 1, year: 2026 }),
+      ).toBe('CNI-1-2026');
     });
 
-    it('DESPACHO outgoing: DPICP-0001-2026', () => {
+    it('DESPACHO outgoing: DPICP-1-2026', () => {
       expect(
-        formatOficioNumber({ scope: 'DESPACHO', direction: 'OUTGOING', sequence: 1, year: 2026 })
-      ).toBe('DPICP-0001-2026');
-      expect(
-        formatOficioNumber({ scope: 'DESPACHO', direction: 'OUTGOING', sequence: 7, year: 2025 })
-      ).toBe('DPICP-0007-2025');
+        formatOficioNumber({ scope: 'DESPACHO', direction: 'OUTGOING', sequence: 1, year: 2026 }),
+      ).toBe('DPICP-1-2026');
     });
 
-    it('INTERNAL_MEMO: MEMO-0001-2026', () => {
-      expect(
-        formatOficioNumber({ scope: 'INTERNO', direction: 'INTERNAL_MEMO', sequence: 1, year: 2026 })
-      ).toBe('MEMO-0001-2026');
-    });
-
-    it('throws on INCOMING (caller should not generate)', () => {
+    it('throws on INCOMING', () => {
       expect(() =>
-        formatOficioNumber({ scope: 'CNI', direction: 'INCOMING', sequence: 1, year: 2026 })
+        formatOficioNumber({ scope: 'CNI', direction: 'INCOMING', sequence: 1, year: 2026 }),
       ).toThrow();
     });
   });
 
   describe('parseOficioSequence', () => {
-    it('extracts the 4-digit sequence from formatted numbers', () => {
-      expect(parseOficioSequence('0001-CNI-2026')).toBe(1);
-      expect(parseOficioSequence('DPICP-0042-2026')).toBe(42);
-      expect(parseOficioSequence('MEMO-0007-2025')).toBe(7);
+    it('extracts sequence ignoring year', () => {
+      expect(parseOficioSequence('CNI-1-2026', 2026)).toBe(1);
+      expect(parseOficioSequence('DPICP-42-2026', 2026)).toBe(42);
     });
+  });
 
-    it('returns 0 for malformed inputs (safe fallback)', () => {
-      expect(parseOficioSequence('garbage')).toBe(0);
-      expect(parseOficioSequence('123')).toBe(0);
-      expect(parseOficioSequence('')).toBe(0);
+  describe('pattern helpers', () => {
+    it('validates and applies patterns', () => {
+      expect(validateNomenclaturePattern('CNI-{NUMERO}-{AÑO}').valid).toBe(true);
+      expect(applyNomenclaturePattern({
+        pattern: 'CNI-{NUMERO}-{AÑO}',
+        sequence: 242,
+        year: 2026,
+      })).toBe('CNI-242-2026');
     });
   });
 

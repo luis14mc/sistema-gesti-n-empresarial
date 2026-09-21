@@ -1,5 +1,12 @@
-import { redirect } from 'next/navigation';
+'use client';
+
+import { Suspense } from 'react';
+import { CorrespondenceHub } from '@/components/oficios/CorrespondenceHub';
 
 export default function OficiosPage() {
-  redirect('/oficios/internos');
+  return (
+    <Suspense fallback={<div className="p-8">Cargando correspondencia…</div>}>
+      <CorrespondenceHub />
+    </Suspense>
+  );
 }

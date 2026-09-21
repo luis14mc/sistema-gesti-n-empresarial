@@ -80,4 +80,80 @@ export const oficiosService = {
   /** Eliminar oficio */
   delete: (id: string) =>
     apiHelpers.delete(`${BASE}/${id}`),
+
+  listNumbering: () =>
+    apiHelpers.get<{ configs: OficioNumberingConfigView[] }>(`${BASE}/numbering`),
+
+  saveNumbering: (data: OficioNumberingConfigInput) =>
+    apiHelpers.post<{ config: OficioNumberingConfigView }>(`${BASE}/numbering`, data),
+
+  previewNumber: (params: { dependency: string; year: number }) =>
+    apiHelpers.get<{
+      dependency: string;
+      year: number;
+      nextNumber: string;
+      lastGeneratedSequence: number;
+      pattern: string;
+    }>(`${BASE}/numbering/preview`, params),
+
+  listSigners: (params?: { dependency?: string; active?: boolean }) =>
+    apiHelpers.get<{ signers: OficioSignerView[] }>(
+      `${BASE}/signers`,
+      params as Record<string, unknown>,
+    ),
+
+  createSigner: (data: {
+    name: string;
+    positionTitle: string;
+    dependency?: string | null;
+    isActive?: boolean;
+  }) => apiHelpers.post<{ signer: OficioSignerView }>(`${BASE}/signers`, data),
+
+  updateSigner: (
+    id: string,
+    data: {
+      name?: string;
+      positionTitle?: string;
+      dependency?: string | null;
+      isActive?: boolean;
+    },
+  ) => apiHelpers.patch<{ signer: OficioSignerView }>(`${BASE}/signers/${id}`, data),
+};
+
+export type OficioNumberingConfigView = {
+  id: string;
+  organizationId: string;
+  dependency: string;
+  year: number;
+  nomenclaturePattern: string;
+  lastGeneratedSequence: number;
+  prefix: string | null;
+  sequencePadding: number;
+  notes: string | null;
+  isActive: boolean;
+  nextNumber: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type OficioNumberingConfigInput = {
+  dependency: string;
+  year: number;
+  nomenclaturePattern: string;
+  lastGeneratedSequence: number;
+  prefix?: string | null;
+  sequencePadding?: number | null;
+  notes?: string | null;
+  isActive?: boolean;
+  reason?: string;
+  forceSequenceCorrection?: boolean;
+};
+
+export type OficioSignerView = {
+  id: string;
+  organizationId: string;
+  name: string;
+  positionTitle: string;
+  dependency: string | null;
+  isActive: boolean;
 };

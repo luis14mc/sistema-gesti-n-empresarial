@@ -7,6 +7,7 @@ import type { OficioStatus } from '@/types';
 import { oficioOrganizationFailure } from '@/modules/oficios/presentation/http';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 import { oficioScope } from '@/modules/oficios/infrastructure/tenant-scope';
+import { isValidOficioStatusTransition } from '@/lib/oficios-status-transitions';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,19 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
-const ALLOWED: OficioStatus[] = ['DRAFT', 'SENT', 'RECEIVED', 'IN_PROCESS', 'COMPLETED', 'ARCHIVED'];
+const ALLOWED: OficioStatus[] = [
+  'DRAFT',
+  'SENT',
+  'RECEIVED',
+  'IN_PROCESS',
+  'COMPLETED',
+  'ARCHIVED',
+  'ASSIGNED',
+  'PENDING_SIGNATURE',
+  'SIGNED',
+  'ACKNOWLEDGED',
+  'RESPONDED',
+];
 
 async function patchHandler(req: AuthenticatedRequest, context: RouteContext) {
   const requestId = crypto.randomUUID();
@@ -40,14 +53,31 @@ async function patchHandler(req: AuthenticatedRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Oficio no encontrado' }, { status: 404 });
     }
 
-    const data: Prisma.OficioUpdateInput = { status: next };
-    if (next === 'SENT') data.sentDate = new Date();
+    if (!isValidOficioStatusTransition(current.status as OficioStatus, next)) {
+      return NextResponse.json(
+        { error: `Transición no permitida: ${current.status} → ${next}` },
+        { status: 400 },
+      );
+    }
+
+    const data: Prisma.OficioUpdateInput = {
+      status: next,
+      updatedBy: { connect: { id: req.user!.userId } },
+    };
+    if (next === 'SENT' || next === 'SIGNED') data.sentDate = new Date();
     if (next === 'RECEIVED') data.receivedDate = new Date();
+    if (next === 'ARCHIVED') data.archivedAt = new Date();
 
     const updated = await prisma.$transaction(async (tx) => {
       await tx.oficio.updateMany({
         where: oficioScope(organization.organizationId, id),
-        data,
+        data: {
+          status: next,
+          updatedById: req.user!.userId,
+          ...(next === 'SENT' || next === 'SIGNED' ? { sentDate: new Date() } : {}),
+          ...(next === 'RECEIVED' ? { receivedDate: new Date() } : {}),
+          ...(next === 'ARCHIVED' ? { archivedAt: new Date() } : {}),
+        },
       });
       await tx.oficioTracking.create({
         data: {
@@ -61,12 +91,12 @@ async function patchHandler(req: AuthenticatedRequest, context: RouteContext) {
       });
       return tx.oficio.findFirstOrThrow({
         where: oficioScope(organization.organizationId, id),
-      include: {
-        tracking: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-          include: { performedBy: { select: { id: true, firstName: true, lastName: true } } },
-        },
+        include: {
+          tracking: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            include: { performedBy: { select: { id: true, firstName: true, lastName: true } } },
+          },
         },
       });
     });

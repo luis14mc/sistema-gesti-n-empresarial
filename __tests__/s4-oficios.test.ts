@@ -35,20 +35,32 @@ describe('S4 Oficios — regresión de fixes críticos y altos', () => {
   });
 
   describe('H-9 STATUS_TRANSITIONS unificado', () => {
-    it('DRAFT solo puede transicionar a SENT o ARCHIVED', () => {
-      expect(OFICIO_STATUS_TRANSITIONS.DRAFT).toEqual(['SENT', 'ARCHIVED']);
+    it('DRAFT puede ir a firma, envío o archivo', () => {
+      expect(OFICIO_STATUS_TRANSITIONS.DRAFT).toEqual(['PENDING_SIGNATURE', 'SENT', 'ARCHIVED']);
     });
 
-    it('SENT puede transicionar a RECEIVED o IN_PROCESS', () => {
-      expect(OFICIO_STATUS_TRANSITIONS.SENT).toEqual(['RECEIVED', 'IN_PROCESS']);
+    it('SENT cubre acuse, recepción y seguimiento', () => {
+      expect(OFICIO_STATUS_TRANSITIONS.SENT).toEqual([
+        'ACKNOWLEDGED',
+        'RECEIVED',
+        'IN_PROCESS',
+        'RESPONDED',
+        'ARCHIVED',
+      ]);
     });
 
-    it('RECEIVED puede transicionar a IN_PROCESS o COMPLETED', () => {
-      expect(OFICIO_STATUS_TRANSITIONS.RECEIVED).toEqual(['IN_PROCESS', 'COMPLETED']);
+    it('RECEIVED cubre asignación y respuesta', () => {
+      expect(OFICIO_STATUS_TRANSITIONS.RECEIVED).toEqual([
+        'ASSIGNED',
+        'IN_PROCESS',
+        'RESPONDED',
+        'COMPLETED',
+        'ARCHIVED',
+      ]);
     });
 
-    it('IN_PROCESS puede transicionar a COMPLETED o ARCHIVED', () => {
-      expect(OFICIO_STATUS_TRANSITIONS.IN_PROCESS).toEqual(['COMPLETED', 'ARCHIVED']);
+    it('IN_PROCESS puede completar, responder o archivar', () => {
+      expect(OFICIO_STATUS_TRANSITIONS.IN_PROCESS).toEqual(['RESPONDED', 'COMPLETED', 'ARCHIVED']);
     });
 
     it('COMPLETED solo puede transicionar a ARCHIVED', () => {
@@ -60,7 +72,7 @@ describe('S4 Oficios — regresión de fixes críticos y altos', () => {
     });
 
     it('todos los estados tienen label', () => {
-      const expectedKeys = ['DRAFT', 'SENT', 'RECEIVED', 'IN_PROCESS', 'COMPLETED', 'ARCHIVED'];
+      const expectedKeys = Object.keys(OFICIO_STATUS_TRANSITIONS);
       for (const k of expectedKeys) {
         expect(OFICIO_STATUS_LABELS[k as keyof typeof OFICIO_STATUS_LABELS]).toBeTruthy();
       }
@@ -106,7 +118,7 @@ describe('S4 Oficios — regresión de fixes críticos y altos', () => {
 
   describe('H-9 getNextOficioStatuses', () => {
     it('retorna los estados permitidos para un estado dado', () => {
-      expect(getNextOficioStatuses('DRAFT')).toEqual(['SENT', 'ARCHIVED']);
+      expect(getNextOficioStatuses('DRAFT')).toEqual(['PENDING_SIGNATURE', 'SENT', 'ARCHIVED']);
       expect(getNextOficioStatuses('COMPLETED')).toEqual(['ARCHIVED']);
     });
 

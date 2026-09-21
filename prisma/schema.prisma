@@ -53,6 +53,8 @@ model Organization {
   permissionOverrides    UserPermissionOverride[]   @relation("PermissionOverrideOrganization")
   integrations           OrganizationIntegration[]
   employees              Employee[]
+  oficioNumberingConfigs OficioNumberingConfig[]
+  oficioSigners          OficioSigner[]
 
   @@index([status])
   @@index([onboardingStatus])
@@ -178,6 +180,10 @@ model User {
   oficioImportBatches          OficioImportBatch[]          @relation("OficioImportBatchPerformer")
   oficiosCreated               Oficio[]                     @relation("OficioCreator")
   oficiosImported              Oficio[]                     @relation("OficioImporter")
+  oficiosUpdated               Oficio[]                     @relation("OficioUpdater")
+  oficioNumberingConfigsCreated OficioNumberingConfig[]     @relation("OficioNumberingConfigCreator")
+  oficioNumberingConfigsUpdated OficioNumberingConfig[]     @relation("OficioNumberingConfigUpdater")
+  oficioSignersCreated         OficioSigner[]               @relation("OficioSignerCreator")
   ticketsAssigned              Ticket[]                     @relation("TicketAssignee")
   ticketsCreated               Ticket[]                     @relation("TicketCreator")
   timeEntries                  TimeEntry[]
@@ -289,6 +295,8 @@ model Oficio {
   number         String
   systemNumber   String?
   type           OficioType
+  /// Document kind catalog: OFICIO | NOTA | MEMORANDO | CIRCULAR | CARTA | OTRO
+  documentKind   String             @default("OFICIO")
   subject        String
   status         OficioStatus       @default(DRAFT)
   attachments    Json?
@@ -299,20 +307,40 @@ model Oficio {
   recordSource   OficioRecordSource @default(SYSTEM_CREATED)
 
   createdById String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  version     Int      @default(1)
+  updatedById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  archivedAt  DateTime?
+  version     Int       @default(1)
   institution String?
   preparedBy  String?
   recipient   String?
+  /// Institutional dependency catalog: CNI | DESPACHO | INTERNO
   scope       String?
+
+  /// Year used for outgoing numbering uniqueness (independent of oficioDate edits)
+  sequenceYear Int?
+
+  senderName           String?
+  senderPosition       String?
+  recipientName        String?
+  recipientPosition    String?
+  cc                   String?
+  responseToId         String?
+  signerId             String?
+  responsibleEmployeeId String?
 
   importedById String?
   importedAt   DateTime?
 
-  createdBy    User         @relation("OficioCreator", fields: [createdById], references: [id])
-  importedBy   User?        @relation("OficioImporter", fields: [importedById], references: [id])
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  createdBy            User          @relation("OficioCreator", fields: [createdById], references: [id])
+  updatedBy            User?         @relation("OficioUpdater", fields: [updatedById], references: [id])
+  importedBy           User?         @relation("OficioImporter", fields: [importedById], references: [id])
+  organization         Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  responseTo           Oficio?       @relation("OficioResponseChain", fields: [responseToId], references: [id], onDelete: SetNull)
+  responses            Oficio[]      @relation("OficioResponseChain")
+  signer               OficioSigner? @relation(fields: [signerId], references: [id], onDelete: SetNull)
+  responsibleEmployee  Employee?     @relation("OficioResponsibleEmployee", fields: [responsibleEmployeeId], references: [id], onDelete: SetNull)
 
   documents              OficioDocument[]
   tracking               OficioTracking[]
@@ -326,10 +354,65 @@ model Oficio {
   @@index([status])
   @@index([type])
   @@index([scope])
+  @@index([documentKind])
   @@index([recordSource])
   @@index([oficioDate])
   @@index([organizationId, status])
+  @@index([organizationId, scope, type])
+  @@index([responseToId])
+  @@index([signerId])
+  @@index([responsibleEmployeeId])
   @@map("oficios")
+}
+
+/// Configurable outgoing numbering per organization + dependency + year.
+model OficioNumberingConfig {
+  id                     String   @id @default(cuid())
+  organizationId         String
+  /// CNI | DESPACHO | INTERNO
+  dependency             String
+  year                   Int
+  nomenclaturePattern    String
+  lastGeneratedSequence  Int      @default(0)
+  prefix                 String?
+  sequencePadding        Int      @default(0)
+  notes                  String?
+  isActive               Boolean  @default(true)
+  createdById            String?
+  updatedById            String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  createdBy    User?        @relation("OficioNumberingConfigCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy    User?        @relation("OficioNumberingConfigUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, dependency, year])
+  @@index([organizationId, isActive])
+  @@index([organizationId, dependency])
+  @@map("oficio_numbering_configs")
+}
+
+/// Authorized signers for outgoing correspondence (institutional roles).
+model OficioSigner {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  positionTitle  String
+  /// CNI | DESPACHO | null (any)
+  dependency     String?
+  isActive       Boolean  @default(true)
+  createdById    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  createdBy    User?        @relation("OficioSignerCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  oficios      Oficio[]
+
+  @@index([organizationId, isActive])
+  @@index([organizationId, dependency])
+  @@map("oficio_signers")
 }
 
 model OficioDocument {
@@ -444,6 +527,7 @@ model Employee {
   user           User?                 @relation(fields: [userId], references: [id])
   assignments    EquipmentAssignment[]
   purchaseOrders CompraOrden[]         @relation("CompraOrdenRequester")
+  oficiosResponsible Oficio[]          @relation("OficioResponsibleEmployee")
 
   @@unique([organizationId, email])
   @@unique([organizationId, employeeCode])
@@ -1620,6 +1704,16 @@ enum OficioStatus {
   IN_PROCESS
   COMPLETED
   ARCHIVED
+  /// Incoming: assigned to responsible area/person
+  ASSIGNED
+  /// Outgoing: awaiting signature
+  PENDING_SIGNATURE
+  /// Outgoing: signed
+  SIGNED
+  /// Outgoing: recipient acknowledged
+  ACKNOWLEDGED
+  /// Incoming/outgoing: response registered
+  RESPONDED
 }
 
 enum OficioRecordSource {
@@ -1642,6 +1736,10 @@ enum OficioTrackingAction {
   DOCUMENT_ADDED
   STATUS_CHANGED
   COMMENT_ADDED
+  NUMBER_GENERATED
+  RELATIONSHIP_LINKED
+  RELATIONSHIP_UNLINKED
+  DOCUMENT_REMOVED
 }
 
 enum OficioImportBatchStatus {

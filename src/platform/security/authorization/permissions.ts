@@ -28,6 +28,7 @@ export const ORGANIZATION_PERMISSIONS = [
   'oficios.export',
   'oficios.attachments',
   'oficios.import',
+  'oficios.configure',
   'equipment.read',
   'equipment.create',
   'equipment.update',
@@ -109,6 +110,9 @@ const OFICIOS_OPERATIONAL = [
   'oficios.export', 'oficios.attachments', 'oficios.import',
 ] as const;
 
+/** Technical correspondence numbering — NOT granted via OFICIOS_OPERATIONAL. */
+const OFICIOS_CONFIGURE = ['oficios.configure'] as const;
+
 const PURCHASES_OPERATIONAL = [
   'purchase-orders.read', 'purchase-orders.create', 'purchase-orders.update',
   'purchase-orders.generate', 'purchase-orders.cancel', 'purchase-orders.download',
@@ -147,6 +151,7 @@ const ORGANIZATION_ROLE_PERMISSIONS: Record<OrganizationRole, readonly Permissio
   IT_MANAGER: [
     ...EQUIPMENT_LIFECYCLE,
     ...DISPOSAL_WORKFLOW,
+    ...OFICIOS_CONFIGURE,
     'employees.read',
     'users.read', 'users.create', 'users.update', 'users.deactivate',
     'memberships.manage',

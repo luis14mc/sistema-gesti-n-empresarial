@@ -1,5 +1,6 @@
-import { OficiosScopePage } from '@/components/oficios/OficiosScopePage';
+import { redirect } from 'next/navigation';
 
+/** Legacy URL → unified hub filtered by Internos */
 export default function OficiosInternosPage() {
-  return <OficiosScopePage scope="INTERNO" />;
+  redirect('/oficios?dependency=INTERNO');
 }
