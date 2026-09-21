@@ -18,8 +18,9 @@ export type NumberingConfigInput = {
   notes?: string | null;
   isActive?: boolean;
   /**
-   * Explicit elevated correction: allows lowering below the configured/used floor.
-   * Caller must authorize ADMIN/OWNER and require a non-empty reason.
+   * Explicit elevated correction: may lower an overstated configured value,
+   * but never below sequences already issued in correspondence.
+   * Caller must authorize ADMIN/OWNER and require a non-empty reason when lowering.
    */
   allowSequenceCorrection?: boolean;
   reason?: string | null;
@@ -27,6 +28,9 @@ export type NumberingConfigInput = {
 
 export const SEQUENCE_FLOOR_ERROR =
   'El correlativo no puede ser menor al último correlativo registrado/configurado.';
+
+export const SEQUENCE_ISSUED_FLOOR_ERROR =
+  'El correlativo no puede ser menor al último número ya emitido.';
 
 /**
  * Highest sequence already used by outgoing correspondence for org/dependency/year.
@@ -105,20 +109,26 @@ export async function upsertNumberingConfig(
   });
 
   const configuredFloor = existing?.lastGeneratedSequence ?? 0;
-  const sequenceFloor = Math.max(highestUsed, configuredFloor);
-  const isLowering = lastGeneratedSequence < sequenceFloor;
+  const isLoweringConfigured = lastGeneratedSequence < configuredFloor;
 
-  if (isLowering && !input.allowSequenceCorrection) {
-    throw new OficioNumberingError(SEQUENCE_FLOOR_ERROR, 'SEQUENCE_TOO_LOW');
-  }
-
-  if (isLowering && input.allowSequenceCorrection) {
-    const reason = input.reason?.trim();
-    if (!reason) {
-      throw new OficioNumberingError(
-        'Debe indicar el motivo de la corrección elevada del correlativo.',
-        'SEQUENCE_TOO_LOW',
-      );
+  if (!input.allowSequenceCorrection) {
+    const normalFloor = Math.max(highestUsed, configuredFloor);
+    if (lastGeneratedSequence < normalFloor) {
+      throw new OficioNumberingError(SEQUENCE_FLOOR_ERROR, 'SEQUENCE_TOO_LOW');
+    }
+  } else {
+    // Elevated correction: never reuse an already-issued number.
+    if (lastGeneratedSequence < highestUsed) {
+      throw new OficioNumberingError(SEQUENCE_ISSUED_FLOOR_ERROR, 'SEQUENCE_TOO_LOW');
+    }
+    if (isLoweringConfigured) {
+      const reason = input.reason?.trim();
+      if (!reason) {
+        throw new OficioNumberingError(
+          'Debe indicar el motivo de la corrección elevada del correlativo.',
+          'SEQUENCE_TOO_LOW',
+        );
+      }
     }
   }
 
@@ -175,11 +185,18 @@ export async function ensureDefaultNumberingConfigs(
       results.push(existing);
       continue;
     }
+
+    const highestUsed = await findHighestUsedSequence(db, {
+      organizationId,
+      dependency,
+      year,
+    });
     const seed = defaultConfigSeed(dependency, year);
     const created = await db.oficioNumberingConfig.create({
       data: {
         organizationId,
         ...seed,
+        lastGeneratedSequence: highestUsed,
         createdById: userId,
         updatedById: userId,
       },

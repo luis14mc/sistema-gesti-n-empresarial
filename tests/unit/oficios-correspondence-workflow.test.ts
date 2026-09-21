@@ -1,9 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  ensureDefaultNumberingConfigs,
   findHighestUsedSequence,
   SEQUENCE_FLOOR_ERROR,
+  SEQUENCE_ISSUED_FLOOR_ERROR,
   upsertNumberingConfig,
 } from '@/modules/oficios/application/numbering-config';
+import { previewNextNumber } from '@/lib/oficios-numbering';
 import {
   isSignerCompatibleWithDependency,
   signerDependencyMismatchMessage,
@@ -36,39 +39,8 @@ describe('signer dependency compatibility', () => {
 });
 
 describe('numbering config safety', () => {
-  it('rejects lowering below highest used correspondence sequence', async () => {
-    const db = {
-      oficio: {
-        findMany: vi.fn().mockResolvedValue([
-          { number: 'CNI-241-2026' },
-          { number: 'CNI-200-2026' },
-        ]),
-      },
-      oficioNumberingConfig: {
-        findUnique: vi.fn().mockResolvedValue({
-          id: 'cfg-1',
-          lastGeneratedSequence: 241,
-        }),
-        update: vi.fn(),
-        create: vi.fn(),
-      },
-    };
-
-    await expect(
-      upsertNumberingConfig(db as never, 'org-a', 'user-1', {
-        dependency: 'CNI',
-        year: 2026,
-        nomenclaturePattern: 'CNI-{NUMERO}-{AÑO}',
-        lastGeneratedSequence: 200,
-      }),
-    ).rejects.toMatchObject({
-      code: 'SEQUENCE_TOO_LOW',
-      message: SEQUENCE_FLOOR_ERROR,
-    });
-    expect(db.oficioNumberingConfig.update).not.toHaveBeenCalled();
-  });
-
-  it('rejects lowering below current configured lastGeneratedSequence even if docs are lower', async () => {
+  it('A) normal update rejects value below max(highestUsed, configured)', async () => {
+    // highestUsed 210, configured 241, normal set 220 -> reject
     const db = {
       oficio: {
         findMany: vi.fn().mockResolvedValue([{ number: 'CNI-210-2026' }]),
@@ -88,12 +60,159 @@ describe('numbering config safety', () => {
         dependency: 'CNI',
         year: 2026,
         nomenclaturePattern: 'CNI-{NUMERO}-{AÑO}',
-        lastGeneratedSequence: 200,
+        lastGeneratedSequence: 220,
       }),
     ).rejects.toMatchObject({
       code: 'SEQUENCE_TOO_LOW',
       message: SEQUENCE_FLOOR_ERROR,
     });
+    expect(db.oficioNumberingConfig.update).not.toHaveBeenCalled();
+  });
+
+  it('B) ADMIN elevated correction may lower configured value down to highestUsed', async () => {
+    // highestUsed 210, configured 241, ADMIN force 220 + reason -> allow
+    const db = {
+      oficio: {
+        findMany: vi.fn().mockResolvedValue([{ number: 'CNI-210-2026' }]),
+      },
+      oficioNumberingConfig: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: 'cfg-1',
+          lastGeneratedSequence: 241,
+        }),
+        update: vi.fn().mockResolvedValue({
+          id: 'cfg-1',
+          lastGeneratedSequence: 220,
+        }),
+      },
+    };
+
+    await upsertNumberingConfig(db as never, 'org-a', 'admin-1', {
+      dependency: 'CNI',
+      year: 2026,
+      nomenclaturePattern: 'CNI-{NUMERO}-{AÑO}',
+      lastGeneratedSequence: 220,
+      allowSequenceCorrection: true,
+      reason: 'Corrección de correlativo sobreestimado',
+    });
+    expect(db.oficioNumberingConfig.update).toHaveBeenCalled();
+  });
+
+  it('C) ADMIN elevated correction cannot go below highestUsed', async () => {
+    // highestUsed 210, configured 241, ADMIN force 209 + reason -> reject
+    const db = {
+      oficio: {
+        findMany: vi.fn().mockResolvedValue([{ number: 'CNI-210-2026' }]),
+      },
+      oficioNumberingConfig: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: 'cfg-1',
+          lastGeneratedSequence: 241,
+        }),
+        update: vi.fn(),
+      },
+    };
+
+    await expect(
+      upsertNumberingConfig(db as never, 'org-a', 'admin-1', {
+        dependency: 'CNI',
+        year: 2026,
+        nomenclaturePattern: 'CNI-{NUMERO}-{AÑO}',
+        lastGeneratedSequence: 209,
+        allowSequenceCorrection: true,
+        reason: 'Intento inválido',
+      }),
+    ).rejects.toMatchObject({
+      code: 'SEQUENCE_TOO_LOW',
+      message: SEQUENCE_ISSUED_FLOOR_ERROR,
+    });
+    expect(db.oficioNumberingConfig.update).not.toHaveBeenCalled();
+  });
+
+  it('D) ADMIN cannot reuse an already issued number even with force', async () => {
+    // highestUsed 241, configured 241, ADMIN force 200 -> reject
+    const db = {
+      oficio: {
+        findMany: vi.fn().mockResolvedValue([{ number: 'CNI-241-2026' }]),
+      },
+      oficioNumberingConfig: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: 'cfg-1',
+          lastGeneratedSequence: 241,
+        }),
+        update: vi.fn(),
+      },
+    };
+
+    await expect(
+      upsertNumberingConfig(db as never, 'org-a', 'admin-1', {
+        dependency: 'CNI',
+        year: 2026,
+        nomenclaturePattern: 'CNI-{NUMERO}-{AÑO}',
+        lastGeneratedSequence: 200,
+        allowSequenceCorrection: true,
+        reason: 'No se puede reutilizar número emitido',
+      }),
+    ).rejects.toMatchObject({
+      code: 'SEQUENCE_TOO_LOW',
+      message: SEQUENCE_ISSUED_FLOOR_ERROR,
+    });
+    expect(db.oficioNumberingConfig.update).not.toHaveBeenCalled();
+  });
+
+  it('allows ADMIN elevated correction exactly at highestUsed', async () => {
+    // highestUsed 210, configured 241, ADMIN force 210 + reason -> allow
+    const db = {
+      oficio: {
+        findMany: vi.fn().mockResolvedValue([{ number: 'CNI-210-2026' }]),
+      },
+      oficioNumberingConfig: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: 'cfg-1',
+          lastGeneratedSequence: 241,
+        }),
+        update: vi.fn().mockResolvedValue({
+          id: 'cfg-1',
+          lastGeneratedSequence: 210,
+        }),
+      },
+    };
+
+    await upsertNumberingConfig(db as never, 'org-a', 'admin-1', {
+      dependency: 'CNI',
+      year: 2026,
+      nomenclaturePattern: 'CNI-{NUMERO}-{AÑO}',
+      lastGeneratedSequence: 210,
+      allowSequenceCorrection: true,
+      reason: 'Alinear con último emitido',
+    });
+    expect(db.oficioNumberingConfig.update).toHaveBeenCalled();
+  });
+
+  it('requires reason when elevated correction lowers configured value', async () => {
+    const db = {
+      oficio: {
+        findMany: vi.fn().mockResolvedValue([{ number: 'CNI-210-2026' }]),
+      },
+      oficioNumberingConfig: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: 'cfg-1',
+          lastGeneratedSequence: 241,
+        }),
+        update: vi.fn(),
+      },
+    };
+
+    await expect(
+      upsertNumberingConfig(db as never, 'org-a', 'admin-1', {
+        dependency: 'CNI',
+        year: 2026,
+        nomenclaturePattern: 'CNI-{NUMERO}-{AÑO}',
+        lastGeneratedSequence: 220,
+        allowSequenceCorrection: true,
+        reason: '',
+      }),
+    ).rejects.toMatchObject({ code: 'SEQUENCE_TOO_LOW' });
   });
 
   it('allows normal increase at or above the floor', async () => {
@@ -122,58 +241,49 @@ describe('numbering config safety', () => {
     expect(db.oficioNumberingConfig.update).toHaveBeenCalled();
   });
 
-  it('allows elevated correction with reason when explicitly requested', async () => {
+  it('E) ensureDefaultNumberingConfigs seeds from highestUsed, not zero', async () => {
+    const createdPayloads: Array<{ lastGeneratedSequence: number; dependency: string }> = [];
     const db = {
       oficio: {
-        findMany: vi.fn().mockResolvedValue([{ number: 'CNI-241-2026' }]),
+        findMany: vi.fn().mockImplementation(({ where }: { where: { scope: string } }) => {
+          if (where.scope === 'CNI') return Promise.resolve([{ number: 'CNI-241-2026' }]);
+          return Promise.resolve([]);
+        }),
       },
       oficioNumberingConfig: {
-        findUnique: vi.fn().mockResolvedValue({
-          id: 'cfg-1',
-          lastGeneratedSequence: 241,
-        }),
-        update: vi.fn().mockResolvedValue({
-          id: 'cfg-1',
-          lastGeneratedSequence: 200,
+        findUnique: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockImplementation(({ data }: { data: { lastGeneratedSequence: number; dependency: string } }) => {
+          createdPayloads.push({
+            lastGeneratedSequence: data.lastGeneratedSequence,
+            dependency: data.dependency,
+          });
+          return Promise.resolve({
+            id: `cfg-${data.dependency}`,
+            ...data,
+            prefix: data.dependency === 'DESPACHO' ? 'DPICP' : data.dependency === 'INTERNO' ? 'MEMO' : 'CNI',
+            sequencePadding: 0,
+            notes: null,
+            isActive: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
         }),
       },
     };
 
-    await upsertNumberingConfig(db as never, 'org-a', 'admin-1', {
-      dependency: 'CNI',
-      year: 2026,
-      nomenclaturePattern: 'CNI-{NUMERO}-{AÑO}',
-      lastGeneratedSequence: 200,
-      allowSequenceCorrection: true,
-      reason: 'Corrección institucional autorizada',
-    });
-    expect(db.oficioNumberingConfig.update).toHaveBeenCalled();
-  });
+    const results = await ensureDefaultNumberingConfigs(db as never, 'org-a', 'user-1', 2026);
+    const cni = createdPayloads.find((p) => p.dependency === 'CNI');
+    expect(cni?.lastGeneratedSequence).toBe(241);
 
-  it('requires reason for elevated correction', async () => {
-    const db = {
-      oficio: {
-        findMany: vi.fn().mockResolvedValue([{ number: 'CNI-241-2026' }]),
-      },
-      oficioNumberingConfig: {
-        findUnique: vi.fn().mockResolvedValue({
-          id: 'cfg-1',
-          lastGeneratedSequence: 241,
-        }),
-        update: vi.fn(),
-      },
-    };
-
-    await expect(
-      upsertNumberingConfig(db as never, 'org-a', 'admin-1', {
-        dependency: 'CNI',
+    const cniResult = results.find((r) => r.dependency === 'CNI');
+    expect(cniResult?.lastGeneratedSequence).toBe(241);
+    expect(
+      previewNextNumber({
+        pattern: 'CNI-{NUMERO}-{AÑO}',
+        lastGeneratedSequence: 241,
         year: 2026,
-        nomenclaturePattern: 'CNI-{NUMERO}-{AÑO}',
-        lastGeneratedSequence: 200,
-        allowSequenceCorrection: true,
-        reason: '',
       }),
-    ).rejects.toMatchObject({ code: 'SEQUENCE_TOO_LOW' });
+    ).toBe('CNI-242-2026');
   });
 
   it('findHighestUsedSequence reads max from document numbers', async () => {
@@ -228,7 +338,6 @@ describe('related correspondence selection contract', () => {
       number: 'DPICP-167-2026',
       subject: 'Solicitud de ingreso sin visa',
     };
-    // UI must persist selected.id, never the display number, as responseToId
     const payload = { responseToId: selected.id };
     expect(payload.responseToId).toBe('oficio_internal_cuid');
     expect(payload.responseToId).not.toBe(selected.number);
