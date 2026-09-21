@@ -5,13 +5,29 @@ import { createAuditRecord } from '@/lib/audit';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 import { oficioOrganizationFailure } from '@/modules/oficios/presentation/http';
 import { normalizeOficioDependency } from '@/lib/oficios-numbering';
+import { PermissionDeniedError } from '@/platform/domain/errors';
+
+async function authorizeReadOrConfigure(req: AuthenticatedRequest, requestId: string) {
+  try {
+    return await authorizeOrganization(req, requestId, 'oficios.configure');
+  } catch (error) {
+    if (!(error instanceof PermissionDeniedError)) throw error;
+    return authorizeOrganization(req, requestId, 'oficios.read');
+  }
+}
+
+function parseDependency(value: unknown): string | null {
+  if (value == null || value === '' || value === 'ALL' || value === 'null') return null;
+  return normalizeOficioDependency(String(value));
+}
 
 async function getHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   try {
-    const organization = await authorizeOrganization(req, requestId, 'oficios.read');
+    const organization = await authorizeReadOrConfigure(req, requestId);
     const { searchParams } = new URL(req.url);
     const dependency = searchParams.get('dependency');
+    // active=false → include inactive (management UI); default active-only for operators
     const activeOnly = searchParams.get('active') !== 'false';
 
     const signers = await prisma.oficioSigner.findMany({
@@ -27,7 +43,7 @@ async function getHandler(req: AuthenticatedRequest) {
             }
           : {}),
       },
-      orderBy: [{ name: 'asc' }],
+      orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
     });
 
     return NextResponse.json({ signers });
@@ -58,7 +74,7 @@ async function postHandler(req: AuthenticatedRequest) {
         organizationId: organization.organizationId,
         name,
         positionTitle,
-        dependency: body.dependency ? normalizeOficioDependency(body.dependency) : null,
+        dependency: parseDependency(body.dependency),
         isActive: body.isActive !== false,
         createdById: req.user!.userId,
       },

@@ -50,6 +50,32 @@ async function postHandler(req: AuthenticatedRequest) {
       },
     });
 
+    const requestedSequence = Number(body.lastGeneratedSequence ?? 0);
+    const elevatedRoles = new Set(['ADMIN', 'OWNER']);
+    const isElevatedAdmin = elevatedRoles.has(organization.role);
+    const forceRequested = Boolean(body.forceSequenceCorrection);
+
+    if (forceRequested && !isElevatedAdmin) {
+      return NextResponse.json(
+        {
+          error:
+            'Solo un administrador puede realizar una corrección elevada del correlativo.',
+          code: 'SEQUENCE_CORRECTION_FORBIDDEN',
+        },
+        { status: 403 },
+      );
+    }
+
+    if (forceRequested && !String(body.reason ?? '').trim()) {
+      return NextResponse.json(
+        {
+          error: 'Debe indicar el motivo de la corrección elevada del correlativo.',
+          code: 'SEQUENCE_CORRECTION_REASON_REQUIRED',
+        },
+        { status: 400 },
+      );
+    }
+
     const config = await upsertNumberingConfig(
       prisma,
       organization.organizationId,
@@ -58,16 +84,29 @@ async function postHandler(req: AuthenticatedRequest) {
         dependency: body.dependency,
         year: Number(body.year),
         nomenclaturePattern: String(body.nomenclaturePattern ?? ''),
-        lastGeneratedSequence: Number(body.lastGeneratedSequence ?? 0),
+        lastGeneratedSequence: requestedSequence,
         prefix: body.prefix,
         sequencePadding: body.sequencePadding,
         notes: body.notes,
         isActive: body.isActive !== false,
+        allowSequenceCorrection: forceRequested && isElevatedAdmin,
+        reason: body.reason,
       },
     );
 
+    const sequenceChanged =
+      existing != null && existing.lastGeneratedSequence !== config.lastGeneratedSequence;
+    const wasCorrection =
+      forceRequested &&
+      existing != null &&
+      config.lastGeneratedSequence < existing.lastGeneratedSequence;
+
     await createAuditRecord({
-      title: existing ? 'Numeración de oficios actualizada' : 'Numeración de oficios creada',
+      title: wasCorrection
+        ? 'Corrección elevada de correlativo de oficios'
+        : existing
+          ? 'Numeración de oficios actualizada'
+          : 'Numeración de oficios creada',
       description: `${config.dependency} / ${config.year}: ${config.nomenclaturePattern}`,
       module: 'OFICIOS',
       category: existing ? 'UPDATE' : 'CREATE',
@@ -88,6 +127,8 @@ async function postHandler(req: AuthenticatedRequest) {
         year: config.year,
         isActive: config.isActive,
         reason: body.reason ?? null,
+        forceSequenceCorrection: wasCorrection,
+        sequenceAdjusted: sequenceChanged,
       },
     });
 

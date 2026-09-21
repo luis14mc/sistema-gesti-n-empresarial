@@ -106,7 +106,18 @@ export const oficiosService = {
     name: string;
     positionTitle: string;
     dependency?: string | null;
+    isActive?: boolean;
   }) => apiHelpers.post<{ signer: OficioSignerView }>(`${BASE}/signers`, data),
+
+  updateSigner: (
+    id: string,
+    data: {
+      name?: string;
+      positionTitle?: string;
+      dependency?: string | null;
+      isActive?: boolean;
+    },
+  ) => apiHelpers.patch<{ signer: OficioSignerView }>(`${BASE}/signers/${id}`, data),
 };
 
 export type OficioNumberingConfigView = {
@@ -135,6 +146,7 @@ export type OficioNumberingConfigInput = {
   notes?: string | null;
   isActive?: boolean;
   reason?: string;
+  forceSequenceCorrection?: boolean;
 };
 
 export type OficioSignerView = {

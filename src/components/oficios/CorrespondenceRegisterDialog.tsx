@@ -14,6 +14,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { OficioFileUpload } from '@/components/oficios/OficioFileUpload';
+import {
+  RelatedCorrespondenceSelector,
+  type RelatedCorrespondenceSelection,
+} from '@/components/oficios/RelatedCorrespondenceSelector';
 import { uploadsService } from '@/services/uploads.service';
 import { oficiosService } from '@/services/oficios.service';
 import {
@@ -39,7 +43,6 @@ const EMPTY = {
   subject: '',
   notes: '',
   cc: '',
-  responseToId: '',
   signerId: '',
 };
 
@@ -59,6 +62,7 @@ export function CorrespondenceRegisterDialog({
   const [dependency, setDependency] = useState<OficioScope | null>(null);
   const [form, setForm] = useState(EMPTY);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [related, setRelated] = useState<RelatedCorrespondenceSelection | null>(null);
   const [nextNumber, setNextNumber] = useState<string | null>(null);
   const [signers, setSigners] = useState<{ id: string; name: string; positionTitle: string }[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -70,6 +74,7 @@ export function CorrespondenceRegisterDialog({
       setDependency(null);
       setForm(EMPTY);
       setSelectedFile(null);
+      setRelated(null);
       setNextNumber(null);
       setUploading(false);
     }
@@ -131,7 +136,7 @@ export function CorrespondenceRegisterDialog({
         senderPosition: direction === 'INCOMING' ? form.personPosition.trim() : undefined,
         cc: form.cc.trim() || undefined,
         comments: form.notes.trim() || undefined,
-        responseToId: form.responseToId.trim() || undefined,
+        responseToId: related?.id || undefined,
         signerId: form.signerId || undefined,
         attachments: [attachment],
       });
@@ -340,14 +345,11 @@ export function CorrespondenceRegisterDialog({
               </div>
             ) : null}
 
-            <div className="space-y-2">
-              <Label>ID documento relacionado (opcional)</Label>
-              <Input
-                value={form.responseToId}
-                onChange={(e) => setForm((f) => ({ ...f, responseToId: e.target.value }))}
-                placeholder="ID interno del oficio relacionado"
-              />
-            </div>
+            <RelatedCorrespondenceSelector
+              value={related}
+              onChange={setRelated}
+              disabled={isSubmitting || uploading}
+            />
 
             <div className="space-y-2">
               <Label>Notas</Label>

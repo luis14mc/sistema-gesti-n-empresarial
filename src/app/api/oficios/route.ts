@@ -23,6 +23,10 @@ import {
   OficioNumberingError,
   previewOficioNumber,
 } from '@/modules/oficios/infrastructure/numbering';
+import {
+  isSignerCompatibleWithDependency,
+  signerDependencyMismatchMessage,
+} from '@/modules/oficios/domain/signer-compatibility';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 import { oficioOrganizationFailure } from '@/modules/oficios/presentation/http';
 
@@ -290,12 +294,31 @@ async function postHandler(req: AuthenticatedRequest) {
         where: {
           id: signerId,
           organizationId: organization.organizationId,
-          isActive: true,
         },
-        select: { id: true },
+        select: { id: true, isActive: true, dependency: true },
       });
       if (!signer) {
-        return NextResponse.json({ error: 'Firmante no válido' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Firmante no válido o no pertenece a esta organización' },
+          { status: 400 },
+        );
+      }
+      if (!signer.isActive) {
+        return NextResponse.json(
+          { error: 'El firmante seleccionado está inactivo' },
+          { status: 400 },
+        );
+      }
+      if (!isSignerCompatibleWithDependency(signer.dependency, oficioScope)) {
+        return NextResponse.json(
+          {
+            error: signerDependencyMismatchMessage(
+              signer.dependency ?? 'desconocida',
+              oficioScope,
+            ),
+          },
+          { status: 400 },
+        );
       }
     }
 
