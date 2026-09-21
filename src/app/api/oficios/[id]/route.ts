@@ -38,10 +38,39 @@ async function getHandler(
           },
         },
         tracking: {
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: 'asc' },
           include: {
             performedBy: { select: { id: true, firstName: true, lastName: true } },
           },
+        },
+        signer: {
+          select: { id: true, name: true, positionTitle: true, dependency: true },
+        },
+        responsibleEmployee: {
+          select: { id: true, fullName: true, email: true },
+        },
+        responseTo: {
+          select: {
+            id: true,
+            number: true,
+            type: true,
+            subject: true,
+            oficioDate: true,
+            scope: true,
+            status: true,
+          },
+        },
+        responses: {
+          select: {
+            id: true,
+            number: true,
+            type: true,
+            subject: true,
+            oficioDate: true,
+            scope: true,
+            status: true,
+          },
+          orderBy: { oficioDate: 'asc' },
         },
       },
     });
@@ -110,10 +139,30 @@ async function patchHandler(
       );
     }
 
-    const allowedFields = ['subject', 'recipient', 'institution', 'preparedBy', 'status', 'attachments', 'oficioDate', 'receivedDate', 'sentDate'];
+    const allowedFields = [
+      'subject',
+      'recipient',
+      'institution',
+      'preparedBy',
+      'status',
+      'attachments',
+      'oficioDate',
+      'receivedDate',
+      'sentDate',
+      'comments',
+      'senderName',
+      'senderPosition',
+      'recipientName',
+      'recipientPosition',
+      'cc',
+      'responseToId',
+      'signerId',
+      'responsibleEmployeeId',
+      'documentKind',
+    ];
 
-    const updateData: any = {};
-    allowedFields.forEach(field => {
+    const updateData: Record<string, unknown> = { updatedById: req.user!.userId };
+    allowedFields.forEach((field) => {
       if (data[field] !== undefined) {
         if (['oficioDate', 'receivedDate', 'sentDate'].includes(field) && data[field]) {
           updateData[field] = new Date(data[field]);

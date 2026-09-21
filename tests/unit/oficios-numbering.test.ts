@@ -1,123 +1,196 @@
-// Phase 10B — domain unit tests for office-numbering rules.
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import type { Prisma } from '@prisma/client';
 import {
+  applyNomenclaturePattern,
   formatOficioNumber,
-  getAutoNumberHint,
   normalizeOficioDirection,
   normalizeOficioScope,
   parseOficioSequence,
+  previewNextNumber,
   shouldGenerateOficioNumber,
+  validateNomenclaturePattern,
 } from '@/lib/oficios-numbering';
+import {
+  allocateOficioNumber,
+  OficioNumberingError,
+} from '@/modules/oficios/infrastructure/numbering';
 
-describe('normalizeOficioScope', () => {
-  it('maps DPICP and DESPACHO to DESPACHO', () => {
-    expect(normalizeOficioScope('DPICP')).toBe('DESPACHO');
-    expect(normalizeOficioScope('despacho')).toBe('DESPACHO');
+describe('nomenclature patterns', () => {
+  it('validates required {NUMERO} placeholder', () => {
+    expect(validateNomenclaturePattern('CNI-{AÑO}').valid).toBe(false);
+    expect(validateNomenclaturePattern('CNI-{NUMERO}-{AÑO}').valid).toBe(true);
   });
 
-  it('maps INTERNO / INTERNAL / MEMO / INTERNAL_MEMO to INTERNO', () => {
-    expect(normalizeOficioScope('INTERNO')).toBe('INTERNO');
-    expect(normalizeOficioScope('INTERNAL')).toBe('INTERNO');
-    expect(normalizeOficioScope('MEMO')).toBe('INTERNO');
-    expect(normalizeOficioScope('internal_memo')).toBe('INTERNO');
+  it('rejects unknown placeholders', () => {
+    const result = validateNomenclaturePattern('CNI-{NUMERO}-{FOO}');
+    expect(result.valid).toBe(false);
   });
 
-  it('defaults to CNI for empty / unknown / CNI inputs', () => {
-    expect(normalizeOficioScope()).toBe('CNI');
-    expect(normalizeOficioScope('')).toBe('CNI');
-    expect(normalizeOficioScope('CNI')).toBe('CNI');
-    expect(normalizeOficioScope('cni')).toBe('CNI');
-    expect(normalizeOficioScope('UNKNOWN')).toBe('CNI');
+  it('formats CNI / Despacho / custom patterns with padding', () => {
+    expect(
+      applyNomenclaturePattern({
+        pattern: 'CNI-{NUMERO}-{AÑO}',
+        sequence: 242,
+        year: 2026,
+      }),
+    ).toBe('CNI-242-2026');
+
+    expect(
+      applyNomenclaturePattern({
+        pattern: 'DPICP-{NUMERO}-{AÑO}',
+        sequence: 169,
+        year: 2026,
+      }),
+    ).toBe('DPICP-169-2026');
+
+    expect(
+      applyNomenclaturePattern({
+        pattern: 'OF-{AÑO}-{NUMERO}',
+        sequence: 7,
+        year: 2026,
+        sequencePadding: 3,
+      }),
+    ).toBe('OF-2026-007');
+
+    expect(
+      applyNomenclaturePattern({
+        pattern: '{PREFIJO}-{NUMERO}-{AÑO}',
+        sequence: 1,
+        year: 2027,
+        prefix: 'CNI',
+        sequencePadding: 3,
+      }),
+    ).toBe('CNI-001-2027');
+  });
+
+  it('previewNextNumber increments lastGeneratedSequence', () => {
+    expect(
+      previewNextNumber({
+        pattern: 'CNI-{NUMERO}-{AÑO}',
+        lastGeneratedSequence: 241,
+        year: 2026,
+      }),
+    ).toBe('CNI-242-2026');
+  });
+
+  it('legacy formatOficioNumber uses institutional defaults', () => {
+    expect(
+      formatOficioNumber({ scope: 'CNI', direction: 'OUTGOING', sequence: 242, year: 2026 }),
+    ).toBe('CNI-242-2026');
+    expect(
+      formatOficioNumber({ scope: 'DESPACHO', direction: 'OUTGOING', sequence: 169, year: 2026 }),
+    ).toBe('DPICP-169-2026');
+  });
+
+  it('parseOficioSequence ignores year segments', () => {
+    expect(parseOficioSequence('CNI-242-2026', 2026)).toBe(242);
+    expect(parseOficioSequence('DPICP-169-2026', 2026)).toBe(169);
+    expect(parseOficioSequence('773/DE/INM-2026', 2026)).toBe(773);
   });
 });
 
-describe('normalizeOficioDirection', () => {
-  it('forces INTERNAL_MEMO when the scope is INTERNO', () => {
-    expect(normalizeOficioDirection('INCOMING', 'INTERNO')).toBe('INTERNAL_MEMO');
-    expect(normalizeOficioDirection('OUTGOING', 'INTERNO')).toBe('INTERNAL_MEMO');
-  });
-
-  it('maps INCOMING / INGRESADO / RECIBIDO to INCOMING', () => {
-    expect(normalizeOficioDirection('INGRESADO')).toBe('INCOMING');
-    expect(normalizeOficioDirection('RECIBIDO')).toBe('INCOMING');
-    expect(normalizeOficioDirection('incoming')).toBe('INCOMING');
-  });
-
-  it('maps INTERNAL / MEMO / INTERNAL_MEMO to INTERNAL_MEMO', () => {
-    expect(normalizeOficioDirection('MEMO')).toBe('INTERNAL_MEMO');
-    expect(normalizeOficioDirection('INTERNAL')).toBe('INTERNAL_MEMO');
-  });
-
-  it('defaults to OUTGOING for unknown CNI / DESPACHO inputs', () => {
-    expect(normalizeOficioDirection('whatever', 'CNI')).toBe('OUTGOING');
-    expect(normalizeOficioDirection(undefined, 'CNI')).toBe('OUTGOING');
-  });
-});
-
-describe('shouldGenerateOficioNumber', () => {
-  it('generates numbers for OUTGOING and INTERNAL_MEMO only', () => {
-    expect(shouldGenerateOficioNumber('OUTGOING')).toBe(true);
-    expect(shouldGenerateOficioNumber('INTERNAL_MEMO')).toBe(true);
+describe('direction / generation rules', () => {
+  it('does not generate for incoming', () => {
     expect(shouldGenerateOficioNumber('INCOMING')).toBe(false);
+    expect(shouldGenerateOficioNumber('OUTGOING')).toBe(true);
+  });
+
+  it('normalizes dependency and direction independently', () => {
+    expect(normalizeOficioScope('DPICP')).toBe('DESPACHO');
+    expect(normalizeOficioDirection('ENTRADA', 'CNI')).toBe('INCOMING');
+    expect(normalizeOficioDirection('OUTGOING', 'CNI')).toBe('OUTGOING');
   });
 });
 
-describe('formatOficioNumber', () => {
-  it('formats a DPICP out-of-office number', () => {
-    expect(formatOficioNumber({ scope: 'DESPACHO', direction: 'OUTGOING', sequence: 17, year: 2026 }))
-      .toBe('DPICP-0017-2026');
+describe('allocateOficioNumber (atomic config lock)', () => {
+  it('locks config, increments, and returns patterned number', async () => {
+    const queryRaw = vi.fn().mockResolvedValue([
+      {
+        id: 'cfg-1',
+        organizationId: 'org-a',
+        dependency: 'CNI',
+        year: 2026,
+        nomenclaturePattern: 'CNI-{NUMERO}-{AÑO}',
+        lastGeneratedSequence: 241,
+        prefix: 'CNI',
+        sequencePadding: 0,
+        isActive: true,
+      },
+    ]);
+    const update = vi.fn().mockResolvedValue({});
+    const tx = {
+      $queryRaw: queryRaw,
+      oficioNumberingConfig: { update },
+    } as unknown as Prisma.TransactionClient;
+
+    const result = await allocateOficioNumber(tx, {
+      organizationId: 'org-a',
+      scope: 'CNI',
+      direction: 'OUTGOING',
+      year: 2026,
+    });
+
+    expect(result.documentNumber).toBe('CNI-242-2026');
+    expect(result.sequence).toBe(242);
+    expect(update).toHaveBeenCalledWith({
+      where: { id: 'cfg-1' },
+      data: { lastGeneratedSequence: 242 },
+    });
   });
 
-  it('formats a CNI out-of-office number', () => {
-    expect(formatOficioNumber({ scope: 'CNI', direction: 'OUTGOING', sequence: 42, year: 2026 }))
-      .toBe('0042-CNI-2026');
+  it('uses Despacho pattern independently', async () => {
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([
+        {
+          id: 'cfg-2',
+          organizationId: 'org-a',
+          dependency: 'DESPACHO',
+          year: 2026,
+          nomenclaturePattern: 'DPICP-{NUMERO}-{AÑO}',
+          lastGeneratedSequence: 168,
+          prefix: 'DPICP',
+          sequencePadding: 0,
+          isActive: true,
+        },
+      ]),
+      oficioNumberingConfig: { update: vi.fn().mockResolvedValue({}) },
+    } as unknown as Prisma.TransactionClient;
+
+    const result = await allocateOficioNumber(tx, {
+      organizationId: 'org-a',
+      scope: 'DESPACHO',
+      direction: 'OUTGOING',
+      year: 2026,
+    });
+    expect(result.documentNumber).toBe('DPICP-169-2026');
   });
 
-  it('formats an internal memo number', () => {
-    expect(formatOficioNumber({ scope: 'INTERNO', direction: 'INTERNAL_MEMO', sequence: 3, year: 2026 }))
-      .toBe('MEMO-0003-2026');
+  it('fails when active config is missing', async () => {
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      oficioNumberingConfig: { update: vi.fn() },
+    } as unknown as Prisma.TransactionClient;
+
+    await expect(
+      allocateOficioNumber(tx, {
+        organizationId: 'org-a',
+        scope: 'CNI',
+        direction: 'OUTGOING',
+        year: 2026,
+      }),
+    ).rejects.toBeInstanceOf(OficioNumberingError);
   });
 
-  it('pads the sequence to four digits', () => {
-    expect(formatOficioNumber({ scope: 'CNI', direction: 'OUTGOING', sequence: 1, year: 2026 }))
-      .toBe('0001-CNI-2026');
-  });
-
-  it('throws when an incoming office is given a sequence', () => {
-    expect(() => formatOficioNumber({ scope: 'CNI', direction: 'INCOMING', sequence: 1, year: 2026 }))
-      .toThrow(/nomenclatura de la instituci[oó]n/i);
-  });
-});
-
-describe('parseOficioSequence', () => {
-  it('returns the first four-digit sequence it finds', () => {
-    expect(parseOficioSequence('0042-CNI-2026')).toBe(42);
-    expect(parseOficioSequence('DPICP-0017-2026')).toBe(17);
-    expect(parseOficioSequence('MEMO-0003-2026')).toBe(3);
-  });
-
-  it('returns the first 4-digit block when only the year is present', () => {
-    // The function returns the first 4-digit block; "CNI-2026" → 2026.
-    expect(parseOficioSequence('CNI-2026')).toBe(2026);
-  });
-
-  it('returns 0 for an empty string and for inputs without any digit', () => {
-    expect(parseOficioSequence('')).toBe(0);
-    expect(parseOficioSequence('no-digits')).toBe(0);
-  });
-});
-
-describe('getAutoNumberHint', () => {
-  it('returns null for incoming offices (the institution controls the number)', () => {
-    expect(getAutoNumberHint('CNI', 'INCOMING')).toBeNull();
-  });
-
-  it('returns a MEMO hint for internal memos', () => {
-    expect(getAutoNumberHint('INTERNO', 'INTERNAL_MEMO')).toMatch(/MEMO-0001-2026/);
-  });
-
-  it('returns a CNI / DESPACHO hint for outgoing offices', () => {
-    expect(getAutoNumberHint('CNI', 'OUTGOING')).toMatch(/0001-CNI-2026/);
-    expect(getAutoNumberHint('DESPACHO', 'OUTGOING')).toMatch(/DPICP-0001-2026/);
+  it('does not allocate for incoming', async () => {
+    const tx = { $queryRaw: vi.fn() } as unknown as Prisma.TransactionClient;
+    await expect(
+      allocateOficioNumber(tx, {
+        organizationId: 'org-a',
+        scope: 'CNI',
+        direction: 'INCOMING',
+        year: 2026,
+      }),
+    ).rejects.toMatchObject({ code: 'NOT_GENERATABLE' });
+    expect(tx.$queryRaw).not.toHaveBeenCalled();
   });
 });

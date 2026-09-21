@@ -33,9 +33,14 @@ import {
 
 const STATUS_NEXT: Record<OficioStatus, OficioStatus[]> = {
   DRAFT: [...OFICIO_STATUS_TRANSITIONS.DRAFT],
+  PENDING_SIGNATURE: [...OFICIO_STATUS_TRANSITIONS.PENDING_SIGNATURE],
+  SIGNED: [...OFICIO_STATUS_TRANSITIONS.SIGNED],
   SENT: [...OFICIO_STATUS_TRANSITIONS.SENT],
+  ACKNOWLEDGED: [...OFICIO_STATUS_TRANSITIONS.ACKNOWLEDGED],
   RECEIVED: [...OFICIO_STATUS_TRANSITIONS.RECEIVED],
+  ASSIGNED: [...OFICIO_STATUS_TRANSITIONS.ASSIGNED],
   IN_PROCESS: [...OFICIO_STATUS_TRANSITIONS.IN_PROCESS],
+  RESPONDED: [...OFICIO_STATUS_TRANSITIONS.RESPONDED],
   COMPLETED: [...OFICIO_STATUS_TRANSITIONS.COMPLETED],
   ARCHIVED: [...OFICIO_STATUS_TRANSITIONS.ARCHIVED],
 };
@@ -109,7 +114,7 @@ export default function OficioDetallePage({ params }: { params: Promise<{ id: st
         description={oficio.subject}
       >
         <Button asChild variant="outline">
-          <Link href="/oficios/todos"><ArrowLeft className="h-4 w-4 mr-2" /> Repositorio</Link>
+          <Link href="/oficios"><ArrowLeft className="h-4 w-4 mr-2" /> Correspondencia</Link>
         </Button>
       </PageHeader>
 
@@ -149,6 +154,10 @@ export default function OficioDetallePage({ params }: { params: Promise<{ id: st
                 </div>
               )}
               <div className="md:col-span-2 flex items-center gap-2 pt-2 border-t">
+                <Badge variant="outline">
+                  {oficio.type === 'INCOMING' ? 'Entrada' : oficio.type === 'INTERNAL_MEMO' ? 'Memo' : 'Salida'}
+                </Badge>
+                <Badge variant="secondary">{scopeLabel}</Badge>
                 <Badge variant="outline" className="font-normal">
                   {OFICIO_RECORD_SOURCE_LABELS[oficio.recordSource]}
                 </Badge>
@@ -162,6 +171,36 @@ export default function OficioDetallePage({ params }: { params: Promise<{ id: st
               </div>
             </CardContent>
           </Card>
+
+          {(oficio.responseTo || (oficio.responses && oficio.responses.length > 0)) && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Cadena de respuesta</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                {oficio.responseTo ? (
+                  <div className="rounded-md border px-3 py-2">
+                    <p className="text-muted-foreground">Responde a</p>
+                    <Link className="font-medium hover:underline" href={`/oficios/${oficio.responseTo.id}`}>
+                      {oficio.responseTo.number}
+                    </Link>
+                    <p className="text-muted-foreground">{oficio.responseTo.subject}</p>
+                  </div>
+                ) : null}
+                {oficio.responses?.map((resp) => (
+                  <div key={resp.id} className="rounded-md border px-3 py-2">
+                    <p className="text-muted-foreground">Respuesta recibida</p>
+                    <Link className="font-medium hover:underline" href={`/oficios/${resp.id}`}>
+                      {resp.number}
+                    </Link>
+                    <p className="text-muted-foreground">
+                      {new Date(resp.oficioDate).toLocaleDateString('es-HN')} — {resp.subject}
+                    </p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Documento principal */}
           <Card>
