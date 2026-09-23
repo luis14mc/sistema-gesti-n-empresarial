@@ -125,8 +125,20 @@ describe('purchase order calculation schema', () => {
     }).success).toBe(true);
   });
 
-  it('rechaza tasas, porcentajes y descuentos fijos inválidos', () => {
-    expect(createPurchaseOrderSchema.safeParse({ ...base, discountType: 'NINGUNO', discountValue: 0, taxRate: 10 }).success).toBe(false);
+  it('rechaza impuestos personalizados y descuentos inválidos', () => {
+    expect(createPurchaseOrderSchema.safeParse({
+      ...base,
+      discountType: 'NINGUNO',
+      discountValue: 0,
+      items: [{
+        description: 'Producto',
+        unit: 'UNIT',
+        quantity: 1,
+        unitPrice: 100,
+        taxProfile: 'CUSTOM',
+        customTaxes: [{ code: 'MUNICIPAL', name: 'Tasa municipal', rate: 150 }],
+      }],
+    }).success).toBe(false);
     expect(createPurchaseOrderSchema.safeParse({ ...base, discountType: 'PORCENTAJE', discountValue: 101, taxRate: 15 }).success).toBe(false);
     expect(createPurchaseOrderSchema.safeParse({ ...base, discountType: 'MONTO', discountValue: 101, taxRate: 15 }).success).toBe(false);
   });
@@ -205,14 +217,16 @@ describe('buildPreviewDataFromInput', () => {
       }],
     }, template);
 
-    expect(preview.items).toEqual([{
+    expect(preview.items[0]).toMatchObject({
       itemNumber: 1,
       description: '',
       unit: 'UNIT',
       quantity: 0,
       unitPrice: 0,
       total: 0,
-    }]);
+      taxAmount: 0,
+      itemTotal: 0,
+    });
     expect(preview.subtotal).toBe(0);
     expect(preview.total).toBe(0);
   });

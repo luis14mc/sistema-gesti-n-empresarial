@@ -1,5 +1,5 @@
 import type { Prisma } from '@prisma/client';
-import { decimalToNumber } from './calculos';
+import { decimalToNumber, formatItemTaxLabel } from './calculos';
 
 type OrderDocument = {
   id: string;
@@ -41,7 +41,7 @@ type OrderWithRelations = Prisma.CompraOrdenGetPayload<{
     generatedBy: { select: { id: true; firstName: true; lastName: true } };
     issuedBy: { select: { id: true; firstName: true; lastName: true } };
     supplier: { select: { id: true; nombreRazonSocial: true } };
-    items: true;
+    items: { include: { taxes: true } };
     documentos: { include: { uploadedBy: { select: { id: true; firstName: true; lastName: true } } } };
   };
 }>;
@@ -53,6 +53,36 @@ type OrderListItem = Prisma.CompraOrdenGetPayload<{
     _count: { select: { documentos: true } };
   };
 }>;
+
+function summarizeStoredTaxes(items: OrderWithRelations['items']) {
+  const usesItemTaxes = items.some((item) => item.taxProfile != null);
+  if (!usesItemTaxes) {
+    return { taxSummary: [], exemptBase: 0, usesItemTaxes: false };
+  }
+  const groups = new Map<string, { code: string; name: string; rate: number; taxableBase: number; amount: number }>();
+  let exemptBase = 0;
+  for (const item of items) {
+    const taxes = item.taxes ?? [];
+    if (taxes.length === 0) {
+      exemptBase = Math.round((exemptBase + decimalToNumber(item.taxableBase)) * 100) / 100;
+      continue;
+    }
+    for (const taxLine of taxes) {
+      const rate = decimalToNumber(taxLine.rate);
+      const key = `${taxLine.code}:${rate}`;
+      const current = groups.get(key);
+      const taxableBase = decimalToNumber(taxLine.taxableBase);
+      const amount = decimalToNumber(taxLine.amount);
+      if (current) {
+        current.taxableBase = Math.round((current.taxableBase + taxableBase) * 100) / 100;
+        current.amount = Math.round((current.amount + amount) * 100) / 100;
+      } else {
+        groups.set(key, { code: taxLine.code, name: taxLine.name, rate, taxableBase, amount });
+      }
+    }
+  }
+  return { taxSummary: [...groups.values()], exemptBase, usesItemTaxes: true };
+}
 
 export function serializePurchaseOrder(order: OrderWithRelations) {
   const pdfDoc = order.documentos?.find((d) => d.type === 'ORDER_PDF' && d.isActive);
@@ -102,16 +132,34 @@ export function serializePurchaseOrder(order: OrderWithRelations) {
     updatedAt: order.updatedAt.toISOString(),
     createdBy: order.createdBy,
     supplier: order.supplier,
-    items: order.items.map((item) => ({
-      id: item.id,
-      orderId: item.orderId,
-      itemNumber: item.itemNumber,
-      description: item.description,
-      unit: item.unit,
-      quantity: decimalToNumber(item.quantity),
-      unitPrice: decimalToNumber(item.unitPrice),
-      total: decimalToNumber(item.total),
-    })),
+    items: order.items.map((item) => {
+      const taxes = (item.taxes ?? []).map((taxLine) => ({
+        id: taxLine.id,
+        code: taxLine.code,
+        name: taxLine.name,
+        rate: decimalToNumber(taxLine.rate),
+        taxableBase: decimalToNumber(taxLine.taxableBase),
+        amount: decimalToNumber(taxLine.amount),
+        sortOrder: taxLine.sortOrder,
+      }));
+      return {
+        id: item.id,
+        orderId: item.orderId,
+        itemNumber: item.itemNumber,
+        description: item.description,
+        unit: item.unit,
+        quantity: decimalToNumber(item.quantity),
+        unitPrice: decimalToNumber(item.unitPrice),
+        total: decimalToNumber(item.total),
+        taxProfile: item.taxProfile,
+        taxableBase: decimalToNumber(item.taxableBase),
+        taxAmount: decimalToNumber(item.taxAmount),
+        itemTotal: decimalToNumber(item.itemTotal),
+        taxLabel: item.taxProfile ? formatItemTaxLabel(taxes) : null,
+        taxes,
+      };
+    }),
+    ...summarizeStoredTaxes(order.items),
     documents: (order.documentos ?? []).map(mapDocument),
     documentos: (order.documentos ?? []).map(mapDocument),
     // Legacy field aliases for gradual UI migration

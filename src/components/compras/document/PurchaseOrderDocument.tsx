@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import { Fragment, type CSSProperties } from 'react';
 import { UNIT_LABELS } from '@/lib/compras/orden/constants';
 import { formatSignatureAttribution, type PurchaseOrderPreviewData } from '@/lib/compras/orden/preview-data';
 import type { PurchaseOrderTemplateConfig } from '@/lib/compras/orden/template-config';
@@ -36,7 +36,8 @@ export const purchaseOrderDocumentCss = `
   .po-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
   .po-table th { padding: 5px; color: white; background: var(--po-primary); border: 1px solid var(--po-primary); font-size: 8px; font-weight: 700; text-transform: uppercase; }
   .po-table td { padding: 5px 6px; border: 1px solid #b8c2cf; vertical-align: top; }
-  .po-table th:nth-child(1) { width: 7%; } .po-table th:nth-child(2) { width: 39%; } .po-table th:nth-child(3) { width: 13%; } .po-table th:nth-child(4) { width: 11%; } .po-table th:nth-child(5), .po-table th:nth-child(6) { width: 15%; }
+  .po-table th:nth-child(1) { width: 5%; } .po-table th:nth-child(2) { width: 28%; } .po-table th:nth-child(3) { width: 8%; } .po-table th:nth-child(4) { width: 10%; } .po-table th:nth-child(5) { width: 12%; } .po-table th:nth-child(6) { width: 12%; } .po-table th:nth-child(7) { width: 13%; } .po-table th:nth-child(8) { width: 12%; }
+  .po-tax-note { display: block; color: #526072; font-size: 8px; }
   .po-center { text-align: center; } .po-right { text-align: right; }
   .po-totals { width: 285px; margin: 7px 0 0 auto; border-collapse: collapse; }
   .po-totals td { padding: 3px 8px; }
@@ -110,10 +111,38 @@ export function PurchaseOrderDocument({ order, format, draft = false }: Purchase
         </section>
         <section className="po-section">
            <h2 className="po-section-title">DETALLE DE PRODUCTO O SERVICIO</h2>
-           <table className="po-table"><thead><tr><th>#</th><th>Descripción</th><th>Unidad</th><th>Cantidad</th><th>Precio unitario</th><th>Total</th></tr></thead><tbody>
-            {order.items.map((item) => <tr key={item.itemNumber}><td className="po-center">{item.itemNumber}</td><td>{item.description}</td><td className="po-center">{UNIT_LABELS[item.unit]}</td><td className="po-right">{item.quantity}</td><td className="po-right">{money(item.unitPrice)}</td><td className="po-right">{money(item.total)}</td></tr>)}
-          </tbody></table>
-          <table className="po-totals"><tbody><tr><td>Subtotal</td><td className="po-right">{money(order.subtotal)}</td></tr><tr><td>Descuento</td><td className="po-right">{money(order.discount)}</td></tr><tr><td>Base gravable</td><td className="po-right">{money(order.taxableBase)}</td></tr><tr><td>ISV {order.taxRate}%</td><td className="po-right">{money(order.tax)}</td></tr><tr className="po-total-final"><td>TOTAL</td><td className="po-right">{money(order.total)}</td></tr></tbody></table>
+           {order.usesItemTaxes ? (
+             <table className="po-table"><thead><tr><th>#</th><th>Descripción</th><th>Unidad</th><th>Cantidad</th><th>Precio unitario</th><th>Base</th><th>Impuesto</th><th>Total</th></tr></thead><tbody>
+               {order.items.map((item) => <tr key={item.itemNumber}><td className="po-center">{item.itemNumber}</td><td>{item.description}{item.taxes.length > 1 ? <span className="po-tax-note">{item.taxes.map((tax) => tax.name).join(' · ')}</span> : null}</td><td className="po-center">{UNIT_LABELS[item.unit]}</td><td className="po-right">{item.quantity}</td><td className="po-right">{money(item.unitPrice)}</td><td className="po-right">{money(item.taxableBase)}</td><td>{item.taxLabel}</td><td className="po-right">{money(item.itemTotal)}</td></tr>)}
+             </tbody></table>
+           ) : (
+             <table className="po-table"><thead><tr><th>#</th><th>Descripción</th><th>Unidad</th><th>Cantidad</th><th>Precio unitario</th><th>Total</th></tr></thead><tbody>
+               {order.items.map((item) => <tr key={item.itemNumber}><td className="po-center">{item.itemNumber}</td><td>{item.description}</td><td className="po-center">{UNIT_LABELS[item.unit]}</td><td className="po-right">{item.quantity}</td><td className="po-right">{money(item.unitPrice)}</td><td className="po-right">{money(item.total)}</td></tr>)}
+             </tbody></table>
+           )}
+           <table className="po-totals"><tbody>
+             <tr><td>Subtotal</td><td className="po-right">{money(order.subtotal)}</td></tr>
+             <tr><td>Descuento</td><td className="po-right">{money(order.discount)}</td></tr>
+             {order.usesItemTaxes ? (
+               <>
+                 <tr><td colSpan={2}>RESUMEN TRIBUTARIO</td></tr>
+                 {order.taxSummary.map((line) => (
+                   <Fragment key={line.code}>
+                     <tr><td>Base gravada {line.rate}%</td><td className="po-right">{money(line.taxableBase)}</td></tr>
+                     <tr><td>{line.name}</td><td className="po-right">{money(line.amount)}</td></tr>
+                   </Fragment>
+                 ))}
+                 {order.exemptBase > 0 ? <tr><td>Base exenta</td><td className="po-right">{money(order.exemptBase)}</td></tr> : null}
+                 <tr><td>TOTAL IMPUESTOS</td><td className="po-right">{money(order.tax)}</td></tr>
+               </>
+             ) : (
+               <>
+                 <tr><td>Base gravable</td><td className="po-right">{money(order.taxableBase)}</td></tr>
+                 <tr><td>ISV {order.taxRate}%</td><td className="po-right">{money(order.tax)}</td></tr>
+               </>
+             )}
+             <tr className="po-total-final"><td>TOTAL</td><td className="po-right">{money(order.total)}</td></tr>
+           </tbody></table>
         </section>
          <section className="po-section"><h2 className="po-section-title">Justificación de compra</h2><p className="po-justification">{order.purchaseJustification}</p>{format.additionalNote ? <p className="po-note">{format.additionalNote}</p> : null}</section>
          <section className="po-signatures">

@@ -25,7 +25,16 @@ type OrderPdfData = Pick<
   | 'total'
   | 'status'
 > & {
-  items: CompraOrdenItem[];
+  items: Array<CompraOrdenItem & {
+    taxes?: Array<{
+      code: string;
+      name: string;
+      rate: number | string | { toString(): string };
+      taxableBase: number | string | { toString(): string };
+      amount: number | string | { toString(): string };
+    }>;
+    taxLabel?: string | null;
+  }>;
   generatedAt?: Date | string | null;
   issuedAt?: Date | string | null;
   generatedBy?: { firstName: string; lastName: string } | null;

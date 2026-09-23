@@ -3,6 +3,16 @@ import type { PurchaseOrderTemplateConfig } from '@/lib/compras/orden/template-c
 
 export type { PurchaseOrderStatus, PurchaseUnit, PurchaseDocumentType };
 
+export interface CompraOrdenItemTax {
+  id?: string;
+  code: string;
+  name: string;
+  rate: number;
+  taxableBase: number;
+  amount: number;
+  sortOrder?: number;
+}
+
 export interface CompraOrdenItem {
   id: string;
   orderId: string;
@@ -12,6 +22,12 @@ export interface CompraOrdenItem {
   quantity: number;
   unitPrice: number;
   total: number;
+  taxProfile?: 'GENERAL_15' | 'EXEMPT' | 'ISV_18' | 'HOTEL_15_TOURISM_4' | 'CUSTOM' | null;
+  taxableBase?: number;
+  taxAmount?: number;
+  itemTotal?: number;
+  taxLabel?: string | null | undefined;
+  taxes?: CompraOrdenItemTax[];
   // legacy
   item?: number;
   descripcion?: string;
@@ -74,6 +90,9 @@ export interface CompraOrden {
   taxRate: number;
   tax: number;
   total: number;
+  taxSummary?: Array<{ code: string; name: string; rate: number; taxableBase: number; amount: number }>;
+  exemptBase?: number;
+  usesItemTaxes?: boolean;
   status: PurchaseOrderStatus;
   templateId?: string | null;
   templateVersion?: number | null;
