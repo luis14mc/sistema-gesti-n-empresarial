@@ -95,6 +95,42 @@ describe('purchase order signature attribution', () => {
     expect(generatedHtml).toContain('Aprobado por: Pendiente');
   });
 
+  it('renders generated and approved attribution with both dates on the issued document', () => {
+    const issued = buildPreviewDataFromSerializedOrder({
+      orderNumber: 'COM-CNI-2026-00001',
+      purchaseReference: 'REF-1',
+      requestDate: '2026-09-01T00:00:00.000Z',
+      requiredDate: '2026-09-10T00:00:00.000Z',
+      requestedByName: 'Solicitante',
+      requesterJobTitle: 'Analista',
+      supplierName: 'Proveedor',
+      supplierRtn: '08011999123456',
+      supplierPhone: '2222-0000',
+      purchaseJustification: 'Compra de papelería',
+      subtotal: 100,
+      discount: 0,
+      taxRate: 15,
+      tax: 15,
+      total: 115,
+      status: 'ISSUED',
+      generatedByName: 'Yenfri Lemarie Garcia',
+      generatedAt: '2026-09-09T18:00:00.000Z',
+      issuedByName: 'Lila Margarita Rivera',
+      issuedAt: '2026-09-10T15:30:00.000Z',
+      items: [{ itemNumber: 1, description: 'Resmas', unit: 'UNIT', quantity: 1, unitPrice: 100, total: 100 }],
+    }, format);
+
+    const issuedHtml = renderToStaticMarkup(
+      <PurchaseOrderDocument order={issued} format={format} />,
+    );
+
+    expect(issuedHtml).toContain('Yenfri Garcia');
+    expect(issuedHtml).toContain('Lila Rivera');
+    expect(issuedHtml).toMatch(/Generado por: Yenfri Lemarie Garcia · /);
+    expect(issuedHtml).toMatch(/Aprobado por: Lila Margarita Rivera · /);
+    expect(issuedHtml).not.toContain('Aprobado por: Pendiente');
+  });
+
   it('grants PURCHASE_ORDER_APPROVE to admin profiles, not procurement', () => {
     expect(PURCHASE_ORDER_APPROVE).toBe('purchase-orders.approve');
     expect(can(organizationRole('ADMIN'), PURCHASE_ORDER_APPROVE)).toBe(true);

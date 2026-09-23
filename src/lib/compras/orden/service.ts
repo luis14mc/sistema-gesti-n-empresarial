@@ -674,7 +674,13 @@ export async function generatePurchaseOrder(
 }
 
 export async function issuePurchaseOrder(id: string, userId: string, organizationId: string) {
-  const order = await prisma.compraOrden.findFirst({ where: { id, organizationId, deletedAt: null } });
+  const order = await prisma.compraOrden.findFirst({
+    where: { id, organizationId, deletedAt: null },
+    include: {
+      items: { orderBy: { itemNumber: 'asc' } },
+      generatedBy: { select: { firstName: true, lastName: true } },
+    },
+  });
   if (!order) throw new Error('Orden no encontrada');
   if (order.status !== 'GENERATED') throw new Error('Solo órdenes generadas pueden emitirse');
 
@@ -683,36 +689,104 @@ export async function issuePurchaseOrder(id: string, userId: string, organizatio
   });
   if (!activePdf) throw new Error('Debe existir PDF activo');
 
-  await prisma.$transaction(async (tx) => {
-    await tx.compraOrden.update({
-      where: { id },
-      data: { status: 'ISSUED', issuedById: userId, issuedAt: new Date() },
-    });
-    await recordOrdenHistorial({
-      orderId: id,
-      organizationId,
-      action: 'ISSUED',
-      title: 'Orden emitida',
-      performedById: userId,
-      previousData: { status: 'GENERATED' },
-      newData: { status: 'ISSUED' },
-      tx,
-    });
-    await recordOrdenAudit({
-      orderId: id,
-      organizationId,
-      category: 'ISSUED',
-      title: 'Orden emitida',
-      description: order.orderNumber ?? id,
-      userId,
-      tx,
-    });
+  const issuer = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { firstName: true, lastName: true },
   });
+  const issuedAt = new Date();
+  const template = await resolveTemplateForOrder(order);
+  const lastDoc = await prisma.compraOrdenDocumento.findFirst({
+    where: { orderId: id, type: 'ORDER_PDF', orden: { organizationId } },
+    orderBy: { version: 'desc' },
+  });
+  const version = (lastDoc?.version ?? activePdf.version ?? 0) + 1;
+  const html = await buildPurchaseOrderHtml(
+    {
+      ...order,
+      status: 'ISSUED',
+      issuedBy: issuer,
+      issuedAt,
+    },
+    template,
+    version,
+  );
+  const buffer = await renderHtmlToPdf(html);
+  if (!buffer.length) throw new Error('EMPTY_PURCHASE_ORDER_PDF');
 
+  const slug = (order.orderNumber ?? order.id).replace(/[^a-zA-Z0-9-]/g, '_');
+  const filename = `orden-compra-${slug}-v${version}.pdf`;
+
+  let issuedStorageKey: string | null = null;
   try {
-    await saveOrderPdf(id, userId, organizationId);
+    let stored;
+    try {
+      stored = await saveOrdenPdf(buffer, organizationId, id, filename);
+    } catch (error) {
+      throw new Error('PURCHASE_ORDER_PDF_STORAGE_FAILED', { cause: error });
+    }
+    issuedStorageKey = stored.storageKey;
+
+    await prisma.$transaction(async (tx) => {
+      const claimed = await tx.compraOrden.updateMany({
+        where: { id, organizationId, status: 'GENERATED' },
+        data: { status: 'ISSUED', issuedById: userId, issuedAt },
+      });
+      if (claimed.count !== 1) throw new Error('ORDER_ALREADY_ISSUED');
+
+      await tx.compraOrdenDocumento.updateMany({
+        where: { orderId: id, type: 'ORDER_PDF', isActive: true },
+        data: { isActive: false },
+      });
+      await tx.compraOrdenDocumento.create({
+        data: {
+          orderId: id,
+          type: 'ORDER_PDF',
+          name: filename,
+          originalName: filename,
+          mimeType: 'application/pdf',
+          size: stored.size,
+          storageKey: stored.storageKey,
+          url: stored.url,
+          version,
+          uploadedById: userId,
+        },
+      });
+
+      await recordOrdenHistorial({
+        orderId: id,
+        organizationId,
+        action: 'ISSUED',
+        title: 'Orden emitida',
+        performedById: userId,
+        previousData: { status: 'GENERATED' },
+        newData: { status: 'ISSUED' },
+        tx,
+      });
+      await recordOrdenHistorial({
+        orderId: id,
+        organizationId,
+        action: 'PDF_GENERATED',
+        title: 'PDF de emisión generado',
+        performedById: userId,
+        tx,
+      });
+      await recordOrdenAudit({
+        orderId: id,
+        organizationId,
+        category: 'ISSUED',
+        title: 'Orden emitida',
+        description: order.orderNumber ?? id,
+        userId,
+        tx,
+      });
+    });
   } catch (error) {
-    console.error('[PURCHASE ORDER] Failed to refresh PDF after issue', error);
+    if (issuedStorageKey) {
+      await removeStoredDocument(issuedStorageKey).catch((cleanupError) => {
+        console.error('[PURCHASE ORDER] Failed to remove stored issuance PDF after rollback', cleanupError);
+      });
+    }
+    throw error;
   }
 
   return getPurchaseOrder(id, organizationId);
