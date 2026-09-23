@@ -108,22 +108,21 @@ export function validatePurchaseOrderForGeneration(
     }
   });
 
-  const usesItemTaxes = order.items.some((item) => item.taxProfile != null);
-  const taxRate = Number(order.taxRate);
-  if (!usesItemTaxes && ![0, 15, 18].includes(taxRate)) {
-    errors.push({ field: 'tasaIsv', message: 'Seleccione una tasa de ISV válida.' });
-  }
-  if (usesItemTaxes) {
-    order.items.forEach((item, index) => {
-      const taxAmount = Number(item.taxAmount);
-      if (!Number.isFinite(taxAmount) || taxAmount < 0) {
-        errors.push({
-          field: `items.${index}.impuesto`,
-          message: `El impuesto del ítem ${index + 1} no es válido.`,
-        });
-      }
-    });
-  }
+  order.items.forEach((item, index) => {
+    if (!item.taxProfile) {
+      errors.push({
+        field: `items.${index}.tratamiento`,
+        message: `El ítem ${index + 1} no tiene tratamiento tributario.`,
+      });
+    }
+    const taxAmount = Number(item.taxAmount);
+    if (!Number.isFinite(taxAmount) || taxAmount < 0) {
+      errors.push({
+        field: `items.${index}.impuesto`,
+        message: `El impuesto del ítem ${index + 1} no es válido.`,
+      });
+    }
+  });
   const discountValue = Number(order.discountValue);
   if (!Number.isFinite(discountValue) || discountValue < 0) {
     errors.push({ field: 'valorDescuento', message: 'El valor del descuento no es válido.' });

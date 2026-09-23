@@ -986,8 +986,6 @@ model CompraOrden {
   discountType          TipoDescuento       @default(NINGUNO)
   discountValue         Decimal             @default(0) @db.Decimal(14, 2)
   discount              Decimal             @default(0) @db.Decimal(14, 2)
-  taxRate               Decimal             @default(15) @db.Decimal(5, 2)
-  tax                   Decimal             @default(0) @db.Decimal(14, 2)
   total                 Decimal             @default(0) @db.Decimal(14, 2)
   status                PurchaseOrderStatus @default(DRAFT)
   createdById           String
@@ -1287,7 +1285,7 @@ model CompraOrdenItem {
   quantity    Decimal             @db.Decimal(14, 2)
   unitPrice   Decimal             @db.Decimal(14, 2)
   total       Decimal             @db.Decimal(14, 2)
-  taxProfile  PurchaseTaxProfile?
+  taxProfile  PurchaseTaxProfile
   taxableBase Decimal             @default(0) @db.Decimal(14, 2)
   taxAmount   Decimal             @default(0) @db.Decimal(14, 2)
   itemTotal   Decimal             @default(0) @db.Decimal(14, 2)

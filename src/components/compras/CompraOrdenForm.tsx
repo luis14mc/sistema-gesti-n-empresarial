@@ -78,7 +78,6 @@ function mapDefaults(v?: Partial<CompraOrden>): Partial<CreatePurchaseOrderInput
     purchaseJustification: v.purchaseJustification ?? v.justificacionCompra ?? '',
     discountType: v.discountType ?? ((v.discount ?? v.descuento ?? 0) > 0 ? 'MONTO' : 'NINGUNO'),
     discountValue: v.discountValue ?? v.discount ?? v.descuento ?? 0,
-    taxRate: v.taxRate ?? v.tasaImpuesto ?? 15,
     items: v.items?.length
       ? v.items.map((i) => ({
           itemNumber: i.itemNumber ?? (i as { item?: number }).item,
@@ -86,12 +85,7 @@ function mapDefaults(v?: Partial<CompraOrden>): Partial<CreatePurchaseOrderInput
           unit: (i.unit ?? (i as { unidad?: string }).unidad ?? 'UNIT') as CreatePurchaseOrderInput['items'][0]['unit'],
           quantity: i.quantity ?? (i as { cantidad?: number }).cantidad ?? 1,
           unitPrice: i.unitPrice ?? (i as { precioUnitario?: number }).precioUnitario ?? 0,
-          taxProfile: i.taxProfile
-            ?? ((v.taxRate ?? v.tasaImpuesto) === 0
-              ? 'EXEMPT'
-              : (v.taxRate ?? v.tasaImpuesto) === 18
-                ? 'ISV_18'
-                : 'GENERAL_15'),
+          taxProfile: i.taxProfile ?? 'GENERAL_15',
           customTaxes: i.taxProfile === 'CUSTOM'
             ? (i.taxes ?? []).map((tax) => ({ code: tax.code, name: tax.name, rate: tax.rate }))
             : [],
@@ -156,7 +150,6 @@ function CompraOrdenForm({
       purchaseJustification: mapped.purchaseJustification ?? '',
       discountType: mapped.discountType ?? 'NINGUNO',
       discountValue: mapped.discountValue ?? 0,
-      taxRate: mapped.taxRate ?? 15,
       items: mapped.items?.length ? mapped.items : [{ ...defaultItem }],
     },
   });

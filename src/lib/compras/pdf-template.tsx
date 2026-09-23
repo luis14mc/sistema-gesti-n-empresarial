@@ -4,6 +4,7 @@ import { getActiveTemplateConfig } from './orden/template';
 import type { PurchaseOrderPreviewData } from './orden/preview-data';
 import { resolveInstitutionLogoDataUri } from './institution';
 import { ORDER_STATUS_LABELS } from './orden/constants';
+import { calculatePurchaseOrder } from './orden/calculos';
 
 type OrdenPdfData = CompraSolicitud & {
   items: CompraSolicitudItem[];
@@ -24,7 +25,15 @@ export async function construirHtmlOrdenCompra(orden: OrdenPdfData, _version = 1
   const format = await getActiveTemplateConfig(organizationId);
   const resolvedFormat = { ...format, logoUrl: format.logoUrl ? await resolveInstitutionLogoDataUri(format.logoUrl) : null };
   const requestedByName = orden.solicitadoPor ? `${orden.solicitadoPor.firstName} ${orden.solicitadoPor.lastName}` : '—';
-  const taxable = Math.max(orden.subtotal - orden.descuento, 0);
+  const calculated = calculatePurchaseOrder({
+    discountType: orden.descuento > 0 ? 'MONTO' : 'NINGUNO',
+    discountValue: orden.descuento,
+    items: orden.items.map((item) => ({
+      quantity: item.cantidad,
+      unitPrice: item.precioUnitario,
+      taxProfile: 'GENERAL_15' as const,
+    })),
+  });
   const document: PurchaseOrderPreviewData = {
     orderNumber: orden.numeroOrden,
     purchaseReference: orden.referenciaCompra ?? '—',
@@ -36,30 +45,44 @@ export async function construirHtmlOrdenCompra(orden: OrdenPdfData, _version = 1
     supplierRtn: orden.proveedorIdentificacion ?? '—',
     supplierPhone: orden.proveedorTelefono ?? '—',
     purchaseJustification: orden.justificacionCompra,
-    subtotal: orden.subtotal,
+    subtotal: calculated.subtotal.toNumber(),
     discountType: orden.descuento > 0 ? 'MONTO' : 'NINGUNO',
     discountValue: orden.descuento,
-    discount: orden.descuento,
-    taxableBase: taxable,
-    taxRate: taxable ? (orden.impuesto / taxable) * 100 : 0,
-    tax: orden.impuesto,
-    total: orden.total,
-    taxSummary: [],
-    exemptBase: 0,
-    usesItemTaxes: false,
-    items: orden.items.map((item) => ({
-      itemNumber: item.item,
-      description: item.descripcion,
-      unit: units[item.unidad] ?? 'OTHER',
-      quantity: item.cantidad,
-      unitPrice: item.precioUnitario,
-      total: item.total,
-      taxableBase: item.total,
-      taxAmount: 0,
-      itemTotal: item.total,
-      taxLabel: 'ISV',
-      taxes: [],
+    discount: calculated.discount.toNumber(),
+    taxableBase: calculated.taxableBase.toNumber(),
+    tax: calculated.tax.toNumber(),
+    total: calculated.total.toNumber(),
+    taxSummary: calculated.taxSummary.map((line) => ({
+      code: line.code,
+      name: line.name,
+      rate: line.rate.toNumber(),
+      taxableBase: line.taxableBase.toNumber(),
+      amount: line.amount.toNumber(),
     })),
+    exemptBase: calculated.exemptBase.toNumber(),
+    items: orden.items.map((item, index) => {
+      const line = calculated.items[index];
+      return {
+        itemNumber: item.item,
+        description: item.descripcion,
+        unit: units[item.unidad] ?? 'OTHER',
+        quantity: item.cantidad,
+        unitPrice: item.precioUnitario,
+        total: line.lineSubtotal.toNumber(),
+        taxableBase: line.taxableBase.toNumber(),
+        taxAmount: line.taxAmount.toNumber(),
+        itemTotal: line.itemTotal.toNumber(),
+        taxLabel: line.taxLabel,
+        taxProfile: line.taxProfile,
+        taxes: line.taxes.map((taxLine) => ({
+          code: taxLine.code,
+          name: taxLine.name,
+          rate: taxLine.rate.toNumber(),
+          taxableBase: taxLine.taxableBase.toNumber(),
+          amount: taxLine.amount.toNumber(),
+        })),
+      };
+    }),
     template: resolvedFormat,
     isDraft: orden.estado === 'BORRADOR' || !orden.numeroOrden,
     status: statuses[orden.estado] ?? 'DRAFT',

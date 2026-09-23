@@ -26,8 +26,8 @@ const template: PurchaseOrderTemplateConfig = {
 
 describe('calculatePurchaseOrder', () => {
   const items = [
-    { quantity: toDecimal(2), unitPrice: toDecimal(100) },
-    { quantity: toDecimal(1), unitPrice: toDecimal(50) },
+    { quantity: toDecimal(2), unitPrice: toDecimal(100), taxProfile: 'GENERAL_15' as const },
+    { quantity: toDecimal(1), unitPrice: toDecimal(50), taxProfile: 'GENERAL_15' as const },
   ];
 
   it('calcula subtotal', () => {
@@ -35,7 +35,6 @@ describe('calculatePurchaseOrder', () => {
       items,
       discountType: 'NINGUNO',
       discountValue: toDecimal(0),
-      taxRate: toDecimal(15),
     });
     expect(r.subtotal.toNumber()).toBe(250);
   });
@@ -45,7 +44,6 @@ describe('calculatePurchaseOrder', () => {
       items,
       discountType: 'MONTO',
       discountValue: toDecimal(500),
-      taxRate: toDecimal(15),
     });
     expect(r.discount.toNumber()).toBe(250);
     expect(r.total.toNumber()).toBe(0);
@@ -56,22 +54,20 @@ describe('calculatePurchaseOrder', () => {
       items,
       discountType: 'MONTO',
       discountValue: toDecimal(10),
-      taxRate: toDecimal(15),
     });
     expect(r.tax.toNumber()).toBe(36);
     expect(r.total.toNumber()).toBe(276);
   });
 
   it.each([
-    [0, 0, 9000],
-    [15, 1350, 10350],
-    [18, 1620, 10620],
-  ])('calcula ISV %s%% después de un descuento fijo', (taxRate, expectedTax, expectedTotal) => {
+    ['EXEMPT', 0, 9000],
+    ['GENERAL_15', 1350, 10350],
+    ['ISV_18', 1620, 10620],
+  ] as const)('calcula %s después de un descuento fijo', (taxProfile, expectedTax, expectedTotal) => {
     const r = calculatePurchaseOrder({
-      items: [{ quantity: toDecimal(1), unitPrice: toDecimal(10000) }],
+      items: [{ quantity: toDecimal(1), unitPrice: toDecimal(10000), taxProfile }],
       discountType: 'MONTO',
       discountValue: toDecimal(1000),
-      taxRate: toDecimal(taxRate),
     });
     expect(r.discount.toNumber()).toBe(1000);
     expect(r.taxableBase.toNumber()).toBe(9000);
@@ -81,10 +77,9 @@ describe('calculatePurchaseOrder', () => {
 
   it('calcula descuento porcentual con Decimal', () => {
     const r = calculatePurchaseOrder({
-      items: [{ quantity: toDecimal(2), unitPrice: toDecimal('5000') }],
+      items: [{ quantity: toDecimal(2), unitPrice: toDecimal('5000'), taxProfile: 'GENERAL_15' }],
       discountType: 'PORCENTAJE',
       discountValue: toDecimal(10),
-      taxRate: toDecimal(15),
     });
     expect(r.discount.toNumber()).toBe(1000);
     expect(r.taxableBase.toNumber()).toBe(9000);
@@ -96,7 +91,6 @@ describe('calculatePurchaseOrder', () => {
       items,
       discountType: 'NINGUNO',
       discountValue: toDecimal(100),
-      taxRate: toDecimal(15),
     });
     expect(r.discount.toNumber()).toBe(0);
   });
@@ -116,12 +110,12 @@ describe('purchase order calculation schema', () => {
     items: [{ description: 'Producto', unit: 'UNIT', quantity: 1, unitPrice: 100 }],
   } as const;
 
-  it.each([0, 15, 18])('acepta la tasa ISV %s', (taxRate) => {
+  it.each(['EXEMPT', 'GENERAL_15', 'ISV_18'] as const)('acepta el tratamiento %s', (taxProfile) => {
     expect(createPurchaseOrderSchema.safeParse({
       ...base,
       discountType: 'NINGUNO',
       discountValue: 0,
-      taxRate,
+      items: [{ description: 'Producto', unit: 'UNIT', quantity: 1, unitPrice: 100, taxProfile }],
     }).success).toBe(true);
   });
 
@@ -139,16 +133,17 @@ describe('purchase order calculation schema', () => {
         customTaxes: [{ code: 'MUNICIPAL', name: 'Tasa municipal', rate: 150 }],
       }],
     }).success).toBe(false);
-    expect(createPurchaseOrderSchema.safeParse({ ...base, discountType: 'PORCENTAJE', discountValue: 101, taxRate: 15 }).success).toBe(false);
-    expect(createPurchaseOrderSchema.safeParse({ ...base, discountType: 'MONTO', discountValue: 101, taxRate: 15 }).success).toBe(false);
+    expect(createPurchaseOrderSchema.safeParse({ ...base, discountType: 'PORCENTAJE', discountValue: 101 }).success).toBe(false);
+    expect(createPurchaseOrderSchema.safeParse({ ...base, discountType: 'MONTO', discountValue: 101 }).success).toBe(false);
   });
 
-  it('normaliza cargas antiguas como descuento fijo y tasa 15', () => {
-    expect(normalizePurchaseOrderPayload({ discount: 25 })).toMatchObject({
+  it('normaliza un descuento legado y descarta la tasa de la orden', () => {
+    const normalized = normalizePurchaseOrderPayload({ discount: 25, taxRate: 15 });
+    expect(normalized).toMatchObject({
       discountType: 'MONTO',
       discountValue: 25,
-      taxRate: 15,
     });
+    expect(normalized).not.toHaveProperty('taxRate');
   });
 });
 

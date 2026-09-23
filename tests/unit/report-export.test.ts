@@ -129,7 +129,8 @@ describe('canonical purchase-order export builder', () => {
   const order = {
     orderNumber: 'OC-2026-001', requestDate: new Date('2026-03-01'), status: 'ISSUED',
     supplierName: 'Proveedor SA', supplierRtn: '08011999123456',
-    subtotal: 1000, discount: 100, tax: 135, total: 1035,
+    subtotal: 1000, discount: 100, total: 1035,
+    items: [{ taxAmount: 135 }],
   };
 
   it('4 & purchase-source. reads CompraOrden (never CompraSolicitud) — source contract', () => {

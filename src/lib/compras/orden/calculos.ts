@@ -42,7 +42,6 @@ export type PurchaseCalculationInput = {
   items: PurchaseCalculationItem[];
   discountType: PurchaseDiscountType;
   discountValue: Prisma.Decimal | number | string;
-  taxRate?: Prisma.Decimal | number | string;
 };
 
 export type CalculatedItemTax = {
@@ -99,14 +98,6 @@ export function toDecimal(
 
 export function decimalToNumber(value: Prisma.Decimal): number {
   return value.toNumber();
-}
-
-export function profileFromLegacyRate(rate: Prisma.Decimal | number | string): PurchaseTaxProfileId {
-  const value = toDecimal(rate).toNumber();
-  if (value === 0) return 'EXEMPT';
-  if (value === 18) return 'ISV_18';
-  if (value === 15) return 'GENERAL_15';
-  throw new Error('INVALID_ISV_RATE');
 }
 
 export function formatItemTaxLabel(
@@ -269,14 +260,6 @@ export function aggregateTaxSummary(items: CalculatedPurchaseItem[]): {
   };
 }
 
-function representativeTaxRate(items: CalculatedPurchaseItem[]): Prisma.Decimal {
-  const profiles = new Set(items.map((item) => item.taxProfile));
-  if (profiles.size === 1 && profiles.has('EXEMPT')) return ZERO;
-  if (profiles.size === 1 && profiles.has('GENERAL_15')) return new Prisma.Decimal(15);
-  if (profiles.size === 1 && profiles.has('ISV_18')) return new Prisma.Decimal(18);
-  return ZERO;
-}
-
 export function calculatePurchaseOrder(input: PurchaseCalculationInput) {
   const discountType = input.discountType;
   const discountValue = toDecimal(input.discountValue);
@@ -284,10 +267,6 @@ export function calculatePurchaseOrder(input: PurchaseCalculationInput) {
   if (discountType === 'PORCENTAJE' && discountValue.greaterThan(100)) {
     throw new Error('INVALID_DISCOUNT_PERCENTAGE');
   }
-
-  const fallbackProfile = input.taxRate === undefined
-    ? 'GENERAL_15'
-    : profileFromLegacyRate(input.taxRate);
 
   const lineSubtotals = input.items.map((item) => {
     const quantity = toDecimal(item.quantity);
@@ -304,13 +283,16 @@ export function calculatePurchaseOrder(input: PurchaseCalculationInput) {
   const discount = Prisma.Decimal.min(Prisma.Decimal.max(requestedDiscount, ZERO), subtotal).toDecimalPlaces(2);
 
   const allocated = allocateOrderDiscount(lineSubtotals, discount);
-  const items = input.items.map((item, index) => calculatePurchaseOrderItem({
-    quantity: item.quantity,
-    unitPrice: item.unitPrice,
-    itemDiscount: allocated[index],
-    taxProfile: item.taxProfile ?? fallbackProfile,
-    customTaxes: item.customTaxes,
-  }));
+  const items = input.items.map((item, index) => {
+    if (!item.taxProfile) throw new Error('ITEM_TAX_PROFILE_REQUIRED');
+    return calculatePurchaseOrderItem({
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      itemDiscount: allocated[index],
+      taxProfile: item.taxProfile,
+      customTaxes: item.customTaxes,
+    });
+  });
 
   const { taxSummary, exemptBase } = aggregateTaxSummary(items);
   const tax = sumDecimals(items.map((item) => item.taxAmount));
@@ -327,6 +309,5 @@ export function calculatePurchaseOrder(input: PurchaseCalculationInput) {
     total,
     taxSummary,
     exemptBase,
-    taxRate: representativeTaxRate(items),
   };
 }

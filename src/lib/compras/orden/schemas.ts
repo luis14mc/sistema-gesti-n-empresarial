@@ -5,12 +5,6 @@ export const PURCHASE_UNITS = [
   'UNIT', 'BOX', 'PACKAGE', 'SERVICE', 'LOT', 'MONTH', 'HOUR', 'DAY', 'OTHER',
 ] as const;
 
-export const ISV_RATES = [
-  { value: 0, label: 'Exento (0%)' },
-  { value: 15, label: 'ISV 15%' },
-  { value: 18, label: 'ISV 18%' },
-] as const;
-
 export const PURCHASE_TAX_PROFILE_IDS = [
   'GENERAL_15',
   'EXEMPT',
@@ -92,7 +86,6 @@ export const draftPurchaseOrderSchema = z.object({
   purchaseJustification: z.string().trim().default(''),
   discountType: discountTypeSchema.default('NINGUNO'),
   discountValue: z.number().min(0, 'Descuento no puede ser negativo').default(0),
-  taxRate: z.number().default(15),
   items: z.array(draftPurchaseOrderItemSchema).default([]),
 });
 
@@ -114,7 +107,6 @@ export const createPurchaseOrderSchema = z.object({
   purchaseJustification: z.string().trim().min(10, 'Justificación requerida (mín. 10 caracteres)'),
   discountType: discountTypeSchema,
   discountValue: z.number({ message: 'Descuento inválido' }).min(0, 'Descuento no puede ser negativo'),
-  taxRate: z.number().min(0).max(100).default(15),
   items: z.array(purchaseOrderItemSchema).min(1, 'Debe incluir al menos un ítem'),
 }).superRefine((data, ctx) => {
   const request = new Date(data.requestDate);
@@ -198,34 +190,16 @@ export type CreatePurchaseOrderInput = z.infer<typeof createPurchaseOrderSchema>
 export type UpdatePurchaseOrderInput = z.infer<typeof updatePurchaseOrderSchema>;
 export type PurchaseOrderTemplateInput = z.infer<typeof purchaseOrderTemplateSchema>;
 
-/** Aplica defaults de API alineados con el servicio (discount 0, taxRate 15). */
-function legacyProfileFromRate(rate: number) {
-  if (rate === 0) return 'EXEMPT' as const;
-  if (rate === 18) return 'ISV_18' as const;
-  if (rate === 15) return 'GENERAL_15' as const;
-  return null;
-}
-
+/** Aplica defaults de API alineados con el servicio (discount 0). */
 export function normalizePurchaseOrderPayload(body: unknown) {
   if (typeof body !== 'object' || body === null) return body;
   const payload = body as Record<string, unknown>;
   const legacyDiscount = typeof payload.discount === 'number' ? payload.discount : 0;
-  const taxRate = typeof payload.taxRate === 'number' ? payload.taxRate : 15;
-  const legacyProfile = legacyProfileFromRate(taxRate);
-  const items = Array.isArray(payload.items)
-    ? payload.items.map((item) => {
-      if (!item || typeof item !== 'object') return item;
-      const record = item as Record<string, unknown>;
-      if (typeof record.taxProfile === 'string' && record.taxProfile.length > 0) return item;
-      return legacyProfile ? { ...record, taxProfile: legacyProfile } : item;
-    })
-    : payload.items;
+  const { taxRate: _ignoredTaxRate, ...rest } = payload;
   return {
     discountType: legacyDiscount > 0 ? 'MONTO' : 'NINGUNO',
     discountValue: legacyDiscount,
-    taxRate: 15,
-    ...payload,
-    items,
+    ...rest,
   };
 }
 

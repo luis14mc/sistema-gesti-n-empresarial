@@ -87,12 +87,10 @@ export interface CompraOrden {
   discountType: 'NINGUNO' | 'MONTO' | 'PORCENTAJE';
   discountValue: number;
   discount: number;
-  taxRate: number;
   tax: number;
   total: number;
   taxSummary?: Array<{ code: string; name: string; rate: number; taxableBase: number; amount: number }>;
   exemptBase?: number;
-  usesItemTaxes?: boolean;
   status: PurchaseOrderStatus;
   templateId?: string | null;
   templateVersion?: number | null;
@@ -125,8 +123,6 @@ export interface CompraOrden {
   proveedorRtn?: string;
   proveedorTelefono?: string;
   justificacionCompra?: string;
-  tasaImpuesto?: number;
-  impuesto?: number;
   descuento?: number;
   estado?: PurchaseOrderStatus;
 }
@@ -145,7 +141,6 @@ export interface CreateCompraOrdenData {
   purchaseJustification: string;
   discountType?: 'NINGUNO' | 'MONTO' | 'PORCENTAJE';
   discountValue?: number;
-  taxRate?: number;
   items: Array<{
     itemNumber?: number;
     description: string;

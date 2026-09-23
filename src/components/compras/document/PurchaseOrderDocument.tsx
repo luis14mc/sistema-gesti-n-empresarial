@@ -111,36 +111,21 @@ export function PurchaseOrderDocument({ order, format, draft = false }: Purchase
         </section>
         <section className="po-section">
            <h2 className="po-section-title">DETALLE DE PRODUCTO O SERVICIO</h2>
-           {order.usesItemTaxes ? (
-             <table className="po-table"><thead><tr><th>#</th><th>Descripción</th><th>Unidad</th><th>Cantidad</th><th>Precio unitario</th><th>Base</th><th>Impuesto</th><th>Total</th></tr></thead><tbody>
-               {order.items.map((item) => <tr key={item.itemNumber}><td className="po-center">{item.itemNumber}</td><td>{item.description}{item.taxes.length > 1 ? <span className="po-tax-note">{item.taxes.map((tax) => tax.name).join(' · ')}</span> : null}</td><td className="po-center">{UNIT_LABELS[item.unit]}</td><td className="po-right">{item.quantity}</td><td className="po-right">{money(item.unitPrice)}</td><td className="po-right">{money(item.taxableBase)}</td><td>{item.taxLabel}</td><td className="po-right">{money(item.itemTotal)}</td></tr>)}
-             </tbody></table>
-           ) : (
-             <table className="po-table"><thead><tr><th>#</th><th>Descripción</th><th>Unidad</th><th>Cantidad</th><th>Precio unitario</th><th>Total</th></tr></thead><tbody>
-               {order.items.map((item) => <tr key={item.itemNumber}><td className="po-center">{item.itemNumber}</td><td>{item.description}</td><td className="po-center">{UNIT_LABELS[item.unit]}</td><td className="po-right">{item.quantity}</td><td className="po-right">{money(item.unitPrice)}</td><td className="po-right">{money(item.total)}</td></tr>)}
-             </tbody></table>
-           )}
+           <table className="po-table"><thead><tr><th>#</th><th>Descripción</th><th>Unidad</th><th>Cantidad</th><th>Precio unitario</th><th>Base</th><th>Impuesto</th><th>Total</th></tr></thead><tbody>
+             {order.items.map((item) => <tr key={item.itemNumber}><td className="po-center">{item.itemNumber}</td><td>{item.description}{item.taxes.length > 1 ? <span className="po-tax-note">{item.taxes.map((tax) => tax.name).join(' · ')}</span> : null}</td><td className="po-center">{UNIT_LABELS[item.unit]}</td><td className="po-right">{item.quantity}</td><td className="po-right">{money(item.unitPrice)}</td><td className="po-right">{money(item.taxableBase)}</td><td>{item.taxLabel}</td><td className="po-right">{money(item.itemTotal)}</td></tr>)}
+           </tbody></table>
            <table className="po-totals"><tbody>
              <tr><td>Subtotal</td><td className="po-right">{money(order.subtotal)}</td></tr>
              <tr><td>Descuento</td><td className="po-right">{money(order.discount)}</td></tr>
-             {order.usesItemTaxes ? (
-               <>
-                 <tr><td colSpan={2}>RESUMEN TRIBUTARIO</td></tr>
-                 {order.taxSummary.map((line) => (
-                   <Fragment key={line.code}>
-                     <tr><td>Base gravada {line.rate}%</td><td className="po-right">{money(line.taxableBase)}</td></tr>
-                     <tr><td>{line.name}</td><td className="po-right">{money(line.amount)}</td></tr>
-                   </Fragment>
-                 ))}
-                 {order.exemptBase > 0 ? <tr><td>Base exenta</td><td className="po-right">{money(order.exemptBase)}</td></tr> : null}
-                 <tr><td>TOTAL IMPUESTOS</td><td className="po-right">{money(order.tax)}</td></tr>
-               </>
-             ) : (
-               <>
-                 <tr><td>Base gravable</td><td className="po-right">{money(order.taxableBase)}</td></tr>
-                 <tr><td>ISV {order.taxRate}%</td><td className="po-right">{money(order.tax)}</td></tr>
-               </>
-             )}
+             <tr><td colSpan={2}>RESUMEN TRIBUTARIO</td></tr>
+             {order.taxSummary.map((line) => (
+               <Fragment key={`${line.code}:${line.rate}`}>
+                 <tr><td>Base gravada {line.rate}%</td><td className="po-right">{money(line.taxableBase)}</td></tr>
+                 <tr><td>{line.name}</td><td className="po-right">{money(line.amount)}</td></tr>
+               </Fragment>
+             ))}
+             {order.exemptBase > 0 ? <tr><td>Base exenta</td><td className="po-right">{money(order.exemptBase)}</td></tr> : null}
+             <tr><td>TOTAL IMPUESTOS</td><td className="po-right">{money(order.tax)}</td></tr>
              <tr className="po-total-final"><td>TOTAL</td><td className="po-right">{money(order.total)}</td></tr>
            </tbody></table>
         </section>

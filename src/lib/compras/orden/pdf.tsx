@@ -20,8 +20,6 @@ type OrderPdfData = Pick<
   | 'discountType'
   | 'discountValue'
   | 'discount'
-  | 'taxRate'
-  | 'tax'
   | 'total'
   | 'status'
 > & {

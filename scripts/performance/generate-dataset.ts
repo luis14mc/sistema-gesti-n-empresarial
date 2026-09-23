@@ -203,10 +203,33 @@ async function main(): Promise<void> {
         purchaseJustification: 'Justification for perf test',
         subtotal: 1000,
         discount: 0,
-        tax: 150,
         total: 1150,
         status: 'DRAFT',
         createdById,
+        items: {
+          create: {
+            itemNumber: 1,
+            description: 'Perf item',
+            unit: 'UNIT',
+            quantity: 1,
+            unitPrice: 1000,
+            total: 1000,
+            taxProfile: 'GENERAL_15',
+            taxableBase: 1000,
+            taxAmount: 150,
+            itemTotal: 1150,
+            taxes: {
+              create: {
+                code: 'ISV_15',
+                name: 'ISV 15%',
+                rate: 15,
+                taxableBase: 1000,
+                amount: 150,
+                sortOrder: 0,
+              },
+            },
+          },
+        },
       },
     });
   }

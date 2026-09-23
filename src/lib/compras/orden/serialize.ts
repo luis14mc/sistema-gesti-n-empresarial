@@ -55,10 +55,6 @@ type OrderListItem = Prisma.CompraOrdenGetPayload<{
 }>;
 
 function summarizeStoredTaxes(items: OrderWithRelations['items']) {
-  const usesItemTaxes = items.some((item) => item.taxProfile != null);
-  if (!usesItemTaxes) {
-    return { taxSummary: [], exemptBase: 0, usesItemTaxes: false };
-  }
   const groups = new Map<string, { code: string; name: string; rate: number; taxableBase: number; amount: number }>();
   let exemptBase = 0;
   for (const item of items) {
@@ -81,7 +77,12 @@ function summarizeStoredTaxes(items: OrderWithRelations['items']) {
       }
     }
   }
-  return { taxSummary: [...groups.values()], exemptBase, usesItemTaxes: true };
+  const tax = items.reduce((sum, item) => sum + decimalToNumber(item.taxAmount), 0);
+  return {
+    tax: Math.round(tax * 100) / 100,
+    taxSummary: [...groups.values()],
+    exemptBase,
+  };
 }
 
 export function serializePurchaseOrder(order: OrderWithRelations) {
@@ -108,8 +109,6 @@ export function serializePurchaseOrder(order: OrderWithRelations) {
     discountType: order.discountType,
     discountValue: decimalToNumber(order.discountValue),
     discount: decimalToNumber(order.discount),
-    taxRate: decimalToNumber(order.taxRate),
-    tax: decimalToNumber(order.tax),
     total: decimalToNumber(order.total),
     status: order.status,
     templateId: order.templateId,
@@ -155,7 +154,7 @@ export function serializePurchaseOrder(order: OrderWithRelations) {
         taxableBase: decimalToNumber(item.taxableBase),
         taxAmount: decimalToNumber(item.taxAmount),
         itemTotal: decimalToNumber(item.itemTotal),
-        taxLabel: item.taxProfile ? formatItemTaxLabel(taxes) : null,
+        taxLabel: formatItemTaxLabel(taxes),
         taxes,
       };
     }),
@@ -175,8 +174,6 @@ export function serializePurchaseOrder(order: OrderWithRelations) {
     proveedorRtn: order.supplierRtn,
     proveedorTelefono: order.supplierPhone,
     justificacionCompra: order.purchaseJustification,
-    tasaImpuesto: decimalToNumber(order.taxRate),
-    impuesto: decimalToNumber(order.tax),
     descuento: decimalToNumber(order.discount),
     estado: order.status,
   };

@@ -68,13 +68,16 @@ describe('purchase order signature attribution', () => {
       purchaseJustification: 'Compra de papelería',
       subtotal: 100,
       discount: 0,
-      taxRate: 15,
       tax: 15,
       total: 115,
       status: 'GENERATED',
       generatedByName: 'Yenfri Lemarie Garcia',
       generatedAt: '2026-09-09T18:00:00.000Z',
-      items: [{ itemNumber: 1, description: 'Resmas', unit: 'UNIT', quantity: 1, unitPrice: 100, total: 100 }],
+      items: [{
+        itemNumber: 1, description: 'Resmas', unit: 'UNIT', quantity: 1, unitPrice: 100, total: 100,
+        taxProfile: 'GENERAL_15', taxableBase: 100, taxAmount: 15, itemTotal: 115, taxLabel: 'ISV 15%',
+        taxes: [{ code: 'ISV_15', name: 'ISV 15%', rate: 15, taxableBase: 100, amount: 15 }],
+      }],
     }, format);
 
     const draftHtml = renderToStaticMarkup(
@@ -109,7 +112,6 @@ describe('purchase order signature attribution', () => {
       purchaseJustification: 'Compra de papelería',
       subtotal: 100,
       discount: 0,
-      taxRate: 15,
       tax: 15,
       total: 115,
       status: 'ISSUED',
@@ -117,7 +119,11 @@ describe('purchase order signature attribution', () => {
       generatedAt: '2026-09-09T18:00:00.000Z',
       issuedByName: 'Lila Margarita Rivera',
       issuedAt: '2026-09-10T15:30:00.000Z',
-      items: [{ itemNumber: 1, description: 'Resmas', unit: 'UNIT', quantity: 1, unitPrice: 100, total: 100 }],
+      items: [{
+        itemNumber: 1, description: 'Resmas', unit: 'UNIT', quantity: 1, unitPrice: 100, total: 100,
+        taxProfile: 'GENERAL_15', taxableBase: 100, taxAmount: 15, itemTotal: 115, taxLabel: 'ISV 15%',
+        taxes: [{ code: 'ISV_15', name: 'ISV 15%', rate: 15, taxableBase: 100, amount: 15 }],
+      }],
     }, format);
 
     const issuedHtml = renderToStaticMarkup(

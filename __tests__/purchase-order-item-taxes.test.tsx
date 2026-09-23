@@ -114,7 +114,7 @@ describe('item-level purchase taxes', () => {
     expect(result.total.toNumber()).toBe(103);
   });
 
-  it('keeps a legacy order without item taxes on the order-level ISV', () => {
+  it('renders every order with the item tax table and tax summary', () => {
     const preview = buildPreviewDataFromSerializedOrder({
       purchaseReference: 'REF',
       requestDate: '2026-09-01T00:00:00.000Z',
@@ -127,18 +127,23 @@ describe('item-level purchase taxes', () => {
       purchaseJustification: 'Compra',
       subtotal: 100,
       discount: 0,
-      taxRate: 15,
       tax: 15,
       total: 115,
       status: 'GENERATED',
-      items: [{ itemNumber: 1, description: 'Papel', unit: 'UNIT', quantity: 1, unitPrice: 100, total: 100 }],
+      items: [{
+        itemNumber: 1, description: 'Papel', unit: 'UNIT', quantity: 1, unitPrice: 100, total: 100,
+        taxProfile: 'GENERAL_15', taxableBase: 100, taxAmount: 15, itemTotal: 115, taxLabel: 'ISV 15%',
+        taxes: [{ code: 'ISV_15', name: 'ISV 15%', rate: 15, taxableBase: 100, amount: 15 }],
+      }],
     }, format);
 
-    expect(preview.usesItemTaxes).toBe(false);
     expect(preview.taxSummary).toEqual([
       expect.objectContaining({ name: 'ISV 15%', amount: 15, taxableBase: 100 }),
     ]);
     const html = renderToStaticMarkup(<PurchaseOrderDocument order={preview} format={format} />);
+    expect(html).toContain('Base');
+    expect(html).toContain('Impuesto');
+    expect(html).toContain('RESUMEN TRIBUTARIO');
     expect(html).toContain('ISV 15%');
     expect(html).toContain('Yenfri Garcia');
     expect(html).toContain('Lila Rivera');

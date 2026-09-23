@@ -110,7 +110,6 @@ function buildDraftItems(input: DraftPurchaseOrderInput) {
   const items = normalizeDraftItems(input);
   const discountType = input.discountType ?? 'NINGUNO';
   const discountValue = toDecimal(input.discountValue ?? 0);
-  const taxRate = toDecimal(input.taxRate ?? 15);
 
   if (!items.length) {
     return {
@@ -119,8 +118,6 @@ function buildDraftItems(input: DraftPurchaseOrderInput) {
       discountType,
       discountValue,
       discount: toDecimal(0),
-      taxRate,
-      tax: toDecimal(0),
       total: toDecimal(0),
     };
   }
@@ -139,7 +136,6 @@ function buildDraftItems(input: DraftPurchaseOrderInput) {
     purchaseJustification: input.purchaseJustification ?? '',
     discountType,
     discountValue: discountValue.toNumber(),
-    taxRate: taxRate.toNumber(),
     items,
   });
 }
@@ -169,7 +165,7 @@ function buildItems(input: CreatePurchaseOrderInput) {
     discountType,
     discountValue,
   });
-  const { subtotal, discount: disc, tax, total, taxRate } = calculation;
+  const { subtotal, discount: disc, total } = calculation;
   if (discountType === 'MONTO' && discountValue.greaterThan(subtotal)) {
     throw new Error('DISCOUNT_EXCEEDS_SUBTOTAL');
   }
@@ -204,8 +200,6 @@ function buildItems(input: CreatePurchaseOrderInput) {
     discountType,
     discountValue,
     discount: disc,
-    taxRate,
-    tax,
     total,
   };
 }
@@ -215,7 +209,7 @@ export async function createPurchaseOrder(input: DraftPurchaseOrderInput, userId
   const supplier = await resolveSupplierSnapshot(input, organizationId);
   const requester = await resolveRequesterSnapshot(input, organizationId);
   const { requestDate, requiredDate } = resolveDraftDates(input);
-  const { mapped, subtotal, discountType, discountValue, discount, taxRate, tax, total } =
+  const { mapped, subtotal, discountType, discountValue, discount, total } =
     buildDraftItems(input);
 
   return prisma.$transaction(async (tx) => {
@@ -243,8 +237,6 @@ export async function createPurchaseOrder(input: DraftPurchaseOrderInput, userId
         discountType,
         discountValue,
         discount,
-        taxRate,
-        tax,
         total,
         items: { create: mapped },
       },
@@ -285,7 +277,7 @@ export async function updatePurchaseOrder(id: string, input: UpdatePurchaseOrder
   const supplier = await resolveSupplierSnapshot(input, organizationId);
   const requester = await resolveRequesterSnapshot(input, organizationId);
   const { requestDate, requiredDate } = resolveDraftDates(input);
-  const { mapped, subtotal, discountType, discountValue, discount, taxRate, tax, total } =
+  const { mapped, subtotal, discountType, discountValue, discount, total } =
     buildDraftItems(input);
 
   return prisma.$transaction(async (tx) => {
@@ -303,8 +295,6 @@ export async function updatePurchaseOrder(id: string, input: UpdatePurchaseOrder
         discountType,
         discountValue,
         discount,
-        taxRate,
-        tax,
         total,
         items: { create: mapped },
       },
@@ -559,14 +549,12 @@ export async function generatePurchaseOrder(
     })),
     discountType: existing.discountType,
     discountValue: existing.discountValue,
-    taxRate: existing.taxRate,
   });
   if (generationCalculation.total.isNegative()) throw new Error('INVALID_ORDER_TOTAL');
   const recalculatedOrder = {
     ...existing,
     subtotal: generationCalculation.subtotal,
     discount: generationCalculation.discount,
-    tax: generationCalculation.tax,
     total: generationCalculation.total,
     items: existing.items.map((item, index) => {
       const calculated = generationCalculation.items[index];
@@ -640,7 +628,6 @@ export async function generatePurchaseOrder(
           templateSnapshot: templateSnapshot as Prisma.InputJsonValue,
           subtotal: generationCalculation.subtotal,
           discount: generationCalculation.discount,
-          tax: generationCalculation.tax,
           total: generationCalculation.total,
         },
       });
@@ -649,7 +636,24 @@ export async function generatePurchaseOrder(
       await Promise.all(existing.items.map((item, index) =>
         tx.compraOrdenItem.update({
           where: { id: item.id },
-          data: { total: generationCalculation.lineTotals[index] },
+          data: {
+            total: generationCalculation.items[index].lineSubtotal,
+            taxProfile: generationCalculation.items[index].taxProfile,
+            taxableBase: generationCalculation.items[index].taxableBase,
+            taxAmount: generationCalculation.items[index].taxAmount,
+            itemTotal: generationCalculation.items[index].itemTotal,
+            taxes: {
+              deleteMany: {},
+              create: generationCalculation.items[index].taxes.map((taxLine) => ({
+                code: taxLine.code,
+                name: taxLine.name,
+                rate: taxLine.rate,
+                taxableBase: taxLine.taxableBase,
+                amount: taxLine.amount,
+                sortOrder: taxLine.sortOrder,
+              })),
+            },
+          },
         })
       ));
 

@@ -77,7 +77,8 @@ export async function buildPurchaseOrderExportDataset(
     select: {
       orderNumber: true, requestDate: true, status: true,
       supplierName: true, supplierRtn: true,
-      subtotal: true, discount: true, tax: true, total: true,
+      subtotal: true, discount: true, total: true,
+      items: { select: { taxAmount: true } },
     },
   });
 
@@ -85,7 +86,7 @@ export async function buildPurchaseOrderExportDataset(
   const rows = orders.map((o) => {
     const subtotal = toNum(o.subtotal);
     const discount = toNum(o.discount);
-    const tax = toNum(o.tax);
+    const tax = o.items.reduce((sum, item) => sum + toNum(item.taxAmount), 0);
     const grand = toNum(o.total);
     sumSubtotal += subtotal; sumDiscount += discount; sumTax += tax; sumTotal += grand;
     return {
