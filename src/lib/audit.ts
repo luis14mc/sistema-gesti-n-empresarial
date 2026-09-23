@@ -10,6 +10,7 @@ export type AuditModule =
   | 'INVENTARIO'
   | 'USUARIOS'
   | 'AUDITORIA'
+  | 'LICENCIAS'
   | 'MANUAL';
 
 interface CreateAuditRecordParams {

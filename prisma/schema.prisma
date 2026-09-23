@@ -55,6 +55,8 @@ model Organization {
   employees              Employee[]
   oficioNumberingConfigs OficioNumberingConfig[]
   oficioSigners          OficioSigner[]
+  softwareProducts       SoftwareProduct[]
+  softwareSubscriptions  SoftwareSubscription[]
 
   @@index([status])
   @@index([onboardingStatus])
@@ -528,6 +530,7 @@ model Employee {
   assignments    EquipmentAssignment[]
   purchaseOrders CompraOrden[]         @relation("CompraOrdenRequester")
   oficiosResponsible Oficio[]          @relation("OficioResponsibleEmployee")
+  licenseAssignments LicenseAssignment[]
 
   @@unique([organizationId, email])
   @@unique([organizationId, employeeCode])
@@ -2140,4 +2143,120 @@ model IntegrationExecution {
   @@index([status, startedAt])
   @@index([integrationId, startedAt])
   @@map("integration_executions")
+}
+
+enum SoftwareBillingCycle {
+  MONTHLY
+  ANNUAL
+  QUARTERLY
+  OTHER
+}
+
+enum SoftwareCurrency {
+  USD
+  HNL
+}
+
+enum SoftwareSubscriptionStatus {
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+}
+
+enum SoftwareSeatType {
+  INDIVIDUAL
+  SHARED
+}
+
+enum SoftwareSeatStatus {
+  AVAILABLE
+  ASSIGNED
+  SUSPENDED
+  CANCELLED
+}
+
+model SoftwareProduct {
+  id             String                 @id @default(cuid())
+  organizationId String
+  name           String
+  vendor         String?
+  category       String?
+  description    String?                @db.Text
+  website        String?
+  active         Boolean                @default(true)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  subscriptions  SoftwareSubscription[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId, active])
+  @@map("software_products")
+}
+
+model SoftwareSubscription {
+  id               String                     @id @default(cuid())
+  organizationId   String
+  productId        String
+  planName         String
+  totalSeats       Int
+  billingCycle     SoftwareBillingCycle
+  currency         SoftwareCurrency           @default(USD)
+  billingAmount    Decimal                    @db.Decimal(14, 2)
+  monthlyCost      Decimal                    @db.Decimal(14, 2)
+  annualCost       Decimal                    @db.Decimal(14, 2)
+  startDate        DateTime                   @db.Date
+  renewalDate      DateTime?                  @db.Date
+  paymentDay       Int?
+  autoRenew        Boolean                    @default(true)
+  status           SoftwareSubscriptionStatus @default(ACTIVE)
+  notes            String?                    @db.Text
+  expiringSoonDays Int                        @default(30)
+  createdById      String
+  updatedById      String?
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+  organization     Organization               @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  product          SoftwareProduct            @relation(fields: [productId], references: [id], onDelete: Restrict)
+  seats            SoftwareLicenseSeat[]
+
+  @@index([organizationId, status])
+  @@index([organizationId, renewalDate])
+  @@index([productId])
+  @@map("software_subscriptions")
+}
+
+model SoftwareLicenseSeat {
+  id                String             @id @default(cuid())
+  subscriptionId    String
+  accountEmail      String?
+  accountIdentifier String?
+  seatType          SoftwareSeatType   @default(INDIVIDUAL)
+  status            SoftwareSeatStatus @default(AVAILABLE)
+  notes             String?            @db.Text
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  subscription      SoftwareSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  assignments       LicenseAssignment[]
+
+  @@index([subscriptionId, status])
+  @@index([accountEmail])
+  @@map("software_license_seats")
+}
+
+model LicenseAssignment {
+  id             String              @id @default(cuid())
+  seatId         String
+  employeeId     String
+  assignedAt     DateTime            @default(now())
+  unassignedAt   DateTime?
+  assignedById   String
+  unassignedById String?
+  notes          String?             @db.Text
+  seat           SoftwareLicenseSeat @relation(fields: [seatId], references: [id], onDelete: Cascade)
+  employee       Employee            @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+
+  @@index([seatId, unassignedAt])
+  @@index([employeeId])
+  @@map("software_license_assignments")
 }

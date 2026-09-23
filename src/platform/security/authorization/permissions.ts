@@ -35,6 +35,12 @@ export const ORGANIZATION_PERMISSIONS = [
   'equipment.assign',
   'equipment.maintain',
   'equipment.dispose',
+  'software-licenses.read',
+  'software-licenses.create',
+  'software-licenses.update',
+  'software-licenses.assign',
+  'software-licenses.manage',
+  'software-licenses.export',
   'equipment-disposal.read',
   'equipment-disposal.create',
   'equipment-disposal.update',
@@ -127,6 +133,11 @@ const EMPLOYEES_OPERATIONAL = [
   'employees.read', 'employees.create', 'employees.update', 'employees.deactivate',
 ] as const;
 
+const SOFTWARE_LICENSES = [
+  'software-licenses.read', 'software-licenses.create', 'software-licenses.update',
+  'software-licenses.assign', 'software-licenses.manage', 'software-licenses.export',
+] as const;
+
 const EQUIPMENT_LIFECYCLE = [
   'equipment.read', 'equipment.create', 'equipment.update', 'equipment.assign',
   'equipment.maintain', 'equipment.dispose',
@@ -154,6 +165,7 @@ const ORGANIZATION_ROLE_PERMISSIONS: Record<OrganizationRole, readonly Permissio
     ...OFICIOS_OPERATIONAL,
   ],
   IT_MANAGER: [
+    ...SOFTWARE_LICENSES,
     ...EQUIPMENT_LIFECYCLE,
     ...DISPOSAL_WORKFLOW,
     ...OFICIOS_CONFIGURE,
