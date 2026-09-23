@@ -13,6 +13,11 @@ export type PurchaseOrderItemPreview = {
   total: number;
 };
 
+export type PurchaseOrderPersonName = {
+  firstName: string;
+  lastName: string;
+};
+
 export type PurchaseOrderPreviewData = {
   orderNumber?: string | null;
   purchaseReference: string;
@@ -37,7 +42,36 @@ export type PurchaseOrderPreviewData = {
   isDraft: boolean;
   status?: PurchaseOrderStatus;
   statusLabel: string;
+  generatedByName?: string | null;
+  generatedAt?: string | null;
+  issuedByName?: string | null;
+  issuedAt?: string | null;
 };
+
+export function formatPersonName(person?: PurchaseOrderPersonName | null): string | null {
+  if (!person) return null;
+  const name = `${person.firstName} ${person.lastName}`.replace(/\s+/g, ' ').trim();
+  return name.length > 0 ? name : null;
+}
+
+function isoDate(value?: Date | string | null): string | null {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value.toISOString();
+  return value;
+}
+
+export function formatSignatureAttribution(
+  label: 'Generado por' | 'Aprobado por',
+  name?: string | null,
+  at?: string | Date | null,
+): string {
+  if (!name) return `${label}: Pendiente`;
+  const parsed = at ? new Date(at) : null;
+  const dateLabel = parsed && !Number.isNaN(parsed.getTime())
+    ? parsed.toLocaleDateString('es-HN')
+    : null;
+  return dateLabel ? `${label}: ${name} · ${dateLabel}` : `${label}: ${name}`;
+}
 
 type PurchaseOrderPreviewInput = Partial<Omit<CreatePurchaseOrderInput, 'items' | 'supplierId' | 'requesterEmployeeId'>> & {
   supplierId?: string | null;
@@ -105,6 +139,10 @@ export function buildPreviewDataFromInput(
     isDraft: true,
     status: 'DRAFT',
     statusLabel: ORDER_STATUS_LABELS.DRAFT,
+    generatedByName: null,
+    generatedAt: null,
+    issuedByName: null,
+    issuedAt: null,
   };
 }
 
@@ -128,6 +166,10 @@ export function previewDataToPdfOrder(preview: PurchaseOrderPreviewData) {
     tax: toDecimal(preview.tax),
     total: toDecimal(preview.total),
     status: (preview.status ?? (preview.isDraft ? 'DRAFT' : 'GENERATED')) as PurchaseOrderStatus,
+    generatedByName: preview.generatedByName ?? null,
+    generatedAt: preview.generatedAt ?? null,
+    issuedByName: preview.issuedByName ?? null,
+    issuedAt: preview.issuedAt ?? null,
     items: preview.items.map((item) => ({
       id: `preview-${item.itemNumber}`,
       orderId: 'preview',
@@ -163,6 +205,12 @@ export function buildPreviewDataFromSerializedOrder(
     tax: number;
     total: number;
     status: PurchaseOrderStatus;
+    generatedByName?: string | null;
+    generatedAt?: string | null;
+    issuedByName?: string | null;
+    issuedAt?: string | null;
+    generatedBy?: PurchaseOrderPersonName | null;
+    issuedBy?: PurchaseOrderPersonName | null;
     items: Array<{
       itemNumber: number;
       description: string;
@@ -205,6 +253,10 @@ export function buildPreviewDataFromSerializedOrder(
     isDraft: order.status === 'DRAFT' || !order.orderNumber,
     status: order.status,
     statusLabel: ORDER_STATUS_LABELS[order.status],
+    generatedByName: order.generatedByName ?? formatPersonName(order.generatedBy),
+    generatedAt: order.generatedAt ?? null,
+    issuedByName: order.issuedByName ?? formatPersonName(order.issuedBy),
+    issuedAt: order.issuedAt ?? null,
   };
 }
 
@@ -229,6 +281,12 @@ type ServerPurchaseOrder = {
   tax: NumericValue;
   total: NumericValue;
   status: PurchaseOrderStatus;
+  generatedBy?: PurchaseOrderPersonName | null;
+  generatedAt?: Date | string | null;
+  issuedBy?: PurchaseOrderPersonName | null;
+  issuedAt?: Date | string | null;
+  generatedByName?: string | null;
+  issuedByName?: string | null;
   items: Array<{
     itemNumber: number;
     description: string;
@@ -276,6 +334,10 @@ export function buildPreviewDataFromOrder(
     statusLabel: ORDER_STATUS_LABELS[order.status],
     isDraft,
     template,
+    generatedByName: order.generatedByName ?? formatPersonName(order.generatedBy),
+    generatedAt: isoDate(order.generatedAt),
+    issuedByName: order.issuedByName ?? formatPersonName(order.issuedBy),
+    issuedAt: isoDate(order.issuedAt),
     items: order.items.map((item) => ({
       itemNumber: item.itemNumber,
       description: item.description,

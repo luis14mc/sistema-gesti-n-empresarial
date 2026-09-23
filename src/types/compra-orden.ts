@@ -83,6 +83,14 @@ export interface CompraOrden {
   documentos?: CompraOrdenDocumento[];
   documentsCount?: number;
   format?: PurchaseOrderTemplateConfig;
+  generatedById?: string | null;
+  generatedAt?: string | null;
+  generatedByName?: string | null;
+  generatedBy?: { id: string; firstName: string; lastName: string } | null;
+  issuedById?: string | null;
+  issuedAt?: string | null;
+  issuedByName?: string | null;
+  issuedBy?: { id: string; firstName: string; lastName: string } | null;
   createdBy?: { id: string; firstName: string; lastName: string };
   supplier?: { id: string; nombreRazonSocial: string } | null;
   // legacy aliases

@@ -73,7 +73,7 @@ export function seedPermissions(role: OrganizationRole): SeededPermissionMatrix 
     'equipment-disposal.submit', 'equipment-disposal.approve', 'equipment-disposal.reject',
     'equipment-disposal.cancel', 'equipment-disposal.configure', 'equipment-disposal.download',
     'purchase-orders.read', 'purchase-orders.create', 'purchase-orders.update',
-    'purchase-orders.generate', 'purchase-orders.cancel', 'purchase-orders.download',
+    'purchase-orders.generate', 'purchase-orders.approve', 'purchase-orders.cancel', 'purchase-orders.download',
     'reports.view', 'reports.export', 'reports.financial',
     'reports.financial.purchases', 'reports.financial.equipment', 'reports.audit',
     'dashboard.view', 'dashboard.executive',

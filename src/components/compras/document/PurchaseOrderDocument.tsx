@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import { UNIT_LABELS } from '@/lib/compras/orden/constants';
-import type { PurchaseOrderPreviewData } from '@/lib/compras/orden/preview-data';
+import { formatSignatureAttribution, type PurchaseOrderPreviewData } from '@/lib/compras/orden/preview-data';
 import type { PurchaseOrderTemplateConfig } from '@/lib/compras/orden/template-config';
 
 export type PurchaseOrderDocumentProps = {
@@ -43,9 +43,11 @@ export const purchaseOrderDocumentCss = `
   .po-total-final td { padding-top: 6px; border-top: 2px solid var(--po-primary); color: var(--po-primary); font-size: 12px; font-weight: 700; }
   .po-justification { min-height: 36px; margin: 0; padding: 2px 8px; white-space: pre-wrap; }
   .po-note { margin: 6px 8px 0; color: #526072; font-style: italic; }
-  .po-signature { width: 360px; min-height: 150px; margin: 36px auto 0; padding-top: 74px; text-align: center; break-inside: avoid; page-break-inside: avoid; }
+  .po-signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 28px 48px; margin: 36px 8px 0; break-inside: avoid; page-break-inside: avoid; }
+  .po-signature { width: auto; min-height: 150px; margin: 0; padding-top: 74px; text-align: center; }
   .po-signature-line { width: 100%; margin: 0 auto 8px; border-top: 1px solid #172033; padding-top: 8px; }
   .po-signature-name, .po-signature-position { margin: 0; font-weight: 600; }
+  .po-signature-meta { margin: 8px 0 0; color: #526072; font-size: 9px; font-weight: 500; }
   .po-footer { margin-top: 18px; padding-top: 6px; border-top: 1px solid #ccd4df; color: #687587; font-size: 8px; text-align: center; }
   @media print { .po-document { min-height: auto; } }
 `;
@@ -114,8 +116,21 @@ export function PurchaseOrderDocument({ order, format, draft = false }: Purchase
           <table className="po-totals"><tbody><tr><td>Subtotal</td><td className="po-right">{money(order.subtotal)}</td></tr><tr><td>Descuento</td><td className="po-right">{money(order.discount)}</td></tr><tr><td>Base gravable</td><td className="po-right">{money(order.taxableBase)}</td></tr><tr><td>ISV {order.taxRate}%</td><td className="po-right">{money(order.tax)}</td></tr><tr className="po-total-final"><td>TOTAL</td><td className="po-right">{money(order.total)}</td></tr></tbody></table>
         </section>
          <section className="po-section"><h2 className="po-section-title">Justificación de compra</h2><p className="po-justification">{order.purchaseJustification}</p>{format.additionalNote ? <p className="po-note">{format.additionalNote}</p> : null}</section>
-         <section className="po-signature"><p className="po-signature-line">&nbsp;</p><p className="po-signature-name">Yenfri Garcia</p><p className="po-signature-position">Jefe de Presupuesto</p></section>
-        <footer className="po-footer">Consejo Nacional de Inversiones · Orden: {number} · Fecha de generación: {new Date().toLocaleDateString('es-HN')} · {draft ? 'Estado: Borrador · ' : ''}Página 1</footer>
+         <section className="po-signatures">
+           <div className="po-signature">
+             <p className="po-signature-line">&nbsp;</p>
+             <p className="po-signature-name">Yenfri Garcia</p>
+             <p className="po-signature-position">Jefe de Presupuesto</p>
+             <p className="po-signature-meta">{formatSignatureAttribution('Generado por', order.generatedByName, order.generatedAt)}</p>
+           </div>
+           <div className="po-signature">
+             <p className="po-signature-line">&nbsp;</p>
+             <p className="po-signature-name">Lila Rivera</p>
+             <p className="po-signature-position">Dirección Administrativa</p>
+             <p className="po-signature-meta">{formatSignatureAttribution('Aprobado por', order.issuedByName, order.issuedAt)}</p>
+           </div>
+         </section>
+        <footer className="po-footer">Consejo Nacional de Inversiones · Orden: {number} · Fecha de generación: {order.generatedAt ? date(order.generatedAt) : new Date().toLocaleDateString('es-HN')} · {draft ? 'Estado: Borrador · ' : ''}Página 1</footer>
       </div>
     </article>
   );

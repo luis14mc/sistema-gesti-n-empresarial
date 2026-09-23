@@ -23,13 +23,25 @@ export function PurchaseOrderPreview({ order, savedOrder }: PurchaseOrderPreview
   if (error || !format) return <div className="flex min-h-80 items-center justify-center text-destructive">No se pudo cargar el formato activo.</div>;
 
   const resolvedFormat = savedOrder?.status !== 'DRAFT' && savedOrder?.format ? savedOrder.format : format;
-  const document = savedOrder
-    ? deferredOrder
-      ? { ...buildPreviewDataFromInput(deferredOrder, resolvedFormat), orderNumber: savedOrder.orderNumber }
-      : buildPreviewDataFromSerializedOrder(savedOrder, resolvedFormat)
-    : deferredOrder
-      ? buildPreviewDataFromInput(deferredOrder, format)
-      : null;
+  const savedDocument = savedOrder
+    ? buildPreviewDataFromSerializedOrder(savedOrder, resolvedFormat)
+    : null;
+  const liveDocument = deferredOrder
+    ? buildPreviewDataFromInput(deferredOrder, savedOrder ? resolvedFormat : format)
+    : null;
+  const document = savedDocument && liveDocument
+    ? {
+        ...liveDocument,
+        orderNumber: savedDocument.orderNumber,
+        generatedByName: savedDocument.generatedByName,
+        generatedAt: savedDocument.generatedAt,
+        issuedByName: savedDocument.issuedByName,
+        issuedAt: savedDocument.issuedAt,
+        status: savedDocument.status,
+        statusLabel: savedDocument.statusLabel,
+        isDraft: savedDocument.isDraft,
+      }
+    : savedDocument ?? liveDocument;
 
   if (!document) return <div className="flex min-h-80 items-center justify-center text-muted-foreground">Complete los datos para ver la vista previa.</div>;
 
