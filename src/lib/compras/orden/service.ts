@@ -33,7 +33,10 @@ export const orderInclude = {
   issuedBy: { select: { id: true, firstName: true, lastName: true } },
   supplier: { select: { id: true, nombreRazonSocial: true } },
   requesterEmployee: { select: { id: true, fullName: true, position: { select: { id: true, name: true } } } },
-  items: { orderBy: { itemNumber: 'asc' as const } },
+  items: {
+    orderBy: { itemNumber: 'asc' as const },
+    include: { taxes: { orderBy: { sortOrder: 'asc' as const } } },
+  },
   documentos: {
     orderBy: { uploadedAt: 'desc' as const },
     include: { uploadedBy: { select: { id: true, firstName: true, lastName: true } } },
@@ -98,6 +101,8 @@ function normalizeDraftItems(input: DraftPurchaseOrderInput): CreatePurchaseOrde
       unit: item.unit ?? 'UNIT',
       quantity: Math.max(Number(item.quantity) || 0, 0.01),
       unitPrice: Math.max(Number(item.unitPrice) || 0, 0),
+      taxProfile: item.taxProfile ?? 'GENERAL_15',
+      customTaxes: item.customTaxes ?? [],
     }));
 }
 
@@ -150,29 +155,49 @@ function resolveDraftDates(input: DraftPurchaseOrderInput) {
 function buildItems(input: CreatePurchaseOrderInput) {
   const discountType = input.discountType ?? 'NINGUNO';
   const discountValue = toDecimal(input.discountValue ?? 0);
-  const taxRate = toDecimal(input.taxRate ?? 15);
-  const itemsCalc = input.items.map((i) => ({
-    quantity: toDecimal(i.quantity),
-    unitPrice: toDecimal(i.unitPrice),
-  }));
-  if (![0, 15, 18].includes(taxRate.toNumber())) throw new Error('INVALID_ISV_RATE');
   if (discountValue.isNegative()) throw new Error('INVALID_DISCOUNT_VALUE');
   if (discountType === 'PORCENTAJE' && discountValue.greaterThan(100)) {
     throw new Error('INVALID_DISCOUNT_PERCENTAGE');
   }
-  const calculation = calculatePurchaseOrder({ items: itemsCalc, discountType, discountValue, taxRate });
-  const { lineTotals, subtotal, discount: disc, tax, total } = calculation;
+  const calculation = calculatePurchaseOrder({
+    items: input.items.map((item) => ({
+      quantity: toDecimal(item.quantity),
+      unitPrice: toDecimal(item.unitPrice),
+      taxProfile: item.taxProfile ?? 'GENERAL_15',
+      customTaxes: item.taxProfile === 'CUSTOM' ? item.customTaxes : [],
+    })),
+    discountType,
+    discountValue,
+  });
+  const { subtotal, discount: disc, tax, total, taxRate } = calculation;
   if (discountType === 'MONTO' && discountValue.greaterThan(subtotal)) {
     throw new Error('DISCOUNT_EXCEEDS_SUBTOTAL');
   }
-  const mapped = input.items.map((item, index) => ({
-    itemNumber: item.itemNumber ?? index + 1,
-    description: item.description,
-    unit: item.unit,
-    quantity: toDecimal(item.quantity),
-    unitPrice: toDecimal(item.unitPrice),
-    total: lineTotals[index],
-  }));
+  const mapped = input.items.map((item, index) => {
+    const calculated = calculation.items[index];
+    return {
+      itemNumber: item.itemNumber ?? index + 1,
+      description: item.description,
+      unit: item.unit,
+      quantity: toDecimal(item.quantity),
+      unitPrice: toDecimal(item.unitPrice),
+      total: calculated.lineSubtotal,
+      taxProfile: calculated.taxProfile,
+      taxableBase: calculated.taxableBase,
+      taxAmount: calculated.taxAmount,
+      itemTotal: calculated.itemTotal,
+      taxes: {
+        create: calculated.taxes.map((taxLine) => ({
+          code: taxLine.code,
+          name: taxLine.name,
+          rate: taxLine.rate,
+          taxableBase: taxLine.taxableBase,
+          amount: taxLine.amount,
+          sortOrder: taxLine.sortOrder,
+        })),
+      },
+    };
+  });
   return {
     mapped,
     subtotal,
@@ -412,7 +437,7 @@ async function saveOrderPdf(
   const order = await client.compraOrden.findFirst({
     where: { id: orderId, organizationId },
     include: {
-      items: { orderBy: { itemNumber: 'asc' } },
+      items: { orderBy: { itemNumber: 'asc' }, include: { taxes: { orderBy: { sortOrder: 'asc' } } } },
       generatedBy: { select: { firstName: true, lastName: true } },
       issuedBy: { select: { firstName: true, lastName: true } },
     },
@@ -480,7 +505,7 @@ export async function generatePurchaseOrder(
   console.info('[PURCHASE ORDER] Loading draft', { orderId: id });
   const existing = await prisma.compraOrden.findFirst({
     where: { id, organizationId, deletedAt: null },
-    include: { items: true },
+    include: { items: { include: { taxes: { orderBy: { sortOrder: 'asc' as const } } } } },
   });
   if (!existing) throw new Error('ORDER_NOT_FOUND');
   if (existing.status !== 'DRAFT') throw new Error('ORDER_ALREADY_GENERATED');
@@ -523,6 +548,14 @@ export async function generatePurchaseOrder(
     items: existing.items.map((item) => ({
       quantity: item.quantity,
       unitPrice: item.unitPrice,
+      taxProfile: item.taxProfile,
+      customTaxes: item.taxProfile === 'CUSTOM'
+        ? item.taxes.map((taxLine) => ({
+          code: taxLine.code,
+          name: taxLine.name,
+          rate: taxLine.rate,
+        }))
+        : [],
     })),
     discountType: existing.discountType,
     discountValue: existing.discountValue,
@@ -535,10 +568,18 @@ export async function generatePurchaseOrder(
     discount: generationCalculation.discount,
     tax: generationCalculation.tax,
     total: generationCalculation.total,
-    items: existing.items.map((item, index) => ({
-      ...item,
-      total: generationCalculation.lineTotals[index],
-    })),
+    items: existing.items.map((item, index) => {
+      const calculated = generationCalculation.items[index];
+      return {
+        ...item,
+        total: calculated.lineSubtotal,
+        taxProfile: calculated.taxProfile,
+        taxableBase: calculated.taxableBase,
+        taxAmount: calculated.taxAmount,
+        itemTotal: calculated.itemTotal,
+        taxes: calculated.taxes,
+      };
+    }),
   };
 
   console.info('[PURCHASE ORDER] Using order number', {
@@ -677,7 +718,7 @@ export async function issuePurchaseOrder(id: string, userId: string, organizatio
   const order = await prisma.compraOrden.findFirst({
     where: { id, organizationId, deletedAt: null },
     include: {
-      items: { orderBy: { itemNumber: 'asc' } },
+      items: { orderBy: { itemNumber: 'asc' }, include: { taxes: { orderBy: { sortOrder: 'asc' } } } },
       generatedBy: { select: { firstName: true, lastName: true } },
     },
   });
@@ -1050,7 +1091,7 @@ export async function getPurchaseOrderHtmlPreview(orderId: string, organizationI
   const order = await prisma.compraOrden.findFirst({
     where: { id: orderId, organizationId, deletedAt: null },
     include: {
-      items: { orderBy: { itemNumber: 'asc' } },
+      items: { orderBy: { itemNumber: 'asc' }, include: { taxes: { orderBy: { sortOrder: 'asc' } } } },
       generatedBy: { select: { firstName: true, lastName: true } },
       issuedBy: { select: { firstName: true, lastName: true } },
     },

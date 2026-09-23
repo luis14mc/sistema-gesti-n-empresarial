@@ -1270,22 +1270,53 @@ enum TipoDescuento {
   PORCENTAJE
 }
 
+enum PurchaseTaxProfile {
+  GENERAL_15
+  EXEMPT
+  ISV_18
+  HOTEL_15_TOURISM_4
+  CUSTOM
+}
+
 model CompraOrdenItem {
-  id          String       @id @default(cuid())
+  id          String              @id @default(cuid())
   orderId     String
   itemNumber  Int
   description String
   unit        PurchaseUnit
-  quantity    Decimal      @db.Decimal(14, 2)
-  unitPrice   Decimal      @db.Decimal(14, 2)
-  total       Decimal      @db.Decimal(14, 2)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  orden       CompraOrden  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  quantity    Decimal             @db.Decimal(14, 2)
+  unitPrice   Decimal             @db.Decimal(14, 2)
+  total       Decimal             @db.Decimal(14, 2)
+  taxProfile  PurchaseTaxProfile?
+  taxableBase Decimal             @default(0) @db.Decimal(14, 2)
+  taxAmount   Decimal             @default(0) @db.Decimal(14, 2)
+  itemTotal   Decimal             @default(0) @db.Decimal(14, 2)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  orden       CompraOrden         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  taxes       CompraOrdenItemTax[]
 
   @@unique([orderId, itemNumber])
   @@index([orderId])
   @@map("purchase_order_items")
+}
+
+model CompraOrdenItemTax {
+  id          String          @id @default(cuid())
+  orderItemId String
+  code        String
+  name        String
+  rate        Decimal         @db.Decimal(7, 4)
+  taxableBase Decimal         @db.Decimal(14, 2)
+  amount      Decimal         @db.Decimal(14, 2)
+  sortOrder   Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  item        CompraOrdenItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@unique([orderItemId, code])
+  @@index([orderItemId])
+  @@map("purchase_order_item_taxes")
 }
 
 model CompraOrdenDocumento {

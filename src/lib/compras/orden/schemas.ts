@@ -11,6 +11,39 @@ export const ISV_RATES = [
   { value: 18, label: 'ISV 18%' },
 ] as const;
 
+export const PURCHASE_TAX_PROFILE_IDS = [
+  'GENERAL_15',
+  'EXEMPT',
+  'ISV_18',
+  'HOTEL_15_TOURISM_4',
+  'CUSTOM',
+] as const;
+
+export const customTaxComponentSchema = z.object({
+  code: z.string().trim().regex(/^[A-Z][A-Z0-9_]{0,31}$/, 'Código de impuesto inválido'),
+  name: z.string().trim().min(2, 'Nombre del impuesto requerido').max(80),
+  rate: z.number({ message: 'Tasa inválida' }).min(0, 'La tasa no puede ser negativa').max(100, 'La tasa no puede superar 100%'),
+});
+
+function rejectDuplicateTaxCodes(
+  taxes: Array<{ code: string }>,
+  ctx: z.RefinementCtx,
+  path: (string | number)[],
+) {
+  const seen = new Set<string>();
+  for (const tax of taxes) {
+    if (seen.has(tax.code)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path,
+        message: 'Los impuestos del ítem no pueden repetir el mismo código.',
+      });
+      return;
+    }
+    seen.add(tax.code);
+  }
+}
+
 export const discountTypeSchema = z.enum(['NINGUNO', 'MONTO', 'PORCENTAJE']);
 
 export const purchaseOrderItemSchema = z.object({
@@ -19,6 +52,18 @@ export const purchaseOrderItemSchema = z.object({
   unit: z.enum(PURCHASE_UNITS),
   quantity: z.number({ message: 'Cantidad inválida' }).positive('Cantidad debe ser mayor a 0'),
   unitPrice: z.number({ message: 'Precio inválido' }).min(0, 'Precio unitario no puede ser negativo'),
+  taxProfile: z.enum(PURCHASE_TAX_PROFILE_IDS).default('GENERAL_15'),
+  customTaxes: z.array(customTaxComponentSchema).max(5, 'Máximo 5 impuestos personalizados').default([]),
+}).superRefine((item, ctx) => {
+  if (item.taxProfile !== 'CUSTOM') return;
+  if (item.customTaxes.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['customTaxes'],
+      message: 'Agregue al menos un impuesto personalizado.',
+    });
+  }
+  rejectDuplicateTaxCodes(item.customTaxes, ctx, ['customTaxes']);
 });
 
 export const draftPurchaseOrderItemSchema = z.object({
@@ -27,6 +72,10 @@ export const draftPurchaseOrderItemSchema = z.object({
   unit: z.enum(PURCHASE_UNITS).default('UNIT'),
   quantity: z.number().min(0, 'Cantidad inválida').default(1),
   unitPrice: z.number().min(0, 'Precio inválido').default(0),
+  taxProfile: z.enum(PURCHASE_TAX_PROFILE_IDS).default('GENERAL_15'),
+  customTaxes: z.array(customTaxComponentSchema).max(5).default([]),
+}).superRefine((item, ctx) => {
+  if (item.taxProfile === 'CUSTOM') rejectDuplicateTaxCodes(item.customTaxes, ctx, ['customTaxes']);
 });
 
 export const draftPurchaseOrderSchema = z.object({
@@ -65,10 +114,7 @@ export const createPurchaseOrderSchema = z.object({
   purchaseJustification: z.string().trim().min(10, 'Justificación requerida (mín. 10 caracteres)'),
   discountType: discountTypeSchema,
   discountValue: z.number({ message: 'Descuento inválido' }).min(0, 'Descuento no puede ser negativo'),
-  taxRate: z.number({ message: 'Tasa de ISV inválida' }).refine(
-    (value) => [0, 15, 18].includes(value),
-    'Seleccione una tasa de ISV válida.'
-  ),
+  taxRate: z.number().min(0).max(100).default(15),
   items: z.array(purchaseOrderItemSchema).min(1, 'Debe incluir al menos un ítem'),
 }).superRefine((data, ctx) => {
   const request = new Date(data.requestDate);
@@ -153,15 +199,33 @@ export type UpdatePurchaseOrderInput = z.infer<typeof updatePurchaseOrderSchema>
 export type PurchaseOrderTemplateInput = z.infer<typeof purchaseOrderTemplateSchema>;
 
 /** Aplica defaults de API alineados con el servicio (discount 0, taxRate 15). */
+function legacyProfileFromRate(rate: number) {
+  if (rate === 0) return 'EXEMPT' as const;
+  if (rate === 18) return 'ISV_18' as const;
+  if (rate === 15) return 'GENERAL_15' as const;
+  return null;
+}
+
 export function normalizePurchaseOrderPayload(body: unknown) {
   if (typeof body !== 'object' || body === null) return body;
   const payload = body as Record<string, unknown>;
   const legacyDiscount = typeof payload.discount === 'number' ? payload.discount : 0;
+  const taxRate = typeof payload.taxRate === 'number' ? payload.taxRate : 15;
+  const legacyProfile = legacyProfileFromRate(taxRate);
+  const items = Array.isArray(payload.items)
+    ? payload.items.map((item) => {
+      if (!item || typeof item !== 'object') return item;
+      const record = item as Record<string, unknown>;
+      if (typeof record.taxProfile === 'string' && record.taxProfile.length > 0) return item;
+      return legacyProfile ? { ...record, taxProfile: legacyProfile } : item;
+    })
+    : payload.items;
   return {
     discountType: legacyDiscount > 0 ? 'MONTO' : 'NINGUNO',
     discountValue: legacyDiscount,
     taxRate: 15,
     ...payload,
+    items,
   };
 }
 

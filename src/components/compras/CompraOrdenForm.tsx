@@ -17,11 +17,10 @@ import {
 import { cn } from '@/lib/utils';
 import { getFirstErrorField, getFirstFormErrorMessage } from '@/lib/form-errors';
 import { UNIT_LABELS } from '@/lib/compras/orden/constants';
-import { calculatePurchaseOrder, toDecimal } from '@/lib/compras/orden/calculos';
+import { calculatePurchaseOrder, PURCHASE_TAX_PROFILE_OPTIONS, toDecimal } from '@/lib/compras/orden/calculos';
 import {
   createPurchaseOrderSchema,
   draftPurchaseOrderSchema,
-  ISV_RATES,
   type CreatePurchaseOrderInput,
   type DraftPurchaseOrderInput,
 } from '@/lib/compras/orden/schemas';
@@ -48,7 +47,14 @@ export interface CompraOrdenFormHandle {
   validateForGeneration: () => Promise<CreatePurchaseOrderInput | null>;
 }
 
-const defaultItem = { description: '', unit: 'UNIT' as const, quantity: 1, unitPrice: 0 };
+const defaultItem = {
+  description: '',
+  unit: 'UNIT' as const,
+  quantity: 1,
+  unitPrice: 0,
+  taxProfile: 'GENERAL_15' as const,
+  customTaxes: [] as Array<{ code: string; name: string; rate: number }>,
+};
 
 function toDateInput(value?: string | Date | null): string {
   if (!value) return '';
@@ -80,6 +86,15 @@ function mapDefaults(v?: Partial<CompraOrden>): Partial<CreatePurchaseOrderInput
           unit: (i.unit ?? (i as { unidad?: string }).unidad ?? 'UNIT') as CreatePurchaseOrderInput['items'][0]['unit'],
           quantity: i.quantity ?? (i as { cantidad?: number }).cantidad ?? 1,
           unitPrice: i.unitPrice ?? (i as { precioUnitario?: number }).precioUnitario ?? 0,
+          taxProfile: i.taxProfile
+            ?? ((v.taxRate ?? v.tasaImpuesto) === 0
+              ? 'EXEMPT'
+              : (v.taxRate ?? v.tasaImpuesto) === 18
+                ? 'ISV_18'
+                : 'GENERAL_15'),
+          customTaxes: i.taxProfile === 'CUSTOM'
+            ? (i.taxes ?? []).map((tax) => ({ code: tax.code, name: tax.name, rate: tax.rate }))
+            : [],
         }))
       : [{ ...defaultItem }],
   };
@@ -151,7 +166,6 @@ function CompraOrdenForm({
   const watchedItems = useWatch({ control: form.control, name: 'items' }) ?? [];
   const watchedDiscountType = useWatch({ control: form.control, name: 'discountType' }) ?? 'NINGUNO';
   const watchedDiscountValue = useWatch({ control: form.control, name: 'discountValue' }) ?? 0;
-  const watchedTaxRate = useWatch({ control: form.control, name: 'taxRate' }) ?? 15;
   const watchedSupplierId = useWatch({ control: form.control, name: 'supplierId' });
 
   const watchedValues = useWatch({ control: form.control });
@@ -162,21 +176,19 @@ function CompraOrdenForm({
   }, [watchedValues, onValuesChange, form]);
 
   const totales = useMemo(() => {
-    const normalizedItems = watchedItems.map((item) => ({
-      quantity: Number.isFinite(Number(item?.quantity)) ? Number(item!.quantity) : 0,
-      unitPrice: Number.isFinite(Number(item?.unitPrice)) ? Number(item!.unitPrice) : 0,
-    }));
-
     return calculatePurchaseOrder({
-      items: normalizedItems.map((item) => ({
-        quantity: toDecimal(item.quantity),
-        unitPrice: toDecimal(item.unitPrice),
+      items: watchedItems.map((item) => ({
+        quantity: toDecimal(Number.isFinite(Number(item?.quantity)) ? Number(item?.quantity) : 0),
+        unitPrice: toDecimal(Number.isFinite(Number(item?.unitPrice)) ? Number(item?.unitPrice) : 0),
+        taxProfile: item?.taxProfile === 'CUSTOM' && !(item.customTaxes ?? []).some((tax) => tax?.code && tax.name && Number(tax.rate) >= 0 && Number(tax.rate) <= 100)
+          ? 'EXEMPT'
+          : (item?.taxProfile ?? 'GENERAL_15'),
+        customTaxes: (item?.customTaxes ?? []).filter((tax) => tax?.code && tax.name && Number(tax.rate) >= 0 && Number(tax.rate) <= 100),
       })),
       discountType: watchedDiscountType,
       discountValue: toDecimal(Number.isFinite(Number(watchedDiscountValue)) ? Number(watchedDiscountValue) : 0),
-      taxRate: toDecimal(Number.isFinite(Number(watchedTaxRate)) ? Number(watchedTaxRate) : 15),
     });
-  }, [watchedItems, watchedDiscountType, watchedDiscountValue, watchedTaxRate]);
+  }, [watchedItems, watchedDiscountType, watchedDiscountValue]);
 
   const handleDiscountToggle = (enabled: boolean) => {
     form.setValue('discountType', enabled ? 'MONTO' : 'NINGUNO', {
@@ -416,16 +428,21 @@ function CompraOrdenForm({
                 <TableHead>Unidad</TableHead>
                 <TableHead>Cant.</TableHead>
                 <TableHead>P. unit.</TableHead>
+                <TableHead>Tratamiento tributario</TableHead>
+                <TableHead>Base</TableHead>
+                <TableHead>Impuesto</TableHead>
                 <TableHead>Total</TableHead>
                 {!readOnly && <TableHead />}
               </TableRow>
             </TableHeader>
             <TableBody>
               {fields.map((field, index) => {
-                const quantity = Number(watchedItems[index]?.quantity) || 0;
-                const unitPrice = Number(watchedItems[index]?.unitPrice) || 0;
-                const lineTotal = totales.lineTotals[index]?.toNumber() ?? quantity * unitPrice;
+                const calculated = totales.items[index];
+                const lineBase = calculated?.taxableBase.toNumber() ?? 0;
+                const lineTax = calculated?.taxAmount.toNumber() ?? 0;
+                const lineTotal = calculated?.itemTotal.toNumber() ?? 0;
                 const itemErrors = errors.items?.[index];
+                const taxProfile = watchedItems[index]?.taxProfile ?? 'GENERAL_15';
 
                 return (
                   <TableRow key={field.id}>
@@ -484,6 +501,64 @@ function CompraOrdenForm({
                       />
                       <FieldError message={itemErrors?.unitPrice?.message} />
                     </TableCell>
+                    <TableCell>
+                      <select
+                        className="h-8 w-full min-w-40 rounded-md border px-2 text-sm"
+                        disabled={readOnly}
+                        aria-label={`Tratamiento tributario del ítem ${index + 1}`}
+                        {...form.register(`items.${index}.taxProfile`)}
+                      >
+                        {PURCHASE_TAX_PROFILE_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                      {taxProfile === 'CUSTOM' ? (
+                        <div className="mt-2 space-y-1">
+                          {(watchedItems[index]?.customTaxes ?? []).map((tax, taxIndex) => (
+                            <div key={`${field.id}-tax-${taxIndex}`} className="grid grid-cols-[1fr_5rem] gap-1">
+                              <Input
+                                className="h-8"
+                                placeholder="Nombre"
+                                disabled={readOnly}
+                                {...form.register(`items.${index}.customTaxes.${taxIndex}.name`)}
+                              />
+                              <Input
+                                className="h-8"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                max="100"
+                                disabled={readOnly}
+                                {...form.register(`items.${index}.customTaxes.${taxIndex}.rate`, { setValueAs: Number })}
+                              />
+                              <input type="hidden" {...form.register(`items.${index}.customTaxes.${taxIndex}.code`)} />
+                            </div>
+                          ))}
+                          {!readOnly && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                const current = form.getValues(`items.${index}.customTaxes`) ?? [];
+                                form.setValue(`items.${index}.customTaxes`, [
+                                  ...current,
+                                  { code: `CUSTOM_${current.length + 1}`, name: '', rate: 0 },
+                                ], { shouldDirty: true, shouldValidate: true });
+                              }}
+                            >
+                              Agregar impuesto
+                            </Button>
+                          )}
+                          <FieldError message={itemErrors?.customTaxes?.message} />
+                        </div>
+                      ) : null}
+                      {calculated?.taxes?.map((taxLine) => (
+                        <p key={taxLine.code} className="text-xs text-muted-foreground">{taxLine.name}</p>
+                      ))}
+                    </TableCell>
+                    <TableCell className="text-right">{formatMoney(lineBase)}</TableCell>
+                    <TableCell className="text-right">{formatMoney(lineTax)}</TableCell>
                     <TableCell className="text-right">{formatMoney(lineTotal)}</TableCell>
                     {!readOnly && (
                       <TableCell>
@@ -553,24 +628,22 @@ function CompraOrdenForm({
             ) : null}
             <span>Descuento aplicado:</span>
             <span className="text-right">{formatMoney(totales.discount.toNumber())}</span>
-            <span>Base gravable:</span>
-            <span className="text-right">{formatMoney(totales.taxableBase.toNumber())}</span>
-            <Label htmlFor="taxRate">ISV:</Label>
-            <div className="space-y-1">
-              <select
-                id="taxRate"
-                className={cn('h-8 w-full rounded-md border px-2 text-sm', errors.taxRate && 'border-destructive')}
-                disabled={readOnly}
-                aria-invalid={Boolean(errors.taxRate)}
-                {...form.register('taxRate', {
-                  setValueAs: Number,
-                })}
-              >
-                {ISV_RATES.map((rate) => <option key={rate.value} value={rate.value}>{rate.label}</option>)}
-              </select>
-              <FieldError message={errors.taxRate?.message} />
-            </div>
-            <span>ISV {watchedTaxRate}%:</span>
+            <span className="col-span-2 pt-2 font-medium">Resumen tributario</span>
+            {totales.taxSummary.map((line) => (
+              <div key={`${line.code}-row`} className="col-span-2 grid grid-cols-2 gap-x-8">
+                <span>Base gravada {line.rate.toNumber()}%</span>
+                <span className="text-right">{formatMoney(line.taxableBase.toNumber())}</span>
+                <span>{line.name}</span>
+                <span className="text-right">{formatMoney(line.amount.toNumber())}</span>
+              </div>
+            ))}
+            {totales.exemptBase.greaterThan(0) ? (
+              <>
+                <span>Base exenta</span>
+                <span className="text-right">{formatMoney(totales.exemptBase.toNumber())}</span>
+              </>
+            ) : null}
+            <span>Total impuestos</span>
             <span className="text-right">{formatMoney(totales.tax.toNumber())}</span>
             <span className="font-bold">Total:</span>
             <span className="text-right font-bold">{formatMoney(totales.total.toNumber())}</span>

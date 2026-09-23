@@ -1,8 +1,16 @@
 import type { PurchaseOrderStatus, PurchaseUnit } from '@prisma/client';
 import type { CreatePurchaseOrderInput } from './schemas';
-import { calculatePurchaseOrder, toDecimal } from './calculos';
+import { calculatePurchaseOrder, formatItemTaxLabel, toDecimal, type PurchaseTaxProfileId } from './calculos';
 import type { PurchaseOrderTemplateConfig } from './template-config';
 import { ORDER_STATUS_LABELS } from './constants';
+
+export type PurchaseOrderTaxPreview = {
+  code: string;
+  name: string;
+  rate: number;
+  taxableBase: number;
+  amount: number;
+};
 
 export type PurchaseOrderItemPreview = {
   itemNumber: number;
@@ -11,6 +19,12 @@ export type PurchaseOrderItemPreview = {
   quantity: number;
   unitPrice: number;
   total: number;
+  taxableBase: number;
+  taxAmount: number;
+  itemTotal: number;
+  taxLabel: string;
+  taxProfile?: PurchaseTaxProfileId | null;
+  taxes: PurchaseOrderTaxPreview[];
 };
 
 export type PurchaseOrderPersonName = {
@@ -37,6 +51,9 @@ export type PurchaseOrderPreviewData = {
   taxRate: number;
   tax: number;
   total: number;
+  taxSummary: PurchaseOrderTaxPreview[];
+  exemptBase: number;
+  usesItemTaxes: boolean;
   items: PurchaseOrderItemPreview[];
   template: PurchaseOrderTemplateConfig;
   isDraft: boolean;
@@ -95,18 +112,22 @@ export function buildPreviewDataFromInput(
       unit: item?.unit || 'UNIT',
       quantity,
       unitPrice,
+      taxProfile: item?.taxProfile,
+      customTaxes: item?.taxProfile === 'CUSTOM' ? item.customTaxes : [],
     };
   });
-  const itemsCalc = items.map((item) => ({
-    quantity: item.quantity,
-    unitPrice: item.unitPrice,
-  }));
-  const { lineTotals, subtotal, discount: disc, taxableBase, tax, total } = calculatePurchaseOrder({
-    items: itemsCalc,
+  const calculation = calculatePurchaseOrder({
+    items: items.map((item) => ({
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      taxProfile: item.taxProfile,
+      customTaxes: item.customTaxes,
+    })),
     discountType,
     discountValue,
     taxRate,
   });
+  const { subtotal, discount: disc, taxableBase, tax, total, taxSummary, exemptBase } = calculation;
 
   return {
     orderNumber: null,
@@ -124,17 +145,41 @@ export function buildPreviewDataFromInput(
     discountValue: discountValue.toNumber(),
     discount: disc.toNumber(),
     taxableBase: taxableBase.toNumber(),
-    taxRate: taxRate.toNumber(),
+    taxRate: calculation.taxRate.toNumber(),
     tax: tax.toNumber(),
     total: total.toNumber(),
-    items: items.map((item, index) => ({
-      itemNumber: item.itemNumber,
-      description: item.description,
-      unit: item.unit,
-      quantity: item.quantity.toNumber(),
-      unitPrice: item.unitPrice.toNumber(),
-      total: lineTotals[index].toNumber(),
+    taxSummary: taxSummary.map((line) => ({
+      code: line.code,
+      name: line.name,
+      rate: line.rate.toNumber(),
+      taxableBase: line.taxableBase.toNumber(),
+      amount: line.amount.toNumber(),
     })),
+    exemptBase: exemptBase.toNumber(),
+    usesItemTaxes: true,
+    items: items.map((item, index) => {
+      const calculated = calculation.items[index];
+      return {
+        itemNumber: item.itemNumber,
+        description: item.description,
+        unit: item.unit,
+        quantity: item.quantity.toNumber(),
+        unitPrice: item.unitPrice.toNumber(),
+        total: calculated.lineSubtotal.toNumber(),
+        taxableBase: calculated.taxableBase.toNumber(),
+        taxAmount: calculated.taxAmount.toNumber(),
+        itemTotal: calculated.itemTotal.toNumber(),
+        taxLabel: calculated.taxLabel,
+        taxProfile: calculated.taxProfile,
+        taxes: calculated.taxes.map((taxLine) => ({
+          code: taxLine.code,
+          name: taxLine.name,
+          rate: taxLine.rate.toNumber(),
+          taxableBase: taxLine.taxableBase.toNumber(),
+          amount: taxLine.amount.toNumber(),
+        })),
+      };
+    }),
     template,
     isDraft: true,
     status: 'DRAFT',
@@ -179,6 +224,17 @@ export function previewDataToPdfOrder(preview: PurchaseOrderPreviewData) {
       quantity: toDecimal(item.quantity),
       unitPrice: toDecimal(item.unitPrice),
       total: toDecimal(item.total),
+      taxProfile: item.taxProfile ?? null,
+      taxableBase: toDecimal(item.taxableBase),
+      taxAmount: toDecimal(item.taxAmount),
+      itemTotal: toDecimal(item.itemTotal),
+      taxLabel: item.taxLabel,
+      taxes: item.taxes.map((taxLine) => ({
+        ...taxLine,
+        rate: toDecimal(taxLine.rate),
+        taxableBase: toDecimal(taxLine.taxableBase),
+        amount: toDecimal(taxLine.amount),
+      })),
       createdAt: new Date(),
       updatedAt: new Date(),
     })),
@@ -211,6 +267,8 @@ export function buildPreviewDataFromSerializedOrder(
     issuedAt?: string | null;
     generatedBy?: PurchaseOrderPersonName | null;
     issuedBy?: PurchaseOrderPersonName | null;
+    taxSummary?: PurchaseOrderTaxPreview[];
+    exemptBase?: number;
     items: Array<{
       itemNumber: number;
       description: string;
@@ -218,6 +276,12 @@ export function buildPreviewDataFromSerializedOrder(
       quantity: number;
       unitPrice: number;
       total: number;
+      taxProfile?: PurchaseTaxProfileId | null;
+      taxableBase?: number;
+      taxAmount?: number;
+      itemTotal?: number;
+      taxLabel?: string | null;
+      taxes?: PurchaseOrderTaxPreview[];
     }>;
   },
   template: PurchaseOrderTemplateConfig
@@ -237,18 +301,11 @@ export function buildPreviewDataFromSerializedOrder(
     discountType: order.discountType ?? 'NINGUNO',
     discountValue: order.discountValue ?? 0,
     discount: order.discount,
-    taxableBase: order.subtotal - order.discount,
     taxRate: order.taxRate,
     tax: order.tax,
     total: order.total,
-    items: order.items.map((item) => ({
-      itemNumber: item.itemNumber,
-      description: item.description,
-      unit: item.unit,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      total: item.total,
-    })),
+    ...taxPreviewFromSerialized(order),
+    items: order.items.map((item) => itemPreviewFromStored(item, order.taxRate)),
     template,
     isDraft: order.status === 'DRAFT' || !order.orderNumber,
     status: order.status,
@@ -257,6 +314,79 @@ export function buildPreviewDataFromSerializedOrder(
     generatedAt: order.generatedAt ?? null,
     issuedByName: order.issuedByName ?? formatPersonName(order.issuedBy),
     issuedAt: order.issuedAt ?? null,
+  };
+}
+
+function itemPreviewFromStored(
+  item: {
+    itemNumber: number;
+    description: string;
+    unit: PurchaseUnit;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+    taxProfile?: PurchaseTaxProfileId | null;
+    taxableBase?: number;
+    taxAmount?: number;
+    itemTotal?: number;
+    taxLabel?: string | null;
+    taxes?: PurchaseOrderTaxPreview[];
+  },
+  legacyTaxRate: number,
+): PurchaseOrderItemPreview {
+  const taxes = item.taxes ?? [];
+  const usesItemTaxes = Boolean(item.taxProfile) || taxes.length > 0;
+  return {
+    itemNumber: item.itemNumber,
+    description: item.description,
+    unit: item.unit,
+    quantity: item.quantity,
+    unitPrice: item.unitPrice,
+    total: item.total,
+    taxableBase: usesItemTaxes ? (item.taxableBase ?? item.total) : item.total,
+    taxAmount: usesItemTaxes ? (item.taxAmount ?? 0) : 0,
+    itemTotal: usesItemTaxes ? (item.itemTotal ?? item.total) : item.total,
+    taxLabel: item.taxLabel ?? (usesItemTaxes ? formatItemTaxLabel(taxes) : `ISV ${legacyTaxRate}%`),
+    taxProfile: item.taxProfile ?? null,
+    taxes,
+  };
+}
+
+function taxPreviewFromSerialized(order: {
+  subtotal: number;
+  discount: number;
+  taxRate: number;
+  tax: number;
+  taxSummary?: PurchaseOrderTaxPreview[];
+  exemptBase?: number;
+  items: Array<{ taxProfile?: PurchaseTaxProfileId | null; taxes?: PurchaseOrderTaxPreview[]; taxableBase?: number }>;
+}): Pick<PurchaseOrderPreviewData, 'taxSummary' | 'exemptBase' | 'usesItemTaxes' | 'taxableBase'> {
+  const usesItemTaxes = order.items.some((item) => item.taxProfile || (item.taxes?.length ?? 0) > 0);
+  if (!usesItemTaxes) {
+    const taxableBase = Math.max(0, order.subtotal - order.discount);
+    const summary = order.tax > 0
+      ? [{
+        code: order.taxRate === 18 ? 'ISV_18' : order.taxRate === 0 ? 'EXEMPT' : 'ISV_15',
+        name: order.taxRate === 0 ? 'Exento' : `ISV ${order.taxRate}%`,
+        rate: order.taxRate,
+        taxableBase,
+        amount: order.tax,
+      }]
+      : [];
+    return {
+      usesItemTaxes: false,
+      taxableBase,
+      exemptBase: order.taxRate === 0 ? taxableBase : 0,
+      taxSummary: summary,
+    };
+  }
+  return {
+    usesItemTaxes: true,
+    taxableBase: order.subtotal - order.discount,
+    exemptBase: order.exemptBase ?? order.items
+      .filter((item) => item.taxProfile === 'EXEMPT' || (item.taxProfile && (item.taxes?.length ?? 0) === 0))
+      .reduce((sum, item) => sum + (item.taxableBase ?? 0), 0),
+    taxSummary: order.taxSummary ?? [],
   };
 }
 
@@ -287,6 +417,8 @@ type ServerPurchaseOrder = {
   issuedAt?: Date | string | null;
   generatedByName?: string | null;
   issuedByName?: string | null;
+  taxSummary?: PurchaseOrderTaxPreview[];
+  exemptBase?: number;
   items: Array<{
     itemNumber: number;
     description: string;
@@ -294,6 +426,18 @@ type ServerPurchaseOrder = {
     quantity: NumericValue;
     unitPrice: NumericValue;
     total: NumericValue;
+    taxProfile?: PurchaseTaxProfileId | null;
+    taxableBase?: NumericValue;
+    taxAmount?: NumericValue;
+    itemTotal?: NumericValue;
+    taxLabel?: string | null;
+    taxes?: Array<{
+      code: string;
+      name: string;
+      rate: NumericValue;
+      taxableBase: NumericValue;
+      amount: NumericValue;
+    }>;
   }>;
 };
 
@@ -310,6 +454,35 @@ export function buildPreviewDataFromOrder(
   const subtotal = numeric(order.subtotal);
   const discount = numeric(order.discount);
   const isDraft = options.isDraft ?? order.status === 'DRAFT';
+  const items = order.items.map((item) => itemPreviewFromStored({
+    itemNumber: item.itemNumber,
+    description: item.description,
+    unit: item.unit,
+    quantity: numeric(item.quantity),
+    unitPrice: numeric(item.unitPrice),
+    total: numeric(item.total),
+    taxProfile: item.taxProfile,
+    taxableBase: item.taxableBase === undefined ? undefined : numeric(item.taxableBase),
+    taxAmount: item.taxAmount === undefined ? undefined : numeric(item.taxAmount),
+    itemTotal: item.itemTotal === undefined ? undefined : numeric(item.itemTotal),
+    taxLabel: item.taxLabel,
+    taxes: item.taxes?.map((taxLine) => ({
+      code: taxLine.code,
+      name: taxLine.name,
+      rate: numeric(taxLine.rate),
+      taxableBase: numeric(taxLine.taxableBase),
+      amount: numeric(taxLine.amount),
+    })),
+  }, numeric(order.taxRate)));
+  const taxPreview = taxPreviewFromSerialized({
+    subtotal,
+    discount,
+    taxRate: numeric(order.taxRate),
+    tax: numeric(order.tax),
+    taxSummary: order.taxSummary,
+    exemptBase: order.exemptBase,
+    items,
+  });
 
   return {
     orderNumber: order.orderNumber,
@@ -326,10 +499,10 @@ export function buildPreviewDataFromOrder(
     discountType: order.discountType,
     discountValue: numeric(order.discountValue),
     discount,
-    taxableBase: subtotal - discount,
     taxRate: numeric(order.taxRate),
     tax: numeric(order.tax),
     total: numeric(order.total),
+    ...taxPreview,
     status: order.status,
     statusLabel: ORDER_STATUS_LABELS[order.status],
     isDraft,
@@ -338,13 +511,6 @@ export function buildPreviewDataFromOrder(
     generatedAt: isoDate(order.generatedAt),
     issuedByName: order.issuedByName ?? formatPersonName(order.issuedBy),
     issuedAt: isoDate(order.issuedAt),
-    items: order.items.map((item) => ({
-      itemNumber: item.itemNumber,
-      description: item.description,
-      unit: item.unit,
-      quantity: numeric(item.quantity),
-      unitPrice: numeric(item.unitPrice),
-      total: numeric(item.total),
-    })),
+    items,
   };
 }
