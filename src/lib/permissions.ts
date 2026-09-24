@@ -12,7 +12,8 @@ export type Module =
   | 'purchases'
   | 'audits'
   | 'audit-records'
-  | 'settings';
+  | 'settings'
+  | 'software-licenses';
 
 export type Action = 'read' | 'create' | 'update' | 'delete';
 
@@ -27,6 +28,7 @@ const FULL_ADMIN: Partial<Record<Module, Action[]>> = {
   audits: ['read', 'create', 'update', 'delete'],
   'audit-records': ['read', 'create', 'update', 'delete'],
   settings: ['read', 'update'],
+  'software-licenses': ['read', 'create', 'update', 'delete'],
 };
 
 const TI: Partial<Record<Module, Action[]>> = {
@@ -37,6 +39,7 @@ const TI: Partial<Record<Module, Action[]>> = {
   audits: ['read'],
   'audit-records': ['read'],
   settings: ['read', 'update'],
+  'software-licenses': ['read', 'create', 'update', 'delete'],
 };
 
 const PERMISSIONS: Record<Role, Partial<Record<Module, Action[]>>> = {
@@ -124,6 +127,7 @@ export const ROUTE_ACCESS_BY_MODULE: Record<Module, Role[] | null> = {
   audits: ['ADMIN', 'OWNER', 'IT_MANAGER', 'IT', 'AUDITOR'],
   'audit-records': ['ADMIN', 'OWNER', 'IT_MANAGER', 'IT', 'AUDITOR'],
   settings: ['ADMIN', 'OWNER', 'IT_MANAGER', 'IT'],
+  'software-licenses': ['ADMIN', 'OWNER', 'IT_MANAGER', 'IT'],
 };
 
 export const ROUTE_PATH_TO_MODULE: Record<string, Module> = {
@@ -154,6 +158,7 @@ export const ROUTE_PATH_TO_MODULE: Record<string, Module> = {
   '/audit/logs': 'audit-records',
   '/audit-records': 'audit-records',
   '/settings': 'settings',
+  '/ti/licencias': 'software-licenses',
 };
 
 export function routeToAccess(pathname: string): { module: Module; roles: Role[] | null } | null {
