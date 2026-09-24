@@ -65,9 +65,6 @@ export function validatePurchaseOrderForGeneration(
   } else if (!validateRtn(order.supplierRtn)) {
     errors.push({ field: 'proveedorRtn', message: 'El RTN debe tener 14 dígitos.' });
   }
-  if (!order.supplierPhone?.trim()) {
-    errors.push({ field: 'proveedorTelefono', message: 'El teléfono del proveedor es obligatorio.' });
-  }
   if (!order.purchaseJustification?.trim() || order.purchaseJustification.trim().length < 10) {
     errors.push({
       field: 'justificacion',

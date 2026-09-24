@@ -14,11 +14,13 @@ async function getHandler(req: AuthenticatedRequest) {
     const { organizationId } = await authorizeOrganization(req, requestId, 'suppliers.read');
 
     const { searchParams } = new URL(req.url);
-    const search = searchParams.get('search');
+    const search = searchParams.get('search')?.trim() ?? '';
     const activo = searchParams.get('activo');
     const page = Math.max(Number.parseInt(searchParams.get('page') ?? '1', 10) || 1, 1);
     const pageSize = Math.min(Math.max(Number.parseInt(searchParams.get('pageSize') ?? '10', 10) || 10, 1), 50);
     const skip = (page - 1) * pageSize;
+    const digits = search.replace(/\D/g, '');
+    const contains = { contains: search, mode: 'insensitive' as const };
     const where = {
       organizationId,
       deletedAt: null,
@@ -26,8 +28,17 @@ async function getHandler(req: AuthenticatedRequest) {
       ...(search
         ? {
             OR: [
-              { nombreRazonSocial: { contains: search, mode: 'insensitive' as const } },
-              { rtn: { contains: search.replace(/[^0-9]/g, ''), mode: 'insensitive' as const } },
+              { nombreRazonSocial: contains },
+              { telefono: contains },
+              { email: contains },
+              { personaContacto: contains },
+              { rtn: contains },
+              ...(digits && digits !== search
+                ? [
+                    { rtn: { contains: digits } },
+                    { telefono: { contains: digits } },
+                  ]
+                : []),
             ],
           }
         : {}),

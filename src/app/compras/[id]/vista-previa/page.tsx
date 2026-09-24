@@ -17,5 +17,5 @@ export default async function CompraVistaPreviaPage({ params }: { params: Promis
   if (!orden?.format) notFound();
   if (!canOrdenAction(user.role as Role, 'read', { isCreator: orden.createdById === user.id })) notFound();
   const document = buildPreviewDataFromSerializedOrder(orden, orden.format);
-  return <main className="min-h-screen overflow-auto bg-muted p-6"><div className="mx-auto min-h-[1056px] w-[816px] bg-white px-[45px] py-[45px] shadow-lg"><PurchaseOrderDocument order={document} format={orden.format} draft={document.isDraft} /></div></main>;
+  return <main className="h-full overflow-y-auto bg-muted p-6"><div className="mx-auto min-h-[1056px] w-[816px] bg-white px-[45px] py-[45px] shadow-lg"><PurchaseOrderDocument order={document} format={orden.format} draft={document.isDraft} /></div></main>;
 }

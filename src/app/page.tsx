@@ -21,7 +21,7 @@ const features = [
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto bg-background">
       {/* Hero */}
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-16 text-center">
         <div className="fixed inset-0 -z-10 overflow-hidden">

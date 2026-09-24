@@ -93,6 +93,9 @@ api.interceptors.request.use(
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    if (typeof FormData !== 'undefined' && config.data instanceof FormData && config.headers) {
+      if (typeof config.headers.delete === 'function') config.headers.delete('Content-Type');
+    }
     return config;
   },
   (error: AxiosError) => {
@@ -195,9 +198,7 @@ export const apiHelpers = {
 
   /** POST con FormData (multipart) */
   postForm: <T = unknown>(url: string, formData: FormData) =>
-    api.post<T>(url, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+    api.post<T>(url, formData),
 
   /** PUT request tipado */
   put: <T = unknown>(url: string, data?: unknown) =>

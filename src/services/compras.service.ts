@@ -54,7 +54,6 @@ export const comprasService = {
     return api.post<{ adjunto: CompraSolicitud['adjuntos'][number] }>(
       `${BASE}/solicitudes/${id}/adjuntos`,
       formData,
-      { headers: { 'Content-Type': 'multipart/form-data' } }
     );
   },
 
