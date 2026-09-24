@@ -456,7 +456,7 @@ export async function syncRenewalNotifications(organizationId: string, today = n
         status: 'SENT',
         title: subscription.renewalAlert === 'EXPIRED' ? 'Suscripción vencida' : 'Renovación próxima',
         body: `${subscription.product.name} · ${subscription.planName}`,
-        actionUrl: `/ti/licencias/${subscription.id}`,
+        actionUrl: `/equipment/licencias/${subscription.id}`,
         idempotencyKey,
         sentAt: today,
       },

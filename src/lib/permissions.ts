@@ -158,20 +158,16 @@ export const ROUTE_PATH_TO_MODULE: Record<string, Module> = {
   '/audit/logs': 'audit-records',
   '/audit-records': 'audit-records',
   '/settings': 'settings',
-  '/ti/licencias': 'software-licenses',
+  '/equipment/licencias': 'software-licenses',
 };
 
 export function routeToAccess(pathname: string): { module: Module; roles: Role[] | null } | null {
-  if (pathname in ROUTE_PATH_TO_MODULE) {
-    const mod = ROUTE_PATH_TO_MODULE[pathname];
-    return { module: mod, roles: ROUTE_ACCESS_BY_MODULE[mod] };
-  }
-  for (const [prefix, mod] of Object.entries(ROUTE_PATH_TO_MODULE)) {
-    if (pathname === prefix || pathname.startsWith(`${prefix}/`)) {
-      return { module: mod, roles: ROUTE_ACCESS_BY_MODULE[mod] };
-    }
-  }
-  return null;
+  const match = Object.entries(ROUTE_PATH_TO_MODULE)
+    .filter(([prefix]) => pathname === prefix || pathname.startsWith(`${prefix}/`))
+    .sort((a, b) => b[0].length - a[0].length)[0];
+  if (!match) return null;
+  const mod = match[1];
+  return { module: mod, roles: ROUTE_ACCESS_BY_MODULE[mod] };
 }
 
 export function canAccessRoute(role: Role, pathname: string): boolean {
