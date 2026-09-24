@@ -80,8 +80,8 @@ export const NAV_ITEMS: NavItem[] = [
       { label: 'Equipos', href: '/equipment', module: 'equipment' },
       { label: 'Asignaciones', href: '/assignments', module: 'assignments' },
       { label: 'Baja de equipos', href: '/equipment-disposal', module: 'equipment' },
-      { label: 'Licencias', href: '/ti/licencias', module: 'software-licenses' },
-      { label: 'Registrar licencia', href: '/ti/licencias/nueva', module: 'software-licenses' },
+      { label: 'Licencias', href: '/equipment/licencias', module: 'software-licenses' },
+      { label: 'Registrar licencia', href: '/equipment/licencias/nueva', module: 'software-licenses' },
     ],
   },
 

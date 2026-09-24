@@ -81,11 +81,11 @@ export default function SoftwareLicensesPage() {
         title="Licencias de software"
         description="Asientos contratados, cuentas compartidas y renovaciones."
         breadcrumbs={[{ label: 'Activos', href: '/equipment' }, { label: 'Licencias' }]}
-        primaryAction={<Button asChild><Link href="/ti/licencias/nueva">Registrar licencia</Link></Button>}
+        primaryAction={<Button asChild><Link href="/equipment/licencias/nueva">Registrar licencia</Link></Button>}
         secondaryActions={(
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" type="button" onClick={() => { window.location.assign('/api/software-licenses/export'); }}>Exportar</Button>
-            <Button variant="outline" asChild><Link href="/ti/licencias/asignaciones">Asignaciones</Link></Button>
+            <Button variant="outline" asChild><Link href="/equipment/licencias/asignaciones">Asignaciones</Link></Button>
             <label className="inline-flex h-9 cursor-pointer items-center rounded-md border px-3 text-sm">
               Importar
               <input className="sr-only" type="file" accept=".xlsx" aria-label="Importar Excel de licencias" onChange={async (event) => {
@@ -143,7 +143,7 @@ export default function SoftwareLicensesPage() {
       </div>
       <div className="mt-4 grid gap-3 md:hidden">
         {items.map((item) => (
-          <Link key={item.id} href={`/ti/licencias/${item.id}`} className="rounded-lg border p-4">
+          <Link key={item.id} href={`/equipment/licencias/${item.id}`} className="rounded-lg border p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="font-medium">{item.product.name}</p>
@@ -169,7 +169,7 @@ export default function SoftwareLicensesPage() {
           <tbody>
             {items.map((item) => (
               <tr key={item.id} className="border-t">
-                <td className="p-3"><Link className="font-medium underline-offset-4 hover:underline" href={`/ti/licencias/${item.id}`}>{item.product.name}</Link></td>
+                <td className="p-3"><Link className="font-medium underline-offset-4 hover:underline" href={`/equipment/licencias/${item.id}`}>{item.product.name}</Link></td>
                 <td className="p-3">{item.planName}</td>
                 <td className="p-3 tabular-nums">{item.counts.occupiedSeats} ocupados · {item.counts.availableSeats} disponibles</td>
                 <td className="p-3 tabular-nums">{moneyLabel(item.currency, item.monthlyCost)}</td>
