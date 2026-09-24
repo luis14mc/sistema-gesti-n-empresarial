@@ -65,9 +65,7 @@ export const compraOrdenService = {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('tipo', tipo);
-    return api.post(`${BASE}/${id}/documentos`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    return api.post(`${BASE}/${id}/documentos`, formData);
   },
 
   deleteDocumento: (orderId: string, documentId: string) =>

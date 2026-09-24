@@ -6,7 +6,6 @@ import {
   Settings,
   ShoppingCart,
   ClipboardCheck,
-  KeyRound,
 } from 'lucide-react';
 import type { Module } from '@/lib/permissions';
 
@@ -81,6 +80,8 @@ export const NAV_ITEMS: NavItem[] = [
       { label: 'Equipos', href: '/equipment', module: 'equipment' },
       { label: 'Asignaciones', href: '/assignments', module: 'assignments' },
       { label: 'Baja de equipos', href: '/equipment-disposal', module: 'equipment' },
+      { label: 'Licencias', href: '/ti/licencias', module: 'software-licenses' },
+      { label: 'Registrar licencia', href: '/ti/licencias/nueva', module: 'software-licenses' },
     ],
   },
 
@@ -108,17 +109,6 @@ export const NAV_ITEMS: NavItem[] = [
     children: [
       { label: 'Empleados', href: '/employees', module: 'employees' },
       { label: 'Usuarios', href: '/users', module: 'users' },
-    ],
-  },
-
-  {
-    label: 'TI',
-    href: '/ti/licencias',
-    icon: KeyRound,
-    module: 'software-licenses',
-    children: [
-      { label: 'Licencias de software', href: '/ti/licencias', module: 'software-licenses' },
-      { label: 'Asignaciones', href: '/ti/licencias/asignaciones', module: 'software-licenses' },
     ],
   },
 

@@ -79,74 +79,36 @@ export default function SoftwareLicensesPage() {
     <MainLayout>
       <PageHeader
         title="Licencias de software"
-        description="Asientos contratados, cuentas compartidas y renovaciones del área de TI."
+        description="Asientos contratados, cuentas compartidas y renovaciones."
+        breadcrumbs={[{ label: 'Activos', href: '/equipment' }, { label: 'Licencias' }]}
+        primaryAction={<Button asChild><Link href="/ti/licencias/nueva">Registrar licencia</Link></Button>}
         secondaryActions={(
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" type="button" onClick={() => { window.location.assign('/api/software-licenses/export'); }}>Exportar</Button>
-            <Button asChild><Link href="/ti/licencias/asignaciones">Asignaciones</Link></Button>
+            <Button variant="outline" asChild><Link href="/ti/licencias/asignaciones">Asignaciones</Link></Button>
+            <label className="inline-flex h-9 cursor-pointer items-center rounded-md border px-3 text-sm">
+              Importar
+              <input className="sr-only" type="file" accept=".xlsx" aria-label="Importar Excel de licencias" onChange={async (event) => {
+                const file = event.target.files?.[0];
+                event.target.value = '';
+                if (!file) return;
+                const body = new FormData();
+                body.set('file', file);
+                try {
+                  const response = await api.post('/api/software-licenses/import', body);
+                  const report = response.data.data;
+                  setNotice(`Importados ${report.products} productos, ${report.seats} asientos, ${report.assignments} asignaciones. Sin empleado: ${report.unmatchedEmployees.length}.`);
+                  setRefresh((value) => value + 1);
+                } catch {
+                  setError('No se pudo importar el archivo.');
+                }
+              }} />
+            </label>
           </div>
         )}
       />
       {error ? <p className="mt-4 text-sm text-destructive">{error}</p> : null}
       {notice ? <p className="mt-4 text-sm text-muted-foreground">{notice}</p> : null}
-      <form className="mt-6 grid gap-3 rounded-lg border p-4 md:grid-cols-4" onSubmit={async (event) => {
-        event.preventDefault();
-        const form = new FormData(event.currentTarget);
-        setError('');
-        try {
-          await api.post('/api/software-licenses', {
-            productName: String(form.get('productName') ?? ''),
-            planName: String(form.get('planName') ?? ''),
-            totalSeats: Number(form.get('totalSeats') ?? 1),
-            billingCycle: String(form.get('billingCycle') ?? 'MONTHLY'),
-            currency: String(form.get('currency') ?? 'USD'),
-            billingAmount: Number(form.get('billingAmount') ?? 0),
-            startDate: String(form.get('startDate') ?? ''),
-            paymentDay: form.get('paymentDay') ? Number(form.get('paymentDay')) : null,
-            autoRenew: true,
-          });
-          event.currentTarget.reset();
-          setRefresh((value) => value + 1);
-          setNotice('Suscripción creada.');
-        } catch {
-          setError('No se pudo crear la suscripción.');
-        }
-      }}>
-        <Input name="productName" required minLength={2} placeholder="Software" aria-label="Software" />
-        <Input name="planName" required minLength={2} placeholder="Plan" aria-label="Plan" />
-        <Input name="totalSeats" required type="number" min={1} defaultValue={1} aria-label="Asientos contratados" />
-        <Input name="billingAmount" required type="number" min={0} step="0.01" placeholder="Monto" aria-label="Monto de facturación" />
-        <select name="billingCycle" className="h-10 rounded-md border bg-background px-3 text-sm" aria-label="Ciclo" defaultValue="MONTHLY">
-          <option value="MONTHLY">Mensual</option>
-          <option value="ANNUAL">Anual</option>
-          <option value="QUARTERLY">Trimestral</option>
-          <option value="OTHER">Otro</option>
-        </select>
-        <select name="currency" className="h-10 rounded-md border bg-background px-3 text-sm" aria-label="Moneda" defaultValue="USD">
-          <option value="USD">USD</option>
-          <option value="HNL">HNL</option>
-        </select>
-        <Input name="startDate" required type="date" aria-label="Fecha de inicio" />
-        <Input name="paymentDay" type="number" min={1} max={31} placeholder="Día de pago" aria-label="Día de pago" />
-        <Button type="submit">Crear suscripción</Button>
-        <label className="text-sm">
-          Importar Excel
-          <input className="mt-1 block w-full text-sm" type="file" accept=".xlsx" aria-label="Importar Excel de licencias" onChange={async (event) => {
-            const file = event.target.files?.[0];
-            if (!file) return;
-            const body = new FormData();
-            body.set('file', file);
-            try {
-              const response = await api.post('/api/software-licenses/import', body);
-              const report = response.data.data;
-              setNotice(`Importados ${report.products} productos, ${report.seats} asientos, ${report.assignments} asignaciones. Sin empleado: ${report.unmatchedEmployees.length}.`);
-              setRefresh((value) => value + 1);
-            } catch {
-              setError('No se pudo importar el archivo.');
-            }
-          }} />
-        </label>
-      </form>
       <section className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {KPI.map(([key, label]) => (
           <Card key={key}>

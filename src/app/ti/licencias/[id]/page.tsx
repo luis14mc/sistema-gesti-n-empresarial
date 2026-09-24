@@ -84,7 +84,7 @@ export default function SoftwareLicenseDetailPage() {
       <PageHeader
         title={detail?.product.name ?? 'Licencia'}
         description={detail ? `${detail.planName} · ${detail.counts.occupiedSeats} ocupados · ${detail.counts.availableSeats} disponibles · ${moneyLabel(detail.currency, detail.monthlyCost)} / mes` : 'Cargando'}
-        breadcrumbs={[{ label: 'Licencias', href: '/ti/licencias' }, { label: detail?.product.name ?? 'Detalle' }]}
+        breadcrumbs={[{ label: 'Activos', href: '/equipment' }, { label: 'Licencias', href: '/ti/licencias' }, { label: detail?.product.name ?? 'Detalle' }]}
       />
       {error ? <p className="mt-4 text-sm text-destructive">{error}</p> : null}
       {detail ? (

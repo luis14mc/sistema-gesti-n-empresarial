@@ -15,7 +15,7 @@ export function AuthPageShell({ children, className }: AuthPageShellProps) {
     <main
       id="main-content"
       className={cn(
-        'relative min-h-screen flex items-center justify-center bg-background p-4 sm:p-6',
+        'relative flex h-full min-h-0 items-center justify-center overflow-y-auto bg-background p-4 sm:p-6',
         className
       )}
     >

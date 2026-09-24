@@ -43,10 +43,18 @@ export const POST = withAuth(async (req: AuthenticatedRequest, { params }) => {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
   }
   const formData = await req.formData();
-  const file = formData.get('file');
+  const uploaded = formData.get('file');
   const tipoRaw = ((formData.get('tipo') as string) || 'OTHER').toUpperCase();
   const tipo = TIPO_MAP[tipoRaw] ?? 'OTHER';
-  if (!(file instanceof File)) return NextResponse.json({ error: 'Archivo requerido' }, { status: 400 });
+  if (!(uploaded instanceof Blob) || uploaded.size === 0) {
+    return NextResponse.json({ error: 'Archivo requerido' }, { status: 400 });
+  }
+  const uploadedBlob = uploaded as Blob;
+  const file = new File(
+    [uploadedBlob],
+    uploaded instanceof File ? uploaded.name : 'adjunto',
+    { type: uploadedBlob.type || 'application/octet-stream' },
+  );
   try {
     const documento = await uploadCompraOrdenDocumento(id, file, tipo, req.user!.userId, organizationId);
     return NextResponse.json({ documento }, { status: 201 });

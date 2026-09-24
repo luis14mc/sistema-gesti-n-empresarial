@@ -11,9 +11,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { getFirstErrorField, getFirstFormErrorMessage } from '@/lib/form-errors';
 import { UNIT_LABELS } from '@/lib/compras/orden/constants';
@@ -396,7 +393,7 @@ function CompraOrdenForm({
               <FieldError message={errors.supplierRtn?.message} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="supplierPhone">Teléfono *</Label>
+              <Label htmlFor="supplierPhone">Teléfono</Label>
               <Input
                 id="supplierPhone"
                 disabled
@@ -419,161 +416,178 @@ function CompraOrdenForm({
             </Button>
           )}
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>#</TableHead>
-                <TableHead>Descripción</TableHead>
-                <TableHead>Unidad</TableHead>
-                <TableHead>Cant.</TableHead>
-                <TableHead>P. unit.</TableHead>
-                <TableHead>Tratamiento tributario</TableHead>
-                <TableHead>Base</TableHead>
-                <TableHead>Impuesto</TableHead>
-                <TableHead>Total</TableHead>
-                {!readOnly && <TableHead />}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {fields.map((field, index) => {
-                const calculated = totales.items[index];
-                const lineBase = calculated?.taxableBase.toNumber() ?? 0;
-                const lineTax = calculated?.taxAmount.toNumber() ?? 0;
-                const lineTotal = calculated?.itemTotal.toNumber() ?? 0;
-                const itemErrors = errors.items?.[index];
-                const taxProfile = watchedItems[index]?.taxProfile ?? 'GENERAL_15';
+        <CardContent className="space-y-3">
+          <div className="hidden xl:grid xl:grid-cols-[2rem_minmax(0,1.5fr)_7rem_5.5rem_6.5rem_minmax(0,1.15fr)_6.5rem_6.5rem_7rem_2.25rem] xl:gap-x-2 xl:px-1 xl:text-xs xl:font-medium xl:text-muted-foreground">
+            <span>#</span>
+            <span>Descripción</span>
+            <span>Unidad</span>
+            <span>Cantidad</span>
+            <span>Precio unitario</span>
+            <span>Tratamiento tributario</span>
+            <span className="text-right">Base</span>
+            <span className="text-right">Impuesto</span>
+            <span className="text-right">Total</span>
+            <span />
+          </div>
+          {fields.map((field, index) => {
+            const calculated = totales.items[index];
+            const lineBase = calculated?.taxableBase.toNumber() ?? 0;
+            const lineTax = calculated?.taxAmount.toNumber() ?? 0;
+            const lineTotal = calculated?.itemTotal.toNumber() ?? 0;
+            const itemErrors = errors.items?.[index];
+            const taxProfile = watchedItems[index]?.taxProfile ?? 'GENERAL_15';
+            const controlClass = 'h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-2 text-sm';
 
-                return (
-                  <TableRow key={field.id}>
-                    <TableCell>{index + 1}</TableCell>
-                    <TableCell>
-                      <Input
-                        className={cn('h-8', itemErrors?.description && 'border-destructive')}
-                        disabled={readOnly}
-                        aria-invalid={Boolean(itemErrors?.description)}
-                        {...form.register(`items.${index}.description`)}
-                      />
-                      <FieldError message={itemErrors?.description?.message} />
-                    </TableCell>
-                    <TableCell>
-                      <select
-                        className="w-full rounded-md border px-2 py-1 text-sm h-8"
-                        disabled={readOnly}
-                        {...form.register(`items.${index}.unit`)}
-                      >
-                        {Object.entries(UNIT_LABELS).map(([k, v]) => (
-                          <option key={k} value={k}>{v}</option>
-                        ))}
-                      </select>
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        className={cn('h-8', itemErrors?.quantity && 'border-destructive')}
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        disabled={readOnly}
-                        aria-invalid={Boolean(itemErrors?.quantity)}
-                        {...form.register(`items.${index}.quantity`, {
-                          setValueAs: (value) =>
-                            value === '' || value === null || value === undefined
-                              ? 0
-                              : Number(value),
-                        })}
-                      />
-                      <FieldError message={itemErrors?.quantity?.message} />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        className={cn('h-8', itemErrors?.unitPrice && 'border-destructive')}
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        disabled={readOnly}
-                        aria-invalid={Boolean(itemErrors?.unitPrice)}
-                        {...form.register(`items.${index}.unitPrice`, {
-                          setValueAs: (value) =>
-                            value === '' || value === null || value === undefined
-                              ? 0
-                              : Number(value),
-                        })}
-                      />
-                      <FieldError message={itemErrors?.unitPrice?.message} />
-                    </TableCell>
-                    <TableCell>
-                      <select
-                        className="h-8 w-full min-w-40 rounded-md border px-2 text-sm"
-                        disabled={readOnly}
-                        aria-label={`Tratamiento tributario del ítem ${index + 1}`}
-                        {...form.register(`items.${index}.taxProfile`)}
-                      >
-                        {PURCHASE_TAX_PROFILE_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                      </select>
-                      {taxProfile === 'CUSTOM' ? (
-                        <div className="mt-2 space-y-1">
-                          {(watchedItems[index]?.customTaxes ?? []).map((tax, taxIndex) => (
-                            <div key={`${field.id}-tax-${taxIndex}`} className="grid grid-cols-[1fr_5rem] gap-1">
-                              <Input
-                                className="h-8"
-                                placeholder="Nombre"
-                                disabled={readOnly}
-                                {...form.register(`items.${index}.customTaxes.${taxIndex}.name`)}
-                              />
-                              <Input
-                                className="h-8"
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                max="100"
-                                disabled={readOnly}
-                                {...form.register(`items.${index}.customTaxes.${taxIndex}.rate`, { setValueAs: Number })}
-                              />
-                              <input type="hidden" {...form.register(`items.${index}.customTaxes.${taxIndex}.code`)} />
-                            </div>
-                          ))}
-                          {!readOnly && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                const current = form.getValues(`items.${index}.customTaxes`) ?? [];
-                                form.setValue(`items.${index}.customTaxes`, [
-                                  ...current,
-                                  { code: `CUSTOM_${current.length + 1}`, name: '', rate: 0 },
-                                ], { shouldDirty: true, shouldValidate: true });
-                              }}
-                            >
-                              Agregar impuesto
-                            </Button>
-                          )}
-                          <FieldError message={itemErrors?.customTaxes?.message} />
-                        </div>
-                      ) : null}
-                      {calculated?.taxes?.map((taxLine) => (
-                        <p key={taxLine.code} className="text-xs text-muted-foreground">{taxLine.name}</p>
+            return (
+              <div key={field.id} className="grid gap-3 rounded-lg border p-3 xl:grid-cols-[2rem_minmax(0,1.5fr)_7rem_5.5rem_6.5rem_minmax(0,1.15fr)_6.5rem_6.5rem_7rem_2.25rem] xl:items-start xl:gap-x-2 xl:rounded-none xl:border-0 xl:border-b xl:px-1 xl:py-3">
+                <div className="flex items-center justify-between xl:block xl:pt-2">
+                  <span className="text-sm font-medium tabular-nums xl:hidden">Ítem {index + 1}</span>
+                  <span className="hidden text-sm tabular-nums xl:inline">{index + 1}</span>
+                  {!readOnly && fields.length > 1 ? (
+                    <Button type="button" variant="ghost" size="sm" className="xl:hidden" onClick={() => remove(index)}>
+                      <Trash2 className="h-4 w-4" />
+                      Quitar
+                    </Button>
+                  ) : null}
+                </div>
+                <div className="space-y-1 xl:col-start-2">
+                  <span className="text-xs text-muted-foreground xl:sr-only">Descripción</span>
+                  <Input
+                    className={cn('h-9', itemErrors?.description && 'border-destructive')}
+                    disabled={readOnly}
+                    aria-invalid={Boolean(itemErrors?.description)}
+                    {...form.register(`items.${index}.description`)}
+                  />
+                  <FieldError message={itemErrors?.description?.message} />
+                </div>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:contents">
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground xl:sr-only">Unidad</span>
+                    <select className={controlClass} disabled={readOnly} {...form.register(`items.${index}.unit`)}>
+                      {Object.entries(UNIT_LABELS).map(([k, v]) => (
+                        <option key={k} value={k}>{v}</option>
                       ))}
-                    </TableCell>
-                    <TableCell className="text-right">{formatMoney(lineBase)}</TableCell>
-                    <TableCell className="text-right">{formatMoney(lineTax)}</TableCell>
-                    <TableCell className="text-right">{formatMoney(lineTotal)}</TableCell>
-                    {!readOnly && (
-                      <TableCell>
-                        {fields.length > 1 && (
-                          <Button type="button" variant="ghost" size="sm" onClick={() => remove(index)}>
-                            <Trash2 className="h-4 w-4" />
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground xl:sr-only">Cantidad</span>
+                    <Input
+                      className={cn('h-9 tabular-nums', itemErrors?.quantity && 'border-destructive')}
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      disabled={readOnly}
+                      aria-invalid={Boolean(itemErrors?.quantity)}
+                      {...form.register(`items.${index}.quantity`, {
+                        setValueAs: (value) =>
+                          value === '' || value === null || value === undefined
+                            ? 0
+                            : Number(value),
+                      })}
+                    />
+                    <FieldError message={itemErrors?.quantity?.message} />
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground xl:sr-only">Precio unitario</span>
+                    <Input
+                      className={cn('h-9 tabular-nums', itemErrors?.unitPrice && 'border-destructive')}
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      disabled={readOnly}
+                      aria-invalid={Boolean(itemErrors?.unitPrice)}
+                      {...form.register(`items.${index}.unitPrice`, {
+                        setValueAs: (value) =>
+                          value === '' || value === null || value === undefined
+                            ? 0
+                            : Number(value),
+                      })}
+                    />
+                    <FieldError message={itemErrors?.unitPrice?.message} />
+                  </div>
+                  <div className="col-span-2 space-y-1 sm:col-span-4 xl:col-span-1">
+                    <span className="text-xs text-muted-foreground xl:sr-only">Tratamiento tributario</span>
+                    <select
+                      className={controlClass}
+                      disabled={readOnly}
+                      aria-label={`Tratamiento tributario del ítem ${index + 1}`}
+                      {...form.register(`items.${index}.taxProfile`)}
+                    >
+                      {PURCHASE_TAX_PROFILE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                    {taxProfile === 'CUSTOM' ? (
+                      <div className="mt-2 space-y-2">
+                        {(watchedItems[index]?.customTaxes ?? []).map((tax, taxIndex) => (
+                          <div key={`${field.id}-tax-${taxIndex}`} className="flex gap-2">
+                            <Input
+                              className="h-8 min-w-0 flex-1"
+                              placeholder="Nombre del impuesto"
+                              disabled={readOnly}
+                              {...form.register(`items.${index}.customTaxes.${taxIndex}.name`)}
+                            />
+                            <Input
+                              className="h-8 w-20 tabular-nums"
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              max="100"
+                              aria-label="Tasa del impuesto"
+                              disabled={readOnly}
+                              {...form.register(`items.${index}.customTaxes.${taxIndex}.rate`, { setValueAs: Number })}
+                            />
+                            <input type="hidden" {...form.register(`items.${index}.customTaxes.${taxIndex}.code`)} />
+                          </div>
+                        ))}
+                        {!readOnly && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              const current = form.getValues(`items.${index}.customTaxes`) ?? [];
+                              form.setValue(`items.${index}.customTaxes`, [
+                                ...current,
+                                { code: `CUSTOM_${current.length + 1}`, name: '', rate: 0 },
+                              ], { shouldDirty: true, shouldValidate: true });
+                            }}
+                          >
+                            Agregar impuesto
                           </Button>
                         )}
-                      </TableCell>
-                    )}
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                        <FieldError message={itemErrors?.customTaxes?.message} />
+                      </div>
+                    ) : null}
+                    {calculated?.taxes?.map((taxLine) => (
+                      <p key={taxLine.code} className="text-xs leading-snug text-muted-foreground">{taxLine.name}</p>
+                    ))}
+                  </div>
+                </div>
+                <dl className="grid grid-cols-3 gap-2 rounded-md bg-muted/50 px-3 py-2 text-sm xl:contents">
+                  <div className="xl:pt-2 xl:text-right">
+                    <dt className="text-xs text-muted-foreground xl:sr-only">Base</dt>
+                    <dd className="tabular-nums">{formatMoney(lineBase)}</dd>
+                  </div>
+                  <div className="xl:pt-2 xl:text-right">
+                    <dt className="text-xs text-muted-foreground xl:sr-only">Impuesto</dt>
+                    <dd className="tabular-nums">{formatMoney(lineTax)}</dd>
+                  </div>
+                  <div className="xl:pt-2 xl:text-right">
+                    <dt className="text-xs text-muted-foreground xl:sr-only">Total</dt>
+                    <dd className="font-medium tabular-nums">{formatMoney(lineTotal)}</dd>
+                  </div>
+                </dl>
+                {!readOnly && fields.length > 1 ? (
+                  <div className="hidden xl:block">
+                    <Button type="button" variant="ghost" size="icon" aria-label={`Quitar ítem ${index + 1}`} onClick={() => remove(index)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : <span className="hidden xl:block" />}
+              </div>
+            );
+          })}
           <div className="mt-4 grid grid-cols-2 gap-x-8 gap-y-2 w-full max-w-sm ml-auto text-sm">
             <span>Subtotal:</span>
             <span className="text-right">{formatMoney(totales.subtotal.toNumber())}</span>

@@ -49,7 +49,7 @@ export default function LicenseAssignmentsPage() {
 
   return (
     <MainLayout>
-      <PageHeader title="Asignaciones" description="Personas del catálogo de empleados vinculadas a cada asiento." breadcrumbs={[{ label: 'Licencias', href: '/ti/licencias' }, { label: 'Asignaciones' }]} />
+      <PageHeader title="Asignaciones de licencias" description="Personas del catálogo de empleados vinculadas a cada asiento." breadcrumbs={[{ label: 'Activos', href: '/equipment' }, { label: 'Licencias', href: '/ti/licencias' }, { label: 'Asignaciones' }]} />
       <Input className="mt-6" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Empleado, software o correo" aria-label="Buscar asignaciones" />
       <div className="mt-4 grid gap-3">
         {rows.map((row, index) => (

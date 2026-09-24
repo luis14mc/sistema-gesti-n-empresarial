@@ -10,15 +10,20 @@ const ALLOWED_MIME = new Set([
 
 const MAX_SIZE = 10 * 1024 * 1024;
 
+const MIME_BY_EXTENSION: Record<string, string> = {
+  '.pdf': 'application/pdf',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+};
+
 export function validateOrdenDocumentUpload(file: { name: string; type: string; size: number }) {
   if (file.size > MAX_SIZE) throw new Error('El archivo excede el tamaño máximo de 10 MB');
-  if (!ALLOWED_MIME.has(file.type)) throw new Error('Tipo de archivo no permitido (PDF, JPG, PNG)');
   const ext = file.name.includes('.') ? file.name.slice(file.name.lastIndexOf('.')).toLowerCase() : '';
-  if (!['.pdf', '.jpg', '.jpeg', '.png'].includes(ext)) {
-    throw new Error('Extensión de archivo no permitida');
-  }
+  const mimeType = ALLOWED_MIME.has(file.type) ? file.type : MIME_BY_EXTENSION[ext];
+  if (!mimeType) throw new Error('Tipo de archivo no permitido (PDF, JPG, PNG)');
   const originalName = file.name.replace(/[^a-zA-Z0-9-_.\s]/g, '_');
-  return { originalName, mimeType: file.type };
+  return { originalName, mimeType };
 }
 
 export async function saveOrdenDocument(file: File, organizationId: string, ordenId: string) {

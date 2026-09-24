@@ -34,9 +34,22 @@ export const purchaseOrderDocumentCss = `
   .po-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 20px; padding: 1px 8px; }
   .po-field strong { color: #3f4b5c; }
   .po-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-  .po-table th { padding: 5px; color: white; background: var(--po-primary); border: 1px solid var(--po-primary); font-size: 8px; font-weight: 700; text-transform: uppercase; }
-  .po-table td { padding: 5px 6px; border: 1px solid #b8c2cf; vertical-align: top; }
-  .po-table th:nth-child(1) { width: 5%; } .po-table th:nth-child(2) { width: 28%; } .po-table th:nth-child(3) { width: 8%; } .po-table th:nth-child(4) { width: 10%; } .po-table th:nth-child(5) { width: 12%; } .po-table th:nth-child(6) { width: 12%; } .po-table th:nth-child(7) { width: 13%; } .po-table th:nth-child(8) { width: 12%; }
+  .po-table th { padding: 6px 4px; color: white; background: var(--po-primary); border: 1px solid var(--po-primary); font-size: 8px; font-weight: 700; line-height: 1.25; text-transform: uppercase; overflow-wrap: anywhere; }
+  .po-table td { padding: 6px 4px; border: 1px solid #b8c2cf; vertical-align: top; overflow-wrap: anywhere; }
+  .po-table-taxes th:nth-child(1), .po-table-taxes td:nth-child(1) { width: 5%; }
+  .po-table-taxes th:nth-child(2), .po-table-taxes td:nth-child(2) { width: 24%; }
+  .po-table-taxes th:nth-child(3), .po-table-taxes td:nth-child(3) { width: 9%; }
+  .po-table-taxes th:nth-child(4), .po-table-taxes td:nth-child(4) { width: 8%; }
+  .po-table-taxes th:nth-child(5), .po-table-taxes td:nth-child(5) { width: 13%; }
+  .po-table-taxes th:nth-child(6), .po-table-taxes td:nth-child(6) { width: 13%; }
+  .po-table-taxes th:nth-child(7), .po-table-taxes td:nth-child(7) { width: 16%; }
+  .po-table-taxes th:nth-child(8), .po-table-taxes td:nth-child(8) { width: 12%; }
+  .po-table:not(.po-table-taxes) th:nth-child(1), .po-table:not(.po-table-taxes) td:nth-child(1) { width: 6%; }
+  .po-table:not(.po-table-taxes) th:nth-child(2), .po-table:not(.po-table-taxes) td:nth-child(2) { width: 40%; }
+  .po-table:not(.po-table-taxes) th:nth-child(3), .po-table:not(.po-table-taxes) td:nth-child(3) { width: 12%; }
+  .po-table:not(.po-table-taxes) th:nth-child(4), .po-table:not(.po-table-taxes) td:nth-child(4) { width: 12%; }
+  .po-table:not(.po-table-taxes) th:nth-child(5), .po-table:not(.po-table-taxes) td:nth-child(5) { width: 15%; }
+  .po-table:not(.po-table-taxes) th:nth-child(6), .po-table:not(.po-table-taxes) td:nth-child(6) { width: 15%; }
   .po-tax-note { display: block; color: #526072; font-size: 8px; }
   .po-center { text-align: center; } .po-right { text-align: right; }
   .po-totals { width: 285px; margin: 7px 0 0 auto; border-collapse: collapse; }
@@ -112,7 +125,7 @@ export function PurchaseOrderDocument({ order, format, draft = false }: Purchase
         <section className="po-section">
            <h2 className="po-section-title">DETALLE DE PRODUCTO O SERVICIO</h2>
            {order.usesItemTaxes ? (
-             <table className="po-table"><thead><tr><th>#</th><th>Descripción</th><th>Unidad</th><th>Cantidad</th><th>Precio unitario</th><th>Base</th><th>Impuesto</th><th>Total</th></tr></thead><tbody>
+             <table className="po-table po-table-taxes"><thead><tr><th>#</th><th>Descripción</th><th>Unidad</th><th>Cantidad</th><th>Precio unitario</th><th>Base</th><th>Impuesto</th><th>Total</th></tr></thead><tbody>
                {order.items.map((item) => <tr key={item.itemNumber}><td className="po-center">{item.itemNumber}</td><td>{item.description}{item.taxes.length > 1 ? <span className="po-tax-note">{item.taxes.map((tax) => tax.name).join(' · ')}</span> : null}</td><td className="po-center">{UNIT_LABELS[item.unit]}</td><td className="po-right">{item.quantity}</td><td className="po-right">{money(item.unitPrice)}</td><td className="po-right">{money(item.taxableBase)}</td><td>{item.taxLabel}</td><td className="po-right">{money(item.itemTotal)}</td></tr>)}
              </tbody></table>
            ) : (
