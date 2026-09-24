@@ -5,6 +5,12 @@ const nextConfig = {
   async rewrites() {
     return [{ source: '/favicon.ico', destination: '/icon' }];
   },
+  async redirects() {
+    return [
+      { source: '/ti/licencias', destination: '/equipment/licencias', permanent: false },
+      { source: '/ti/licencias/:path*', destination: '/equipment/licencias/:path*', permanent: false },
+    ];
+  },
   // Cabeceras de seguridad aplicadas por src/middleware.ts en cada request:
   //   - Content-Security-Policy con nonce dinámico
   //   - X-Frame-Options DENY
