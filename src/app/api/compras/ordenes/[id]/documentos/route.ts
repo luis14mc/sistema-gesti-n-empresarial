@@ -49,9 +49,12 @@ export const POST = withAuth(async (req: AuthenticatedRequest, { params }) => {
   if (!(uploaded instanceof Blob) || uploaded.size === 0) {
     return NextResponse.json({ error: 'Archivo requerido' }, { status: 400 });
   }
-  const file = uploaded instanceof File
-    ? uploaded
-    : new File([uploaded], 'adjunto', { type: uploaded.type || 'application/octet-stream' });
+  const uploadedBlob = uploaded as Blob;
+  const file = new File(
+    [uploadedBlob],
+    uploaded instanceof File ? uploaded.name : 'adjunto',
+    { type: uploadedBlob.type || 'application/octet-stream' },
+  );
   try {
     const documento = await uploadCompraOrdenDocumento(id, file, tipo, req.user!.userId, organizationId);
     return NextResponse.json({ documento }, { status: 201 });

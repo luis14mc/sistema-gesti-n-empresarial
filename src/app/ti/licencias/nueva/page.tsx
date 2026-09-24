@@ -2,8 +2,9 @@
 
 import { useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm, useWatch, type Control, type FieldError } from 'react-hook-form';
+import { useForm, useWatch, type Control, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import MainLayout from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -11,13 +12,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { createSubscriptionSchema, type CreateSubscriptionInput } from '@/lib/software-licenses/schemas';
+import { createSubscriptionSchema } from '@/lib/software-licenses/schemas';
 import { billingEquivalents, formatPaymentSchedule } from '@/lib/software-licenses/billing';
 import { moneyLabel } from '@/components/software-licenses/labels';
 import { api } from '@/utils/api';
 import { cn } from '@/lib/utils';
 
-const DEFAULTS: CreateSubscriptionInput = {
+type SubscriptionFormInput = z.input<typeof createSubscriptionSchema>;
+type SubscriptionFormOutput = z.output<typeof createSubscriptionSchema>;
+
+const DEFAULTS: SubscriptionFormInput = {
   productName: '',
   vendor: '',
   category: '',
@@ -52,7 +56,7 @@ function Field({
   label: string;
   htmlFor: string;
   hint?: string;
-  error?: FieldError;
+  error?: FieldErrors<SubscriptionFormInput>[keyof SubscriptionFormInput];
   className?: string;
   children: ReactNode;
 }) {
@@ -66,21 +70,27 @@ function Field({
   );
 }
 
-function CostPreview({ control }: { control: Control<CreateSubscriptionInput> }) {
+function CostPreview({ control }: { control: Control<SubscriptionFormInput> }) {
   const cycle = useWatch({ control, name: 'billingCycle', defaultValue: 'MONTHLY' });
   const amount = useWatch({ control, name: 'billingAmount', defaultValue: 0 });
   const currency = useWatch({ control, name: 'currency', defaultValue: 'USD' });
   const paymentDay = useWatch({ control, name: 'paymentDay', defaultValue: null });
   const renewalDate = useWatch({ control, name: 'renewalDate', defaultValue: null });
   const seats = useWatch({ control, name: 'totalSeats', defaultValue: 1 });
-  const costs = billingEquivalents(cycle, Number.isFinite(amount) ? amount : 0);
-  const schedule = formatPaymentSchedule({ billingCycle: cycle, paymentDay, renewalDate });
+  const numericAmount = typeof amount === 'number' ? amount : Number(amount);
+  const numericSeats = typeof seats === 'number' ? seats : Number(seats);
+  const costs = billingEquivalents(cycle, Number.isFinite(numericAmount) ? numericAmount : 0);
+  const schedule = formatPaymentSchedule({
+    billingCycle: cycle,
+    paymentDay: typeof paymentDay === 'number' ? paymentDay : null,
+    renewalDate: typeof renewalDate === 'string' ? renewalDate : null,
+  });
 
   return (
     <dl className="grid gap-3 text-sm">
       <div className="flex items-baseline justify-between gap-3">
         <dt className="text-muted-foreground">Asientos vacíos</dt>
-        <dd className="font-medium tabular-nums">{Number.isFinite(seats) ? seats : 0}</dd>
+        <dd className="font-medium tabular-nums">{Number.isFinite(numericSeats) ? numericSeats : 0}</dd>
       </div>
       <div className="flex items-baseline justify-between gap-3">
         <dt className="text-muted-foreground">Equivalente mensual</dt>
@@ -103,7 +113,7 @@ const selectClass = 'h-9 w-full rounded-md border border-input bg-transparent px
 export default function RegisterLicensePage() {
   const router = useRouter();
   const [error, setError] = useState('');
-  const form = useForm<CreateSubscriptionInput>({
+  const form = useForm<SubscriptionFormInput, unknown, SubscriptionFormOutput>({
     resolver: zodResolver(createSubscriptionSchema),
     mode: 'onSubmit',
     reValidateMode: 'onBlur',
