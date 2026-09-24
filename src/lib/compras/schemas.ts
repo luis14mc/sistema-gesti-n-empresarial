@@ -45,7 +45,6 @@ export function validarOrdenParaGenerar(data: {
   if (!data.cargoSolicitante) errors.push('Cargo obligatorio');
   if (!data.proveedorNombre?.trim()) errors.push('Nombre del proveedor obligatorio');
   if (!data.proveedorIdentificacion?.trim()) errors.push('RTN del proveedor obligatorio');
-  if (!data.proveedorTelefono?.trim()) errors.push('Teléfono del proveedor obligatorio');
   if (!data.justificacionCompra || data.justificacionCompra.length < 10) {
     errors.push('Justificación obligatoria (mín. 10 caracteres)');
   }

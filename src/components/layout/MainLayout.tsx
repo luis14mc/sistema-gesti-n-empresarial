@@ -103,11 +103,12 @@ function SidebarNav({
       {filteredItems.map((item) => {
         const childItems = visibleChildren(role, item);
         const hasChildren = childItems.length > 0;
-        const childrenActive = hasChildren
-          ? childItems.some(
-              (child) => pathname === child.href || pathname.startsWith(child.href + '/')
-            )
-          : false;
+        const activeHref = hasChildren
+          ? childItems
+            .filter((child) => pathname === child.href || pathname.startsWith(`${child.href}/`))
+            .sort((a, b) => b.href.length - a.href.length)[0]?.href
+          : undefined;
+        const childrenActive = Boolean(activeHref);
         const selfActive = !hasChildren
           && (pathname === item.href || pathname.startsWith(item.href + '/'));
         const isParentActive = childrenActive;
@@ -154,8 +155,7 @@ function SidebarNav({
               {isExpanded && (
                 <div className="ml-4 flex flex-col gap-0.5 border-l border-border/60 pl-2">
                   {childItems.map((child) => {
-                    const isChildActive =
-                      pathname === child.href || pathname.startsWith(child.href + '/');
+                    const isChildActive = child.href === activeHref;
                     return (
                       <Link
                         key={child.href}
@@ -277,7 +277,7 @@ export default function MainLayout({ children, user: propUser }: MainLayoutProps
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-dvh max-h-dvh overflow-hidden bg-background">
       {/* ====== SIDEBAR DESKTOP ====== */}
       <aside
         className={cn(
@@ -348,7 +348,7 @@ export default function MainLayout({ children, user: propUser }: MainLayoutProps
       </aside>
 
       {/* ====== MAIN CONTENT ====== */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <header className="flex items-center justify-between h-16 px-4 sm:px-6 border-b border-border bg-card shrink-0">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
@@ -414,7 +414,7 @@ export default function MainLayout({ children, user: propUser }: MainLayoutProps
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <main id="main-content" className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-4 sm:p-6 lg:p-8">
           {children}
         </main>
       </div>

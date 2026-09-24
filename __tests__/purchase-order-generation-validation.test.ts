@@ -67,9 +67,14 @@ function validOrder(): PurchaseOrderWithItems {
 }
 
 describe('validatePurchaseOrderForGeneration', () => {
+  it('allows a supplier without a phone number', () => {
+    const order = validOrder();
+    order.supplierPhone = '';
+    expect(validatePurchaseOrderForGeneration(order).some((error) => error.field === 'proveedorTelefono')).toBe(false);
+  });
+
   it.each([
     ['supplier RTN', (order: PurchaseOrderWithItems) => { order.supplierRtn = ''; }, 'proveedorRtn'],
-    ['supplier phone', (order: PurchaseOrderWithItems) => { order.supplierPhone = ''; }, 'proveedorTelefono'],
     ['item description', (order: PurchaseOrderWithItems) => { order.items[0].description = ''; }, 'items.0.descripcion'],
     ['positive quantity', (order: PurchaseOrderWithItems) => { order.items[0].quantity = new Prisma.Decimal(0); }, 'items.0.cantidad'],
     ['valid unit price', (order: PurchaseOrderWithItems) => { order.items[0].unitPrice = new Prisma.Decimal(-1); }, 'items.0.precioUnitario'],

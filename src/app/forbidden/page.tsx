@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export default function ForbiddenPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-6">
+    <main className="flex h-full items-center justify-center overflow-y-auto bg-background px-6">
       <section className="w-full max-w-lg rounded-xl border border-border bg-card p-8 text-center shadow-sm">
         <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">403</p>
         <h1 className="mt-2 text-2xl font-semibold text-foreground">Acceso denegado</h1>

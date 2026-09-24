@@ -110,7 +110,7 @@ export const createPurchaseOrderSchema = z.object({
     .trim()
     .min(1, 'RTN del proveedor requerido')
     .refine((value) => validateRtn(value), 'El RTN debe tener 14 dígitos'),
-  supplierPhone: z.string().trim().min(7, 'Teléfono del proveedor requerido'),
+  supplierPhone: z.string().trim().default(''),
   purchaseJustification: z.string().trim().min(10, 'Justificación requerida (mín. 10 caracteres)'),
   discountType: discountTypeSchema,
   discountValue: z.number({ message: 'Descuento inválido' }).min(0, 'Descuento no puede ser negativo'),

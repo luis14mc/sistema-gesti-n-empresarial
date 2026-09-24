@@ -19,9 +19,11 @@ export function validatePurchaseDocumentFile(
 ): string | null {
   if (!file || file.size === 0) return 'El archivo está vacío';
   if (file.size > MAX_DOCUMENT_SIZE) return 'El archivo excede el tamaño máximo de 10 MB';
-  if (!ALLOWED_MIME.has(file.type)) return 'Tipo de archivo no permitido (PDF, JPG, PNG)';
   const ext = getFileExtension(file.name);
   if (!ALLOWED_EXTENSIONS.has(ext)) return 'Extensión de archivo no permitida';
+  if (file.type && file.type !== 'application/octet-stream' && !ALLOWED_MIME.has(file.type)) {
+    return 'Tipo de archivo no permitido (PDF, JPG, PNG)';
+  }
   const duplicate = existing.some(
     (item) => item.file.name === file.name && item.file.size === file.size
   );
