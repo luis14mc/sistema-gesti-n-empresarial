@@ -39,7 +39,11 @@ export async function parseEquipmentWorkbook(buffer: Buffer): Promise<{
   errors: EquipmentImportError[];
 }> {
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(buffer as unknown as Parameters<typeof workbook.xlsx.load>[0]);
+  // Pass a detached byte view to ExcelJS. This avoids Buffer interop issues
+  // in the Next standalone server while preserving the exact uploaded bytes.
+  const bytes = new Uint8Array(buffer.byteLength);
+  bytes.set(buffer);
+  await workbook.xlsx.load(bytes as unknown as Parameters<typeof workbook.xlsx.load>[0]);
   const sheet = workbook.getWorksheet('Inventario');
   if (!sheet) throw new Error('MISSING_INVENTORY_WORKSHEET');
   const headers = EQUIPMENT_IMPORT_HEADERS.map((_, index) => textValue(sheet.getRow(1).getCell(index + 1).value));
