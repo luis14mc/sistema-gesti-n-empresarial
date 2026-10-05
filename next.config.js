@@ -2,6 +2,11 @@
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
+  // ExcelJS relies on Node.js module resolution and JSZip internals that do
+  // not survive Next's server bundling reliably in the standalone runtime.
+  // Keep it external so the production server executes the package as a
+  // normal Node dependency.
+  serverExternalPackages: ['exceljs'],
   async rewrites() {
     return [{ source: '/favicon.ico', destination: '/icon' }];
   },
