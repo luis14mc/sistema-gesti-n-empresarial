@@ -91,6 +91,16 @@ export async function inspectXlsxBuffer(buffer: Buffer): Promise<void> {
     reject('STRICT_OOXML_NOT_SUPPORTED');
   }
 
+  for (const path of Object.keys(zip.files)) {
+    if (path !== '_rels/.rels' && !path.startsWith('xl/_rels/')) continue;
+    const relsEntry = zip.file(path);
+    if (!relsEntry) continue;
+    const relsXml = await relsEntry.async('string');
+    if (STRICT_OOXML.test(relsXml)) {
+      reject('STRICT_OOXML_NOT_SUPPORTED');
+    }
+  }
+
   const workbookXmlEntry = zip.file('xl/workbook.xml');
   if (workbookXmlEntry) {
     const workbookXml = await workbookXmlEntry.async('string');
