@@ -117,6 +117,9 @@ function fakePrisma(count: number, rows: unknown[], captured: Captured) {
         captured.where = where;
         return count;
       },
+      aggregate: async () => ({
+        _sum: { subtotal: 0, discount: 0, tax: 0, total: rows.length ? 1035 : 0 },
+      }),
       findMany: async ({ where }: { where: Record<string, unknown> }) => {
         captured.where = where;
         return rows;
@@ -133,7 +136,7 @@ describe('canonical purchase-order export builder', () => {
   };
 
   it('4 & purchase-source. reads CompraOrden (never CompraSolicitud) — source contract', () => {
-    const src = read('src/lib/compras/reportes/purchase-order-export.ts');
+    const src = read('src/lib/reportes/purchase-order-summary-export.ts');
     expect(src).toMatch(/prisma\.compraOrden\.(count|findMany)/);
     expect(src).not.toMatch(/compraSolicitud/);
   });

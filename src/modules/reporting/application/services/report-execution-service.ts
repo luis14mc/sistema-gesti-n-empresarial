@@ -33,6 +33,13 @@ export interface ReportExecutionRepository {
     filters: ReportFilters;
     requestId: string;
   }): Promise<ReportExecutionRecord>;
+  complete(input: {
+    id: string;
+    organizationId: string;
+    status: Extract<ReportExecutionStatus, 'COMPLETED' | 'FAILED'>;
+    rowCount?: number | null;
+    durationMs?: number | null;
+  }): Promise<void>;
 }
 
 export class ReportExecutionService {
@@ -72,6 +79,24 @@ export class ReportExecutionService {
       format: input.format,
       filters,
       requestId: input.requestId,
+    });
+  }
+
+  async complete(
+    context: OrganizationContext,
+    input: {
+      executionId: string;
+      status: Extract<ReportExecutionStatus, 'COMPLETED' | 'FAILED'>;
+      rowCount?: number | null;
+      durationMs?: number | null;
+    },
+  ): Promise<void> {
+    await this.repository.complete({
+      id: input.executionId,
+      organizationId: context.organizationId,
+      status: input.status,
+      rowCount: input.rowCount,
+      durationMs: input.durationMs,
     });
   }
 }
