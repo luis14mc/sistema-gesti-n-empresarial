@@ -2,6 +2,7 @@ import { ZodError } from 'zod';
 import { apiFailure } from '@/platform/api/response';
 import { authorizationFailure } from '@/platform/security/authorization/http';
 import { isOrganizationContextError } from '@/modules/organizations/application/context';
+import { XLSX_WORKBOOK_USER_MESSAGES } from '@/platform/excel/inspect-xlsx';
 
 const MESSAGES: Record<string, string> = {
   SUBSCRIPTION_NOT_FOUND: 'La suscripción no existe en esta organización.',
@@ -16,6 +17,7 @@ const MESSAGES: Record<string, string> = {
   CROSS_ORGANIZATION_ASSIGNMENT: 'El empleado pertenece a otra organización.',
   ASSIGNMENT_NOT_FOUND: 'La asignación no existe o ya fue cerrada.',
   MISSING_SOFTWARE_COLUMN: 'El archivo debe incluir la columna Software.',
+  ...XLSX_WORKBOOK_USER_MESSAGES,
 };
 
 export function licenseFailure(error: unknown, requestId: string) {
