@@ -3,6 +3,18 @@ set -eu
 
 echo "[railway-predeploy] Starting PostgreSQL/Prisma pre-deploy checks"
 
+# Required Railway service variables (set in the Railway dashboard for this service):
+#   DATABASE_URL          — PostgreSQL connection string (Railway plugin or external)
+#   APP_ENV               — staging | production
+#   APP_URL               — public HTTPS URL of the service
+#   JWT_SECRET            — at least 32 characters
+#   COOKIE_SECURE=true
+#   STORAGE_DRIVER=s3
+#   S3_BUCKET, AWS_REGION — object storage for uploads/PDFs
+#   PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium  — when PDF_ENGINE_REQUIRED
+#   PUPPETEER_DISABLE_SANDBOX=true               — Chromium sandbox in non-root containers
+# Optional: DIRECT_URL, PDF_ENGINE_REQUIRED, SEED_CNI_MASTER_DATA, etc. (see docs/deployment/environments.md)
+
 if [ -z "${DATABASE_URL:-}" ]; then
   echo "[railway-predeploy] ERROR: DATABASE_URL is not defined"
   exit 1

@@ -26,7 +26,8 @@ Variables obligatorias en staging/producción:
 - `STORAGE_DRIVER=s3`
 - `S3_BUCKET`
 - `AWS_REGION`
-- `PUPPETEER_EXECUTABLE_PATH` cuando el motor PDF es obligatorio (`/opt/chrome/chrome` en la imagen)
+- `PUPPETEER_EXECUTABLE_PATH` cuando el motor PDF es obligatorio (`/usr/bin/chromium` en la imagen Docker/Railway)
+- `PUPPETEER_DISABLE_SANDBOX=true` en Railway y contenedores no root (Chromium falla con sandbox sin privilegios setuid; el runtime también desactiva el sandbox automáticamente salvo `PUPPETEER_DISABLE_SANDBOX=false` explícito)
 
 ECS debe obtener credenciales mediante IAM task roles. `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` y `AWS_SESSION_TOKEN` se reservan para emuladores o pruebas locales.
 

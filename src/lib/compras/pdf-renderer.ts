@@ -1,5 +1,5 @@
 import puppeteer, { type Browser } from 'puppeteer';
-import { browserLaunchArguments, resolveBrowserExecutablePath } from '@/platform/pdf/browser';
+import { browserLaunchArguments, logPdfBrowserNotAvailable, resolveBrowserExecutablePath } from '@/platform/pdf/browser';
 
 export const PDF_RENDER_TIMEOUT_MS = 30_000;
 
@@ -71,6 +71,7 @@ export async function renderHtmlToPdf(html: string): Promise<Buffer> {
   } catch (error) {
     if (isMissingBrowserError(error)) throw error;
     if (error instanceof Error && error.message.startsWith('PDF_RENDER_TIMEOUT_')) throw error;
+    logPdfBrowserNotAvailable('PURCHASE ORDER', error);
     throw new Error('PDF_BROWSER_NOT_AVAILABLE', { cause: error });
   } finally {
     if (browser) {

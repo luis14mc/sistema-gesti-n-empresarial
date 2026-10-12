@@ -1,6 +1,7 @@
 import type { EquipmentDisposal, Equipment, Organization } from '@prisma/client';
 import { DisposalDocument, type DisposalDocumentData } from '../presentation/components/DisposalDocument';
 import { renderHtmlToPdf } from '@/lib/compras/pdf-renderer';
+import { logPdfBrowserNotAvailable } from '@/platform/pdf/browser';
 import { getStorage } from '@/lib/storage';
 import { prisma } from '@/lib/prisma';
 
@@ -53,7 +54,15 @@ export async function generateAndStoreDisposalPdf(disposal: DisposalForPdf, requ
     throw new Error('DISPOSAL_RENDER_FAILED', { cause: error });
   }
   const html = `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;padding:0;background:#fff;font-family:Aptos,"Segoe UI",sans-serif}*{box-sizing:border-box}@page{size:Letter;margin:12mm}</style></head><body>${markup}</body></html>`;
-  const buffer = await renderHtmlToPdf(html);
+  let buffer: Buffer;
+  try {
+    buffer = await renderHtmlToPdf(html);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'PDF_BROWSER_NOT_AVAILABLE') {
+      logPdfBrowserNotAvailable('equipment-disposal', error.cause ?? error);
+    }
+    throw error;
+  }
   if (!buffer.length) throw new Error('EMPTY_DISPOSAL_PDF');
   try {
     const stored = await getStorage().put({

@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { getStorage } from '@/lib/storage';
 import { getServerEnvironment } from '@/platform/config/env';
-import { checkBrowserAvailability } from '@/platform/pdf/browser';
+import { probePdfBrowserOnce } from '@/platform/pdf/browser';
 import type { ReadinessDependencies } from './health';
 import { readdir } from 'fs/promises';
 import path from 'path';
@@ -38,7 +38,7 @@ export function defaultReadinessDependencies(): ReadinessDependencies {
       const storage = getStorage();
       if (storage.ping) await storage.ping();
     },
-    pdfEngine: checkBrowserAvailability,
+    pdfEngine: probePdfBrowserOnce,
     timeoutMs: environment.HEALTH_CHECK_TIMEOUT_MS,
     pdfRequired: environment.PDF_ENGINE_REQUIRED,
   };

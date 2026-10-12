@@ -23,8 +23,21 @@ describe('deployment health foundation', () => {
       configuration: 'ok',
       database: 'unavailable',
       storage: 'ok',
-      pdfEngine: 'ok',
     });
+    expect(result.components.pdf).toBe('ok');
+  });
+
+  it('keeps readiness ready when only the PDF probe fails', async () => {
+    const result = await runReadinessChecks({
+      configuration: vi.fn(),
+      database: vi.fn(),
+      storage: vi.fn(),
+      pdfEngine: vi.fn().mockRejectedValue(new Error('sandbox denied')),
+      timeoutMs: 100,
+      pdfRequired: true,
+    });
+    expect(result.status).toBe('ready');
+    expect(result.components.pdf).toBe('degraded');
   });
 
   it('does not expose dependency error messages', async () => {
