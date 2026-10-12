@@ -3,6 +3,7 @@
 import MainLayout from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import Link from 'next/link';
 import { useComprasReportes } from '@/hooks/useCompras';
 import { useAuth } from '@/hooks/useAuth';
 import { COMPRA_ESTADO_LABELS } from '@/lib/compras/constants';
@@ -26,6 +27,15 @@ export default function ComprasReportesPage() {
   return (
     <MainLayout>
       <PageHeader title="Reportes de compras" description={`Año ${exportYear}`} />
+
+      <p className="mb-4 text-sm">
+        <Link
+          href="/reportes"
+          className="font-medium text-primary underline-offset-4 hover:underline"
+        >
+          Ver todos los reportes
+        </Link>
+      </p>
 
       <div className="mb-4 flex flex-wrap gap-2">
         <a

@@ -71,7 +71,7 @@ describe('navigation reconciliation', () => {
 
   it('exposes the expected ACTIVE modules (top-level or grouped)', () => {
     const modules = allModules();
-    for (const m of ['dashboard', 'oficios', 'equipment', 'employees', 'assignments', 'purchases', 'users', 'audit-records', 'settings'] as Module[]) {
+    for (const m of ['dashboard', 'oficios', 'equipment', 'employees', 'assignments', 'purchases', 'users', 'reports', 'audit-records', 'settings'] as Module[]) {
       expect(modules).toContain(m);
     }
   });
