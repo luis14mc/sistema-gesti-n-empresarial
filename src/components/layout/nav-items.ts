@@ -119,6 +119,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: ClipboardCheck,
     module: 'audits',
     children: [
+      { label: 'Reportes', href: '/reportes', module: 'reports' },
       { label: 'Auditoría institucional', href: '/audits', module: 'audits' },
       { label: 'Auditoría del sistema', href: '/audit/logs', module: 'audit-records' },
     ],
