@@ -25,8 +25,10 @@ Variables obligatorias en staging/producción:
 - `COOKIE_SECURE=true`
 - `STORAGE_DRIVER=s3`
 - `S3_BUCKET`
-- `AWS_REGION`
-- `PUPPETEER_EXECUTABLE_PATH` cuando el motor PDF es obligatorio (`/opt/chrome/chrome` en la imagen)
+- `AWS_REGION` (`auto` con Cloudflare R2)
+- `S3_ENDPOINT` (solo hosts permitidos, p. ej. `https://<account>.r2.cloudflarestorage.com` en Railway)
+- `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (obligatorios con R2; ver [railway.md](./railway.md))
+- `PUPPETEER_EXECUTABLE_PATH` cuando el motor PDF es obligatorio (`/usr/bin/chromium` en la imagen Docker/Railway)
 
 ECS debe obtener credenciales mediante IAM task roles. `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` y `AWS_SESSION_TOKEN` se reservan para emuladores o pruebas locales.
 

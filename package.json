@@ -36,6 +36,7 @@
     "prisma:seed:railway": "tsx prisma/seed-railway.ts",
     "data:export:cni": "tsx scripts/export-master-data-from-xlsx.ts",
     "compras:repair-drafts": "tsx scripts/repair-purchase-order-drafts.ts",
+    "storage:smoke": "tsx scripts/storage-smoke.ts",
     "organizations:backfill": "tsx scripts/backfill-default-organization.ts",
     "saas:bootstrap": "tsx scripts/bootstrap-default-organization.ts",
     "saas:check": "tsx scripts/check-tenant-bootstrap.ts",

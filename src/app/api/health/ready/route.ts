@@ -16,6 +16,7 @@ export async function GET() {
     return NextResponse.json({
       status: 'not_ready',
       checks: { configuration: 'unavailable' },
+      components: { storage: 'degraded' },
       timestamp: new Date().toISOString(),
     }, {
       status: 503,

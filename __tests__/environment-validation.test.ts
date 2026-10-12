@@ -35,7 +35,7 @@ describe('production environment validation', () => {
     })).toThrow(/COOKIE_SECURE|STORAGE_DRIVER/);
   });
 
-  it('uses task-role credentials in protected environments', () => {
+  it('uses task-role credentials in protected environments without S3_ENDPOINT', () => {
     const environment = validateStorageEnvironment(productionEnvironment);
     expect(environment).toMatchObject({
       APP_ENV: 'production',
@@ -47,6 +47,35 @@ describe('production environment validation', () => {
       AWS_ACCESS_KEY_ID: 'static-key',
       AWS_SECRET_ACCESS_KEY: 'static-secret',
     })).toThrow(/AWS_ACCESS_KEY_ID/);
+  });
+
+  it('allows Cloudflare R2 endpoint with static credentials in production', () => {
+    const environment = validateStorageEnvironment({
+      ...productionEnvironment,
+      S3_ENDPOINT: 'https://abc123.r2.cloudflarestorage.com',
+      AWS_REGION: 'auto',
+      AWS_ACCESS_KEY_ID: 'r2-access-key',
+      AWS_SECRET_ACCESS_KEY: 'r2-secret-key',
+    });
+    expect(environment.S3_ENDPOINT).toBe('https://abc123.r2.cloudflarestorage.com');
+    expect(environment.AWS_ACCESS_KEY_ID).toBe('r2-access-key');
+  });
+
+  it('rejects disallowed S3 endpoints in production', () => {
+    expect(() => validateStorageEnvironment({
+      ...productionEnvironment,
+      S3_ENDPOINT: 'https://minio.internal:9000',
+      AWS_ACCESS_KEY_ID: 'key',
+      AWS_SECRET_ACCESS_KEY: 'secret',
+    })).toThrow(/S3_ENDPOINT/);
+  });
+
+  it('requires R2 access keys when S3_ENDPOINT is set in production', () => {
+    expect(() => validateStorageEnvironment({
+      ...productionEnvironment,
+      S3_ENDPOINT: 'https://abc123.r2.cloudflarestorage.com',
+      AWS_REGION: 'auto',
+    })).toThrow(/AWS_ACCESS_KEY_ID|Cloudflare R2/);
   });
 
   it('keeps public configuration separate from server secrets', () => {

@@ -22,9 +22,22 @@ describe('deployment health foundation', () => {
     expect(result.checks).toEqual({
       configuration: 'ok',
       database: 'unavailable',
-      storage: 'ok',
       pdfEngine: 'ok',
     });
+    expect(result.components.storage).toBe('ok');
+  });
+
+  it('keeps readiness ready when only storage HeadBucket fails', async () => {
+    const result = await runReadinessChecks({
+      configuration: vi.fn(),
+      database: vi.fn(),
+      storage: vi.fn().mockRejectedValue(new Error('CredentialsProviderError')),
+      pdfEngine: vi.fn(),
+      timeoutMs: 100,
+      pdfRequired: false,
+    });
+    expect(result.status).toBe('ready');
+    expect(result.components.storage).toBe('degraded');
   });
 
   it('does not expose dependency error messages', async () => {
