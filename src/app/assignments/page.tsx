@@ -19,17 +19,18 @@ import {
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { Plus, Search, Filter, RotateCcw, ArrowLeftRight, FileText, Printer } from 'lucide-react';
+import { Plus, Search, Filter, RotateCcw, ArrowLeftRight, Printer } from 'lucide-react';
 import { useAssignments } from '@/hooks/useAssignments';
-import { useEquipment } from '@/hooks/useEquipment';
 import { useEmployees } from '@/hooks/useEmployees';
+import { AvailableEquipmentCombobox } from '@/components/equipment/AvailableEquipmentCombobox';
+import { EquipmentSelectedSummary } from '@/components/equipment/EquipmentSelectedSummary';
 import { useAuth } from '@/hooks/useAuth';
 import { canAccess } from '@/lib/permissions';
 import { sileo } from 'sileo';
 import { formatDate } from '@/utils/helpers';
 import { ReturnNoteContent } from '@/components/equipment/ReturnNoteContent';
 import { EquipmentFileUpload } from '@/components/equipment/EquipmentFileUpload';
-import type { Role, EquipmentAssignment, EquipmentStatus } from '@/types';
+import type { Role, Equipment, EquipmentAssignment, EquipmentStatus } from '@/types';
 
 const statusColors: Record<string, string> = {
     ACTIVE: 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-200 dark:border-green-900',
@@ -85,8 +86,7 @@ export default function AssignmentsPage() {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('ALL');
     const { assignments, isLoading, createAssignment, isCreating, returnAssignment, isReturning, swapEquipment, isSwapping, attachDocument } = useAssignments({ search: search || undefined, status: statusFilter === 'ALL' ? undefined : statusFilter });
-    const { equipment } = useEquipment({ pageSize: 200 });
-    const { employees } = useEmployees({ isActive: true, pageSize: 200 });
+    const { employees } = useEmployees({ isActive: true, pageSize: 100 });
     const [dialogOpen, setDialogOpen] = useState(false);
     const [returnDialogOpen, setReturnDialogOpen] = useState(false);
     const [swapDialogOpen, setSwapDialogOpen] = useState(false);
@@ -103,8 +103,6 @@ export default function AssignmentsPage() {
     const role = (user?.role ?? 'USER') as Role;
     const canCreate = canAccess(role, 'assignments', 'create');
 
-    const availableEquipment = (equipment ?? []).filter((e) => e.status === 'AVAILABLE');
-
     const filtered = assignments.filter((a: EquipmentAssignment) => {
         const name = getAssigneeName(a);
         const eqName = a.equipment?.name ?? '';
@@ -117,7 +115,7 @@ export default function AssignmentsPage() {
     });
 
     const [form, setForm] = useState({
-        equipmentId: '',
+        equipment: null as Equipment | null,
         employeeId: '',
         deliveryReason: '',
         condition: '',
@@ -127,21 +125,21 @@ export default function AssignmentsPage() {
 
     const [swapForm, setSwapForm] = useState({
         oldAssignmentId: '',
-        newEquipmentId: '',
+        newEquipment: null as Equipment | null,
         returnReason: 'Cambio de equipo',
         returnCondition: 'BUENO',
         assignmentNotes: '',
     });
 
     const selectedEmployee = employees.find((e) => e.id === form.employeeId);
-    const selectedEquipment = equipment.find((e) => e.id === form.equipmentId);
     const activeAssignments = assignments.filter((a) => a.status === 'ACTIVE');
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!form.equipment) return;
         createAssignment(
             {
-                equipmentId: form.equipmentId,
+                equipmentId: form.equipment.id,
                 employeeId: form.employeeId,
                 deliveryReason: form.deliveryReason || undefined,
                 condition: form.condition || undefined,
@@ -152,7 +150,7 @@ export default function AssignmentsPage() {
                 onSuccess: () => {
                     sileo.success({ title: 'Asignación creada' });
                     setDialogOpen(false);
-                    setForm({ equipmentId: '', employeeId: '', deliveryReason: '', condition: '', accessories: '', notes: '' });
+                    setForm({ equipment: null, employeeId: '', deliveryReason: '', condition: '', accessories: '', notes: '' });
                 },
                 onError: () => sileo.error({ title: 'Error', description: 'No se pudo crear la asignación' }),
             }
@@ -210,10 +208,11 @@ export default function AssignmentsPage() {
 
     const handleSwap = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!swapForm.newEquipment) return;
         try {
             await swapEquipment({
                 oldAssignmentId: swapForm.oldAssignmentId,
-                newEquipmentId: swapForm.newEquipmentId,
+                newEquipmentId: swapForm.newEquipment.id,
                 returnReason: swapForm.returnReason,
                 returnCondition: swapForm.returnCondition,
                 assignmentNotes: swapForm.assignmentNotes,
@@ -223,7 +222,7 @@ export default function AssignmentsPage() {
             setSwapDialogOpen(false);
             setSwapForm({
                 oldAssignmentId: '',
-                newEquipmentId: '',
+                newEquipment: null,
                 returnReason: 'Cambio de equipo',
                 returnCondition: 'BUENO',
                 assignmentNotes: '',
@@ -262,30 +261,15 @@ export default function AssignmentsPage() {
                                             </SelectContent>
                                         </Select>
                                      </div>
-                                     <div className="space-y-2">
-                                        <Label>Equipo nuevo</Label>
-                                        <Select value={swapForm.newEquipmentId} onValueChange={(v) => setSwapForm((f) => ({ ...f, newEquipmentId: v }))}>
-                                            <SelectTrigger><SelectValue placeholder="Equipo disponible" /></SelectTrigger>
-                                            <SelectContent>
-                                                {availableEquipment.map((eq) => (
-                                                    <SelectItem key={eq.id} value={eq.id}>{eq.code} — {eq.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                         </Select>
-                                     </div>
-                                     {selectedEquipment && (
-                                         <div className="grid grid-cols-2 gap-2 rounded-md bg-muted/40 p-3 text-xs text-muted-foreground">
-                                             <span>Inventario: <strong>{selectedEquipment.inventoryCode}</strong></span>
-                                             <span>Marca / Modelo: <strong>{selectedEquipment.brand} {selectedEquipment.model}</strong></span>
-                                             <span>Serie: <strong>{selectedEquipment.serialNumber ?? '—'}</strong></span>
-                                             <span>RAM: <strong>{selectedEquipment.ram ?? '—'}</strong></span>
-                                             <span>Procesador: <strong>{selectedEquipment.processor ?? '—'}</strong></span>
-                                             <span>Almacenamiento: <strong>{selectedEquipment.storage ?? '—'}</strong></span>
-                                             <span>Sistema operativo: <strong>{selectedEquipment.os ?? '—'}</strong></span>
-                                             <span>Accesorios: <strong>{selectedEquipment.includedAccessories ?? '—'}</strong></span>
-                                             <span>Software: <strong>{selectedEquipment.installedSoftware ?? '—'}</strong></span>
-                                         </div>
-                                     )}
+                                     <AvailableEquipmentCombobox
+                                        label="Equipo nuevo"
+                                        value={swapForm.newEquipment}
+                                        onChange={(equipment) => setSwapForm((f) => ({ ...f, newEquipment: equipment }))}
+                                        enabled={swapDialogOpen}
+                                     />
+                                     {swapForm.newEquipment ? (
+                                         <EquipmentSelectedSummary equipment={swapForm.newEquipment} />
+                                     ) : null}
                                      <div className="space-y-2">
                                          <Label>Fecha de entrega</Label>
                                          <Input type="date" defaultValue={new Date().toISOString().slice(0, 10)} disabled />
@@ -306,7 +290,7 @@ export default function AssignmentsPage() {
                                         <Input value={swapForm.assignmentNotes} onChange={(e) => setSwapForm((f) => ({ ...f, assignmentNotes: e.target.value }))} />
                                     </div>
                                     <DialogFooter>
-                                        <Button type="submit" disabled={isSwapping || !swapForm.oldAssignmentId || !swapForm.newEquipmentId}>
+                                        <Button type="submit" disabled={isSwapping || !swapForm.oldAssignmentId || !swapForm.newEquipment}>
                                             {isSwapping ? 'Procesando...' : 'Confirmar cambio'}
                                         </Button>
                                     </DialogFooter>
@@ -325,23 +309,13 @@ export default function AssignmentsPage() {
                                     </DialogDescription>
                                 </DialogHeader>
                                 <form onSubmit={handleCreate} className="space-y-4">
-                                    <div className="space-y-2">
-                                        <Label>Equipo</Label>
-                                        <Select value={form.equipmentId} onValueChange={(v) => setForm((f) => ({ ...f, equipmentId: v }))}>
-                                            <SelectTrigger><SelectValue placeholder="Selecciona un equipo" /></SelectTrigger>
-                                            <SelectContent>
-                                                {availableEquipment.length === 0 ? (
-                                                    <SelectItem value="none" disabled>No hay equipos disponibles</SelectItem>
-                                                ) : (
-                                                    availableEquipment.map((eq) => (
-                                                        <SelectItem key={eq.id} value={eq.id}>
-                                                            {eq.code} — {eq.name}
-                                                        </SelectItem>
-                                                    ))
-                                                )}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                                    <AvailableEquipmentCombobox
+                                        id="assignment-equipment"
+                                        value={form.equipment}
+                                        onChange={(equipment) => setForm((f) => ({ ...f, equipment }))}
+                                        enabled={dialogOpen}
+                                    />
+                                    {form.equipment ? <EquipmentSelectedSummary equipment={form.equipment} /> : null}
                                     <div className="space-y-2">
                                         <Label>Empleado</Label>
                                         <Select value={form.employeeId} onValueChange={(v) => setForm((f) => ({ ...f, employeeId: v }))}>
@@ -396,7 +370,7 @@ export default function AssignmentsPage() {
                                         />
                                     </div>
                                     <DialogFooter>
-                                        <Button type="submit" disabled={isCreating || !form.equipmentId || !form.employeeId}>
+                                        <Button type="submit" disabled={isCreating || !form.equipment || !form.employeeId}>
                                             {isCreating ? 'Asignando...' : 'Crear Asignación'}
                                         </Button>
                                     </DialogFooter>

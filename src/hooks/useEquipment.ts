@@ -1,5 +1,9 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
+import { sileo } from 'sileo';
+import { getApiErrorMessage } from '@/lib/api-error';
+
 // ============================================
 // HOOK useEquipment - React Query
 // ============================================
@@ -34,9 +38,10 @@ export const equipmentKeys = {
 
 export function useEquipment(
     filters?: EquipmentFilters,
-    options: { enabled?: boolean; organizationId?: string } = {}
+    options: { enabled?: boolean; organizationId?: string; notifyOnError?: boolean } = {}
 ) {
     const queryClient = useQueryClient();
+    const errorNotifiedRef = useRef(false);
 
     const equipmentQuery = useQuery({
         queryKey: [...equipmentKeys.list(filters), options.organizationId],
@@ -47,6 +52,20 @@ export function useEquipment(
         },
         enabled: options.enabled ?? true,
     });
+
+    useEffect(() => {
+        if (!options.notifyOnError) return;
+        if (equipmentQuery.isError && !errorNotifiedRef.current) {
+            errorNotifiedRef.current = true;
+            sileo.error({
+                title: 'Error al cargar equipos',
+                description: getApiErrorMessage(equipmentQuery.error, 'No se pudo obtener el listado de equipos.'),
+            });
+        }
+        if (equipmentQuery.isSuccess) {
+            errorNotifiedRef.current = false;
+        }
+    }, [options.notifyOnError, equipmentQuery.isError, equipmentQuery.isSuccess, equipmentQuery.error]);
 
     const createMutation = useMutation({
         mutationFn: async (data: CreateEquipmentData) => {
