@@ -1,7 +1,10 @@
 export type HealthCheckStatus = 'ok' | 'unavailable';
+export type ComponentHealthStatus = 'ok' | 'degraded';
+
 export type ReadinessResult = Readonly<{
   status: 'ready' | 'not_ready';
   checks: Readonly<Record<string, HealthCheckStatus>>;
+  components: Readonly<Record<string, ComponentHealthStatus>>;
   timestamp: string;
 }>;
 
@@ -30,25 +33,33 @@ async function withTimeout(operation: () => void | Promise<void>, timeoutMs: num
 
 export async function runReadinessChecks(dependencies: ReadinessDependencies): Promise<ReadinessResult> {
   const checks: Record<string, HealthCheckStatus> = {};
+  const components: Record<string, ComponentHealthStatus> = { storage: 'degraded' };
   const entries: Array<[string, () => void | Promise<void>]> = [
     ['configuration', dependencies.configuration],
     ['database', dependencies.database],
-    ['storage', dependencies.storage],
   ];
   if (dependencies.pdfRequired) entries.push(['pdfEngine', dependencies.pdfEngine]);
 
-  await Promise.all(entries.map(async ([name, check]) => {
-    try {
-      await withTimeout(check, dependencies.timeoutMs);
-      checks[name] = 'ok';
-    } catch {
-      checks[name] = 'unavailable';
-    }
-  }));
+  const [storageProbeOk] = await Promise.all([
+    withTimeout(dependencies.storage, dependencies.timeoutMs)
+      .then(() => true)
+      .catch(() => false),
+    Promise.all(entries.map(async ([name, check]) => {
+      try {
+        await withTimeout(check, dependencies.timeoutMs);
+        checks[name] = 'ok';
+      } catch {
+        checks[name] = 'unavailable';
+      }
+    })),
+  ]);
+
+  components.storage = storageProbeOk ? 'ok' : 'degraded';
 
   return {
     status: Object.values(checks).every((status) => status === 'ok') ? 'ready' : 'not_ready',
     checks,
+    components,
     timestamp: new Date().toISOString(),
   };
 }

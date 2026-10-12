@@ -1,11 +1,12 @@
 // =====================================================
-// S3 Storage Adapter — PRODUCCIÓN AWS
+// S3 Storage Adapter — PRODUCCIÓN AWS / Cloudflare R2
 // Sprint 2: driver completo con signed URLs
 // Requiere: @aws-sdk/client-s3 + @aws-sdk/s3-request-presigner
 // =====================================================
 
 import {
   S3Client,
+  type S3ClientConfig,
   PutObjectCommand,
   DeleteObjectCommand,
   HeadBucketCommand,
@@ -39,6 +40,41 @@ export interface S3AdapterConfig {
    * Default: 900 (15 min).
    */
   signedUrlTtlSeconds?: number;
+}
+
+export function isR2Endpoint(endpoint?: string): boolean {
+  if (!endpoint) return false;
+  try {
+    const host = new URL(endpoint).hostname.toLowerCase();
+    return host.endsWith('.r2.cloudflarestorage.com');
+  } catch {
+    return false;
+  }
+}
+
+export function buildS3ClientConfig(config: S3AdapterConfig): S3ClientConfig {
+  const r2 = isR2Endpoint(config.endpoint);
+  const credentials = config.accessKeyId && config.secretAccessKey
+    ? {
+        accessKeyId: config.accessKeyId,
+        secretAccessKey: config.secretAccessKey,
+        sessionToken: config.sessionToken,
+      }
+    : undefined;
+
+  const clientConfig: S3ClientConfig = {
+    region: r2 ? 'auto' : config.region,
+    credentials,
+    endpoint: config.endpoint,
+    forcePathStyle: r2 ? true : config.forcePathStyle,
+  };
+
+  if (r2) {
+    clientConfig.requestChecksumCalculation = 'WHEN_REQUIRED';
+    clientConfig.responseChecksumValidation = 'WHEN_REQUIRED';
+  }
+
+  return clientConfig;
 }
 
 function sanitizeFilename(name: string): string {
@@ -80,21 +116,9 @@ export class S3StorageAdapter implements StorageAdapter {
 
   constructor(private readonly config: S3AdapterConfig) {
     if (!config.bucket) throw new Error('S3StorageAdapter: bucket requerido');
-    if (!config.region) throw new Error('S3StorageAdapter: region requerida');
+    if (!config.region && !isR2Endpoint(config.endpoint)) throw new Error('S3StorageAdapter: region requerida');
 
-    const credentials = config.accessKeyId && config.secretAccessKey
-      ? {
-          accessKeyId: config.accessKeyId,
-          secretAccessKey: config.secretAccessKey,
-          sessionToken: config.sessionToken,
-        }
-      : undefined;
-    this.client = new S3Client({
-      region: config.region,
-      credentials,
-      endpoint: config.endpoint,
-      forcePathStyle: config.forcePathStyle,
-    });
+    this.client = new S3Client(buildS3ClientConfig(config));
 
     this.keyPrefix = (config.keyPrefix ?? '').replace(/^\/+|\/+$/g, '');
   }

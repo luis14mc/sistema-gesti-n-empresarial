@@ -3,6 +3,22 @@ import { z } from 'zod';
 export const APPLICATION_ENVIRONMENTS = ['development', 'test', 'staging', 'production'] as const;
 export type ApplicationEnvironment = (typeof APPLICATION_ENVIRONMENTS)[number];
 
+/** S3-compatible endpoints allowed in staging/production (extend when adding providers). */
+export const ALLOWED_PROTECTED_S3_ENDPOINT_HOST_SUFFIXES = [
+  '.r2.cloudflarestorage.com',
+] as const;
+
+export function isAllowedProtectedS3Endpoint(endpoint: string): boolean {
+  try {
+    const url = new URL(endpoint);
+    if (url.protocol !== 'https:') return false;
+    const host = url.hostname.toLowerCase();
+    return ALLOWED_PROTECTED_S3_ENDPOINT_HOST_SUFFIXES.some((suffix) => host.endsWith(suffix));
+  } catch {
+    return false;
+  }
+}
+
 type EnvironmentSource = Readonly<Record<string, string | undefined>>;
 
 const optionalString = z.preprocess(
@@ -48,12 +64,32 @@ const storageSchema = z.object({
   }
 
   if (value.APP_ENV === 'staging' || value.APP_ENV === 'production') {
-    if (value.STORAGE_DRIVER !== 's3') context.addIssue({ code: 'custom', path: ['STORAGE_DRIVER'], message: 'Durable S3 storage is required.' });
-    if (hasAccessKey || hasSecretKey || value.AWS_SESSION_TOKEN) {
+    if (value.STORAGE_DRIVER !== 's3') {
+      context.addIssue({ code: 'custom', path: ['STORAGE_DRIVER'], message: 'Durable S3 storage is required.' });
+    }
+    if (value.S3_PUBLIC_URL) {
+      context.addIssue({ code: 'custom', path: ['S3_PUBLIC_URL'], message: 'Protected storage must not expose a public object base URL.' });
+    }
+
+    const r2Endpoint = value.S3_ENDPOINT;
+    if (r2Endpoint) {
+      if (!isAllowedProtectedS3Endpoint(r2Endpoint)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['S3_ENDPOINT'],
+          message: 'S3_ENDPOINT must be https:// and use an allowed provider host (Cloudflare R2: *.r2.cloudflarestorage.com).',
+        });
+      }
+      if (!value.AWS_ACCESS_KEY_ID || !value.AWS_SECRET_ACCESS_KEY) {
+        context.addIssue({
+          code: 'custom',
+          path: ['AWS_ACCESS_KEY_ID'],
+          message: 'Cloudflare R2 on Railway requires AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY when S3_ENDPOINT is set (no IAM task roles).',
+        });
+      }
+    } else if (hasAccessKey || hasSecretKey || value.AWS_SESSION_TOKEN) {
       context.addIssue({ code: 'custom', path: ['AWS_ACCESS_KEY_ID'], message: 'Use an IAM task role instead of static AWS credentials.' });
     }
-    if (value.S3_ENDPOINT) context.addIssue({ code: 'custom', path: ['S3_ENDPOINT'], message: 'Custom S3 endpoints are not allowed.' });
-    if (value.S3_PUBLIC_URL) context.addIssue({ code: 'custom', path: ['S3_PUBLIC_URL'], message: 'Protected storage must not expose a public object base URL.' });
   }
 });
 

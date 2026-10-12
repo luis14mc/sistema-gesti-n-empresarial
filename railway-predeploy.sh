@@ -2,6 +2,8 @@
 set -eu
 
 echo "[railway-predeploy] Starting PostgreSQL/Prisma pre-deploy checks"
+# Storage on Railway: STORAGE_DRIVER=s3, S3_BUCKET, S3_ENDPOINT (R2), AWS_REGION=auto,
+# AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY — see docs/deployment/railway.md
 
 if [ -z "${DATABASE_URL:-}" ]; then
   echo "[railway-predeploy] ERROR: DATABASE_URL is not defined"

@@ -5,7 +5,7 @@
 
 import type { StorageAdapter } from './types';
 import { LocalStorageAdapter } from './local';
-import { S3StorageAdapter } from './s3';
+import { isR2Endpoint, S3StorageAdapter } from './s3';
 import { validateStorageEnvironment } from '@/platform/config/env';
 
 let _instance: StorageAdapter | null = null;
@@ -25,6 +25,7 @@ export function getStorage(): StorageAdapter {
   const driver = environment.STORAGE_DRIVER;
 
   if (driver === 's3') {
+    const r2 = isR2Endpoint(environment.S3_ENDPOINT);
     _instance = new S3StorageAdapter({
       bucket: environment.S3_BUCKET!,
       region: environment.AWS_REGION!,
@@ -32,7 +33,7 @@ export function getStorage(): StorageAdapter {
       secretAccessKey: environment.AWS_SECRET_ACCESS_KEY,
       sessionToken: environment.AWS_SESSION_TOKEN,
       endpoint: environment.S3_ENDPOINT,
-      forcePathStyle: environment.S3_FORCE_PATH_STYLE,
+      forcePathStyle: r2 ? true : environment.S3_FORCE_PATH_STYLE,
       keyPrefix: environment.APP_ENV,
       requireTenantPrefix: environment.APP_ENV === 'staging' || environment.APP_ENV === 'production',
       publicUrlBase: environment.S3_PUBLIC_URL,
