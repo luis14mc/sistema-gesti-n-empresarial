@@ -9,6 +9,11 @@ describe('equipment Excel route security contracts', () => {
   const importRoute = read('src/app/api/equipment/import/route.ts');
   const templateRoute = read('src/app/api/equipment/import/template/route.ts');
   const exportRoute = read('src/app/api/equipment/export/route.ts');
+  const nextConfig = read('next.config.js');
+
+  it('keeps ExcelJS external in the Node standalone server', () => {
+    expect(nextConfig).toMatch(/serverExternalPackages:\s*\['exceljs'\]/);
+  });
 
   it('requires authentication and equipment-create permission for import and template', () => {
     expect(importRoute).toMatch(/withAuth\(postHandler\)/);

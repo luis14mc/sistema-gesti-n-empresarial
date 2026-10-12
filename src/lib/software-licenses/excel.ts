@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import { loadXlsxWorkbook } from '@/platform/excel/load-xlsx';
 import { toXlsx } from '@/platform/reporting/export/xlsx';
 import type { LicenseImportRow } from './import-rows';
 import { formatPaymentSchedule } from './billing';
@@ -14,8 +15,7 @@ function cellText(value: ExcelJS.CellValue): string {
 }
 
 export async function readLicenseWorkbook(buffer: Buffer): Promise<LicenseImportRow[]> {
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
+  const workbook = await loadXlsxWorkbook(buffer);
   const sheet = workbook.worksheets[0];
   if (!sheet) return [];
   const headerRow = sheet.getRow(1);

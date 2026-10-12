@@ -5,6 +5,10 @@ import { apiFailure, apiSuccess } from '@/platform/api/response';
 import { authorizeOrganization, authorizationFailure } from '@/platform/security/authorization/http';
 import { EQUIPMENT_IMPORT_MAX_BYTES } from '@/modules/equipment/import-export/equipment-excel';
 import { importEquipmentWorkbook } from '@/modules/equipment/import-export/equipment-import';
+import {
+  isXlsxWorkbookErrorCode,
+  XLSX_WORKBOOK_USER_MESSAGES,
+} from '@/platform/excel/inspect-xlsx';
 
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
@@ -41,12 +45,21 @@ async function postHandler(req: AuthenticatedRequest) {
     if (isOrganizationContextError(error)) return apiFailure(error.code, 'No fue posible resolver el contexto de organización.', { requestId, status: error.status, details: [], stage: 'RESOLVE_ORGANIZATION_CONTEXT' });
     const code = error instanceof Error ? error.message : '';
     const known: Record<string, string> = {
-      MISSING_INVENTORY_WORKSHEET: 'No existe la hoja Inventario.', INVALID_HEADERS: 'Los encabezados no corresponden a la plantilla oficial.',
+      MISSING_INVENTORY_WORKSHEET: 'No existe la hoja Inventario.',
+      INVALID_HEADERS: 'Los encabezados no corresponden a la plantilla oficial.',
       ROW_LIMIT_EXCEEDED: 'El archivo supera el máximo de 1000 filas.',
+      ...XLSX_WORKBOOK_USER_MESSAGES,
     };
     if (known[code]) return apiFailure(code, known[code], { requestId, status: 400, details: [], stage: 'PARSE_WORKBOOK' });
+    if (isXlsxWorkbookErrorCode(code)) {
+      return apiFailure(code, XLSX_WORKBOOK_USER_MESSAGES[code], { requestId, status: 400, details: [], stage: 'PARSE_WORKBOOK' });
+    }
     console.error('[EQUIPMENT IMPORT ERROR]', { requestId, error });
-    return apiFailure('INVALID_WORKBOOK', 'No se pudo procesar el archivo XLSX.', { requestId, status: 400, details: [], stage: 'PARSE_WORKBOOK' });
+    return apiFailure(
+      'INVALID_WORKBOOK',
+      XLSX_WORKBOOK_USER_MESSAGES.INVALID_WORKBOOK,
+      { requestId, status: 400, details: [], stage: 'PARSE_WORKBOOK' },
+    );
   }
 }
 

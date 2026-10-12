@@ -9,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import type { EquipmentFilters } from '@/types';
 import type { EquipmentImportResponse } from '@/services/equipment.service';
 import { sileo } from 'sileo';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 type ImportResult = EquipmentImportResponse['data'];
 
@@ -37,17 +38,21 @@ export function EquipmentExcelActions({
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const runImport = async () => {
     if (!file) return;
+    setImportError(null);
     try {
       const response = await onImport(file);
       setResult(response);
       if (response.imported > 0) sileo.success({ title: 'Importación completada', description: `${response.imported} equipos importados.` });
       if (response.errors.length > 0) sileo.warning({ title: 'Importación con observaciones', description: `${response.skipped} filas omitidas.` });
-    } catch {
-      sileo.error({ title: 'No se pudo importar', description: 'Verifique que el archivo corresponda a la plantilla oficial.' });
+    } catch (error) {
+      const message = getApiErrorMessage(error, 'No se pudo importar el archivo.');
+      setImportError(message);
+      sileo.error({ title: 'No se pudo importar', description: message });
     }
   };
 
@@ -77,7 +82,7 @@ export function EquipmentExcelActions({
 
       <Dialog open={open} onOpenChange={(next) => {
         setOpen(next);
-        if (!next) { setFile(null); setResult(null); }
+        if (!next) { setFile(null); setResult(null); setImportError(null); }
       }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -91,13 +96,25 @@ export function EquipmentExcelActions({
               className="flex min-h-32 w-full flex-col items-center justify-center rounded-lg border border-dashed border-border p-6 text-center hover:bg-muted/40"
               onClick={() => inputRef.current?.click()}
               onDragOver={(event) => event.preventDefault()}
-              onDrop={(event) => { event.preventDefault(); setFile(event.dataTransfer.files[0] ?? null); setResult(null); }}
+              onDrop={(event) => { event.preventDefault(); setFile(event.dataTransfer.files[0] ?? null); setResult(null); setImportError(null); }}
             >
               <Upload className="mb-2 h-6 w-6 text-muted-foreground" />
               <span className="font-medium">{file?.name ?? 'Seleccione o arrastre un archivo .xlsx'}</span>
               <span className="mt-1 text-xs text-muted-foreground">No se almacenará el archivo original.</span>
             </button>
-            <input ref={inputRef} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="hidden" onChange={(event) => { setFile(event.target.files?.[0] ?? null); setResult(null); }} />
+            <input ref={inputRef} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="hidden" onChange={(event) => { setFile(event.target.files?.[0] ?? null); setResult(null); setImportError(null); }} />
+
+            {importError ? (
+              <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm" role="alert">
+                <p className="font-medium text-destructive">No se pudo procesar el archivo</p>
+                <p className="mt-1 text-muted-foreground">{importError}</p>
+                <p className="mt-2">
+                  <Link href="/api/equipment/import/template" className="font-medium text-primary underline-offset-4 hover:underline">
+                    Descargar plantilla oficial
+                  </Link>
+                </p>
+              </div>
+            ) : null}
 
             {result ? (
               <div className="space-y-3 rounded-lg border p-4">
