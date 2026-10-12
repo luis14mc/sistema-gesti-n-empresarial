@@ -27,11 +27,25 @@ describe('Phase 4A reporting foundation', () => {
     expect(REPORT_CATALOG.every((report) => report.filters.some((filter) => filter.type === 'date-range'))).toBe(true);
   });
 
+  it('exposes only available reports in the operational catalog', () => {
+    const available = REPORT_CATALOG.filter((r) => r.available);
+    expect(available.map((r) => r.code)).toEqual([
+      'PURCHASE_ORDER_SUMMARY',
+      'OFFICE_REGISTER',
+      'EQUIPMENT_INVENTORY',
+      'EQUIPMENT_ASSIGNMENT_HISTORY',
+      'EQUIPMENT_DISPOSAL_SUMMARY',
+    ]);
+    expect(listAvailableReports('ADMIN').every((report) => report.available)).toBe(true);
+    expect(REPORT_CATALOG.every((r) => r.supportedFormats.every((f) => f === 'CSV' || f === 'XLSX'))).toBe(true);
+  });
+
   it('does not grant platform reports through any organization role', () => {
     const roles: OrganizationRole[] = ['OWNER', 'ADMIN', 'IT_MANAGER', 'IT_TECHNICIAN', 'PROCUREMENT', 'HR', 'AUDITOR', 'USER', 'ADMINISTRACION', 'SECRETARIA', 'DIRECTOR'];
     expect(roles.every((role) => !can(organizationRole(role), 'reports.platform'))).toBe(true);
     expect(listAvailableReports('USER')).toEqual([]);
-    expect(listAvailableReports('PROCUREMENT').some((report) => report.code === 'PURCHASE_ORDER_TAX_ANALYSIS')).toBe(true);
+    expect(listAvailableReports('PROCUREMENT').some((report) => report.code === 'PURCHASE_ORDER_SUMMARY')).toBe(true);
+    expect(listAvailableReports('PROCUREMENT').some((report) => report.code === 'PURCHASE_ORDER_TAX_ANALYSIS')).toBe(false);
     expect(listAvailableReports('PROCUREMENT').some((report) => report.code === 'EQUIPMENT_MAINTENANCE_COST')).toBe(false);
     expect(listAvailableReports('HR').some((report) => report.code === 'SYSTEM_AUDIT_EVENTS')).toBe(false);
   });
@@ -107,7 +121,7 @@ describe('Phase 4A reporting foundation', () => {
       createdAt: new Date('2026-07-23T00:00:00.000Z'),
       completedAt: null,
     }));
-    const service = new ReportExecutionService({ create } as ReportExecutionRepository);
+    const service = new ReportExecutionService({ create, complete: vi.fn() } as ReportExecutionRepository);
     await service.create(context('org-a', 'PROCUREMENT'), {
       reportCode: 'PURCHASE_ORDER_SUMMARY',
       format: 'XLSX',

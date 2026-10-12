@@ -12,6 +12,7 @@ export type Module =
   | 'purchases'
   | 'audits'
   | 'audit-records'
+  | 'reports'
   | 'settings'
   | 'software-licenses';
 
@@ -27,6 +28,7 @@ const FULL_ADMIN: Partial<Record<Module, Action[]>> = {
   users: ['read', 'create', 'update', 'delete'],
   audits: ['read', 'create', 'update', 'delete'],
   'audit-records': ['read', 'create', 'update', 'delete'],
+  reports: ['read'],
   settings: ['read', 'update'],
   'software-licenses': ['read', 'create', 'update', 'delete'],
 };
@@ -38,6 +40,7 @@ const TI: Partial<Record<Module, Action[]>> = {
   users: ['read', 'create', 'update', 'delete'],
   audits: ['read'],
   'audit-records': ['read'],
+  reports: ['read'],
   settings: ['read', 'update'],
   'software-licenses': ['read', 'create', 'update', 'delete'],
 };
@@ -50,6 +53,7 @@ const PERMISSIONS: Record<Role, Partial<Record<Module, Action[]>>> = {
     oficios: ['read', 'create', 'update', 'delete'],
     purchases: ['read', 'create', 'update', 'delete'],
     employees: ['read', 'create', 'update', 'delete'],
+    reports: ['read'],
   },
   SECRETARIA: {
     oficios: ['read', 'create', 'update', 'delete'],
@@ -60,16 +64,19 @@ const PERMISSIONS: Record<Role, Partial<Record<Module, Action[]>>> = {
     dashboard: ['read'],
     equipment: ['read', 'create', 'update'],
     assignments: ['read', 'create', 'update'],
+    reports: ['read'],
   },
   PROCUREMENT: {
     dashboard: ['read'],
     purchases: ['read', 'create', 'update', 'delete'],
+    reports: ['read'],
   },
   HR: {
     dashboard: ['read'],
     users: ['read', 'create', 'update'],
     employees: ['read', 'create', 'update'],
     oficios: ['read', 'create', 'update'],
+    reports: ['read'],
   },
   RRHH: {
     dashboard: ['read'],
@@ -77,6 +84,7 @@ const PERMISSIONS: Record<Role, Partial<Record<Module, Action[]>>> = {
     employees: ['read', 'create', 'update'],
     oficios: ['read', 'create', 'update'],
     purchases: ['read', 'create'],
+    reports: ['read'],
   },
   AUDITOR: {
     dashboard: ['read'],
@@ -84,6 +92,7 @@ const PERMISSIONS: Record<Role, Partial<Record<Module, Action[]>>> = {
     'audit-records': ['read'],
     equipment: ['read'],
     purchases: ['read'],
+    reports: ['read'],
   },
   USER: {
     dashboard: ['read'],
@@ -93,6 +102,7 @@ const PERMISSIONS: Record<Role, Partial<Record<Module, Action[]>>> = {
   },
   DIRECTOR: {
     dashboard: ['read'],
+    reports: ['read'],
   },
 };
 
@@ -126,6 +136,7 @@ export const ROUTE_ACCESS_BY_MODULE: Record<Module, Role[] | null> = {
   users: ['ADMIN', 'OWNER', 'IT_MANAGER', 'IT', 'HR', 'RRHH'],
   audits: ['ADMIN', 'OWNER', 'IT_MANAGER', 'IT', 'AUDITOR'],
   'audit-records': ['ADMIN', 'OWNER', 'IT_MANAGER', 'IT', 'AUDITOR'],
+  reports: ['ADMIN', 'OWNER', 'IT_MANAGER', 'IT', 'IT_TECHNICIAN', 'PROCUREMENT', 'HR', 'RRHH', 'AUDITOR', 'DIRECTOR', 'ADMINISTRACION'],
   settings: ['ADMIN', 'OWNER', 'IT_MANAGER', 'IT'],
   'software-licenses': ['ADMIN', 'OWNER', 'IT_MANAGER', 'IT'],
 };
@@ -157,6 +168,7 @@ export const ROUTE_PATH_TO_MODULE: Record<string, Module> = {
   '/audits': 'audits',
   '/audit/logs': 'audit-records',
   '/audit-records': 'audit-records',
+  '/reportes': 'reports',
   '/settings': 'settings',
   '/ti/licencias': 'software-licenses',
 };

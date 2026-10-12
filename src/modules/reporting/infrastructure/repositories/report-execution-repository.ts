@@ -39,6 +39,18 @@ export class PrismaReportExecutionRepository implements ReportExecutionRepositor
     });
     return toRecord(record);
   }
+
+  async complete(input: Parameters<ReportExecutionRepository['complete']>[0]): Promise<void> {
+    await prisma.reportExecution.updateMany({
+      where: { id: input.id, organizationId: input.organizationId },
+      data: {
+        status: input.status,
+        rowCount: input.rowCount ?? null,
+        durationMs: input.durationMs ?? null,
+        completedAt: new Date(),
+      },
+    });
+  }
 }
 
 export const reportExecutionRepository = new PrismaReportExecutionRepository();

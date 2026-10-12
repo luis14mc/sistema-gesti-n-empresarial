@@ -18,7 +18,7 @@ export const REPORT_CODES = [
   'SYSTEM_AUDIT_EVENTS',
 ] as const;
 
-export const REPORT_FORMATS = ['CSV', 'XLSX', 'PDF'] as const;
+export const REPORT_FORMATS = ['CSV', 'XLSX'] as const;
 
 export type ReportCode = (typeof REPORT_CODES)[number];
 export type ReportFormat = (typeof REPORT_FORMATS)[number];
@@ -43,6 +43,8 @@ export type ReportDefinition = Readonly<{
   requiredPermission: Permission;
   supportedFormats: readonly ReportFormat[];
   filters: readonly ReportFilterDefinition[];
+  /** True when a dataset builder exists and the report can be exported. */
+  available: boolean;
 }>;
 
 export type ReportDateRange = Readonly<{
