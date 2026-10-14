@@ -27,6 +27,10 @@ vi.mock('@/lib/auth', async (importOriginal) => {
   };
 });
 
+vi.mock('@/lib/session-token', () => ({
+  generateSessionToken: vi.fn().mockResolvedValue('test-session-token'),
+}));
+
 import { POST } from '@/app/api/auth/login/route';
 
 const TEST_SECRET = 'a'.repeat(48);

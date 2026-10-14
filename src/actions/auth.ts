@@ -2,7 +2,8 @@
 
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
-import { comparePassword, generateToken, hashPassword } from '@/lib/auth';
+import { comparePassword, hashPassword } from '@/lib/auth';
+import { generateSessionToken } from '@/lib/session-token';
 import { loginSchema, registerSchema } from '@/lib/zod-schemas';
 import { createAuditRecord } from '@/lib/audit';
 import { resolveSessionRole } from '@/platform/security/authorization/session-role';
@@ -68,7 +69,7 @@ export async function loginAction(
   }
 
   const sessionRole = await resolveSessionRole(user.id, user.role);
-  const token = generateToken({
+  const token = await generateSessionToken({
     userId: user.id,
     email: user.email,
     role: sessionRole,
@@ -138,7 +139,7 @@ export async function registerAction(
     select: sessionSelect,
   });
 
-  const token = generateToken({
+  const token = await generateSessionToken({
     userId: user.id,
     email: user.email,
     role: user.role,

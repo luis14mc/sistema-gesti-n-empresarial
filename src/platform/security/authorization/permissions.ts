@@ -1,5 +1,23 @@
-import type { OrganizationRole, PlatformRole } from '@prisma/client';
 import { PermissionDeniedError } from '@/platform/domain/errors';
+
+/** Mirrors DB OrganizationRole enum — defined locally so Edge middleware never pulls the ORM client. */
+export const ORGANIZATION_ROLES = [
+  'OWNER',
+  'ADMIN',
+  'ADMINISTRACION',
+  'SECRETARIA',
+  'IT_MANAGER',
+  'IT_TECHNICIAN',
+  'PROCUREMENT',
+  'HR',
+  'AUDITOR',
+  'USER',
+  'DIRECTOR',
+] as const;
+export type OrganizationRole = (typeof ORGANIZATION_ROLES)[number];
+
+export const PLATFORM_ROLES = ['PLATFORM_ADMIN', 'SUPPORT_ADMIN'] as const;
+export type PlatformRole = (typeof PLATFORM_ROLES)[number];
 
 export const ORGANIZATION_PERMISSIONS = [
   'organizations.manage',

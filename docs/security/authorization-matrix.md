@@ -6,8 +6,8 @@ The executable source of truth is `src/platform/security/authorization/permissio
 
 | Role | Module | Permitted actions | Scope | Restrictions |
 | --- | --- | --- | --- | --- |
-| `OWNER` | All organization modules | Every capability listed in `ORGANIZATION_PERMISSIONS` | Current active organization | No platform permissions; no cross-tenant bypass |
-| `ADMIN` | All organization modules | Every capability listed in `ORGANIZATION_PERMISSIONS` | Current active organization | No platform permissions; cannot act without active membership |
+| `OWNER` | All organization modules | Capabilities in `ORGANIZATION_PERMISSIONS` | Current active organization | No platform permissions |
+| `ADMIN` | Same as OWNER | Same as OWNER | Current active organization | Same restrictions as OWNER |
 | `IT_MANAGER` | Users | Read | Current organization | Cannot create, update, deactivate, or manage memberships |
 | `IT_MANAGER` | Offices | Read, download | Current organization | No workflow mutation |
 | `IT_MANAGER` | Equipment | Read, create, update, assign, maintain, dispose; disposal create/update/submit/approve/reject/cancel/download | Current organization | Cannot configure disposal policy |
@@ -20,6 +20,7 @@ The executable source of truth is `src/platform/security/authorization/permissio
 | `PROCUREMENT` | Equipment | Read; disposal read/download | Current organization | No equipment mutation |
 | `PROCUREMENT` | Purchase orders | Read, create, update, generate, cancel, download | Current organization | Tenant-owned suppliers and documents remain mandatory |
 | `PROCUREMENT` | Reports | View/export and purchase financial reports | Current organization | No equipment financial or audit reports |
+| `HR` | Planilla (payroll) | View, generate, configure | Current organization | Treat as sensitive; prefer explicit `UserPermissionOverride` when granting outside HR/RRHH session profiles |
 | `HR` | Users | Read, create, update | Current organization | Cannot deactivate accounts or change memberships/roles |
 | `HR` | Offices | Read, create, update, send, receive, complete, cancel, download | Current organization | No bulk import |
 | `HR` | Equipment and purchases | Read/download only | Current organization | No workflow mutation |
@@ -27,6 +28,10 @@ The executable source of truth is `src/platform/security/authorization/permissio
 | `AUDITOR` | Users, offices, equipment, purchases | Read/download | Current organization | No operational mutation |
 | `AUDITOR` | Reports and audit | View/export financial and audit reports; read audit logs | Current organization | Audit export requires separate export capability when implemented |
 | `USER` | Offices, equipment, disposal, purchase orders, dashboard | Read only | Current organization | No download capability where separately protected; no mutation |
+
+## Per-user exceptions (`UserPermissionOverride`)
+
+Administrators with `users.update` can grant or deny individual capabilities without changing the membership role. Overrides are stored as `(permission, ALLOW|DENY)` and evaluated after the role via `canWithOverrides`. The Users → **Permisos** UI maps module cells to the underlying fine permissions in `src/platform/security/modules.ts`. Reverting a cell to the role default deletes the override rows for that capability. Saving changes increments `OrganizationMembership.accessVersion` and the client calls `/api/auth/refresh-session` so navigation and JWT module lists update without signing in again.
 
 ## Platform roles
 
