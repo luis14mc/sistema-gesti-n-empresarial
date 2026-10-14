@@ -32,6 +32,7 @@ const FULL_ADMIN: Partial<Record<Module, Action[]>> = {
   reports: ['read'],
   settings: ['read', 'update'],
   'software-licenses': ['read', 'create', 'update', 'delete'],
+  payroll: ['read', 'create', 'update'],
 };
 
 const TI: Partial<Record<Module, Action[]>> = {
@@ -142,7 +143,7 @@ export const ROUTE_ACCESS_BY_MODULE: Record<Module, Role[] | null> = {
   reports: ['ADMIN', 'OWNER', 'IT_MANAGER', 'IT', 'IT_TECHNICIAN', 'PROCUREMENT', 'HR', 'RRHH', 'AUDITOR', 'DIRECTOR', 'ADMINISTRACION'],
   settings: ['ADMIN', 'OWNER', 'IT_MANAGER', 'IT'],
   'software-licenses': ['ADMIN', 'OWNER', 'IT_MANAGER', 'IT'],
-  payroll: ['HR', 'RRHH'],
+  payroll: ['ADMIN', 'OWNER', 'HR', 'RRHH'],
 };
 
 export const ROUTE_PATH_TO_MODULE: Record<string, Module> = {

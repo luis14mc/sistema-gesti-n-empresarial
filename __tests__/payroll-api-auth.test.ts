@@ -10,8 +10,13 @@ describe('payroll API authorization matrix', () => {
     expect(can(hr, 'payroll.configure')).toBe(true);
   });
 
-  it('denies IT, USER, ADMIN, OWNER, and PROCUREMENT', () => {
-    for (const role of ['IT_MANAGER', 'USER', 'ADMIN', 'OWNER', 'PROCUREMENT'] as const) {
+  it('allows organization ADMIN and OWNER', () => {
+    expect(can(organizationRole('ADMIN'), 'payroll.view')).toBe(true);
+    expect(can(organizationRole('OWNER'), 'payroll.generate')).toBe(true);
+  });
+
+  it('denies IT, USER, and PROCUREMENT', () => {
+    for (const role of ['IT_MANAGER', 'USER', 'PROCUREMENT'] as const) {
       const scoped = organizationRole(role);
       expect(can(scoped, 'payroll.view')).toBe(false);
       expect(can(scoped, 'payroll.generate')).toBe(false);

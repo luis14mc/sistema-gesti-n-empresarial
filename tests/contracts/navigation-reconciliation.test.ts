@@ -111,6 +111,7 @@ describe('navigation reconciliation', () => {
     expect(admin).toContain('users');
     expect(admin).toContain('settings');
     expect(admin).toContain('assignments');
+    expect(admin).toContain('payroll');
 
     // A plain USER must not reach the Usuarios (users) admin module.
     const user = reachableModules('USER');

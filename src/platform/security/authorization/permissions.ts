@@ -157,17 +157,9 @@ const DISPOSAL_WORKFLOW = [
   'equipment-disposal.configure',
 ] as const;
 
-/** Org/platform admins do not inherit HR-only payroll capabilities. */
-const ORGANIZATION_ADMIN_PERMISSIONS = ORGANIZATION_PERMISSIONS.filter(
-  (permission) =>
-    permission !== 'payroll.view'
-    && permission !== 'payroll.generate'
-    && permission !== 'payroll.configure',
-) as readonly Permission[];
-
 const ORGANIZATION_ROLE_PERMISSIONS: Record<OrganizationRole, readonly Permission[]> = {
-  OWNER: ORGANIZATION_ADMIN_PERMISSIONS,
-  ADMIN: ORGANIZATION_ADMIN_PERMISSIONS,
+  OWNER: ORGANIZATION_PERMISSIONS,
+  ADMIN: ORGANIZATION_PERMISSIONS,
   ADMINISTRACION: [
     ...OFICIOS_OPERATIONAL,
     ...PURCHASES_OPERATIONAL,
