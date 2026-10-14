@@ -33,6 +33,7 @@ vi.mock('@/modules/payroll/application/settings-loader', () => ({
 
 vi.mock('@/modules/payroll/infrastructure/payslip-pdf', () => ({
   renderAndStorePayslipPdf: vi.fn().mockResolvedValue('payroll/test.pdf'),
+  buildPayslipHtml: vi.fn().mockReturnValue('<html>preview</html>'),
 }));
 
 import { prisma } from '@/lib/prisma';

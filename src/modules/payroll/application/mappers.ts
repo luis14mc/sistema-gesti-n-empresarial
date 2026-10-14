@@ -25,5 +25,5 @@ export function mapPayslipAmounts(result: PayslipResult): PayslipApiAmounts {
 }
 
 export function formatLempiras(amount: number): string {
-  return `L ${amount.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `L. ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }

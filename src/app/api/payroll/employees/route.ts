@@ -17,8 +17,15 @@ async function getHandler(req: AuthenticatedRequest) {
         : payrollEnabledParam === 'true';
     const page = parseInt(searchParams.get('page') || '1', 10);
     const pageSize = parseInt(searchParams.get('pageSize') || '20', 10);
+    const previewPayMonth = searchParams.get('previewPayMonth') ?? undefined;
     return apiSuccess(
-      await listPayrollEmployees(organizationId, { search, payrollEnabled, page, pageSize }),
+      await listPayrollEmployees(organizationId, {
+        search,
+        payrollEnabled,
+        page,
+        pageSize,
+        previewPayMonth,
+      }),
       { requestId },
     );
   } catch (error) {

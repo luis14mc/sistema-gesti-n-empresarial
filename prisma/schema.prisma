@@ -2315,6 +2315,7 @@ model Payslip {
   parametersSnapshot  Json
   pdfStorageKey       String?
   emailStatus         PayslipEmailStatus  @default(NONE)
+  deliveryType        PayslipDeliveryType @default(PDF)
   emailError          String?
   generatedById       String
   generatedAt         DateTime            @default(now())
@@ -2331,4 +2332,10 @@ enum PayslipEmailStatus {
   NONE
   SENT
   FAILED
+}
+
+enum PayslipDeliveryType {
+  PDF
+  EMAIL
+  PDF_EMAIL
 }
