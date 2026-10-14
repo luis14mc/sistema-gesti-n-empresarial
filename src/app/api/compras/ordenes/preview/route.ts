@@ -2,14 +2,14 @@ import { NextResponse } from 'next/server';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
 import { createPurchaseOrderSchema, normalizePurchaseOrderPayload } from '@/lib/compras/orden/schemas';
 import { buildPurchaseOrderPreviewHtml } from '@/lib/compras/orden/service';
-import { canOrdenAction } from '@/lib/compras/orden/permissions';
+import { canOrdenAction, ordenActionAuthFromContext } from '@/lib/compras/orden/permissions';
 import type { Role } from '@/types';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 
 export const POST = withAuth(async (req: AuthenticatedRequest) => {
   const role = req.user!.role as Role;
-  const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.read');
-  if (!canOrdenAction(role, 'read')) {
+  const org = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.read');
+  if (!(await canOrdenAction(role, 'read', {}, ordenActionAuthFromContext(org)))) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
   }
   const body = normalizePurchaseOrderPayload(await req.json());
@@ -18,7 +18,7 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
   try {
-    const html = await buildPurchaseOrderPreviewHtml(parsed.data, organizationId);
+    const html = await buildPurchaseOrderPreviewHtml(parsed.data, org.organizationId);
     return new NextResponse(html, {
       headers: { 'Content-Type': 'text/html; charset=utf-8' },
     });

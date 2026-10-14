@@ -30,7 +30,7 @@ import { Pagination } from '@/components/shared/Pagination';
 import { CompraStatusBadge } from '@/components/compras/CompraStatusBadge';
 import { useCompraOrdenes } from '@/hooks/useCompraOrden';
 import { useAuth } from '@/hooks/useAuth';
-import { canOrdenAction } from '@/lib/compras/orden/permissions';
+import { canOrdenActionByRole } from '@/lib/compras/orden/permissions';
 import { getPurchaseOrderApiErrorMessage } from '@/lib/api-error';
 import { ORDER_STATUS_LABELS } from '@/lib/compras/orden/constants';
 import type { Role } from '@/types';
@@ -152,11 +152,11 @@ export default function ComprasSolicitudesPage() {
                 ordenes.map((order) => {
                   const status = (order.status ?? order.estado) as PurchaseOrderStatus;
                   const isDraft = status === 'DRAFT';
-                  const canDelete = isDraft && canOrdenAction(role, 'delete', {
+                  const canDelete = isDraft && canOrdenActionByRole(role, 'delete', {
                     isCreator: order.createdById === user.id,
                     status,
                   });
-                  const canViewPdf = canOrdenAction(role, 'read', {
+                  const canViewPdf = canOrdenActionByRole(role, 'read', {
                     isCreator: order.createdById === user.id,
                     status,
                   });

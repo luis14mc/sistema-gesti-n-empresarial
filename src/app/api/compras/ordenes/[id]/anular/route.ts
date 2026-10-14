@@ -2,24 +2,24 @@ import { NextResponse } from 'next/server';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
 import { anularCompraOrden, getCompraOrden } from '@/lib/compras/orden/service';
 import { anularOrdenSchema } from '@/lib/compras/orden/schemas';
-import { canOrdenAction } from '@/lib/compras/orden/permissions';
+import { canOrdenAction, ordenActionAuthFromContext } from '@/lib/compras/orden/permissions';
 import type { Role } from '@/types';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 
 export const POST = withAuth(async (req: AuthenticatedRequest, { params }) => {
   const role = req.user!.role as Role;
-  const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.cancel');
+  const org = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.cancel');
   const { id } = await params;
-  const existing = await getCompraOrden(id, organizationId);
+  const existing = await getCompraOrden(id, org.organizationId);
   if (!existing) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
-  if (!canOrdenAction(role, 'anular', { isCreator: existing.createdById === req.user!.userId, status: existing.status })) {
+  if (!(await canOrdenAction(role, 'anular', { isCreator: existing.createdById === req.user!.userId, status: existing.status }, ordenActionAuthFromContext(org)))) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
   }
   const body = await req.json();
   const parsed = anularOrdenSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   try {
-    const orden = await anularCompraOrden(id, req.user!.userId, parsed.data.cancellationReason, organizationId);
+    const orden = await anularCompraOrden(id, req.user!.userId, parsed.data.cancellationReason, org.organizationId);
     return NextResponse.json({ orden });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Error' }, { status: 400 });

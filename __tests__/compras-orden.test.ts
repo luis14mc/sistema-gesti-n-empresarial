@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { Prisma } from '@prisma/client';
 import { calculatePurchaseOrder, toDecimal } from '../src/lib/compras/orden/calculos';
 import { formatOrderNumber } from '../src/lib/compras/orden/numbering';
-import { canOrdenAction } from '../src/lib/compras/orden/permissions';
+import { canOrdenActionByRole } from '../src/lib/compras/orden/permissions';
 import { buildPreviewDataFromInput } from '../src/lib/compras/orden/preview-data';
 import type { PurchaseOrderTemplateConfig } from '../src/lib/compras/orden/template-config';
 import { createPurchaseOrderSchema, normalizePurchaseOrderPayload } from '../src/lib/compras/orden/schemas';
@@ -159,27 +159,27 @@ describe('formatOrderNumber', () => {
   });
 });
 
-describe('canOrdenAction', () => {
+describe('canOrdenActionByRole', () => {
   it('permite editar borrador al perfil administrativo, no a TI', () => {
-    expect(canOrdenAction('ADMINISTRACION', 'update', { isCreator: true, status: 'DRAFT' })).toBe(true);
-    expect(canOrdenAction('IT', 'update', { isCreator: true, status: 'DRAFT' })).toBe(false);
-    expect(canOrdenAction('IT_MANAGER', 'update', { isCreator: true, status: 'DRAFT' })).toBe(false);
+    expect(canOrdenActionByRole('ADMINISTRACION', 'update', { isCreator: true, status: 'DRAFT' })).toBe(true);
+    expect(canOrdenActionByRole('IT', 'update', { isCreator: true, status: 'DRAFT' })).toBe(false);
+    expect(canOrdenActionByRole('IT_MANAGER', 'update', { isCreator: true, status: 'DRAFT' })).toBe(false);
   });
 
   it('impide editar orden emitida', () => {
-    expect(canOrdenAction('ADMIN', 'update', { status: 'ISSUED' })).toBe(false);
+    expect(canOrdenActionByRole('ADMIN', 'update', { status: 'ISSUED' })).toBe(false);
   });
 
   it('impide anular cerrada', () => {
-    expect(canOrdenAction('ADMIN', 'anular', { status: 'CLOSED' })).toBe(false);
+    expect(canOrdenActionByRole('ADMIN', 'anular', { status: 'CLOSED' })).toBe(false);
   });
 
   it('restringe emitir a perfiles con aprobación, solo en GENERATED', () => {
-    expect(canOrdenAction('ADMINISTRACION', 'emitir', { status: 'GENERATED' })).toBe(true);
-    expect(canOrdenAction('ADMIN', 'emitir', { status: 'GENERATED' })).toBe(true);
-    expect(canOrdenAction('PROCUREMENT', 'emitir', { status: 'GENERATED' })).toBe(false);
-    expect(canOrdenAction('ADMINISTRACION', 'emitir', { status: 'DRAFT' })).toBe(false);
-    expect(canOrdenAction('ADMIN', 'emitir', { status: 'ISSUED' })).toBe(false);
+    expect(canOrdenActionByRole('ADMINISTRACION', 'emitir', { status: 'GENERATED' })).toBe(true);
+    expect(canOrdenActionByRole('ADMIN', 'emitir', { status: 'GENERATED' })).toBe(true);
+    expect(canOrdenActionByRole('PROCUREMENT', 'emitir', { status: 'GENERATED' })).toBe(false);
+    expect(canOrdenActionByRole('ADMINISTRACION', 'emitir', { status: 'DRAFT' })).toBe(false);
+    expect(canOrdenActionByRole('ADMIN', 'emitir', { status: 'ISSUED' })).toBe(false);
   });
 });
 

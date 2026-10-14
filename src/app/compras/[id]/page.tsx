@@ -12,7 +12,7 @@ import { useCompraOrden, useCompraOrdenes } from '@/hooks/useCompraOrden';
 import { useProveedores } from '@/hooks/useCompras';
 import { useAuth } from '@/hooks/useAuth';
 import type { Role } from '@/types';
-import { canOrdenAction } from '@/lib/compras/orden/permissions';
+import { canOrdenActionByRole } from '@/lib/compras/orden/permissions';
 import { ORDER_STATUS_LABELS } from '@/lib/compras/orden/constants';
 import type { CreatePurchaseOrderInput, DraftPurchaseOrderInput } from '@/lib/compras/orden/schemas';
 import type { OrdenWorkflowActionName } from '@/hooks/useCompraOrden';
@@ -210,22 +210,22 @@ export default function CompraDetallePage({ params }: { params: Promise<{ id: st
           onPendingChange={() => undefined}
           onSave={handleSave}
           onGenerateOrder={
-            canOrdenAction(role, 'generar', { isCreator, status })
+            canOrdenActionByRole(role, 'generar', { isCreator, status })
               ? handleGenerateOrder
               : undefined
           }
           onUpload={
-            canOrdenAction(role, 'documentos', { isCreator, status })
+            canOrdenActionByRole(role, 'documentos', { isCreator, status })
               ? handleUploadDocument
               : undefined
           }
           onDeleteDocument={handleDeleteDocument}
-          canUploadDocuments={canOrdenAction(role, 'documentos', { isCreator, status })}
-          canDeleteDocuments={canOrdenAction(role, 'documentos', { isCreator, status })}
+          canUploadDocuments={canOrdenActionByRole(role, 'documentos', { isCreator, status })}
+          canDeleteDocuments={canOrdenActionByRole(role, 'documentos', { isCreator, status })}
           isSaving={isSaving}
           isGenerating={generating}
-          onDelete={canOrdenAction(role, 'delete', { isCreator, status }) ? handleDelete : undefined}
-          canDelete={canOrdenAction(role, 'delete', { isCreator, status })}
+          onDelete={canOrdenActionByRole(role, 'delete', { isCreator, status }) ? handleDelete : undefined}
+          canDelete={canOrdenActionByRole(role, 'delete', { isCreator, status })}
         />
       ) : (
         <CompraOrdenGeneratedDetail
@@ -235,7 +235,7 @@ export default function CompraDetallePage({ params }: { params: Promise<{ id: st
           onWorkflow={handleWorkflow}
           onDeleteDocument={handleDeleteDocument}
           onUpload={
-            canOrdenAction(role, 'documentos', { isCreator, status })
+            canOrdenActionByRole(role, 'documentos', { isCreator, status })
               ? handleUploadDocument
               : undefined
           }

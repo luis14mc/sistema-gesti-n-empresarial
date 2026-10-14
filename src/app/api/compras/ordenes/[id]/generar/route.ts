@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
 import { generarCompraOrden, getCompraOrden } from '@/lib/compras/orden/service';
-import { canOrdenAction } from '@/lib/compras/orden/permissions';
+import { canOrdenAction, ordenActionAuthFromContext } from '@/lib/compras/orden/permissions';
 import type { Role } from '@/types';
 import { isMissingBrowserError } from '@/lib/compras/pdf-renderer';
 import { InvalidPurchaseOrderError } from '@/lib/compras/orden/generation-validation';
@@ -16,11 +16,11 @@ async function postHandler(
   let stage = 'LOAD_ORDER';
   try {
     const role = req.user!.role as Role;
-    const { organizationId } = await authorizeOrganization(req, requestId, 'purchase-orders.generate');
+    const org = await authorizeOrganization(req, requestId, 'purchase-orders.generate');
     const { id } = await params;
     orderId = id;
     console.info('[PURCHASE ORDER VALIDATION START]', { requestId, orderId });
-    const existing = await getCompraOrden(id, organizationId);
+    const existing = await getCompraOrden(id, org.organizationId);
     if (!existing) {
       return NextResponse.json(
         {
@@ -44,10 +44,10 @@ async function postHandler(
     }
 
     if (
-      !canOrdenAction(role, 'generar', {
+      !(await canOrdenAction(role, 'generar', {
         isCreator: existing.createdById === req.user!.userId,
         status: existing.status,
-      })
+      }, ordenActionAuthFromContext(org)))
     ) {
       return NextResponse.json(
         { error: 'FORBIDDEN', message: 'Sin permisos', requestId },
@@ -55,7 +55,7 @@ async function postHandler(
       );
     }
 
-    const orden = await generarCompraOrden(id, req.user!.userId, organizationId, (nextStage) => {
+    const orden = await generarCompraOrden(id, req.user!.userId, org.organizationId, (nextStage) => {
       stage = nextStage;
     });
     return NextResponse.json({ orden });

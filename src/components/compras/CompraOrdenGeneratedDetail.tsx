@@ -21,7 +21,7 @@ import { RELATED_DOCUMENT_TYPES, DOCUMENT_TYPE_LABELS } from '@/lib/compras/orde
 import { validatePurchaseDocumentFile } from '@/lib/compras/orden/document-validation';
 import type { PurchaseDocumentType } from '@prisma/client';
 import { compraOrdenService } from '@/services/compra-orden.service';
-import { canOrdenAction } from '@/lib/compras/orden/permissions';
+import { canOrdenActionByRole } from '@/lib/compras/orden/permissions';
 import type { CompraOrden } from '@/types/compra-orden';
 import type { Role } from '@/types';
 import type { PurchaseOrderStatus } from '@prisma/client';
@@ -67,18 +67,18 @@ export function CompraOrdenGeneratedDetail({
   const documents = orden.documentos ?? [];
   const orderNumber = orden.orderNumber ?? orden.numeroOrden;
   const activePdf = documents.find((document) => document.type === 'ORDER_PDF' && document.isActive);
-  const canViewPdf = canOrdenAction(role, 'read', { isCreator, status });
+  const canViewPdf = canOrdenActionByRole(role, 'read', { isCreator, status });
   const pdfDownloadUrl =
     activePdf && canViewPdf ? compraOrdenService.getDocumentDownloadUrl(orden.id, activePdf.id) : null;
 
   const secondaryActions: Array<{ key: Exclude<OrdenWorkflowActionName, 'validar' | 'generar'>; destructive?: boolean }> = [];
   (['anular'] as const).forEach((key) => {
-    if (canOrdenAction(role, key, { isCreator, status })) {
+    if (canOrdenActionByRole(role, key, { isCreator, status })) {
       secondaryActions.push({ key, destructive: key === 'anular' });
     }
   });
 
-  const canManageDocuments = canOrdenAction(role, 'documentos', { isCreator, status });
+  const canManageDocuments = canOrdenActionByRole(role, 'documentos', { isCreator, status });
 
   const handleUpload = async (files: FileList | null) => {
     if (!files?.length || !onUpload) return;
@@ -155,7 +155,7 @@ export function CompraOrdenGeneratedDetail({
             const result = await Swal.fire({ icon: 'warning', title: 'Anular orden', input: 'textarea', inputLabel: 'Motivo de anulación', inputPlaceholder: 'Escriba el motivo...', showCancelButton: true, confirmButtonText: 'Anular', cancelButtonText: 'Cancelar', reverseButtons: true, inputValidator: (value) => value.trim().length >= 5 ? undefined : 'Ingrese un motivo de al menos 5 caracteres.' });
             if (result.isConfirmed) await onWorkflow('anular', result.value);
           }}>Anular</DropdownMenuItem></DropdownMenuContent></DropdownMenu> : null}
-          {canOrdenAction(role, 'emitir', { isCreator, status }) ? (
+          {canOrdenActionByRole(role, 'emitir', { isCreator, status }) ? (
             <Button className="ml-auto" disabled={working || isSaving} onClick={() => void runAction('emitir')}>
               {ACTION_LABELS.emitir}
             </Button>
@@ -165,7 +165,7 @@ export function CompraOrdenGeneratedDetail({
               <PrintPurchaseOrderPdfButton
                 orderId={orden.id}
                 documentId={activePdf.id}
-                className={canOrdenAction(role, 'emitir', { isCreator, status }) ? undefined : 'ml-auto'}
+                className={canOrdenActionByRole(role, 'emitir', { isCreator, status }) ? undefined : 'ml-auto'}
               />
               {pdfDownloadUrl ? (
                 <Button asChild variant="outline">

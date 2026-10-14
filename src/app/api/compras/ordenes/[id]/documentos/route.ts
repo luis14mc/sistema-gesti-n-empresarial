@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { PurchaseDocumentType } from '@prisma/client';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
 import { uploadCompraOrdenDocumento, getCompraOrden, getPurchaseOrderDocuments } from '@/lib/compras/orden/service';
-import { canOrdenAction } from '@/lib/compras/orden/permissions';
+import { canOrdenAction, ordenActionAuthFromContext } from '@/lib/compras/orden/permissions';
 import type { Role } from '@/types';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 
@@ -22,24 +22,24 @@ const TIPO_MAP: Record<string, PurchaseDocumentType> = {
 
 export const GET = withAuth(async (req: AuthenticatedRequest, { params }) => {
   const role = req.user!.role as Role;
-  const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.read');
+  const org = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.read');
   const { id } = await params;
-  const orden = await getCompraOrden(id, organizationId);
+  const orden = await getCompraOrden(id, org.organizationId);
   if (!orden) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
-  if (!canOrdenAction(role, 'read')) {
+  if (!(await canOrdenAction(role, 'read', {}, ordenActionAuthFromContext(org)))) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
   }
-  const documents = await getPurchaseOrderDocuments(id, organizationId);
+  const documents = await getPurchaseOrderDocuments(id, org.organizationId);
   return NextResponse.json({ documents });
 });
 
 export const POST = withAuth(async (req: AuthenticatedRequest, { params }) => {
   const role = req.user!.role as Role;
-  const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.update');
+  const org = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.update');
   const { id } = await params;
-  const orden = await getCompraOrden(id, organizationId);
+  const orden = await getCompraOrden(id, org.organizationId);
   if (!orden) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
-  if (!canOrdenAction(role, 'documentos', { isCreator: orden.createdById === req.user!.userId })) {
+  if (!(await canOrdenAction(role, 'documentos', { isCreator: orden.createdById === req.user!.userId }, ordenActionAuthFromContext(org)))) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
   }
   const formData = await req.formData();
@@ -56,7 +56,7 @@ export const POST = withAuth(async (req: AuthenticatedRequest, { params }) => {
     { type: uploadedBlob.type || 'application/octet-stream' },
   );
   try {
-    const documento = await uploadCompraOrdenDocumento(id, file, tipo, req.user!.userId, organizationId);
+    const documento = await uploadCompraOrdenDocumento(id, file, tipo, req.user!.userId, org.organizationId);
     return NextResponse.json({ documento }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Error' }, { status: 500 });

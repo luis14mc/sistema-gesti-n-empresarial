@@ -210,4 +210,24 @@ describe('CNI backend authorization — permission overrides', () => {
     });
     expect(response.status).toBe(403);
   });
+
+  it('ALLOW purchase-orders.create lets IT_MANAGER create purchase orders', async () => {
+    setOverrides([{ permission: 'purchase-orders.create', effect: 'ALLOW' }]);
+    const response = await postPurchaseOrders(
+      request('IT_MANAGER', 'http://localhost/api/compras/ordenes', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: '{}',
+      }),
+    );
+    expect(response.status).not.toBe(403);
+  });
+
+  it('DENY purchase-orders.read blocks ADMINISTRACION from listing purchase orders', async () => {
+    setOverrides([{ permission: 'purchase-orders.read', effect: 'DENY' }]);
+    const response = await getPurchaseOrders(
+      request('ADMINISTRACION', 'http://localhost/api/compras/ordenes'),
+    );
+    expect(response.status).toBe(403);
+  });
 });

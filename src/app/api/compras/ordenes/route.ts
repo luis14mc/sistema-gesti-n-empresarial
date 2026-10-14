@@ -5,7 +5,7 @@ import {
   listCompraOrdenes,
 } from '@/lib/compras/orden/service';
 import { createCompraOrdenSchema, normalizePurchaseOrderPayload } from '@/lib/compras/orden/schemas';
-import { canOrdenAction } from '@/lib/compras/orden/permissions';
+import { canOrdenAction, ordenActionAuthFromContext } from '@/lib/compras/orden/permissions';
 import { handlePrismaRouteError, mapLegacyEstadoFilter } from '@/lib/compras/orden/prisma-error';
 import type { Role } from '@/types';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
@@ -14,13 +14,13 @@ async function getHandler(req: AuthenticatedRequest) {
   try {
     const requestId = crypto.randomUUID();
     const role = req.user!.role as Role;
-    const { organizationId } = await authorizeOrganization(req, requestId, 'purchase-orders.read');
+    const org = await authorizeOrganization(req, requestId, 'purchase-orders.read');
 
     const { searchParams } = new URL(req.url);
     const mine = searchParams.get('mine') === 'true' || role === 'USER';
 
     const result = await listCompraOrdenes({
-      organizationId,
+      organizationId: org.organizationId,
       page: Number.parseInt(searchParams.get('page') || '1', 10),
       pageSize: Number.parseInt(searchParams.get('pageSize') || '10', 10),
       search: searchParams.get('search') || undefined,
@@ -41,8 +41,8 @@ async function postHandler(req: AuthenticatedRequest) {
   try {
     const requestId = crypto.randomUUID();
     const role = req.user!.role as Role;
-    const { organizationId } = await authorizeOrganization(req, requestId, 'purchase-orders.create');
-    if (!canOrdenAction(role, 'create')) {
+    const org = await authorizeOrganization(req, requestId, 'purchase-orders.create');
+    if (!(await canOrdenAction(role, 'create', {}, ordenActionAuthFromContext(org)))) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
 
@@ -52,7 +52,7 @@ async function postHandler(req: AuthenticatedRequest) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
-    const orden = await createCompraOrden(parsed.data, req.user!.userId, organizationId);
+    const orden = await createCompraOrden(parsed.data, req.user!.userId, org.organizationId);
     return NextResponse.json({ orden }, { status: 201 });
   } catch (error) {
     return handlePrismaRouteError(error, 'POST /api/compras/ordenes');

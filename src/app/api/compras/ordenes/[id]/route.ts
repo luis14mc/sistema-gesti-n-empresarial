@@ -6,7 +6,7 @@ import {
   deleteCompraOrden,
 } from '@/lib/compras/orden/service';
 import { updateCompraOrdenSchema, normalizePurchaseOrderPayload } from '@/lib/compras/orden/schemas';
-import { canOrdenAction } from '@/lib/compras/orden/permissions';
+import { canOrdenAction, ordenActionAuthFromContext } from '@/lib/compras/orden/permissions';
 import { handlePrismaRouteError } from '@/lib/compras/orden/prisma-error';
 import type { Role } from '@/types';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
@@ -17,15 +17,15 @@ async function getHandler(
 ) {
   try {
     const role = req.user!.role as Role;
-    const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.read');
+    const org = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.read');
     const { id } = await params;
-    const orden = await getCompraOrden(id, organizationId);
+    const orden = await getCompraOrden(id, org.organizationId);
     if (!orden) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
 
     if (
-      !canOrdenAction(role, 'read', {
+      !(await canOrdenAction(role, 'read', {
         isCreator: orden.createdById === req.user!.userId,
-      })
+      }, ordenActionAuthFromContext(org)))
     ) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
@@ -42,16 +42,16 @@ async function patchHandler(
 ) {
   try {
     const role = req.user!.role as Role;
-    const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.update');
+    const org = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.update');
     const { id } = await params;
-    const existing = await getCompraOrden(id, organizationId);
+    const existing = await getCompraOrden(id, org.organizationId);
     if (!existing) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
 
     if (
-      !canOrdenAction(role, 'update', {
+      !(await canOrdenAction(role, 'update', {
         isCreator: existing.createdById === req.user!.userId,
         status: existing.status,
-      })
+      }, ordenActionAuthFromContext(org)))
     ) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
@@ -62,7 +62,7 @@ async function patchHandler(
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
-    const orden = await updateCompraOrden(id, parsed.data, req.user!.userId, organizationId);
+    const orden = await updateCompraOrden(id, parsed.data, req.user!.userId, org.organizationId);
     return NextResponse.json({ orden });
   } catch (error) {
     if (error instanceof Error && !('code' in error)) {
@@ -81,21 +81,21 @@ async function deleteHandler(
 ) {
   try {
     const role = req.user!.role as Role;
-    const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.update');
+    const org = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.update');
     const { id } = await params;
-    const existing = await getCompraOrden(id, organizationId);
+    const existing = await getCompraOrden(id, org.organizationId);
     if (!existing) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
 
     if (
-      !canOrdenAction(role, 'delete', {
+      !(await canOrdenAction(role, 'delete', {
         isCreator: existing.createdById === req.user!.userId,
         status: existing.status,
-      })
+      }, ordenActionAuthFromContext(org)))
     ) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
 
-    await deleteCompraOrden(id, req.user!.userId, organizationId);
+    await deleteCompraOrden(id, req.user!.userId, org.organizationId);
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (error instanceof Error && error.message === 'ORDER_NOT_FOUND') {
