@@ -28,6 +28,10 @@ Base = `min(salarioPeriodo, techoMensual)` con techo CNI 2026 **L 11,903.13**. T
 
 Se usa el monto mensual configurable `ivmDeductibleMonthly` (default 2026: L 297.58), alineado con la porción deducible de IVM, no el total IHSS descontado en nómina.
 
+## Visibilidad en UI y RBAC
+
+Operadores con rol de sesión **ADMIN** / **OWNER** y membresía de organización **ADMIN** / **OWNER** ven el menú **Personas → Planilla** y pueden usar las APIs de planilla (misma capacidad que RRHH operativo). **IT**, **USER** y **PROCUREMENT** siguen sin acceso salvo `UserPermissionOverride`.
+
 ## Envío de recibos por correo
 
 **TODO:** Integrar envío de PDF de planilla por email (campo `emailStatus` / `emailError` en `Payslip`). No implementado en esta fase; la generación persiste PDF en storage y expone descarga vía API.
