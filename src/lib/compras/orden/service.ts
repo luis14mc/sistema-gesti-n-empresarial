@@ -46,6 +46,11 @@ export const orderInclude = {
 const listInclude = {
   createdBy: { select: { id: true, firstName: true, lastName: true } },
   supplier: { select: { id: true, nombreRazonSocial: true } },
+  documentos: {
+    where: { type: 'ORDER_PDF', isActive: true },
+    select: { id: true },
+    take: 1,
+  },
   _count: {
     select: {
       documentos: {

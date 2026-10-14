@@ -52,7 +52,7 @@ function generateNonce(): string {
   return btoa(binary);
 }
 
-function buildCspHeader(nonce: string): string {
+export function buildCspHeader(nonce: string): string {
   // Política estricta con nonce para scripts.
   // 'strict-dynamic' permite que scripts cargados por los de confianza
   // se ejecuten sin necesidad de self en sub-recursos.
@@ -77,6 +77,8 @@ function buildCspHeader(nonce: string): string {
     "font-src 'self' data:",
     `connect-src 'self'${s3Host}`,
     "object-src 'none'",
+    // blob: required for client-side PDF print iframe (purchase orders).
+    "frame-src 'self' blob:",
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",

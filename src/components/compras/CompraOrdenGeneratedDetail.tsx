@@ -1,7 +1,8 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Upload, MoreHorizontal, Download } from 'lucide-react';
+import { MoreHorizontal, Download } from 'lucide-react';
+import { PrintPurchaseOrderPdfButton } from '@/components/compras/PrintPurchaseOrderPdfButton';
 import Swal from '@/lib/compras/orden/swal';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -66,7 +67,9 @@ export function CompraOrdenGeneratedDetail({
   const documents = orden.documentos ?? [];
   const orderNumber = orden.orderNumber ?? orden.numeroOrden;
   const activePdf = documents.find((document) => document.type === 'ORDER_PDF' && document.isActive);
-  const pdfDownloadUrl = activePdf ? compraOrdenService.getDocumentDownloadUrl(orden.id, activePdf.id) : null;
+  const canViewPdf = canOrdenAction(role, 'read', { isCreator, status });
+  const pdfDownloadUrl =
+    activePdf && canViewPdf ? compraOrdenService.getDocumentDownloadUrl(orden.id, activePdf.id) : null;
 
   const secondaryActions: Array<{ key: Exclude<OrdenWorkflowActionName, 'validar' | 'generar'>; destructive?: boolean }> = [];
   (['anular'] as const).forEach((key) => {
@@ -146,7 +149,7 @@ export function CompraOrdenGeneratedDetail({
         <CompraOrdenHistory ordenId={orden.id} />
       </div>
       <div className="border-t pt-6">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Link href="/compras/solicitudes" className="text-sm text-muted-foreground hover:text-foreground">Volver</Link>
           {secondaryActions.length ? <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" size="icon" aria-label="Más acciones"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="start"><DropdownMenuItem className="text-destructive focus:text-destructive" onClick={async () => {
             const result = await Swal.fire({ icon: 'warning', title: 'Anular orden', input: 'textarea', inputLabel: 'Motivo de anulación', inputPlaceholder: 'Escriba el motivo...', showCancelButton: true, confirmButtonText: 'Anular', cancelButtonText: 'Cancelar', reverseButtons: true, inputValidator: (value) => value.trim().length >= 5 ? undefined : 'Ingrese un motivo de al menos 5 caracteres.' });
@@ -157,10 +160,19 @@ export function CompraOrdenGeneratedDetail({
               {ACTION_LABELS.emitir}
             </Button>
           ) : null}
-          {pdfDownloadUrl ? (
-            <Button asChild className={canOrdenAction(role, 'emitir', { isCreator, status }) ? undefined : 'ml-auto'}>
-              <a href={pdfDownloadUrl} download><Download className="mr-2 h-4 w-4" />Descargar PDF</a>
-            </Button>
+          {activePdf && canViewPdf ? (
+            <>
+              <PrintPurchaseOrderPdfButton
+                orderId={orden.id}
+                documentId={activePdf.id}
+                className={canOrdenAction(role, 'emitir', { isCreator, status }) ? undefined : 'ml-auto'}
+              />
+              {pdfDownloadUrl ? (
+                <Button asChild variant="outline">
+                  <a href={pdfDownloadUrl} download><Download className="mr-2 h-4 w-4" />Descargar PDF</a>
+                </Button>
+              ) : null}
+            </>
           ) : null}
         </div>
       </div>
