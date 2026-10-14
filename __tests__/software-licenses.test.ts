@@ -100,9 +100,10 @@ describe('software license access', () => {
     expect(hasModuleAccess('IT_MANAGER', 'software-licenses')).toBe(true);
     expect(hasModuleAccess('ADMINISTRACION', 'software-licenses')).toBe(false);
     expect(hasModuleAccess('SECRETARIA', 'software-licenses')).toBe(false);
-    expect(canAccessRoute('ADMINISTRACION', '/ti/licencias')).toBe(false);
-    expect(canAccessRoute('SECRETARIA', '/ti/licencias/asignaciones')).toBe(false);
-    expect(canAccessRoute('IT_MANAGER', '/ti/licencias')).toBe(true);
-    expect(canAccessRoute('ADMIN', '/ti/licencias/asignaciones')).toBe(true);
+    expect(canAccessRoute('ADMINISTRACION', '/equipment/licencias')).toBe(false);
+    expect(canAccessRoute('SECRETARIA', '/equipment/licencias/asignaciones')).toBe(false);
+    expect(canAccessRoute('IT_MANAGER', '/equipment/licencias')).toBe(true);
+    expect(canAccessRoute('ADMIN', '/equipment/licencias/asignaciones')).toBe(true);
+    expect(canAccessRoute('IT_TECHNICIAN', '/equipment/licencias')).toBe(false);
   });
 });

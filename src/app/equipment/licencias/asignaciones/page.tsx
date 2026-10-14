@@ -49,11 +49,11 @@ export default function LicenseAssignmentsPage() {
 
   return (
     <MainLayout>
-      <PageHeader title="Asignaciones de licencias" description="Personas del catálogo de empleados vinculadas a cada asiento." breadcrumbs={[{ label: 'Activos', href: '/equipment' }, { label: 'Licencias', href: '/ti/licencias' }, { label: 'Asignaciones' }]} />
+      <PageHeader title="Asignaciones de licencias" description="Personas del catálogo de empleados vinculadas a cada asiento." breadcrumbs={[{ label: 'Activos', href: '/equipment' }, { label: 'Licencias', href: '/equipment/licencias' }, { label: 'Asignaciones' }]} />
       <Input className="mt-6" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Empleado, software o correo" aria-label="Buscar asignaciones" />
       <div className="mt-4 grid gap-3">
         {rows.map((row, index) => (
-          <Link key={`${row.subscriptionId}-${row.email}-${row.employee}-${index}`} href={`/ti/licencias/${row.subscriptionId}`} className="rounded-lg border p-4">
+          <Link key={`${row.subscriptionId}-${row.email}-${row.employee}-${index}`} href={`/equipment/licencias/${row.subscriptionId}`} className="rounded-lg border p-4">
             <p className="font-medium">{row.employee}</p>
             <p className="text-sm text-muted-foreground">{row.software} · {row.email ?? 'Sin cuenta'} · {STATUS_LABEL[row.seatType]} · {STATUS_LABEL[row.status] ?? row.status}{row.active ? '' : row.employee === 'Disponible' ? '' : ' · historial'}</p>
           </Link>
