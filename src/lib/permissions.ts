@@ -14,7 +14,8 @@ export type Module =
   | 'audit-records'
   | 'reports'
   | 'settings'
-  | 'software-licenses';
+  | 'software-licenses'
+  | 'payroll';
 
 export type Action = 'read' | 'create' | 'update' | 'delete';
 
@@ -75,6 +76,7 @@ const PERMISSIONS: Record<Role, Partial<Record<Module, Action[]>>> = {
     dashboard: ['read'],
     users: ['read', 'create', 'update'],
     employees: ['read', 'create', 'update'],
+    payroll: ['read', 'create', 'update'],
     oficios: ['read', 'create', 'update'],
     reports: ['read'],
   },
@@ -82,6 +84,7 @@ const PERMISSIONS: Record<Role, Partial<Record<Module, Action[]>>> = {
     dashboard: ['read'],
     users: ['read', 'create', 'update'],
     employees: ['read', 'create', 'update'],
+    payroll: ['read', 'create', 'update'],
     oficios: ['read', 'create', 'update'],
     purchases: ['read', 'create'],
     reports: ['read'],
@@ -139,6 +142,7 @@ export const ROUTE_ACCESS_BY_MODULE: Record<Module, Role[] | null> = {
   reports: ['ADMIN', 'OWNER', 'IT_MANAGER', 'IT', 'IT_TECHNICIAN', 'PROCUREMENT', 'HR', 'RRHH', 'AUDITOR', 'DIRECTOR', 'ADMINISTRACION'],
   settings: ['ADMIN', 'OWNER', 'IT_MANAGER', 'IT'],
   'software-licenses': ['ADMIN', 'OWNER', 'IT_MANAGER', 'IT'],
+  payroll: ['HR', 'RRHH'],
 };
 
 export const ROUTE_PATH_TO_MODULE: Record<string, Module> = {
@@ -171,6 +175,10 @@ export const ROUTE_PATH_TO_MODULE: Record<string, Module> = {
   '/reportes': 'reports',
   '/settings': 'settings',
   '/ti/licencias': 'software-licenses',
+  '/planilla': 'payroll',
+  '/planilla/historico': 'payroll',
+  '/planilla/empleados': 'payroll',
+  '/planilla/configuracion': 'payroll',
 };
 
 export function routeToAccess(pathname: string): { module: Module; roles: Role[] | null } | null {

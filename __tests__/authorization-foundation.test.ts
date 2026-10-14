@@ -40,7 +40,10 @@ describe('Phase 6A capability authorization', () => {
   });
 
   it('does not use wildcard permissions for organization owners', () => {
-    expect(ORGANIZATION_PERMISSIONS.every((permission) => can(organizationRole('OWNER'), permission))).toBe(true);
+    const ownerPermissions = ORGANIZATION_PERMISSIONS.filter(
+      (p) => !p.startsWith('payroll.'),
+    );
+    expect(ownerPermissions.every((permission) => can(organizationRole('OWNER'), permission))).toBe(true);
     expect(can(organizationRole('USER'), 'memberships.manage')).toBe(false);
     expect(can(organizationRole('AUDITOR'), 'audit.read')).toBe(true);
   });

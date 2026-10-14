@@ -1,0 +1,88 @@
+{
+  "cases": [
+    {
+      "id": "normal",
+      "monthlySalary": 30000,
+      "hireDate": "2020-01-15",
+      "payMonth": "2026-03",
+      "otherDeductions": 0,
+      "expected": {
+        "salarioPeriodo": 30000,
+        "ihss": 595.16,
+        "isr": 1101.31,
+        "otherDeductions": 0,
+        "netPay": 28303.53
+      }
+    },
+    {
+      "id": "primer mes",
+      "monthlySalary": 30000,
+      "hireDate": "2026-03-10",
+      "payMonth": "2026-03",
+      "otherDeductions": 0,
+      "expected": {
+        "salarioPeriodo": 22000,
+        "ihss": 595.16,
+        "isr": 410.5,
+        "otherDeductions": 0,
+        "netPay": 20994.34
+      }
+    },
+    {
+      "id": "exento",
+      "monthlySalary": 15000,
+      "hireDate": "2019-06-01",
+      "payMonth": "2026-03",
+      "otherDeductions": 0,
+      "expected": {
+        "salarioPeriodo": 15000,
+        "ihss": 595.16,
+        "isr": 0,
+        "otherDeductions": 0,
+        "netPay": 14404.84
+      }
+    },
+    {
+      "id": "tres tramos",
+      "monthlySalary": 80000,
+      "hireDate": "2018-02-01",
+      "payMonth": "2026-03",
+      "otherDeductions": 0,
+      "expected": {
+        "salarioPeriodo": 80000,
+        "ihss": 595.16,
+        "isr": 11413.99,
+        "otherDeductions": 0,
+        "netPay": 67990.85
+      }
+    },
+    {
+      "id": "mid year",
+      "monthlySalary": 30000,
+      "hireDate": "2026-07-01",
+      "payMonth": "2026-09",
+      "otherDeductions": 500,
+      "expected": {
+        "salarioPeriodo": 30000,
+        "ihss": 595.16,
+        "isr": 0,
+        "otherDeductions": 500,
+        "netPay": 28904.84
+      }
+    },
+    {
+      "id": "bajo techo",
+      "monthlySalary": 10000,
+      "hireDate": "2021-01-01",
+      "payMonth": "2026-03",
+      "otherDeductions": 0,
+      "expected": {
+        "salarioPeriodo": 10000,
+        "ihss": 500,
+        "isr": 0,
+        "otherDeductions": 0,
+        "netPay": 9500
+      }
+    }
+  ]
+}
