@@ -84,6 +84,9 @@ export const ORGANIZATION_PERMISSIONS = [
   'integrations.view-history',
   'integrations.retry',
   'webhooks.manage',
+  'payroll.view',
+  'payroll.generate',
+  'payroll.configure',
 ] as const;
 
 export const PLATFORM_PERMISSIONS = [
@@ -133,6 +136,10 @@ const EMPLOYEES_OPERATIONAL = [
   'employees.read', 'employees.create', 'employees.update', 'employees.deactivate',
 ] as const;
 
+const PAYROLL_OPERATIONAL = [
+  'payroll.view', 'payroll.generate', 'payroll.configure',
+] as const;
+
 const SOFTWARE_LICENSES = [
   'software-licenses.read', 'software-licenses.create', 'software-licenses.update',
   'software-licenses.assign', 'software-licenses.manage', 'software-licenses.export',
@@ -150,9 +157,17 @@ const DISPOSAL_WORKFLOW = [
   'equipment-disposal.configure',
 ] as const;
 
+/** Org/platform admins do not inherit HR-only payroll capabilities. */
+const ORGANIZATION_ADMIN_PERMISSIONS = ORGANIZATION_PERMISSIONS.filter(
+  (permission) =>
+    permission !== 'payroll.view'
+    && permission !== 'payroll.generate'
+    && permission !== 'payroll.configure',
+) as readonly Permission[];
+
 const ORGANIZATION_ROLE_PERMISSIONS: Record<OrganizationRole, readonly Permission[]> = {
-  OWNER: ORGANIZATION_PERMISSIONS,
-  ADMIN: ORGANIZATION_PERMISSIONS,
+  OWNER: ORGANIZATION_ADMIN_PERMISSIONS,
+  ADMIN: ORGANIZATION_ADMIN_PERMISSIONS,
   ADMINISTRACION: [
     ...OFICIOS_OPERATIONAL,
     ...PURCHASES_OPERATIONAL,
@@ -197,6 +212,7 @@ const ORGANIZATION_ROLE_PERMISSIONS: Record<OrganizationRole, readonly Permissio
   HR: [
     'users.read', 'users.create', 'users.update',
     ...EMPLOYEES_OPERATIONAL,
+    ...PAYROLL_OPERATIONAL,
     'offices.read', 'offices.create', 'offices.update', 'offices.send', 'offices.receive', 'offices.complete', 'offices.cancel', 'offices.download',
     ...REPORT_READ,
     ...NOTIFICATION_BASELINE,

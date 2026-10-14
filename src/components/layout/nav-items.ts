@@ -109,6 +109,10 @@ export const NAV_ITEMS: NavItem[] = [
     children: [
       { label: 'Empleados', href: '/employees', module: 'employees' },
       { label: 'Usuarios', href: '/users', module: 'users' },
+      { label: 'Planilla', href: '/planilla', module: 'payroll' },
+      { label: 'Histórico planilla', href: '/planilla/historico', module: 'payroll' },
+      { label: 'Planilla — empleados', href: '/planilla/empleados', module: 'payroll' },
+      { label: 'Config. planilla', href: '/planilla/configuracion', module: 'payroll' },
     ],
   },
 

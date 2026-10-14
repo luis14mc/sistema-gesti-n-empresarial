@@ -53,6 +53,9 @@ model Organization {
   permissionOverrides    UserPermissionOverride[]   @relation("PermissionOverrideOrganization")
   integrations           OrganizationIntegration[]
   employees              Employee[]
+  payrollSettings        PayrollSettings?
+  payrollIsrBrackets     PayrollIsrBracket[]
+  payslips               Payslip[]
   oficioNumberingConfigs OficioNumberingConfig[]
   oficioSigners          OficioSigner[]
   softwareProducts       SoftwareProduct[]
@@ -520,10 +523,14 @@ model Employee {
   userId         String?               @unique
   departmentId   String?
   positionId     String?
-  isActive       Boolean               @default(true)
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
-  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  isActive            Boolean               @default(true)
+  monthlySalary       Decimal?              @db.Decimal(12, 2)
+  otherDeduction      Decimal               @default(0) @db.Decimal(12, 2)
+  otherDeductionNote  String?
+  payrollEnabled      Boolean               @default(false)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  organization        Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   department     Department?           @relation(fields: [departmentId], references: [id])
   position       JobPosition?          @relation(fields: [positionId], references: [id])
   user           User?                 @relation(fields: [userId], references: [id])
@@ -531,6 +538,7 @@ model Employee {
   purchaseOrders CompraOrden[]         @relation("CompraOrdenRequester")
   oficiosResponsible Oficio[]          @relation("OficioResponsibleEmployee")
   licenseAssignments LicenseAssignment[]
+  payslips           Payslip[]
 
   @@unique([organizationId, email])
   @@unique([organizationId, employeeCode])
@@ -2259,4 +2267,68 @@ model LicenseAssignment {
   @@index([seatId, unassignedAt])
   @@index([employeeId])
   @@map("software_license_assignments")
+}
+
+model PayrollSettings {
+  id                      String       @id @default(cuid())
+  organizationId          String       @unique
+  medicalExpensesAnnual   Decimal      @db.Decimal(12, 2)
+  ivmDeductibleMonthly    Decimal      @db.Decimal(12, 2)
+  ihssEmRate              Decimal      @db.Decimal(5, 2)
+  ihssIvmRate             Decimal      @db.Decimal(5, 2)
+  ihssCeilingMonthly      Decimal      @db.Decimal(12, 2)
+  updatedById             String?
+  updatedAt               DateTime     @updatedAt
+  organization            Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("payroll_settings")
+}
+
+model PayrollIsrBracket {
+  id             String       @id @default(cuid())
+  organizationId String
+  year           Int
+  order          Int
+  rate           Decimal      @db.Decimal(5, 2)
+  toAnnual       Decimal      @db.Decimal(14, 2)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, year, order])
+  @@index([organizationId, year])
+  @@map("payroll_isr_brackets")
+}
+
+model Payslip {
+  id                  String              @id @default(cuid())
+  organizationId      String
+  employeeId          String
+  year                Int
+  month               Int
+  periodStart         DateTime            @db.Date
+  periodEnd           DateTime            @db.Date
+  salarioPeriodo      Decimal             @db.Decimal(12, 2)
+  ihss                Decimal             @db.Decimal(12, 2)
+  isr                 Decimal             @db.Decimal(12, 2)
+  otro                Decimal             @db.Decimal(12, 2)
+  totalDeducciones    Decimal             @db.Decimal(12, 2)
+  neto                Decimal             @db.Decimal(12, 2)
+  parametersSnapshot  Json
+  pdfStorageKey       String?
+  emailStatus         PayslipEmailStatus  @default(NONE)
+  emailError          String?
+  generatedById       String
+  generatedAt         DateTime            @default(now())
+  organization        Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employee            Employee            @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, employeeId, year, month])
+  @@index([organizationId, year, month])
+  @@index([employeeId])
+  @@map("payslips")
+}
+
+enum PayslipEmailStatus {
+  NONE
+  SENT
+  FAILED
 }
