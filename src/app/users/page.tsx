@@ -4,6 +4,7 @@
 // USERS CRUD PAGE — Gestión de usuarios (ADMIN)
 // ============================================
 
+import Link from 'next/link';
 import { useState } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -330,6 +331,11 @@ export default function UsersPage() {
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex items-center justify-end gap-1">
+                                                    <Button variant="ghost" size="icon" asChild title="Permisos">
+                                                        <Link href={`/users/${user.id}`}>
+                                                            <ShieldCheck className="h-4 w-4" />
+                                                        </Link>
+                                                    </Button>
                                                     <Button variant="ghost" size="icon" onClick={() => openEdit(user)} title="Editar">
                                                         <Pencil className="h-4 w-4" />
                                                     </Button>

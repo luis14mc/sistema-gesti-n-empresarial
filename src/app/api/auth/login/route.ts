@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { comparePassword, generateToken } from '@/lib/auth';
+import { comparePassword } from '@/lib/auth';
+import { generateSessionToken } from '@/lib/session-token';
 import { createAuditRecord } from '@/lib/audit';
 import { resolveSessionRole } from '@/platform/security/authorization/session-role';
 import { loginSchema } from '@/lib/zod-schemas';
@@ -103,7 +104,7 @@ export async function POST(req: NextRequest) {
     const sessionRole = await resolveSessionRole(user.id, user.role);
 
     stage = 'GENERATE_TOKEN';
-    const token = generateToken({
+    const token = await generateSessionToken({
       userId: user.id,
       email: user.email,
       role: sessionRole,

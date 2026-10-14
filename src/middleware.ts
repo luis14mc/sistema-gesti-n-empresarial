@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { routeToAccess } from '@/lib/permissions';
+import { routeToAccess } from '@/platform/security/route-access';
+import { decodeModulesFromJwt } from '@/platform/security/jwt-modules';
+import { ROUTE_ACCESS_BY_MODULE } from '@/lib/permissions';
+
+function sessionRoleMatchesAllowlist(sessionRole: string, allowedRoles: readonly string[]): boolean {
+  if (allowedRoles.includes(sessionRole)) return true;
+  if (sessionRole === 'IT_MANAGER' && allowedRoles.includes('IT')) return true;
+  if (sessionRole === 'OWNER' && allowedRoles.includes('ADMIN')) return true;
+  return false;
+}
 import { isDeprecatedFrontendPath } from '@/lib/deprecated-frontend-paths';
 import {
   JWT_ALGORITHM,
@@ -210,17 +219,15 @@ export async function middleware(request: NextRequest) {
     return res;
   }
 
-  // 2) Ruta protegida con restricción de rol
-  if (access && token && access.roles) {
+  // 2) Ruta protegida — acceso por módulo (JWT) con fallback a plantilla de rol
+  if (access && token) {
     const payload = await decodeAndVerifyJwt(token);
-    if (!payload || !access.roles.includes(payload.role)) {
+    if (!payload) {
       logAuthorizationDecision({
         requestedPath: pathname,
         resolvedModule: access.module,
-        userId: payload?.userId,
-        role: payload?.role,
         authorizationDecision: 'DENY',
-        redirectReason: payload ? 'ROLE_NOT_ALLOWED' : 'INVALID_SESSION',
+        redirectReason: 'INVALID_SESSION',
       });
       const forbiddenUrl = buildRequestRedirectUrl(request, '/forbidden');
       forbiddenUrl.searchParams.set('from', pathname);
@@ -228,6 +235,31 @@ export async function middleware(request: NextRequest) {
       applySecurityHeaders(res, nonce);
       return res;
     }
+
+    const modules = decodeModulesFromJwt(payload.mod);
+    const allowedByJwt = modules.has(access.module);
+    const legacyRoles = ROUTE_ACCESS_BY_MODULE[access.module];
+    const allowedByRole =
+      !payload.mod && legacyRoles
+        ? sessionRoleMatchesAllowlist(payload.role, legacyRoles)
+        : false;
+
+    if (!allowedByJwt && !allowedByRole) {
+      logAuthorizationDecision({
+        requestedPath: pathname,
+        resolvedModule: access.module,
+        userId: payload.userId,
+        role: payload.role,
+        authorizationDecision: 'DENY',
+        redirectReason: 'MODULE_NOT_ALLOWED',
+      });
+      const forbiddenUrl = buildRequestRedirectUrl(request, '/forbidden');
+      forbiddenUrl.searchParams.set('from', pathname);
+      const res = NextResponse.redirect(forbiddenUrl);
+      applySecurityHeaders(res, nonce);
+      return res;
+    }
+
     logAuthorizationDecision({
       requestedPath: pathname,
       resolvedModule: access.module,

@@ -13,6 +13,9 @@ export interface TokenPayload {
   userId: string;
   email: string;
   role: string;
+  orgId?: string;
+  accessVersion?: number;
+  mod?: string;
 }
 
 const SECRET_MIN_LENGTH = 32;
@@ -80,6 +83,9 @@ export const verifyToken = (token: string): TokenPayload | null => {
       userId: decoded.userId,
       email: decoded.email,
       role: decoded.role,
+      orgId: typeof decoded.orgId === 'string' ? decoded.orgId : undefined,
+      accessVersion: typeof decoded.accessVersion === 'number' ? decoded.accessVersion : undefined,
+      mod: typeof decoded.mod === 'string' ? decoded.mod : undefined,
     };
   } catch {
     return null;

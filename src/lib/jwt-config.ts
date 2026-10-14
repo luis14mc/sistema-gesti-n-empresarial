@@ -21,6 +21,12 @@ export interface TokenClaims {
   userId: string;
   email: string;
   role: Role;
+  /** Organization scope for module access */
+  orgId?: string;
+  /** Bumped when UserModuleAccess changes — client refreshes token when stale */
+  accessVersion?: number;
+  /** Comma-separated ModuleId list with read access (edge middleware) */
+  mod?: string;
   iss?: string;
   aud?: string | string[];
   iat?: number;
@@ -59,6 +65,9 @@ export function validateTokenClaims(payload: unknown): TokenClaims | null {
     userId: p.userId,
     email: p.email,
     role: p.role as Role,
+    orgId: typeof p.orgId === 'string' ? p.orgId : undefined,
+    accessVersion: typeof p.accessVersion === 'number' ? p.accessVersion : undefined,
+    mod: typeof p.mod === 'string' ? p.mod : undefined,
     iss: p.iss as string,
     aud: p.aud as string | string[],
     iat: p.iat,

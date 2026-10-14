@@ -95,6 +95,20 @@ export interface SessionUser {
   positionId: string | null;
   department: { id: string; name: string } | null;
   position: { id: string; name: string } | null;
+  organizationId?: string;
+  accessVersion?: number;
+  modulesRead?: string[];
+  moduleAccess?: Record<
+    string,
+    {
+      module: string;
+      canRead: boolean;
+      canCreate: boolean;
+      canUpdate: boolean;
+      canDelete: boolean;
+      extras: string[];
+    }
+  >;
 }
 
 // ── Resultado genérico de Server Actions ──────────────────────

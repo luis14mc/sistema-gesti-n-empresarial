@@ -6,8 +6,10 @@ import {
   Settings,
   ShoppingCart,
   ClipboardCheck,
+  Wallet,
 } from 'lucide-react';
 import type { Module } from '@/lib/permissions';
+import type { Permission } from '@/platform/security/authorization/permissions';
 
 // ── NAV MODEL ─────────────────────────────────────────────────
 //
@@ -41,6 +43,8 @@ export interface NavSubItem {
   module?: Module;
   /** Optional key for a pending-count badge (e.g. 'compras-bandeja'). */
   badgeKey?: string;
+  /** Requires a special permission (extras) in addition to module read. */
+  requiredSpecial?: Permission;
 }
 
 export interface NavItem {
@@ -109,10 +113,25 @@ export const NAV_ITEMS: NavItem[] = [
     children: [
       { label: 'Empleados', href: '/employees', module: 'employees' },
       { label: 'Usuarios', href: '/users', module: 'users' },
-      { label: 'Planilla', href: '/planilla', module: 'payroll' },
-      { label: 'Histórico planilla', href: '/planilla/historico', module: 'payroll' },
-      { label: 'Planilla — empleados', href: '/planilla/empleados', module: 'payroll' },
-      { label: 'Config. planilla', href: '/planilla/configuracion', module: 'payroll' },
+    ],
+  },
+
+  // Planilla (módulo propio — acceso por matriz de usuario)
+  {
+    label: 'Planilla',
+    href: '/planilla',
+    icon: Wallet,
+    module: 'payroll',
+    children: [
+      { label: 'Boletas', href: '/planilla', module: 'payroll' },
+      { label: 'Histórico', href: '/planilla/historico', module: 'payroll' },
+      { label: 'Empleados en planilla', href: '/planilla/empleados', module: 'payroll' },
+      {
+        label: 'Configuración',
+        href: '/planilla/configuracion',
+        module: 'payroll',
+        requiredSpecial: 'payroll.configure',
+      },
     ],
   },
 

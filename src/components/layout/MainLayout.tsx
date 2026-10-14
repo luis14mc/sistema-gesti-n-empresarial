@@ -17,6 +17,7 @@ import { Separator } from '@/components/ui/separator';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { logoutAction } from '@/actions/auth';
 import { hasModuleAccess } from '@/lib/permissions';
+import type { ModuleId } from '@/platform/security/modules';
 import { useBandejaContador } from '@/hooks/useBandejaContador';
 import { cn } from '@/lib/utils';
 import { BrandLogo } from '@/components/shared/BrandLogo';
@@ -28,15 +29,36 @@ import type { SessionUser, Role } from '@/types';
 // A child may declare its own `module`; otherwise it inherits the parent's.
 // A group is visible when the role can see at least one of its children.
 
-function visibleChildren(role: Role, item: NavItem): NavSubItem[] {
-  if (!item.children?.length) return [];
-  return item.children.filter((child) => hasModuleAccess(role, child.module ?? item.module));
+type NavAccessContext = {
+  role: Role;
+  modulesRead?: ModuleId[];
+  moduleExtras?: Partial<Record<ModuleId, string[]>>;
+};
+
+function canReadModule(ctx: NavAccessContext, module: ModuleId): boolean {
+  if (ctx.modulesRead?.length) return ctx.modulesRead.includes(module);
+  return hasModuleAccess(ctx.role, module);
 }
 
-function isItemVisible(role: Role, item: NavItem): boolean {
+function canSeeNavChild(ctx: NavAccessContext, child: NavSubItem, parentModule: ModuleId): boolean {
+  const mod = child.module ?? parentModule;
+  if (!canReadModule(ctx, mod)) return false;
+  if (child.requiredSpecial) {
+    const extras = ctx.moduleExtras?.[mod] ?? [];
+    return extras.includes(child.requiredSpecial);
+  }
+  return true;
+}
+
+function visibleChildren(ctx: NavAccessContext, item: NavItem): NavSubItem[] {
+  if (!item.children?.length) return [];
+  return item.children.filter((child) => canSeeNavChild(ctx, child, item.module));
+}
+
+function isItemVisible(ctx: NavAccessContext, item: NavItem): boolean {
   return item.children?.length
-    ? visibleChildren(role, item).length > 0
-    : hasModuleAccess(role, item.module);
+    ? visibleChildren(ctx, item).length > 0
+    : canReadModule(ctx, item.module);
 }
 
 // ── SIDEBAR NAV ───────────────────────────────────────────────
@@ -55,17 +77,17 @@ function NavBadge({ badgeKey }: { badgeKey: string }) {
 }
 
 function SidebarNav({
-  role,
+  navAccess,
   collapsed,
   onNavClick,
 }: {
-  role: Role;
+  navAccess: NavAccessContext;
   collapsed: boolean;
   onNavClick?: () => void;
 }) {
   const pathname = usePathname();
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
-  const filteredItems = NAV_ITEMS.filter((item) => isItemVisible(role, item));
+  const filteredItems = NAV_ITEMS.filter((item) => isItemVisible(navAccess, item));
 
   // Expandir automáticamente el grupo cuando una subruta coincide.
   // Depende solo de `pathname` y `role` (no de `filteredItems`, que cambia
@@ -77,7 +99,7 @@ function SidebarNav({
       const next = { ...prev };
 
       NAV_ITEMS.forEach((item) => {
-        if (!isItemVisible(role, item)) return;
+        if (!isItemVisible(navAccess, item)) return;
         if (!item.children?.length) return;
 
         const isGroupActive = item.children.some(
@@ -92,7 +114,7 @@ function SidebarNav({
 
       return changed ? next : prev;
     });
-  }, [pathname, role]);
+  }, [pathname, navAccess.modulesRead, navAccess.role]);
 
   const toggleMenu = (href: string) => {
     setExpandedMenus((prev) => ({ ...prev, [href]: !prev[href] }));
@@ -101,7 +123,7 @@ function SidebarNav({
   return (
     <nav className="flex flex-col gap-1 px-3">
       {filteredItems.map((item) => {
-        const childItems = visibleChildren(role, item);
+        const childItems = visibleChildren(navAccess, item);
         const hasChildren = childItems.length > 0;
         const activeHref = hasChildren
           ? childItems
@@ -246,8 +268,11 @@ export default function MainLayout({ children, user: propUser }: MainLayoutProps
         }
         return r.json();
       })
-      .then((data) => {
+      .then(async (data) => {
         if (!data) return;
+        if (data.tokenStale) {
+          await fetch('/api/auth/refresh-session', { method: 'POST' });
+        }
         setFetchedUser(data.user);
         setIsFetching(false);
       })
@@ -266,6 +291,16 @@ export default function MainLayout({ children, user: propUser }: MainLayoutProps
   if (!user) return <LoadingShell />;
 
   const userRole = user.role as Role;
+  const moduleExtras = user.moduleAccess
+    ? (Object.fromEntries(
+        Object.entries(user.moduleAccess).map(([k, v]) => [k, v.extras]),
+      ) as Partial<Record<ModuleId, string[]>>)
+    : undefined;
+  const navAccess: NavAccessContext = {
+    role: userRole,
+    modulesRead: user.modulesRead as ModuleId[] | undefined,
+    moduleExtras,
+  };
   const initials = `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase();
 
   const handleLogout = () => {
@@ -295,7 +330,7 @@ export default function MainLayout({ children, user: propUser }: MainLayoutProps
         </div>
 
         <div className="flex-1 overflow-y-auto py-4">
-          <SidebarNav role={userRole} collapsed={collapsed} />
+          <SidebarNav navAccess={navAccess} collapsed={collapsed} />
         </div>
 
         <div className="border-t border-sidebar-border p-3 space-y-2">
@@ -363,7 +398,7 @@ export default function MainLayout({ children, user: propUser }: MainLayoutProps
               </div>
               <div className="py-4">
                 <SidebarNav
-                  role={userRole}
+                  navAccess={navAccess}
                   collapsed={false}
                   onNavClick={() => setMobileOpen(false)}
                 />

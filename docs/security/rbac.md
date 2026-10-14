@@ -11,6 +11,20 @@ SGE authorization is based on an authenticated identity, an active organization 
 
 No legacy `ADMIN` is migrated automatically to `PLATFORM_ADMIN`. Platform roles do not bypass organization membership or tenant scope.
 
+## Role + user exceptions (no second RBAC)
+
+Organization capabilities come from the membership role in `src/platform/security/authorization/permissions.ts`. **The role matrix is not replaced or narrowed for new features** (for example `OWNER`/`ADMIN` keep the same capabilities as in `main`, including Planilla where the matrix already grants `payroll.*`). Per-user changes are stored only as `UserPermissionOverride` rows (`permission` + `effect` `ALLOW` | `DENY`). There is no alternate permission store and no backfill on deploy: existing users keep exactly the role defaults until an administrator adds exceptions.
+
+Planilla is treated as **operationally sensitive**: granting capabilities outside the usual HR/RRHH profiles should go through the Permisos UI (ALLOW overrides) with audit, not through edits to `ORGANIZATION_ROLE_PERMISSIONS`.
+
+Effective permission for a user:
+
+1. Start from the membership role capability set.
+2. Apply overrides (`DENY` wins over `ALLOW` over role default), via `canWithOverrides`.
+3. Map fine-grained permissions to module/menu visibility using `src/platform/security/modules.ts` and `src/platform/security/module-effective.ts`.
+
+Navigation, route middleware (JWT module list), and the Users → Permisos UI all use this effective evaluation. Changing overrides increments `OrganizationMembership.accessVersion`; the client refreshes the session token so menu and routes update without re-login.
+
 ## Enforcement chain
 
 Tenant-aware operations use this chain:
