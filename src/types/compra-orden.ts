@@ -101,6 +101,8 @@ export interface CompraOrden {
   items: CompraOrdenItem[];
   documentos?: CompraOrdenDocumento[];
   documentsCount?: number;
+  /** Active ORDER_PDF document id when the order has been generated. */
+  activeOrderPdfDocumentId?: string | null;
   format?: PurchaseOrderTemplateConfig;
   generatedById?: string | null;
   generatedAt?: string | null;

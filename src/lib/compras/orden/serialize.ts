@@ -50,6 +50,7 @@ type OrderListItem = Prisma.CompraOrdenGetPayload<{
   include: {
     createdBy: { select: { id: true; firstName: true; lastName: true } };
     supplier: { select: { id: true; nombreRazonSocial: true } };
+    documentos: { select: { id: true } };
     _count: { select: { documentos: true } };
   };
 }>;
@@ -201,6 +202,7 @@ export function serializePurchaseOrderListItem(order: OrderListItem) {
     createdBy: order.createdBy,
     supplier: order.supplier,
     documentsCount: order._count.documentos,
+    activeOrderPdfDocumentId: order.documentos?.[0]?.id ?? null,
     numeroOrden: order.orderNumber,
     referenciaCompra: order.purchaseReference,
     proveedorNombre: order.supplierName,

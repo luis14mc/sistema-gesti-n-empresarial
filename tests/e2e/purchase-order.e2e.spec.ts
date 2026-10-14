@@ -26,5 +26,16 @@ test.describe('Purchase order journey', () => {
       page.getByRole('link', { name: /descargar pdf|download pdf/i }).click(),
     ]);
     expect(download.suggestedFilename()).toMatch(/\.pdf$/);
+
+    await expect(page.getByTestId('print-purchase-order-pdf')).toBeVisible();
+    const printRequest = page.waitForRequest(
+      (req) =>
+        req.method() === 'GET'
+        && req.url().includes('/documentos/')
+        && req.url().includes('/view')
+        && req.url().includes('purpose=print'),
+    );
+    await page.getByTestId('print-purchase-order-pdf').click();
+    await printRequest;
   });
 });

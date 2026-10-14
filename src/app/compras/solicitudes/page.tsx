@@ -2,7 +2,16 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { Eye, Plus, Trash2 } from 'lucide-react';
+import { Eye, Plus, Printer, Trash2, MoreHorizontal } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { printPdf } from '@/lib/compras/print-pdf';
+import { compraOrdenService } from '@/services/compra-orden.service';
+import { sileo } from 'sileo';
 import Swal from '@/lib/compras/orden/swal';
 import MainLayout from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -36,6 +45,7 @@ export default function ComprasSolicitudesPage() {
   const { user } = useAuth();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [printingOrderId, setPrintingOrderId] = useState<string | null>(null);
   const { ordenes, totalPages, isLoading, deleteOrden, isSaving } = useCompraOrdenes({
     page,
     pageSize: 10,
@@ -45,6 +55,21 @@ export default function ComprasSolicitudesPage() {
   if (!user) return null;
 
   const role = user.role as Role;
+
+  const handlePrintOrder = async (orderId: string, documentId: string) => {
+    setPrintingOrderId(orderId);
+    try {
+      const url = `${compraOrdenService.getDocumentViewUrl(orderId, documentId)}?purpose=print`;
+      await printPdf(url);
+    } catch {
+      sileo.error({
+        title: 'No se pudo imprimir',
+        description: 'Verifique su conexión o descargue el PDF desde el detalle de la orden.',
+      });
+    } finally {
+      setPrintingOrderId(null);
+    }
+  };
 
   const handleDeleteDraft = async (orderId: string) => {
     const confirmation = await Swal.fire({
@@ -131,6 +156,12 @@ export default function ComprasSolicitudesPage() {
                     isCreator: order.createdById === user.id,
                     status,
                   });
+                  const canViewPdf = canOrdenAction(role, 'read', {
+                    isCreator: order.createdById === user.id,
+                    status,
+                  });
+                  const activePdfId = order.activeOrderPdfDocumentId;
+                  const showPrint = Boolean(activePdfId && canViewPdf && !isDraft);
                   return (
                     <TableRow key={order.id} className="cursor-pointer">
                       <TableCell>
@@ -170,6 +201,28 @@ export default function ComprasSolicitudesPage() {
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
+                          ) : null}
+                          {showPrint && activePdfId ? (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button type="button" variant="ghost" size="sm" aria-label="Más acciones de la orden">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  disabled={printingOrderId === order.id}
+                                  data-testid="print-purchase-order-pdf"
+                                  onSelect={(event) => {
+                                    event.preventDefault();
+                                    void handlePrintOrder(order.id, activePdfId);
+                                  }}
+                                >
+                                  <Printer className="mr-2 h-4 w-4" />
+                                  {printingOrderId === order.id ? 'Preparando…' : 'Imprimir'}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           ) : null}
                         </div>
                       </TableCell>

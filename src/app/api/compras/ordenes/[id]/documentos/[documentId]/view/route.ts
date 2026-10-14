@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { createAuditRecord } from '@/lib/audit';
 import { getCompraOrden, readPurchaseOrderDocumentFile } from '@/lib/compras/orden/service';
 import { buildInlineContentDisposition } from '@/lib/compras/orden/document-access';
 import { canOrdenAction } from '@/lib/compras/orden/permissions';
@@ -7,8 +8,9 @@ import type { Role } from '@/types';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 
 export const GET = withAuth(async (req: AuthenticatedRequest, { params }) => {
+  const requestId = crypto.randomUUID();
   const role = req.user!.role as Role;
-  const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.download');
+  const { organizationId } = await authorizeOrganization(req, requestId, 'purchase-orders.download');
   const { id, documentId } = await params;
   const orden = await getCompraOrden(id, organizationId);
   if (!orden) {
@@ -19,6 +21,22 @@ export const GET = withAuth(async (req: AuthenticatedRequest, { params }) => {
   }
   try {
     const document = await readPurchaseOrderDocumentFile(id, documentId, organizationId);
+    const purpose = req.nextUrl.searchParams.get('purpose');
+    if (purpose === 'print') {
+      await createAuditRecord({
+        title: 'Impresión de orden de compra',
+        description: 'El usuario inició la impresión del PDF oficial de la orden.',
+        module: 'COMPRAS',
+        category: 'PURCHASE_ORDER',
+        userId: req.user!.userId,
+        organizationId,
+        entityId: id,
+        entityType: 'CompraOrden',
+        action: 'PURCHASE_ORDER_PRINTED',
+        requestId,
+        metadata: { documentId, documentType: 'ORDER_PDF' },
+      });
+    }
     return new NextResponse(new Uint8Array(document.buffer), {
       status: 200,
       headers: {
