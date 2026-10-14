@@ -71,6 +71,36 @@
       }
     },
     {
+      "id": "server.py 27500 feb 2026",
+      "source": "server.py",
+      "monthlySalary": 27500,
+      "hireDate": "2026-02-17",
+      "payMonth": "2026-02",
+      "otherDeductions": 0,
+      "expected": {
+        "salarioPeriodo": 11000,
+        "ihss": 550,
+        "isr": 241.85,
+        "otherDeductions": 0,
+        "netPay": 10208.15
+      }
+    },
+    {
+      "id": "server.py 45678.90 may 2026",
+      "source": "server.py",
+      "monthlySalary": 45678.9,
+      "hireDate": "2026-05-03",
+      "payMonth": "2026-05",
+      "otherDeductions": 0,
+      "expected": {
+        "salarioPeriodo": 44156.27,
+        "ihss": 595.16,
+        "isr": 1997.57,
+        "otherDeductions": 0,
+        "netPay": 41563.54
+      }
+    },
+    {
       "id": "bajo techo",
       "monthlySalary": 10000,
       "hireDate": "2021-01-01",

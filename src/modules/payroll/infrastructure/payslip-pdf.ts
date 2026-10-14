@@ -31,7 +31,7 @@ function formatDate(d: Date): string {
   return d.toLocaleDateString('es-HN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-function buildHtml(input: PayslipPdfInput): string {
+export function buildPayslipHtml(input: PayslipPdfInput): string {
   const periodLabel = `${formatDate(input.periodStart)} — ${formatDate(input.periodEnd)}`;
   const row = (label: string, value: string, bold = false) => `
     <tr>
@@ -79,7 +79,7 @@ function buildHtml(input: PayslipPdfInput): string {
 }
 
 export async function renderAndStorePayslipPdf(input: PayslipPdfInput): Promise<string> {
-  const html = buildHtml(input);
+  const html = buildPayslipHtml(input);
   const buffer = await renderHtmlToPdf(html);
   const prefix = `organizations/${input.organizationId}/payroll/${input.year}/${input.month}`;
   const stored = await getStorage().put({

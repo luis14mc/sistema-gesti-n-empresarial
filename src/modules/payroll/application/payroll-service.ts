@@ -3,7 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { calculatePayslip, periodFromPayMonth } from '@/modules/payroll/domain';
 import { loadPayrollSettings } from '@/modules/payroll/application/settings-loader';
 import { mapPayslipAmounts } from '@/modules/payroll/application/mappers';
-import { renderAndStorePayslipPdf } from '@/modules/payroll/infrastructure/payslip-pdf';
+import { buildPayslipHtml, renderAndStorePayslipPdf } from '@/modules/payroll/infrastructure/payslip-pdf';
+import { renderPayslipAuditPdf, type PayslipAuditRow } from '@/modules/payroll/infrastructure/payslip-audit-pdf';
 
 const PAY_MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -64,9 +65,34 @@ async function getPayrollEmployee(organizationId: string, employeeId: string): P
   return employee;
 }
 
+function employeePreviewAmounts(
+  employee: PayrollEmployeeRow,
+  payMonth: string,
+  settings: Awaited<ReturnType<typeof loadPayrollSettings>>,
+): { previewIhss: number | null; previewIsr: number | null } {
+  if (!employee.payrollEnabled || !employee.hireDate || employee.monthlySalary === null) {
+    return { previewIhss: null, previewIsr: null };
+  }
+  try {
+    const result = calculatePayslip({
+      ...employeeToInput(employee, payMonth),
+      settings,
+    });
+    return { previewIhss: result.ihss, previewIsr: result.isr };
+  } catch {
+    return { previewIhss: null, previewIsr: null };
+  }
+}
+
 export async function listPayrollEmployees(
   organizationId: string,
-  filters: { search?: string; payrollEnabled?: boolean; page?: number; pageSize?: number },
+  filters: {
+    search?: string;
+    payrollEnabled?: boolean;
+    page?: number;
+    pageSize?: number;
+    previewPayMonth?: string;
+  },
 ) {
   const page = filters.page ?? 1;
   const pageSize = Math.min(Math.max(filters.pageSize ?? 20, 1), 100);
@@ -78,10 +104,25 @@ export async function listPayrollEmployees(
       { fullName: { contains: filters.search, mode: 'insensitive' } },
       { email: { contains: filters.search, mode: 'insensitive' } },
       { employeeCode: { contains: filters.search, mode: 'insensitive' } },
+      { position: { name: { contains: filters.search, mode: 'insensitive' } } },
     ];
   }
 
-  const [employees, total] = await Promise.all([
+  const statsWhere: Prisma.EmployeeWhereInput = {
+    organizationId,
+    isActive: true,
+    payrollEnabled: true,
+    monthlySalary: { not: null },
+  };
+
+  const previewPayMonth = filters.previewPayMonth;
+  let previewSettings: Awaited<ReturnType<typeof loadPayrollSettings>> | null = null;
+  if (previewPayMonth && PAY_MONTH_RE.test(previewPayMonth)) {
+    const { year } = parsePayMonth(previewPayMonth);
+    previewSettings = await loadPayrollSettings(organizationId, year);
+  }
+
+  const [employees, total, statsAgg] = await Promise.all([
     prisma.employee.findMany({
       where,
       skip,
@@ -97,19 +138,43 @@ export async function listPayrollEmployees(
         otherDeduction: true,
         otherDeductionNote: true,
         payrollEnabled: true,
+        isActive: true,
         department: { select: { id: true, name: true } },
         position: { select: { id: true, name: true } },
       },
     }),
     prisma.employee.count({ where }),
+    prisma.employee.aggregate({
+      where: statsWhere,
+      _count: { _all: true },
+      _sum: { monthlySalary: true },
+      _avg: { monthlySalary: true },
+    }),
   ]);
 
+  const stats = {
+    totalPayrollEmployees: statsAgg._count._all,
+    totalMonthlyPayroll: statsAgg._sum.monthlySalary
+      ? Number(statsAgg._sum.monthlySalary.toString())
+      : 0,
+    averageMonthlySalary: statsAgg._avg.monthlySalary
+      ? Number(statsAgg._avg.monthlySalary.toString())
+      : 0,
+  };
+
   return {
-    employees: employees.map((e) => ({
-      ...e,
-      monthlySalary: e.monthlySalary ? Number(e.monthlySalary.toString()) : null,
-      otherDeduction: Number(e.otherDeduction.toString()),
-    })),
+    employees: employees.map((e) => {
+      const base = {
+        ...e,
+        hireDate: e.hireDate ? e.hireDate.toISOString().slice(0, 10) : null,
+        monthlySalary: e.monthlySalary ? Number(e.monthlySalary.toString()) : null,
+        otherDeduction: Number(e.otherDeduction.toString()),
+      };
+      if (!previewSettings || !previewPayMonth) return base;
+      const preview = employeePreviewAmounts(e, previewPayMonth, previewSettings);
+      return { ...base, ...preview };
+    }),
+    stats,
     total,
     page,
     pageSize,
@@ -121,6 +186,7 @@ export async function getPayrollEmployeeDetail(organizationId: string, employeeI
   const employee = await getPayrollEmployee(organizationId, employeeId);
   return {
     ...employee,
+    hireDate: employee.hireDate ? employee.hireDate.toISOString().slice(0, 10) : null,
     monthlySalary: employee.monthlySalary ? Number(employee.monthlySalary.toString()) : null,
     otherDeduction: Number(employee.otherDeduction.toString()),
   };
@@ -169,14 +235,27 @@ export async function patchPayrollEmployee(
 }
 
 export async function previewPayslip(organizationId: string, employeeId: string, payMonth: string) {
-  const { year } = parsePayMonth(payMonth);
+  const { year, month } = parsePayMonth(payMonth);
   const employee = await getPayrollEmployee(organizationId, employeeId);
   const settings = await loadPayrollSettings(organizationId, year);
   const result = calculatePayslip({ ...employeeToInput(employee, payMonth), settings });
+  const amounts = mapPayslipAmounts(result);
+  const previewHtml = buildPayslipHtml({
+    organizationId,
+    employeeId,
+    employeeName: employee.fullName,
+    employeeCode: employee.employeeCode,
+    year,
+    month,
+    periodStart: result.payPeriod.start,
+    periodEnd: result.payPeriod.end,
+    ...amounts,
+  });
   return {
     employeeId,
     payMonth,
-    ...mapPayslipAmounts(result),
+    ...amounts,
+    previewHtml,
     payPeriod: {
       start: result.payPeriod.start.toISOString().slice(0, 10),
       end: result.payPeriod.end.toISOString().slice(0, 10),
@@ -235,6 +314,7 @@ export async function generatePayslip(
       neto: amounts.neto,
       parametersSnapshot: settings as unknown as Prisma.InputJsonValue,
       pdfStorageKey,
+      deliveryType: 'PDF',
       generatedById,
     },
     update: {
@@ -292,38 +372,154 @@ export async function batchGeneratePayslips(
   return { payMonth, results, succeeded: results.filter((r) => r.ok).length, failed: results.filter((r) => !r.ok).length };
 }
 
-export async function listPayslips(
+function buildPayslipListWhere(
   organizationId: string,
-  filters: { year?: number; month?: number; employeeId?: string; page?: number; pageSize?: number },
-) {
-  const page = filters.page ?? 1;
-  const pageSize = Math.min(Math.max(filters.pageSize ?? 20, 1), 100);
-  const skip = (page - 1) * pageSize;
+  filters: {
+    year?: number;
+    month?: number;
+    employeeId?: string;
+    search?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  },
+): Prisma.PayslipWhereInput {
   const where: Prisma.PayslipWhereInput = { organizationId };
   if (filters.year !== undefined) where.year = filters.year;
   if (filters.month !== undefined) where.month = filters.month;
   if (filters.employeeId) where.employeeId = filters.employeeId;
+  if (filters.search) {
+    where.employee = {
+      OR: [
+        { fullName: { contains: filters.search, mode: 'insensitive' } },
+        { employeeCode: { contains: filters.search, mode: 'insensitive' } },
+      ],
+    };
+  }
+  if (filters.dateFrom || filters.dateTo) {
+    where.generatedAt = {};
+    if (filters.dateFrom) {
+      where.generatedAt.gte = new Date(`${filters.dateFrom}T00:00:00.000Z`);
+    }
+    if (filters.dateTo) {
+      where.generatedAt.lte = new Date(`${filters.dateTo}T23:59:59.999Z`);
+    }
+  }
+  return where;
+}
 
-  const [items, total] = await Promise.all([
+export async function listPayslips(
+  organizationId: string,
+  filters: {
+    year?: number;
+    month?: number;
+    employeeId?: string;
+    search?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    page?: number;
+    pageSize?: number;
+  },
+) {
+  const page = filters.page ?? 1;
+  const pageSize = Math.min(Math.max(filters.pageSize ?? 20, 1), 100);
+  const skip = (page - 1) * pageSize;
+  const where = buildPayslipListWhere(organizationId, filters);
+
+  const [items, total, aggregate] = await Promise.all([
     prisma.payslip.findMany({
       where,
       skip,
       take: pageSize,
-      orderBy: [{ year: 'desc' }, { month: 'desc' }, { employee: { fullName: 'asc' } }],
+      orderBy: [{ generatedAt: 'desc' }, { year: 'desc' }, { month: 'desc' }],
       include: {
-        employee: { select: { id: true, fullName: true, employeeCode: true } },
+        employee: {
+          select: {
+            id: true,
+            fullName: true,
+            employeeCode: true,
+            position: { select: { name: true } },
+          },
+        },
       },
     }),
     prisma.payslip.count({ where }),
+    prisma.payslip.aggregate({
+      where,
+      _sum: { neto: true, totalDeducciones: true },
+    }),
   ]);
 
   return {
     payslips: items.map(serializePayslip),
+    summary: {
+      recordCount: total,
+      netPayTotal: aggregate._sum.neto ? Number(aggregate._sum.neto.toString()) : 0,
+      deductionsTotal: aggregate._sum.totalDeducciones
+        ? Number(aggregate._sum.totalDeducciones.toString())
+        : 0,
+    },
     total,
     page,
     pageSize,
     totalPages: Math.ceil(total / pageSize),
   };
+}
+
+export async function exportPayslipsAuditPdf(
+  organizationId: string,
+  filters: { search?: string; dateFrom?: string; dateTo?: string },
+) {
+  const where = buildPayslipListWhere(organizationId, filters);
+  const items = await prisma.payslip.findMany({
+    where,
+    orderBy: [{ generatedAt: 'desc' }],
+    take: 5000,
+    include: {
+      employee: {
+        select: {
+          fullName: true,
+          employeeCode: true,
+          position: { select: { name: true } },
+        },
+      },
+    },
+  });
+
+  const rows: PayslipAuditRow[] = items.map((p) => ({
+    generatedAt: p.generatedAt,
+    employeeCode: p.employee.employeeCode,
+    employeeName: p.employee.fullName,
+    positionName: p.employee.position?.name ?? null,
+    periodStart: p.periodStart,
+    periodEnd: p.periodEnd,
+    salarioPeriodo: Number(p.salarioPeriodo.toString()),
+    ihss: Number(p.ihss.toString()),
+    isr: Number(p.isr.toString()),
+    otro: Number(p.otro.toString()),
+    totalDeducciones: Number(p.totalDeducciones.toString()),
+    neto: Number(p.neto.toString()),
+    deliveryType: p.deliveryType,
+  }));
+
+  const filterParts: string[] = [];
+  if (filters.search) filterParts.push(`búsqueda "${filters.search}"`);
+  if (filters.dateFrom) filterParts.push(`desde ${filters.dateFrom}`);
+  if (filters.dateTo) filterParts.push(`hasta ${filters.dateTo}`);
+  const filterLabel = filterParts.join(', ');
+
+  const buffer = await renderPayslipAuditPdf(rows, filterLabel);
+  const { getStorage } = await import('@/lib/storage');
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const stored = await getStorage().put({
+    prefix: `organizations/${organizationId}/payroll/audits`,
+    originalName: `auditoria-${stamp}.pdf`,
+    mimeType: 'application/pdf',
+    size: buffer.length,
+    buffer,
+    desiredName: `auditoria-${stamp}.pdf`,
+  });
+
+  return { buffer, storageKey: stored.key, recordCount: rows.length };
 }
 
 export async function getPayslipPdfBuffer(organizationId: string, payslipId: string) {
@@ -382,8 +578,14 @@ function serializePayslip(
     neto: Prisma.Decimal;
     pdfStorageKey: string | null;
     emailStatus: string;
+    deliveryType?: string;
     generatedAt: Date;
-    employee?: { id: string; fullName: string; employeeCode: string | null };
+    employee?: {
+      id: string;
+      fullName: string;
+      employeeCode: string | null;
+      position?: { name: string } | null;
+    };
   },
 ) {
   return {
@@ -401,8 +603,16 @@ function serializePayslip(
     neto: Number(row.neto.toString()),
     pdfStorageKey: row.pdfStorageKey,
     emailStatus: row.emailStatus,
+    deliveryType: row.deliveryType ?? 'PDF',
     generatedAt: row.generatedAt.toISOString(),
-    employee: row.employee,
+    employee: row.employee
+      ? {
+          id: row.employee.id,
+          fullName: row.employee.fullName,
+          employeeCode: row.employee.employeeCode,
+          positionName: row.employee.position?.name ?? null,
+        }
+      : undefined,
   };
 }
 

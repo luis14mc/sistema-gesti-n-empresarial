@@ -1,4 +1,5 @@
 import { Decimal, moneyNumber, toDecimal } from './decimal';
+import { utcCalendarParts } from './date-parts';
 import { isSameCalendarMonth } from './proration';
 import type { IsrSettings } from './types';
 
@@ -39,7 +40,8 @@ function projectedAnnualSalary(input: CalculateIsrInput): Decimal {
   const salary = toDecimal(monthlySalary);
 
   const primerMes =
-    isSameCalendarMonth(hireDate, periodEnd) && hireDate.getFullYear() === periodEnd.getFullYear();
+    isSameCalendarMonth(hireDate, periodEnd)
+    && utcCalendarParts(hireDate).year === utcCalendarParts(periodEnd).year;
 
   if (primerMes) {
     return toDecimal(salarioPeriodo).plus(salary.mul(Math.max(monthsInYear - 1, 0)));
@@ -67,5 +69,6 @@ export function calculateIsr(input: CalculateIsrInput): number {
 }
 
 export function isPrimerMesForIsr(hireDate: Date, periodEnd: Date): boolean {
-  return isSameCalendarMonth(hireDate, periodEnd) && hireDate.getFullYear() === periodEnd.getFullYear();
+  return isSameCalendarMonth(hireDate, periodEnd)
+    && utcCalendarParts(hireDate).year === utcCalendarParts(periodEnd).year;
 }

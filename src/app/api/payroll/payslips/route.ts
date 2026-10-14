@@ -14,6 +14,9 @@ async function getHandler(req: AuthenticatedRequest) {
     const year = searchParams.get('year');
     const month = searchParams.get('month');
     const employeeId = searchParams.get('employeeId') ?? undefined;
+    const search = searchParams.get('search') ?? undefined;
+    const dateFrom = searchParams.get('dateFrom') ?? undefined;
+    const dateTo = searchParams.get('dateTo') ?? undefined;
     const page = parseInt(searchParams.get('page') || '1', 10);
     const pageSize = parseInt(searchParams.get('pageSize') || '20', 10);
     return apiSuccess(
@@ -21,6 +24,9 @@ async function getHandler(req: AuthenticatedRequest) {
         year: year ? parseInt(year, 10) : undefined,
         month: month ? parseInt(month, 10) : undefined,
         employeeId,
+        search,
+        dateFrom,
+        dateTo,
         page,
         pageSize,
       }),
