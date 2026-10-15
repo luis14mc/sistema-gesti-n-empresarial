@@ -12,6 +12,8 @@ const MESSAGES: Record<string, string> = {
   PAYSLIP_NOT_FOUND: 'El recibo de planilla no existe.',
   INVALID_PAY_MONTH: 'El mes de pago no es válido (use YYYY-MM).',
   EMPLOYEE_NOT_YET_HIRED: 'La fecha de contratación es posterior al año del pago.',
+  PAYROLL_INVALID_RATE_UNITS:
+    'Las tasas ISR deben estar en porcentaje (15), no como fracción (0.15). Restablezca la tabla 2026.',
   PDF_BROWSER_NOT_AVAILABLE: 'No se pudo generar el PDF en este entorno.',
 };
 

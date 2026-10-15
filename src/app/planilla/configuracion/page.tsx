@@ -14,8 +14,7 @@ import { PAYROLL_YEAR } from '@/modules/payroll/domain';
 import type { IsrBracketRecord } from '@/services/payroll.service';
 
 function formatRate(rate: number) {
-  const pct = rate <= 1 ? rate * 100 : rate;
-  return `${pct.toLocaleString('es-HN', { maximumFractionDigits: 2 })}%`;
+  return `${rate.toLocaleString('es-HN', { maximumFractionDigits: 2 })}%`;
 }
 
 export default function PlanillaConfiguracionPage() {

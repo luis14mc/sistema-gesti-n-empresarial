@@ -1,5 +1,10 @@
 export { DEFAULT_PAYROLL_SETTINGS, DEFAULT_ISR_SETTINGS, DEFAULT_IHSS_SETTINGS, PAYROLL_YEAR } from './constants';
-export { EmployeeNotYetHiredError, PayrollDomainError } from './errors';
+export {
+  EmployeeNotYetHiredError,
+  PayrollDomainError,
+  PayrollInvalidRateUnitsError,
+} from './errors';
+export { assertIsrRatesArePercentUnits } from './isr-rate-units';
 export { calculateIhss } from './ihss';
 export { calculateIsr, isPrimerMesForIsr } from './isr';
 export { monthsWorkedInYear } from './months-worked';

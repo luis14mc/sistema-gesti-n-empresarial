@@ -41,6 +41,7 @@
     "saas:bootstrap": "tsx scripts/bootstrap-default-organization.ts",
     "saas:check": "tsx scripts/check-tenant-bootstrap.ts",
     "payroll:import": "tsx scripts/payroll/import-legacy.ts",
+    "payroll:check-isr": "tsx scripts/payroll/find-wrong-isr.ts",
     "browser:install": "puppeteer browsers install chrome",
     "browser:list": "puppeteer browsers list",
     "docker:up": "docker compose up -d db",
