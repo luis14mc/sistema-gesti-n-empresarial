@@ -156,7 +156,12 @@ export const NAV_ITEMS: NavItem[] = [
     module: 'settings',
     children: [
       { label: 'Configuración', href: '/settings', module: 'settings' },
-      { label: 'Roles y permisos', href: '/settings/roles', module: 'settings' },
+      {
+        label: 'Roles y permisos',
+        href: '/settings/roles',
+        module: 'settings',
+        requiredSpecial: 'roles.manage',
+      },
       { label: 'Correspondencia', href: '/settings/correspondencia', module: 'settings' },
     ],
   },

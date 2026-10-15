@@ -16,15 +16,5 @@ export default async function RolePermissionsPage({ params }: Props) {
   const role = roleRaw as OrganizationRole;
   const label = ORGANIZATION_ROLE_LABELS[role];
 
-  return (
-    <div className="container max-w-5xl py-8 space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Permisos: {label}</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Configure Ver / Crear / Editar / Eliminar y permisos especiales para este rol.
-        </p>
-      </div>
-      <RolePermissionsEditor role={role} />
-    </div>
-  );
+  return <RolePermissionsEditor role={role} roleLabel={label} />;
 }

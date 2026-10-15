@@ -1,4 +1,6 @@
 import type { ModuleId } from '@/platform/security/modules';
+import type { Permission } from '@/platform/security/authorization/permissions';
+import { requiredSpecialForPath } from '@/platform/security/route-special-requirements';
 
 export const ROUTE_PATH_TO_MODULE: Record<string, ModuleId> = {
   '/dashboard': 'dashboard',
@@ -49,8 +51,14 @@ export function routeToModule(pathname: string): ModuleId | null {
   return null;
 }
 
-export function routeToAccess(pathname: string): { module: ModuleId } | null {
+export type RouteAccess = {
+  module: ModuleId;
+  requiredSpecial?: Permission;
+};
+
+export function routeToAccess(pathname: string): RouteAccess | null {
   const mod = routeToModule(pathname);
   if (!mod) return null;
-  return { module: mod };
+  const requiredSpecial = requiredSpecialForPath(pathname);
+  return requiredSpecial ? { module: mod, requiredSpecial } : { module: mod };
 }

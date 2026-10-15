@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { routeToAccess } from '@/platform/security/route-access';
 import { decodeModulesFromJwt } from '@/platform/security/jwt-modules';
+import { decodeRouteSpecialsFromJwt } from '@/platform/security/jwt-route-specials';
+import { officialPermissionSetForRole } from '@/platform/security/authorization/official-role-permissions';
+import { organizationRoleForSessionRole } from '@/platform/security/module-effective';
+import type { SessionRole } from '@/lib/session-roles';
 import { ROUTE_ACCESS_BY_MODULE } from '@/lib/permissions';
 
 function sessionRoleMatchesAllowlist(sessionRole: string, allowedRoles: readonly string[]): boolean {
@@ -258,6 +262,30 @@ export async function middleware(request: NextRequest) {
       const res = NextResponse.redirect(forbiddenUrl);
       applySecurityHeaders(res, nonce);
       return res;
+    }
+
+    if (access.requiredSpecial) {
+      const specials = decodeRouteSpecialsFromJwt(payload.spe);
+      let allowedBySpecial = specials.has(access.requiredSpecial);
+      if (!allowedBySpecial && !payload.mod) {
+        const orgRole = organizationRoleForSessionRole(payload.role as SessionRole);
+        allowedBySpecial = officialPermissionSetForRole(orgRole).has(access.requiredSpecial);
+      }
+      if (!allowedBySpecial) {
+        logAuthorizationDecision({
+          requestedPath: pathname,
+          resolvedModule: access.module,
+          userId: payload.userId,
+          role: payload.role,
+          authorizationDecision: 'DENY',
+          redirectReason: 'SPECIAL_PERMISSION_REQUIRED',
+        });
+        const forbiddenUrl = buildRequestRedirectUrl(request, '/forbidden');
+        forbiddenUrl.searchParams.set('from', pathname);
+        const res = NextResponse.redirect(forbiddenUrl);
+        applySecurityHeaders(res, nonce);
+        return res;
+      }
     }
 
     logAuthorizationDecision({

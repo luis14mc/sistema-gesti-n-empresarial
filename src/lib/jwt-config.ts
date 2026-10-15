@@ -27,6 +27,8 @@ export interface TokenClaims {
   accessVersion?: number;
   /** Comma-separated ModuleId list with read access (edge middleware) */
   mod?: string;
+  /** Comma-separated route-gated special permissions (edge middleware) */
+  spe?: string;
   iss?: string;
   aud?: string | string[];
   iat?: number;
@@ -68,6 +70,7 @@ export function validateTokenClaims(payload: unknown): TokenClaims | null {
     orgId: typeof p.orgId === 'string' ? p.orgId : undefined,
     accessVersion: typeof p.accessVersion === 'number' ? p.accessVersion : undefined,
     mod: typeof p.mod === 'string' ? p.mod : undefined,
+    spe: typeof p.spe === 'string' ? p.spe : undefined,
     iss: p.iss as string,
     aud: p.aud as string | string[],
     iat: p.iat,

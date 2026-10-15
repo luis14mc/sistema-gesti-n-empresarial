@@ -6,6 +6,11 @@ import {
   organizationRoleForSessionRole,
 } from '@/platform/security/module-effective';
 import { encodeModulesForJwt } from '@/platform/security/jwt-modules';
+import {
+  encodeRouteSpecialsForJwt,
+  JWT_ROUTE_SPECIALS,
+} from '@/platform/security/jwt-route-specials';
+import { isPermissionEffective } from '@/platform/security/module-effective';
 import { canonicalOrganizationId } from '@/platform/security/organization-scope';
 import {
   createRolePermissionCheck,
@@ -33,10 +38,20 @@ export async function generateSessionToken(input: TokenPayload): Promise<string>
     roleHas,
   );
 
+  const routeSpecials = JWT_ROUTE_SPECIALS.filter((permission) =>
+    isPermissionEffective(
+      orgRole,
+      permission,
+      overrides as import('@/platform/security/authorization/permissions').PermissionOverride[],
+      roleHas,
+    ),
+  );
+
   return generateToken({
     ...input,
     orgId: organizationId,
     accessVersion: membership?.accessVersion ?? 0,
     mod: encodeModulesForJwt(moduleIdsWithRead(matrix)),
+    spe: encodeRouteSpecialsForJwt(routeSpecials),
   });
 }
