@@ -9,6 +9,10 @@ import {
   moduleIdsWithRead,
   organizationRoleForSessionRole,
 } from '@/platform/security/module-effective';
+import {
+  createRolePermissionCheck,
+  loadOrganizationRolePermissionMap,
+} from '@/platform/security/authorization/role-permission-service';
 
 async function getHandler(req: AuthenticatedRequest) {
   try {
@@ -42,13 +46,18 @@ async function getHandler(req: AuthenticatedRequest) {
       select: { role: true, accessVersion: true },
     });
     const orgRole = membership?.role ?? organizationRoleForSessionRole(role);
-    const overrides = await prisma.userPermissionOverride.findMany({
-      where: { userId: user.id, organizationId },
-      select: { permission: true, effect: true },
-    });
+    const [overrides, roleMap] = await Promise.all([
+      prisma.userPermissionOverride.findMany({
+        where: { userId: user.id, organizationId },
+        select: { permission: true, effect: true },
+      }),
+      loadOrganizationRolePermissionMap(organizationId),
+    ]);
+    const roleHas = createRolePermissionCheck(orgRole, roleMap);
     const moduleAccess = buildEffectiveModuleMatrix(
       orgRole,
       overrides as import('@/platform/security/authorization/permissions').PermissionOverride[],
+      roleHas,
     );
     const accessVersion = membership?.accessVersion ?? 0;
 

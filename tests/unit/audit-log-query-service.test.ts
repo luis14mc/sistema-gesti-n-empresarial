@@ -9,6 +9,9 @@ const prismaMock = vi.hoisted(() => ({
   userPermissionOverride: {
     findMany: vi.fn(),
   },
+  rolePermission: {
+    findMany: vi.fn(),
+  },
 }));
 
 vi.mock('@/lib/prisma', () => ({ prisma: prismaMock }));
@@ -30,6 +33,8 @@ beforeEach(() => {
   prismaMock.auditRecord.count.mockReset();
   prismaMock.userPermissionOverride.findMany.mockReset();
   prismaMock.userPermissionOverride.findMany.mockResolvedValue([]);
+  prismaMock.rolePermission.findMany.mockReset();
+  prismaMock.rolePermission.findMany.mockResolvedValue([]);
 });
 
 describe('auditLogQueryService.list — shape', () => {

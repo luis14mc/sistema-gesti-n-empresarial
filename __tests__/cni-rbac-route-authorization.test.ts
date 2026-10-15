@@ -16,6 +16,9 @@ const { overrideStore, prismaMock } = vi.hoisted(() => {
           return [...store];
         }),
       },
+      rolePermission: {
+        findMany: vi.fn(async () => []),
+      },
       equipment: { findFirst: vi.fn().mockResolvedValue(null) },
       employee: {
         findMany: vi.fn().mockResolvedValue([]),

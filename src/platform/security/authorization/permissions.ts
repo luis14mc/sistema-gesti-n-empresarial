@@ -1,4 +1,9 @@
 import { PermissionDeniedError } from '@/platform/domain/errors';
+import { ORGANIZATION_PERMISSIONS } from './organization-permission-catalog';
+import { OFFICIAL_ROLE_PERMISSIONS } from './official-role-permissions';
+
+export { ORGANIZATION_PERMISSIONS } from './organization-permission-catalog';
+export { OFFICIAL_ROLE_PERMISSIONS } from './official-role-permissions';
 
 /** Mirrors DB OrganizationRole enum — defined locally so Edge middleware never pulls the ORM client. */
 export const ORGANIZATION_ROLES = [
@@ -18,94 +23,6 @@ export type OrganizationRole = (typeof ORGANIZATION_ROLES)[number];
 
 export const PLATFORM_ROLES = ['PLATFORM_ADMIN', 'SUPPORT_ADMIN'] as const;
 export type PlatformRole = (typeof PLATFORM_ROLES)[number];
-
-export const ORGANIZATION_PERMISSIONS = [
-  'organizations.manage',
-  'memberships.manage',
-  'users.read',
-  'users.create',
-  'users.update',
-  'users.deactivate',
-  'employees.read',
-  'employees.create',
-  'employees.update',
-  'employees.deactivate',
-  'offices.read',
-  'offices.create',
-  'offices.update',
-  'offices.send',
-  'offices.receive',
-  'offices.complete',
-  'offices.cancel',
-  'offices.import',
-  'offices.download',
-  'oficios.read',
-  'oficios.create',
-  'oficios.update',
-  'oficios.deactivate',
-  'oficios.export',
-  'oficios.attachments',
-  'oficios.import',
-  'oficios.configure',
-  'equipment.read',
-  'equipment.create',
-  'equipment.update',
-  'equipment.assign',
-  'equipment.maintain',
-  'equipment.dispose',
-  'software-licenses.read',
-  'software-licenses.create',
-  'software-licenses.update',
-  'software-licenses.assign',
-  'software-licenses.manage',
-  'software-licenses.export',
-  'equipment-disposal.read',
-  'equipment-disposal.create',
-  'equipment-disposal.update',
-  'equipment-disposal.submit',
-  'equipment-disposal.approve',
-  'equipment-disposal.reject',
-  'equipment-disposal.cancel',
-  'equipment-disposal.configure',
-  'equipment-disposal.download',
-  'purchase-orders.read',
-  'purchase-orders.create',
-  'purchase-orders.update',
-  'purchase-orders.generate',
-  'purchase-orders.approve',
-  'purchase-orders.cancel',
-  'purchase-orders.download',
-  'suppliers.read',
-  'suppliers.create',
-  'suppliers.update',
-  'reports.view',
-  'reports.export',
-  'reports.financial',
-  'reports.financial.purchases',
-  'reports.financial.equipment',
-  'reports.audit',
-  'dashboard.view',
-  'dashboard.executive',
-  'audit.read',
-  'notifications.read',
-  'notifications.manage-own-preferences',
-  'notifications.manage-organization-settings',
-  'notifications.retry-failed',
-  'notifications.view-deliveries',
-  'integrations.read',
-  'integrations.create',
-  'integrations.update',
-  'integrations.enable',
-  'integrations.disable',
-  'integrations.test',
-  'integrations.rotate-credentials',
-  'integrations.view-history',
-  'integrations.retry',
-  'webhooks.manage',
-  'payroll.view',
-  'payroll.generate',
-  'payroll.configure',
-] as const;
 
 export const PLATFORM_PERMISSIONS = [
   'platform.health.read',
@@ -127,133 +44,6 @@ export type PermissionContext =
   | Readonly<{ authorizationScope: 'organization'; userId: string; organizationId: string; role: OrganizationRole }>
   | Readonly<{ authorizationScope: 'platform'; userId: string; role: PlatformRole }>;
 
-const DISPOSAL_READ = ['equipment-disposal.read', 'equipment-disposal.download'] as const;
-const REPORT_READ = ['reports.view', 'reports.export', 'dashboard.view'] as const;
-
-const NOTIFICATION_BASELINE = ['notifications.read'] as const;
-const NOTIFICATION_OWN_PREFERENCES = ['notifications.read', 'notifications.manage-own-preferences'] as const;
-const NOTIFICATION_ADMIN = [...NOTIFICATION_BASELINE, 'notifications.manage-organization-settings', 'notifications.retry-failed', 'notifications.view-deliveries'] as const;
-const INTEGRATIONS_BASELINE = ['integrations.read'] as const;
-const INTEGRATIONS_OPERATOR = ['integrations.read', 'integrations.test', 'integrations.view-history'] as const;
-
-const OFICIOS_OPERATIONAL = [
-  'oficios.read', 'oficios.create', 'oficios.update', 'oficios.deactivate',
-  'oficios.export', 'oficios.attachments', 'oficios.import',
-] as const;
-
-/** Technical correspondence numbering — NOT granted via OFICIOS_OPERATIONAL. */
-const OFICIOS_CONFIGURE = ['oficios.configure'] as const;
-
-const PURCHASES_OPERATIONAL = [
-  'purchase-orders.read', 'purchase-orders.create', 'purchase-orders.update',
-  'purchase-orders.generate', 'purchase-orders.cancel', 'purchase-orders.download',
-  'suppliers.read', 'suppliers.create', 'suppliers.update',
-] as const;
-
-const EMPLOYEES_OPERATIONAL = [
-  'employees.read', 'employees.create', 'employees.update', 'employees.deactivate',
-] as const;
-
-const PAYROLL_OPERATIONAL = [
-  'payroll.view', 'payroll.generate', 'payroll.configure',
-] as const;
-
-const SOFTWARE_LICENSES = [
-  'software-licenses.read', 'software-licenses.create', 'software-licenses.update',
-  'software-licenses.assign', 'software-licenses.manage', 'software-licenses.export',
-] as const;
-
-const EQUIPMENT_LIFECYCLE = [
-  'equipment.read', 'equipment.create', 'equipment.update', 'equipment.assign',
-  'equipment.maintain', 'equipment.dispose',
-] as const;
-
-const DISPOSAL_WORKFLOW = [
-  ...DISPOSAL_READ,
-  'equipment-disposal.create', 'equipment-disposal.update', 'equipment-disposal.submit',
-  'equipment-disposal.approve', 'equipment-disposal.reject', 'equipment-disposal.cancel',
-  'equipment-disposal.configure',
-] as const;
-
-const ORGANIZATION_ROLE_PERMISSIONS: Record<OrganizationRole, readonly Permission[]> = {
-  OWNER: ORGANIZATION_PERMISSIONS,
-  ADMIN: ORGANIZATION_PERMISSIONS,
-  ADMINISTRACION: [
-    ...OFICIOS_OPERATIONAL,
-    ...PURCHASES_OPERATIONAL,
-    'purchase-orders.approve',
-    ...EMPLOYEES_OPERATIONAL,
-    'dashboard.view',
-    ...NOTIFICATION_BASELINE,
-  ],
-  SECRETARIA: [
-    ...OFICIOS_OPERATIONAL,
-  ],
-  IT_MANAGER: [
-    ...SOFTWARE_LICENSES,
-    ...EQUIPMENT_LIFECYCLE,
-    ...DISPOSAL_WORKFLOW,
-    ...OFICIOS_CONFIGURE,
-    'employees.read',
-    'users.read', 'users.create', 'users.update', 'users.deactivate',
-    'memberships.manage',
-    'audit.read',
-    'dashboard.view',
-    ...REPORT_READ, 'reports.financial.equipment',
-    ...NOTIFICATION_OWN_PREFERENCES,
-    ...INTEGRATIONS_OPERATOR,
-  ],
-  // Legacy / non-promoted — kept for existing memberships only.
-  IT_TECHNICIAN: [
-    'offices.read', 'offices.download',
-    'equipment.read', 'equipment.create', 'equipment.update', 'equipment.assign', 'equipment.maintain',
-    ...DISPOSAL_READ, 'equipment-disposal.create', 'equipment-disposal.update', 'equipment-disposal.submit',
-    ...REPORT_READ,
-    ...NOTIFICATION_BASELINE,
-  ],
-  PROCUREMENT: [
-    'users.read',
-    'offices.read', 'offices.create', 'offices.update', 'offices.send', 'offices.receive', 'offices.complete', 'offices.cancel', 'offices.download',
-    'equipment.read', ...DISPOSAL_READ,
-    ...PURCHASES_OPERATIONAL,
-    ...REPORT_READ, 'reports.financial', 'reports.financial.purchases',
-    ...NOTIFICATION_BASELINE,
-  ],
-  HR: [
-    'users.read', 'users.create', 'users.update',
-    ...EMPLOYEES_OPERATIONAL,
-    ...PAYROLL_OPERATIONAL,
-    'offices.read', 'offices.create', 'offices.update', 'offices.send', 'offices.receive', 'offices.complete', 'offices.cancel', 'offices.download',
-    ...REPORT_READ,
-    ...NOTIFICATION_BASELINE,
-  ],
-  AUDITOR: [
-    'users.read',
-    'offices.read', 'offices.download',
-    'equipment.read', ...DISPOSAL_READ,
-    'purchase-orders.read', 'purchase-orders.download',
-    ...REPORT_READ, 'reports.financial', 'reports.financial.purchases', 'reports.financial.equipment', 'reports.audit',
-    'audit.read',
-    ...NOTIFICATION_BASELINE,
-    ...INTEGRATIONS_OPERATOR,
-  ],
-  USER: [
-    'dashboard.view',
-    'oficios.read',
-    'offices.read',
-    'equipment.read',
-    'equipment-disposal.read',
-    'purchase-orders.read',
-    'notifications.read',
-  ],
-  DIRECTOR: [
-    'dashboard.view', 'reports.view', 'reports.export',
-  ],
-};
-
-void NOTIFICATION_ADMIN;
-void INTEGRATIONS_BASELINE;
-
 const PLATFORM_ROLE_PERMISSIONS: Record<PlatformRole, readonly Permission[]> = {
   PLATFORM_ADMIN: PLATFORM_PERMISSIONS,
   SUPPORT_ADMIN: ['platform.health.read'],
@@ -267,10 +57,11 @@ export function platformRole(role: PlatformRole): ScopedRole {
   return { scope: 'platform', role };
 }
 
+/** Official template matrix — protected RBAC tests depend on this behavior. */
 export function can(scopedRole: ScopedRole, permission: Permission): boolean {
   if (!scopedRole || typeof scopedRole !== 'object') return false;
   const permissions = scopedRole.scope === 'organization'
-    ? ORGANIZATION_ROLE_PERMISSIONS[scopedRole.role]
+    ? OFFICIAL_ROLE_PERMISSIONS[scopedRole.role]
     : scopedRole.scope === 'platform'
       ? PLATFORM_ROLE_PERMISSIONS[scopedRole.role]
       : undefined;
@@ -294,14 +85,18 @@ export type PermissionOverride = Readonly<{
   effect: 'ALLOW' | 'DENY';
 }>;
 
+export type RolePermissionCheck = (permission: Permission) => boolean;
+
 /** Applies user exceptions after role defaults. DENY always wins. */
 export function canWithOverrides(
   scopedRole: ScopedRole,
   permission: Permission,
   overrides: readonly PermissionOverride[],
+  roleHas?: RolePermissionCheck,
 ): boolean {
   const matching = overrides.filter((override) => override.permission === permission);
   if (matching.some((override) => override.effect === 'DENY')) return false;
   if (matching.some((override) => override.effect === 'ALLOW')) return true;
+  if (roleHas) return roleHas(permission);
   return can(scopedRole, permission);
 }

@@ -566,6 +566,10 @@ async function main() {
   });
   console.log('   ✅ 1 registro de auditoría creado');
 
+  const { seedOfficialRolePermissions } = await import('./lib/role-permission-seed');
+  const rolePermCount = await seedOfficialRolePermissions(prisma, organization.id);
+  console.log(`   ✅ ${rolePermCount} permisos de rol (plantilla oficial)`);
+
   // ── Resumen ─────────────────────────────────────────────────
   console.log('\n🎉 ¡Seed completado exitosamente!\n');
   console.log('╔══════════════════════════════════════════════╗');

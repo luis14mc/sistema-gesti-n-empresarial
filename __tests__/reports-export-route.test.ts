@@ -23,6 +23,9 @@ vi.mock('@/lib/prisma', () => ({
     userPermissionOverride: {
       findMany: vi.fn(async () => []),
     },
+    rolePermission: {
+      findMany: vi.fn(async () => []),
+    },
   },
 }));
 

@@ -27,9 +27,11 @@ model Organization {
   suspendedAt            DateTime?
   archivedAt             DateTime?
   deletionRequestedAt    DateTime?
+  roleAccessVersion      Int                        @default(0)
   createdAt              DateTime                   @default(now())
   updatedAt              DateTime                   @updatedAt
   memberships            OrganizationMembership[]
+  rolePermissions        RolePermission[]
   equipment              Equipment[]
   disposals              EquipmentDisposal[]
   disposalPolicies       DisposalPolicy[]
@@ -101,6 +103,20 @@ model UserPermissionOverride {
   @@unique([organizationId, userId, permission])
   @@index([userId, organizationId])
   @@map("user_permission_overrides")
+}
+
+model RolePermission {
+  id             String           @id @default(cuid())
+  organizationId String
+  role           OrganizationRole
+  permission     String
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, role, permission])
+  @@index([organizationId, role])
+  @@map("role_permissions")
 }
 
 model Department {

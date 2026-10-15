@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     userPermissionOverride: { findMany: vi.fn().mockResolvedValue([]) },
+    rolePermission: { findMany: vi.fn().mockResolvedValue([]) },
     auditRecord: { findMany: vi.fn(), count: vi.fn() },
   },
 }));

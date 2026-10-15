@@ -12,6 +12,10 @@ import {
 import { MODULE_CATALOG, MODULE_IDS, type ModuleId } from '@/platform/security/modules';
 import { requireOrganizationPermission } from '@/platform/security/authorization/effective-permissions';
 import type { PermissionOverride } from '@/platform/security/authorization/permissions';
+import {
+  createRolePermissionCheck,
+  loadOrganizationRolePermissionMap,
+} from '@/platform/security/authorization/role-permission-service';
 
 const rowSchema = z.object({
   module: z.enum(MODULE_IDS as [ModuleId, ...ModuleId[]]),
@@ -44,18 +48,21 @@ async function getHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ id
   });
   if (!targetMembership) return NextResponse.json({ error: 'Usuario sin membresía' }, { status: 404 });
 
-  const overrides = await prisma.userPermissionOverride.findMany({
-    where: { organizationId, userId: targetUserId },
-    select: { permission: true, effect: true },
-  });
+  const [overrides, roleMap] = await Promise.all([
+    prisma.userPermissionOverride.findMany({
+      where: { organizationId, userId: targetUserId },
+      select: { permission: true, effect: true },
+    }),
+    loadOrganizationRolePermissionMap(organizationId),
+  ]);
+  const roleHas = createRolePermissionCheck(targetMembership.role, roleMap);
+  const typedOverrides = overrides as PermissionOverride[];
 
   return NextResponse.json({
     role: targetMembership.role,
-    overrides,
-    moduleAccess: buildEffectiveModuleMatrix(
-      targetMembership.role,
-      overrides as PermissionOverride[],
-    ),
+    overrides: typedOverrides,
+    roleModuleAccess: buildEffectiveModuleMatrix(targetMembership.role, [], roleHas),
+    moduleAccess: buildEffectiveModuleMatrix(targetMembership.role, typedOverrides, roleHas),
   });
 }
 
@@ -91,6 +98,9 @@ async function putHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ id
     select: { permission: true, effect: true },
   });
 
+  const roleMap = await loadOrganizationRolePermissionMap(organizationId);
+  const roleHas = createRolePermissionCheck(targetMembership.role, roleMap);
+
   let nextOverrides: PermissionOverride[] = beforeOverrides as PermissionOverride[];
   for (const row of parsed.rows) {
     const def = MODULE_CATALOG[row.module];
@@ -99,7 +109,7 @@ async function putHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ id
       ...row,
       extras: row.extras.filter((e) => allowedExtras.has(e as never)),
     });
-    nextOverrides = overridesFromDesiredMatrix(targetMembership.role, nextOverrides, normalized);
+    nextOverrides = overridesFromDesiredMatrix(targetMembership.role, nextOverrides, normalized, roleHas);
   }
 
   await prisma.$transaction(async (tx) => {
@@ -135,7 +145,7 @@ async function putHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ id
   return NextResponse.json({
     ok: true,
     overrides: nextOverrides,
-    moduleAccess: buildEffectiveModuleMatrix(targetMembership.role, nextOverrides),
+    moduleAccess: buildEffectiveModuleMatrix(targetMembership.role, nextOverrides, roleHas),
   });
 }
 

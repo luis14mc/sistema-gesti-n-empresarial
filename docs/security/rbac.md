@@ -11,17 +11,27 @@ SGE authorization is based on an authenticated identity, an active organization 
 
 No legacy `ADMIN` is migrated automatically to `PLATFORM_ADMIN`. Platform roles do not bypass organization membership or tenant scope.
 
-## Role + user exceptions (no second RBAC)
+## RBAC configurable: official template, active matrix, user exceptions
 
-Organization capabilities come from the membership role in `src/platform/security/authorization/permissions.ts`. **The role matrix is not replaced or narrowed for new features** (for example `OWNER`/`ADMIN` keep the same capabilities as in `main`, including Planilla where the matrix already grants `payroll.*`). Per-user changes are stored only as `UserPermissionOverride` rows (`permission` + `effect` `ALLOW` | `DENY`). There is no alternate permission store and no backfill on deploy: existing users keep exactly the role defaults until an administrator adds exceptions.
+Organization capabilities remain **RBAC**: permissions attach to **roles**; users inherit from `OrganizationMembership.role` plus optional `UserPermissionOverride` rows (`ALLOW` | `DENY`).
 
-Planilla is treated as **operationally sensitive**: granting capabilities outside the usual HR/RRHH profiles should go through the Permisos UI (ALLOW overrides) with audit, not through edits to `ORGANIZATION_ROLE_PERMISSIONS`.
+| Layer | Source | Purpose |
+|-------|--------|---------|
+| Official template | `OFFICIAL_ROLE_PERMISSIONS` in `src/platform/security/authorization/official-role-permissions.ts` | Canonical CNI matrix; protected unit tests and `can()` use this map unchanged. |
+| Active role matrix | `RolePermission` rows per `(organizationId, role, permission)` | What the organization actually enforces at runtime. |
+| User exceptions | `UserPermissionOverride` | Per-user ALLOW/DENY on top of the active role matrix. |
+
+When an organization has **no** `RolePermission` rows, runtime evaluation **falls back** to the official template (safe default). After migration/seed, default org `org_cni_default` is populated to match the template exactly (`pnpm rbac:verify-role-permissions` compares DB vs code).
+
+Changing a role matrix runs in a transaction, increments `Organization.roleAccessVersion`, and bumps `OrganizationMembership.accessVersion` for all members so sessions refresh via `/api/auth/refresh-session`. `OWNER` and `ADMIN` always retain `users.*` and `roles.manage` (API rejects attempts to remove them).
 
 Effective permission for a user:
 
-1. Start from the membership role capability set.
-2. Apply overrides (`DENY` wins over `ALLOW` over role default), via `canWithOverrides`.
+1. Resolve the membership role capability set from `RolePermission` (or official template if empty).
+2. Apply overrides (`DENY` wins over `ALLOW` over role default), via `canWithOverrides` with a role-specific checker.
 3. Map fine-grained permissions to module/menu visibility using `src/platform/security/modules.ts` and `src/platform/security/module-effective.ts`.
+
+Planilla stays **operationally sensitive**: broad grants should use audited UI (role matrix or user ALLOW overrides), not ad-hoc code edits to `OFFICIAL_ROLE_PERMISSIONS`.
 
 Navigation, route middleware (JWT module list), and the Users → Permisos UI all use this effective evaluation. Changing overrides increments `OrganizationMembership.accessVersion`; the client refreshes the session token so menu and routes update without re-login.
 
