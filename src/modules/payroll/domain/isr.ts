@@ -1,13 +1,11 @@
 import { Decimal, moneyNumber, toDecimal } from './decimal';
-import { utcCalendarParts } from './date-parts';
-import { isSameCalendarMonth } from './proration';
+import { normalizeIsrRate } from './rate-normalize';
 import type { IsrSettings } from './types';
 
 export interface CalculateIsrInput {
   monthlySalary: number;
   salarioPeriodo: number;
-  hireDate: Date;
-  periodEnd: Date;
+  isPrimerMes: boolean;
   monthsInYear: number;
   settings: IsrSettings;
 }
@@ -18,7 +16,8 @@ function progressiveAnnualTax(rentaNeta: Decimal, settings: IsrSettings): Decima
 
   for (let i = 0; i < settings.brackets.length; i += 1) {
     const bracket = settings.brackets[i];
-    if (bracket.rate === 0) {
+    const rate = normalizeIsrRate(bracket.rate);
+    if (rate === 0) {
       continue;
     }
     const previousTo = i === 0 ? 0 : settings.brackets[i - 1].to;
@@ -28,7 +27,7 @@ function progressiveAnnualTax(rentaNeta: Decimal, settings: IsrSettings): Decima
     const upper = Decimal.min(renta, toDecimal(bracket.to));
     const taxable = upper.minus(previousTo);
     if (taxable.gt(0)) {
-      tax = tax.plus(taxable.mul(bracket.rate));
+      tax = tax.plus(taxable.mul(rate));
     }
   }
 
@@ -36,14 +35,10 @@ function progressiveAnnualTax(rentaNeta: Decimal, settings: IsrSettings): Decima
 }
 
 function projectedAnnualSalary(input: CalculateIsrInput): Decimal {
-  const { monthlySalary, salarioPeriodo, hireDate, periodEnd, monthsInYear } = input;
+  const { monthlySalary, salarioPeriodo, isPrimerMes, monthsInYear } = input;
   const salary = toDecimal(monthlySalary);
 
-  const primerMes =
-    isSameCalendarMonth(hireDate, periodEnd)
-    && utcCalendarParts(hireDate).year === utcCalendarParts(periodEnd).year;
-
-  if (primerMes) {
+  if (isPrimerMes) {
     return toDecimal(salarioPeriodo).plus(salary.mul(Math.max(monthsInYear - 1, 0)));
   }
 
@@ -66,9 +61,4 @@ export function calculateIsr(input: CalculateIsrInput): number {
   const monthlyIsr = annualTax.div(monthsInYear);
 
   return moneyNumber(monthlyIsr);
-}
-
-export function isPrimerMesForIsr(hireDate: Date, periodEnd: Date): boolean {
-  return isSameCalendarMonth(hireDate, periodEnd)
-    && utcCalendarParts(hireDate).year === utcCalendarParts(periodEnd).year;
 }

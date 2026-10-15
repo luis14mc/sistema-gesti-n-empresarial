@@ -39,6 +39,10 @@ describe('monthsWorkedInYear', () => {
   it('returns remaining months when hired mid-year', () => {
     expect(monthsWorkedInYear(d('2026-07-01'), 2026)).toBe(6);
   });
+
+  it('returns 0 when hire month is after the pay month in the same year', () => {
+    expect(monthsWorkedInYear(d('2026-07-01'), 2026, 3)).toBe(0);
+  });
 });
 
 describe('calculation edges', () => {
@@ -47,6 +51,16 @@ describe('calculation edges', () => {
       calculatePayslip({
         monthlySalary: 30000,
         hireDate: d('2027-01-15'),
+        payMonth: '2026-03',
+      }),
+    ).toThrow(EmployeeNotYetHiredError);
+  });
+
+  it('throws when hire is later in the same year than the pay month', () => {
+    expect(() =>
+      calculatePayslip({
+        monthlySalary: 30000,
+        hireDate: d('2026-09-01'),
         payMonth: '2026-03',
       }),
     ).toThrow(EmployeeNotYetHiredError);

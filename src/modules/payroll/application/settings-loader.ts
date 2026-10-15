@@ -9,6 +9,7 @@ import {
   DEFAULT_IVM_DEDUCTIBLE_MONTHLY,
 } from '@/modules/payroll/domain/constants';
 import type { IsrBracket, PayrollSettings } from '@/modules/payroll/domain';
+import { normalizeIhssRate, normalizeIsrRate } from '@/modules/payroll/domain/rate-normalize';
 
 function decimalToNumber(value: { toString(): string } | number | null | undefined, fallback: number): number {
   if (value === null || value === undefined) return fallback;
@@ -23,7 +24,7 @@ function bracketsFromRows(
   return sorted.map((row) => {
     const to = Number(row.toAnnual.toString());
     const bracket: IsrBracket = {
-      rate: Number(row.rate.toString()),
+      rate: normalizeIsrRate(Number(row.rate.toString())),
       from,
       to: Number.isFinite(to) ? to : Number.POSITIVE_INFINITY,
     };
@@ -46,8 +47,12 @@ export async function loadPayrollSettings(
 
   const ihss = settingsRow
     ? {
-        emRate: decimalToNumber(settingsRow.ihssEmRate, DEFAULT_IHSS_SETTINGS.emRate),
-        ivmRate: decimalToNumber(settingsRow.ihssIvmRate, DEFAULT_IHSS_SETTINGS.ivmRate),
+        emRate: normalizeIhssRate(
+          decimalToNumber(settingsRow.ihssEmRate, DEFAULT_IHSS_SETTINGS.emRate),
+        ),
+        ivmRate: normalizeIhssRate(
+          decimalToNumber(settingsRow.ihssIvmRate, DEFAULT_IHSS_SETTINGS.ivmRate),
+        ),
         ceilingMonthly: decimalToNumber(settingsRow.ihssCeilingMonthly, DEFAULT_IHSS_SETTINGS.ceilingMonthly),
       }
     : { ...DEFAULT_IHSS_SETTINGS };

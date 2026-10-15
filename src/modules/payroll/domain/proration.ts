@@ -43,15 +43,10 @@ export function isSameCalendarMonth(a: Date, b: Date): boolean {
   return isSameUtcCalendarMonth(a, b);
 }
 
-export function shouldProrateSalary(hireDate: Date, periodStart: Date, periodEnd: Date): boolean {
+/** Same rule as server.py `_es_primer_mes_empleado`: prorate only in the hire month. */
+export function shouldProrateSalary(hireDate: Date, payYear: number, payMonth: number): boolean {
   const hire = utcCalendarParts(hireDate);
-  const start = utcCalendarParts(periodStart);
-  const end = utcCalendarParts(periodEnd);
-  const hireAfterStart =
-    hire.year > start.year
-    || (hire.year === start.year && hire.month > start.month)
-    || (hire.year === start.year && hire.month === start.month && hire.day > start.day);
-  return hireAfterStart && isSameUtcCalendarMonth(hireDate, periodEnd);
+  return hire.year === payYear && hire.month === payMonth;
 }
 
 /** Last calendar day of the pay month containing `periodEnd`. */
