@@ -5,9 +5,12 @@ import { NAV_ITEMS, type NavItem, type NavSubItem } from '@/components/layout/na
 import { hasModuleAccess } from '@/lib/permissions';
 import type { Module } from '@/lib/permissions';
 import type { Role } from '@/types';
-import { organizationRoleForSessionRole } from '@/platform/security/module-effective';
-import { officialPermissionSetForRole } from '@/platform/security/authorization/official-role-permissions';
-import type { Permission } from '@/platform/security/authorization/permissions';
+import {
+  buildEffectiveModuleMatrix,
+  moduleIdsWithRead,
+  organizationRoleForSessionRole,
+} from '@/platform/security/module-effective';
+import { createRolePermissionCheck } from '@/platform/security/authorization/role-permission-service';
 
 /**
  * Phase 14A — Navigation reconciliation guards (institutional IA).
@@ -38,51 +41,74 @@ function allModules(): Module[] {
   return [...mods];
 }
 
+function navContextForRole(role: Role) {
+  const orgRole = organizationRoleForSessionRole(role);
+  const roleHas = createRolePermissionCheck(orgRole, null);
+  const matrix = buildEffectiveModuleMatrix(orgRole, [], roleHas);
+  return {
+    role,
+    modulesRead: moduleIdsWithRead(matrix) as Module[],
+    moduleExtras: Object.fromEntries(
+      Object.entries(matrix).map(([moduleId, row]) => [moduleId, row.extras]),
+    ) as Partial<Record<Module, string[]>>,
+  };
+}
+
 // Mirror of the sidebar visibility logic (MainLayout).
-function canSeeNavChild(role: Role, child: NavSubItem, parentModule: Module): boolean {
+function canSeeNavChild(
+  ctx: ReturnType<typeof navContextForRole>,
+  child: NavSubItem,
+  parentModule: Module,
+): boolean {
   const mod = child.module ?? parentModule;
-  if (!hasModuleAccess(role, mod)) return false;
+  if (ctx.modulesRead.length) {
+    if (!ctx.modulesRead.includes(mod)) return false;
+  } else if (!hasModuleAccess(ctx.role, mod)) {
+    return false;
+  }
   if (child.requiredSpecial) {
-    const orgRole = organizationRoleForSessionRole(role);
-    return officialPermissionSetForRole(orgRole).has(child.requiredSpecial as Permission);
+    const extras = ctx.moduleExtras[mod] ?? [];
+    return extras.includes(child.requiredSpecial);
   }
   return true;
 }
 
-function visibleChildren(role: Role, item: NavItem): NavSubItem[] {
+function visibleChildren(ctx: ReturnType<typeof navContextForRole>, item: NavItem): NavSubItem[] {
   if (!item.children?.length) return [];
-  return item.children.filter((child) => canSeeNavChild(role, child, item.module));
+  return item.children.filter((child) => canSeeNavChild(ctx, child, item.module));
 }
 
-function visibleChildModules(role: Role, item: NavItem): Module[] {
-  return visibleChildren(role, item).map((c) => c.module ?? item.module);
+function visibleChildModules(ctx: ReturnType<typeof navContextForRole>, item: NavItem): Module[] {
+  return visibleChildren(ctx, item).map((c) => c.module ?? item.module);
 }
 
-function isItemVisible(role: Role, item: NavItem): boolean {
+function isItemVisible(ctx: ReturnType<typeof navContextForRole>, item: NavItem): boolean {
   return item.children?.length
-    ? visibleChildren(role, item).length > 0
-    : hasModuleAccess(role, item.module);
+    ? visibleChildren(ctx, item).length > 0
+    : ctx.modulesRead.includes(item.module) || hasModuleAccess(ctx.role, item.module);
 }
 
 function visibleNavHrefs(role: Role): string[] {
+  const ctx = navContextForRole(role);
   const hrefs: string[] = [];
   for (const item of NAV_ITEMS) {
-    if (!isItemVisible(role, item)) continue;
+    if (!isItemVisible(ctx, item)) continue;
     if (item.children?.length) {
-      for (const child of visibleChildren(role, item)) hrefs.push(child.href);
+      for (const child of visibleChildren(ctx, item)) hrefs.push(child.href);
     } else {
       hrefs.push(item.href);
     }
   }
   return hrefs;
 }
-/** All modules a role can actually reach through the rendered sidebar. */
+
 function reachableModules(role: Role): Module[] {
+  const ctx = navContextForRole(role);
   const mods = new Set<Module>();
   for (const item of NAV_ITEMS) {
-    if (!isItemVisible(role, item)) continue;
+    if (!isItemVisible(ctx, item)) continue;
     if (item.children?.length) {
-      for (const m of visibleChildModules(role, item)) mods.add(m);
+      for (const m of visibleChildModules(ctx, item)) mods.add(m);
     } else {
       mods.add(item.module);
     }
@@ -141,6 +167,7 @@ describe('navigation reconciliation', () => {
     );
     expect(rolesNav?.requiredSpecial).toBe('roles.manage');
     expect(visibleNavHrefs('ADMIN')).toContain('/settings/roles');
+    expect(visibleNavHrefs('OWNER')).toContain('/settings/roles');
     expect(visibleNavHrefs('IT')).not.toContain('/settings/roles');
   });
 

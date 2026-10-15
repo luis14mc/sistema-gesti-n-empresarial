@@ -154,10 +154,10 @@ export const MODULE_CATALOG: Record<ModuleId, ModuleDefinition> = {
     label: 'Administración',
     crud: { read: true, create: false, update: true, delete: false },
     permissionMap: {
-      read: ['integrations.read', 'oficios.configure', 'roles.manage'],
-      update: ['oficios.configure', 'integrations.read', 'roles.manage'],
+      read: ['integrations.read', 'oficios.configure'],
+      update: ['oficios.configure', 'integrations.read'],
     },
-    specials: [],
+    specials: [{ id: 'roles.manage', label: 'Administrar roles y permisos' }],
   },
   'software-licenses': {
     id: 'software-licenses',
