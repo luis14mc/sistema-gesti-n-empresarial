@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import type { OrganizationRole } from '@prisma/client';
+import { Lock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table,
   TableBody,
@@ -12,6 +13,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import {
   MODULE_CATALOG,
   type ModuleAccessRow,
@@ -51,7 +58,7 @@ type Props = {
 function originClass(origin: 'inherited' | 'allow' | 'deny' | 'official' | 'modified') {
   if (origin === 'allow' || origin === 'modified') return 'ring-2 ring-green-500/60 bg-green-500/5';
   if (origin === 'deny') return 'ring-2 ring-red-500/60 bg-red-500/5';
-  return 'opacity-80';
+  return '';
 }
 
 function originLabel(
@@ -74,6 +81,34 @@ function isLockedRoleCell(role: OrganizationRole, moduleId: ModuleId, action: Mo
   const locked = new Set(lockedPermissionsForRole(role));
   if (!locked.size) return false;
   return permissionsForModuleAction(moduleId, action).some((permission) => locked.has(permission));
+}
+
+function isLockedSpecial(role: OrganizationRole, specialId: Permission): boolean {
+  return lockedPermissionsForRole(role).includes(specialId);
+}
+
+const LOCK_TOOLTIP = 'Requerido para administrar el sistema';
+
+function NotApplicableCell() {
+  return (
+    <span className="text-sm text-muted-foreground" aria-hidden="true">
+      —
+    </span>
+  );
+}
+
+function LockedCheckbox() {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex items-center justify-center gap-1">
+          <Checkbox checked disabled aria-label={LOCK_TOOLTIP} />
+          <Lock className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="top">{LOCK_TOOLTIP}</TooltipContent>
+    </Tooltip>
+  );
 }
 
 export function ModulePermissionMatrix({
@@ -108,147 +143,189 @@ export function ModulePermissionMatrix({
   };
 
   return (
-    <div className="space-y-4">
-      {grouped.map((group) => (
-        <div key={group.label} className="space-y-2">
-          <h3 className="text-sm font-semibold text-muted-foreground">{group.label}</h3>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Módulo</TableHead>
-                <TableHead className="w-16 text-center">Ver</TableHead>
-                <TableHead className="w-16 text-center">Crear</TableHead>
-                <TableHead className="w-16 text-center">Editar</TableHead>
-                <TableHead className="w-16 text-center">Eliminar</TableHead>
-                <TableHead>Especiales</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {group.modules.map((moduleId) => {
-                const row = rows.find((r) => r.module === moduleId)!;
-                const def = MODULE_CATALOG[moduleId];
-                const moduleOrigin = moduleOrigins?.[moduleId];
-                return (
-                  <TableRow key={moduleId}>
-                    <TableCell className="font-medium">
-                      {def.label}
-                      {def.sensitive ? (
-                        <Badge variant="outline" className="ml-2 text-xs">
-                          Datos sensibles
-                        </Badge>
-                      ) : null}
-                      {mode === 'role' && moduleOrigin === 'modified' ? (
-                        <Badge variant="secondary" className="ml-2 text-xs">
-                          Modificado
-                        </Badge>
-                      ) : null}
-                    </TableCell>
-                    {(['read', 'create', 'update', 'delete'] as const).map((action) => {
-                      const key =
-                        action === 'read'
-                          ? 'canRead'
-                          : action === 'create'
-                            ? 'canCreate'
-                            : action === 'update'
-                              ? 'canUpdate'
-                              : 'canDelete';
-                      const enabled = def.crud[action];
-                      const locked = mode === 'role' && isLockedRoleCell(orgRole, moduleId, action);
-                      let origin: 'inherited' | 'allow' | 'deny' | 'official' | 'modified' = 'inherited';
-                      if (mode === 'role') {
-                        origin = moduleOrigin ?? 'official';
-                      } else {
-                        const roleDefault =
-                          roleDefaultRows?.[moduleId]?.[key]
-                          ?? cellState(orgRole, moduleId, action, []).roleDefault;
-                        origin = row[key] === roleDefault ? 'inherited' : row[key] ? 'allow' : 'deny';
-                      }
-                      return (
-                        <TableCell key={action} className="text-center">
-                          <div
-                            className={cn('inline-flex rounded-md p-1', originClass(origin))}
-                            title={
-                              locked
-                                ? 'Permiso obligatorio para este rol'
-                                : originLabel(mode, origin)
-                            }
-                          >
-                            <Switch
-                              disabled={disabled || !enabled || locked}
-                              checked={row[key]}
-                              onCheckedChange={(val: boolean) => {
-                                void (async () => {
-                                  if (!(await confirmSensitive(moduleId, val))) return;
-                                  if (key === 'canRead' && !val) {
-                                    updateRow(moduleId, {
-                                      canRead: false,
-                                      canCreate: false,
-                                      canUpdate: false,
-                                      canDelete: false,
-                                      extras: [],
-                                    });
-                                    return;
-                                  }
-                                  updateRow(moduleId, { [key]: val });
-                                })();
-                              }}
-                            />
-                          </div>
-                        </TableCell>
-                      );
-                    })}
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        {def.specials.map((sp) => {
-                          const locked = mode === 'role' && lockedSet.has(sp.id);
-                          let origin: 'inherited' | 'allow' | 'deny' | 'official' | 'modified' =
-                            'inherited';
-                          const checked = row.extras.includes(sp.id);
-                          if (mode === 'role') {
-                            origin = moduleOrigin ?? 'official';
-                          } else {
-                            const roleDefault =
-                              roleDefaultRows?.[moduleId]?.extras.includes(sp.id)
-                              ?? specialCellState(orgRole, moduleId, sp.id, []).roleDefault;
-                            origin =
-                              checked === roleDefault ? 'inherited' : checked ? 'allow' : 'deny';
-                          }
-                          return (
-                            <label
-                              key={sp.id}
-                              className={cn(
-                                'flex items-center gap-2 text-xs rounded-md p-1',
-                                originClass(origin),
-                              )}
-                              title={
-                                locked
-                                  ? 'Permiso obligatorio para este rol'
-                                  : originLabel(mode, origin)
+    <TooltipProvider>
+      <CardScroll>
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="sticky left-0 top-0 z-20 min-w-[10rem] bg-background shadow-[1px_0_0_0_hsl(var(--border))]">
+                Módulo
+              </TableHead>
+              <TableHead className="sticky top-0 z-10 w-16 bg-background text-center">Ver</TableHead>
+              <TableHead className="sticky top-0 z-10 w-16 bg-background text-center">Crear</TableHead>
+              <TableHead className="sticky top-0 z-10 w-16 bg-background text-center">Editar</TableHead>
+              <TableHead className="sticky top-0 z-10 w-16 bg-background text-center">Eliminar</TableHead>
+              <TableHead className="sticky top-0 z-10 min-w-[8rem] bg-background">Especiales</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {grouped.flatMap((group) => {
+              const section: ReactNode[] = [
+                <TableRow key={`group-${group.label}`} className="bg-muted/40 hover:bg-muted/40">
+                  <TableCell
+                    colSpan={6}
+                    className="sticky left-0 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                  >
+                    {group.label}
+                  </TableCell>
+                </TableRow>,
+              ];
+              for (const moduleId of group.modules) {
+                  const row = rows.find((r) => r.module === moduleId)!;
+                  const def = MODULE_CATALOG[moduleId];
+                  const moduleOrigin = moduleOrigins?.[moduleId];
+                section.push(
+                    <TableRow key={moduleId}>
+                      <TableCell className="sticky left-0 z-[5] min-w-[10rem] bg-background font-medium shadow-[1px_0_0_0_hsl(var(--border))]">
+                        <span className="flex flex-wrap items-center gap-2">
+                          {def.label}
+                          {def.sensitive ? (
+                            <Badge variant="outline" className="text-xs font-normal">
+                              Datos sensibles
+                            </Badge>
+                          ) : null}
+                          {mode === 'role' && moduleOrigin === 'modified' ? (
+                            <Badge variant="secondary" className="text-xs font-normal">
+                              Modificado
+                            </Badge>
+                          ) : null}
+                        </span>
+                      </TableCell>
+                      {(['read', 'create', 'update', 'delete'] as const).map((action) => {
+                        const key =
+                          action === 'read'
+                            ? 'canRead'
+                            : action === 'create'
+                              ? 'canCreate'
+                              : action === 'update'
+                                ? 'canUpdate'
+                                : 'canDelete';
+                        const enabled = def.crud[action];
+                        const locked = mode === 'role' && isLockedRoleCell(orgRole, moduleId, action);
+                        let origin: 'inherited' | 'allow' | 'deny' | 'official' | 'modified' =
+                          'inherited';
+                        if (mode === 'role') {
+                          origin = moduleOrigin ?? 'official';
+                        } else {
+                          const roleDefault =
+                            roleDefaultRows?.[moduleId]?.[key]
+                            ?? cellState(orgRole, moduleId, action, []).roleDefault;
+                          origin = row[key] === roleDefault ? 'inherited' : row[key] ? 'allow' : 'deny';
+                        }
+                        return (
+                          <TableCell key={action} className="text-center align-middle">
+                            {!enabled ? (
+                              <NotApplicableCell />
+                            ) : locked ? (
+                              <LockedCheckbox />
+                            ) : (
+                              <div
+                                className={cn(
+                                  'inline-flex justify-center rounded-md p-1',
+                                  originClass(origin),
+                                )}
+                                title={originLabel(mode, origin)}
+                              >
+                                <Checkbox
+                                  disabled={disabled}
+                                  checked={row[key]}
+                                  aria-label={`${def.label} — ${action}`}
+                                  onCheckedChange={(val) => {
+                                    const checked = val === true;
+                                    void (async () => {
+                                      if (!(await confirmSensitive(moduleId, checked))) return;
+                                      if (key === 'canRead' && !checked) {
+                                        updateRow(moduleId, {
+                                          canRead: false,
+                                          canCreate: false,
+                                          canUpdate: false,
+                                          canDelete: false,
+                                          extras: [],
+                                        });
+                                        return;
+                                      }
+                                      updateRow(moduleId, { [key]: checked });
+                                    })();
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </TableCell>
+                        );
+                      })}
+                      <TableCell className="align-top">
+                        {def.specials.length === 0 ? (
+                          <NotApplicableCell />
+                        ) : (
+                          <div className="flex flex-col items-start gap-3">
+                            {def.specials.map((sp) => {
+                              const lockedSpecial =
+                                mode === 'role' &&
+                                (lockedSet.has(sp.id) || isLockedSpecial(orgRole, sp.id));
+                              let origin: 'inherited' | 'allow' | 'deny' | 'official' | 'modified' =
+                                'inherited';
+                              const checked = row.extras.includes(sp.id);
+                              if (mode === 'role') {
+                                origin = moduleOrigin ?? 'official';
+                              } else {
+                                const roleDefault =
+                                  roleDefaultRows?.[moduleId]?.extras.includes(sp.id)
+                                  ?? specialCellState(orgRole, moduleId, sp.id, []).roleDefault;
+                                origin =
+                                  checked === roleDefault ? 'inherited' : checked ? 'allow' : 'deny';
                               }
-                            >
-                              <Switch
-                                disabled={disabled || !row.canRead || locked}
-                                checked={checked}
-                                onCheckedChange={(val: boolean) => {
-                                  const set = new Set(row.extras);
-                                  if (val) set.add(sp.id);
-                                  else set.delete(sp.id);
-                                  updateRow(moduleId, { extras: [...set] });
-                                }}
-                              />
-                              {sp.label}
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                              return (
+                                <div
+                                  key={sp.id}
+                                  className={cn(
+                                    'flex flex-col items-start gap-1 rounded-md p-1',
+                                    originClass(origin),
+                                  )}
+                                  title={
+                                    lockedSpecial ? LOCK_TOOLTIP : originLabel(mode, origin)
+                                  }
+                                >
+                                  {lockedSpecial ? (
+                                    <LockedCheckbox />
+                                  ) : (
+                                    <Checkbox
+                                      disabled={disabled || !row.canRead}
+                                      checked={checked}
+                                      aria-label={sp.label}
+                                      onCheckedChange={(val) => {
+                                        const on = val === true;
+                                        const set = new Set(row.extras);
+                                        if (on) set.add(sp.id);
+                                        else set.delete(sp.id);
+                                        updateRow(moduleId, { extras: [...set] });
+                                      }}
+                                    />
+                                  )}
+                                  <span className="max-w-[12rem] text-left text-xs text-muted-foreground">
+                                    {sp.label}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>,
                 );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-      ))}
+              }
+              return section;
+            })}
+          </TableBody>
+        </Table>
+      </CardScroll>
+    </TooltipProvider>
+  );
+}
+
+function CardScroll({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="-mx-1 overflow-x-auto overscroll-x-contain px-1">
+      <div className="min-w-[640px]">{children}</div>
     </div>
   );
 }

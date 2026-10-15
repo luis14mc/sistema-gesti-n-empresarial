@@ -5,9 +5,12 @@ import { middleware } from '@/middleware';
 
 const TEST_SECRET = 'a'.repeat(48);
 
-function signToken(role: string) {
+function signToken(
+  role: string,
+  extra: { mod?: string; spe?: string } = {},
+) {
   return jwt.sign(
-    { userId: 'user-1', email: 'user@cni.hn', role, jti: 'jti-1' },
+    { userId: 'user-1', email: 'user@cni.hn', role, jti: 'jti-1', ...extra },
     TEST_SECRET,
     { algorithm: 'HS256', expiresIn: '15m', issuer: 'sge', audience: 'sge-web' },
   );
@@ -67,5 +70,20 @@ describe('Next.js middleware redirects', () => {
   it('GET /login with a valid ADMIN token redirects to /dashboard', async () => {
     const response = await middleware(request('/login', signToken('ADMIN')));
     expect(location(response)).toBe('/dashboard');
+  });
+
+  it('GET /settings/roles without roles.manage in JWT redirects to /forbidden', async () => {
+    const response = await middleware(
+      request('/settings/roles', signToken('IT', { mod: 'settings' })),
+    );
+    expect(location(response)).toBe('/forbidden');
+  });
+
+  it('GET /settings/roles with roles.manage in JWT is allowed', async () => {
+    const response = await middleware(
+      request('/settings/roles', signToken('ADMIN', { mod: 'settings', spe: 'roles.manage' })),
+    );
+    expect(response.headers.get('location')).toBeNull();
+    expect(response.status).toBe(200);
   });
 });

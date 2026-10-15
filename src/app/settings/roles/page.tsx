@@ -2,8 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import MainLayout from '@/components/layout/MainLayout';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   Table,
   TableBody,
@@ -12,7 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2 } from 'lucide-react';
 
 type RoleRow = {
   role: string;
@@ -45,63 +49,65 @@ export default function RolesSettingsPage() {
   }, []);
 
   return (
-    <div className="container max-w-4xl py-8 space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Roles y permisos</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Matriz rol × módulo configurable. Los usuarios heredan el rol y pueden tener excepciones
-          individuales.
-        </p>
-      </div>
+    <MainLayout>
+      <div className="space-y-6">
+        <PageHeader
+          title="Roles y permisos"
+          description="Matriz rol × módulo configurable. Los usuarios heredan el rol y pueden tener excepciones individuales."
+          breadcrumbs={[
+            { label: 'Administración', href: '/settings' },
+            { label: 'Roles y permisos' },
+          ]}
+        />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Roles de la organización</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : error ? (
-            <p className="text-sm text-destructive">{error}</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Rol</TableHead>
-                  <TableHead className="text-right">Usuarios</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {roles.map((row) => (
-                  <TableRow key={row.role}>
-                    <TableCell className="font-medium">{row.label}</TableCell>
-                    <TableCell className="text-right">{row.memberCount}</TableCell>
-                    <TableCell>
-                      {row.modified ? (
-                        <Badge variant="secondary">Modificado</Badge>
-                      ) : (
-                        <Badge variant="outline">Oficial</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Link
-                        href={`/settings/roles/${row.role}`}
-                        className="text-sm text-primary underline-offset-4 hover:underline"
-                      >
-                        Editar permisos
-                      </Link>
-                    </TableCell>
+        <Card>
+          <CardContent className="pt-6">
+            {loading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : error ? (
+              <Alert variant="destructive">
+                <AlertTitle>Error al cargar</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Rol</TableHead>
+                    <TableHead className="text-right">Usuarios asignados</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead className="text-right">Acción</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                </TableHeader>
+                <TableBody>
+                  {roles.map((row) => (
+                    <TableRow key={row.role}>
+                      <TableCell className="font-medium">{row.label}</TableCell>
+                      <TableCell className="text-right tabular-nums">{row.memberCount}</TableCell>
+                      <TableCell>
+                        {row.modified ? (
+                          <Badge variant="secondary">Modificado</Badge>
+                        ) : (
+                          <Badge variant="outline">Plantilla oficial</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/settings/roles/${row.role}`}>Editar permisos</Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </MainLayout>
   );
 }

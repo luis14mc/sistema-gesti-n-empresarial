@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { NAV_ITEMS, type NavItem } from '@/components/layout/nav-items';
+import { NAV_ITEMS, type NavItem, type NavSubItem } from '@/components/layout/nav-items';
 import { hasModuleAccess } from '@/lib/permissions';
 import type { Module } from '@/lib/permissions';
 import type { Role } from '@/types';
+import { organizationRoleForSessionRole } from '@/platform/security/module-effective';
+import { officialPermissionSetForRole } from '@/platform/security/authorization/official-role-permissions';
+import type { Permission } from '@/platform/security/authorization/permissions';
 
 /**
  * Phase 14A — Navigation reconciliation guards (institutional IA).
@@ -36,16 +39,42 @@ function allModules(): Module[] {
 }
 
 // Mirror of the sidebar visibility logic (MainLayout).
-function visibleChildModules(role: Role, item: NavItem): Module[] {
-  if (!item.children?.length) return [];
-  return item.children
-    .map((c) => c.module ?? item.module)
-    .filter((m) => hasModuleAccess(role, m));
+function canSeeNavChild(role: Role, child: NavSubItem, parentModule: Module): boolean {
+  const mod = child.module ?? parentModule;
+  if (!hasModuleAccess(role, mod)) return false;
+  if (child.requiredSpecial) {
+    const orgRole = organizationRoleForSessionRole(role);
+    return officialPermissionSetForRole(orgRole).has(child.requiredSpecial as Permission);
+  }
+  return true;
 }
+
+function visibleChildren(role: Role, item: NavItem): NavSubItem[] {
+  if (!item.children?.length) return [];
+  return item.children.filter((child) => canSeeNavChild(role, child, item.module));
+}
+
+function visibleChildModules(role: Role, item: NavItem): Module[] {
+  return visibleChildren(role, item).map((c) => c.module ?? item.module);
+}
+
 function isItemVisible(role: Role, item: NavItem): boolean {
   return item.children?.length
-    ? visibleChildModules(role, item).length > 0
+    ? visibleChildren(role, item).length > 0
     : hasModuleAccess(role, item.module);
+}
+
+function visibleNavHrefs(role: Role): string[] {
+  const hrefs: string[] = [];
+  for (const item of NAV_ITEMS) {
+    if (!isItemVisible(role, item)) continue;
+    if (item.children?.length) {
+      for (const child of visibleChildren(role, item)) hrefs.push(child.href);
+    } else {
+      hrefs.push(item.href);
+    }
+  }
+  return hrefs;
 }
 /** All modules a role can actually reach through the rendered sidebar. */
 function reachableModules(role: Role): Module[] {
@@ -104,6 +133,15 @@ describe('navigation reconciliation', () => {
     const hrefs = allHrefs();
     expect(hrefs).not.toContain('/purchases');
     for (const href of hrefs) expect(href.startsWith('/purchases')).toBe(false);
+  });
+
+  it('Roles y permisos requires roles.manage (IT cannot see the link)', () => {
+    const rolesNav = NAV_ITEMS.flatMap((i) => i.children ?? []).find(
+      (c) => c.href === '/settings/roles',
+    );
+    expect(rolesNav?.requiredSpecial).toBe('roles.manage');
+    expect(visibleNavHrefs('ADMIN')).toContain('/settings/roles');
+    expect(visibleNavHrefs('IT')).not.toContain('/settings/roles');
   });
 
   it('permissions still filter the navigation per role (incl. per-child gating)', () => {
