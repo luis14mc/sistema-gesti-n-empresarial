@@ -15,6 +15,7 @@ import {
   type OrganizationRole,
   type Permission,
   type PermissionOverride,
+  type RolePermissionCheck,
 } from '@/platform/security/authorization/permissions';
 
 export type EffectiveModuleAccess = Record<ModuleId, ModuleAccessRow>;
@@ -49,8 +50,9 @@ export function isPermissionEffective(
   orgRole: OrganizationRole,
   permission: Permission,
   overrides: readonly PermissionOverride[],
+  roleHas?: RolePermissionCheck,
 ): boolean {
-  return canWithOverrides(organizationRole(orgRole), permission, overrides);
+  return canWithOverrides(organizationRole(orgRole), permission, overrides, roleHas);
 }
 
 export function isActionEffective(
@@ -58,10 +60,11 @@ export function isActionEffective(
   moduleId: ModuleId,
   action: ModuleAction,
   overrides: readonly PermissionOverride[],
+  roleHas?: RolePermissionCheck,
 ): boolean {
   const perms = permissionsForAction(moduleId, action);
   if (!perms.length) return false;
-  return perms.some((p) => isPermissionEffective(orgRole, p, overrides));
+  return perms.some((p) => isPermissionEffective(orgRole, p, overrides, roleHas));
 }
 
 export function isSpecialEffective(
@@ -69,10 +72,11 @@ export function isSpecialEffective(
   moduleId: ModuleId,
   special: Permission,
   overrides: readonly PermissionOverride[],
+  roleHas?: RolePermissionCheck,
 ): boolean {
   if (!permissionsForSpecial(moduleId, special).length) return false;
-  if (!isActionEffective(orgRole, moduleId, 'read', overrides)) return false;
-  return isPermissionEffective(orgRole, special, overrides);
+  if (!isActionEffective(orgRole, moduleId, 'read', overrides, roleHas)) return false;
+  return isPermissionEffective(orgRole, special, overrides, roleHas);
 }
 
 export function emptyMatrix(): EffectiveModuleAccess {
@@ -82,18 +86,19 @@ export function emptyMatrix(): EffectiveModuleAccess {
 export function buildEffectiveModuleMatrix(
   orgRole: OrganizationRole,
   overrides: readonly PermissionOverride[],
+  roleHas?: RolePermissionCheck,
 ): EffectiveModuleAccess {
   const matrix = emptyMatrix();
   for (const moduleId of MODULE_IDS) {
     const def = MODULE_CATALOG[moduleId];
     const row: ModuleAccessRow = {
       module: moduleId,
-      canRead: isActionEffective(orgRole, moduleId, 'read', overrides),
-      canCreate: def.crud.create && isActionEffective(orgRole, moduleId, 'create', overrides),
-      canUpdate: def.crud.update && isActionEffective(orgRole, moduleId, 'update', overrides),
-      canDelete: def.crud.delete && isActionEffective(orgRole, moduleId, 'delete', overrides),
+      canRead: isActionEffective(orgRole, moduleId, 'read', overrides, roleHas),
+      canCreate: def.crud.create && isActionEffective(orgRole, moduleId, 'create', overrides, roleHas),
+      canUpdate: def.crud.update && isActionEffective(orgRole, moduleId, 'update', overrides, roleHas),
+      canDelete: def.crud.delete && isActionEffective(orgRole, moduleId, 'delete', overrides, roleHas),
       extras: def.specials
-        .filter((s) => isSpecialEffective(orgRole, moduleId, s.id, overrides))
+        .filter((s) => isSpecialEffective(orgRole, moduleId, s.id, overrides, roleHas))
         .map((s) => s.id),
     };
     matrix[moduleId] = normalizeModuleRow(row);
@@ -114,9 +119,10 @@ export function cellState(
   moduleId: ModuleId,
   action: ModuleAction,
   overrides: readonly PermissionOverride[],
+  roleHas?: RolePermissionCheck,
 ): ModuleCellState {
-  const effective = isActionEffective(orgRole, moduleId, action, overrides);
-  const roleDefault = isActionEffective(orgRole, moduleId, action, []);
+  const effective = isActionEffective(orgRole, moduleId, action, overrides, roleHas);
+  const roleDefault = isActionEffective(orgRole, moduleId, action, [], roleHas);
   let origin: CellOrigin = 'inherited';
   if (effective !== roleDefault) {
     origin = effective ? 'allow' : 'deny';
@@ -129,9 +135,10 @@ export function specialCellState(
   moduleId: ModuleId,
   special: Permission,
   overrides: readonly PermissionOverride[],
+  roleHas?: RolePermissionCheck,
 ): ModuleCellState {
-  const effective = isSpecialEffective(orgRole, moduleId, special, overrides);
-  const roleDefault = isSpecialEffective(orgRole, moduleId, special, []);
+  const effective = isSpecialEffective(orgRole, moduleId, special, overrides, roleHas);
+  const roleDefault = isSpecialEffective(orgRole, moduleId, special, [], roleHas);
   let origin: CellOrigin = 'inherited';
   if (effective !== roleDefault) origin = effective ? 'allow' : 'deny';
   return { effective, roleDefault, origin };
@@ -151,6 +158,7 @@ export function overridesFromDesiredMatrix(
   orgRole: OrganizationRole,
   currentOverrides: readonly PermissionOverride[],
   desired: ModuleAccessRow,
+  roleHas?: RolePermissionCheck,
 ): PermissionOverride[] {
   const row = normalizeDesiredRow(desired);
   const moduleId = row.module;
@@ -161,12 +169,12 @@ export function overridesFromDesiredMatrix(
   for (const action of ['read', 'create', 'update', 'delete'] as const) {
     if (!MODULE_CATALOG[moduleId].crud[action]) continue;
     const want = action === 'read' ? row.canRead : action === 'create' ? row.canCreate : action === 'update' ? row.canUpdate : row.canDelete;
-    applyActionTarget(orgRole, next, moduleId, action, want);
+    applyActionTarget(orgRole, next, moduleId, action, want, roleHas);
   }
 
   for (const special of MODULE_CATALOG[moduleId].specials) {
     const want = row.extras.includes(special.id);
-    applyPermissionTarget(orgRole, next, special.id, want);
+    applyPermissionTarget(orgRole, next, special.id, want, roleHas);
   }
 
   return dedupeOverrides(next);
@@ -186,9 +194,10 @@ function applyActionTarget(
   moduleId: ModuleId,
   action: ModuleAction,
   want: boolean,
+  roleHasCheck?: RolePermissionCheck,
 ) {
   for (const permission of permissionsForAction(moduleId, action)) {
-    applyPermissionTarget(orgRole, overrides, permission, want);
+    applyPermissionTarget(orgRole, overrides, permission, want, roleHasCheck);
   }
 }
 
@@ -197,8 +206,11 @@ function applyPermissionTarget(
   overrides: PermissionOverride[],
   permission: Permission,
   want: boolean,
+  roleHasCheck?: RolePermissionCheck,
 ) {
-  const roleHas = can(organizationRole(orgRole), permission);
+  const roleHas = roleHasCheck
+    ? roleHasCheck(permission)
+    : can(organizationRole(orgRole), permission);
   const idx = overrides.findIndex((o) => o.permission === permission);
   if (want === roleHas) {
     if (idx >= 0) overrides.splice(idx, 1);

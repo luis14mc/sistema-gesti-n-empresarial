@@ -48,6 +48,9 @@ describe('seedCniMasterData', () => {
         create: async () => ({ id: 'pos-1' }),
         updateMany: async () => ({ count: 0 }),
       },
+      rolePermission: {
+        upsert: async () => ({}),
+      },
     } as unknown as Parameters<typeof seedCniMasterData>[0];
 
     const result = await seedCniMasterData(prisma, { proveedores, empleados });

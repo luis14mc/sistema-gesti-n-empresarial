@@ -37,7 +37,7 @@ const DEFAULT_ORG = {
 };
 
 export async function ensureCniOrganization(prisma: PrismaClient) {
-  return prisma.organization.upsert({
+  const organization = await prisma.organization.upsert({
     where: { slug: DEFAULT_ORG.slug },
     update: {
       name: DEFAULT_ORG.name,
@@ -53,6 +53,9 @@ export async function ensureCniOrganization(prisma: PrismaClient) {
     },
     select: { id: true, name: true, slug: true },
   });
+  const { seedOfficialRolePermissions } = await import('./role-permission-seed');
+  await seedOfficialRolePermissions(prisma, organization.id);
+  return organization;
 }
 
 async function ensureDepartment(

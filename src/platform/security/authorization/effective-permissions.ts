@@ -7,6 +7,10 @@ import {
   type Permission,
   type PermissionOverride,
 } from './permissions';
+import {
+  createRolePermissionCheck,
+  loadOrganizationRolePermissionMap,
+} from './role-permission-service';
 
 export async function canForOrganization(
   userId: string,
@@ -14,15 +18,21 @@ export async function canForOrganization(
   role: OrganizationRole,
   permission: Permission,
 ): Promise<boolean> {
-  const overrides = await prisma.userPermissionOverride.findMany({
-    where: { userId, organizationId, permission },
-    select: { permission: true, effect: true },
-  });
+  const [overrides, roleMap] = await Promise.all([
+    prisma.userPermissionOverride.findMany({
+      where: { userId, organizationId, permission },
+      select: { permission: true, effect: true },
+    }),
+    loadOrganizationRolePermissionMap(organizationId),
+  ]);
+
+  const roleHas = createRolePermissionCheck(role, roleMap);
 
   return canWithOverrides(
     organizationRole(role),
     permission,
     overrides as PermissionOverride[],
+    roleHas,
   );
 }
 
@@ -47,13 +57,19 @@ export async function getEffectiveOrganizationPermissions(
   role: OrganizationRole,
   permissions: readonly Permission[],
 ): Promise<ReadonlySet<Permission>> {
-  const overrides = await prisma.userPermissionOverride.findMany({
-    where: { userId, organizationId },
-    select: { permission: true, effect: true },
-  });
+  const [overrides, roleMap] = await Promise.all([
+    prisma.userPermissionOverride.findMany({
+      where: { userId, organizationId },
+      select: { permission: true, effect: true },
+    }),
+    loadOrganizationRolePermissionMap(organizationId),
+  ]);
   const typedOverrides = overrides as Array<PermissionOverride & { effect: PermissionEffect }>;
+  const roleHas = createRolePermissionCheck(role, roleMap);
 
   return new Set(
-    permissions.filter((permission) => canWithOverrides(organizationRole(role), permission, typedOverrides)),
+    permissions.filter((permission) =>
+      canWithOverrides(organizationRole(role), permission, typedOverrides, roleHas),
+    ),
   );
 }
