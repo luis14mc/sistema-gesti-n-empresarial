@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
 export default function ComprasRedirect() {
-  redirect('/compras/solicitudes');
+  redirect('/compras/ordenes');
 }

@@ -71,7 +71,7 @@ export default function NuevaCompraPage() {
         onPendingChange={setPendingDocuments}
         onSave={handleSave}
         isSaving={isSaving}
-        backHref="/compras/solicitudes"
+        backHref="/compras/borradores"
       />
       </div>
     </MainLayout>

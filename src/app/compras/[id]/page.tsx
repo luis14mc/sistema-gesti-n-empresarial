@@ -21,6 +21,7 @@ import {
   getPurchaseOrderApiErrorMessage,
   getPurchaseOrderValidationDetails,
 } from '@/lib/api-error';
+import { draftProvisionalLabel } from '@/lib/compras/format-list';
 
 const ACTION_LABELS: Record<OrdenWorkflowActionName, string> = {
   validar: 'Orden generada',
@@ -111,8 +112,14 @@ export default function CompraDetallePage({ params }: { params: Promise<{ id: st
       await updateOrden({ id, data });
        const generated = await runWorkflow({ id, action: 'validar' });
        Swal.close();
-       await Swal.fire({ icon: 'success', title: 'Orden generada', text: `La orden ${generated.orderNumber} fue generada correctamente.`, confirmButtonText: 'Aceptar' });
-      await refetch();
+       await Swal.fire({
+         icon: 'success',
+         title: 'Orden generada',
+         text: `La orden ${generated.orderNumber} fue generada correctamente.`,
+         confirmButtonText: 'Aceptar',
+       });
+       router.push(`/compras/ordenes/${id}`);
+       return;
     } catch (error) {
       Swal.close();
       const details = getPurchaseOrderValidationDetails(error);
@@ -179,7 +186,7 @@ export default function CompraDetallePage({ params }: { params: Promise<{ id: st
     try {
       await deleteOrden(id);
       await Swal.fire({ icon: 'success', title: 'Borrador eliminado', confirmButtonText: 'Aceptar' });
-      router.push('/compras/solicitudes');
+      router.push('/compras/borradores');
     } catch (error) {
       await Swal.fire({
         icon: 'error',
@@ -194,8 +201,8 @@ export default function CompraDetallePage({ params }: { params: Promise<{ id: st
     <MainLayout>
       <div className="font-[Aptos,'Segoe_UI',sans-serif]">
       <PageHeader
-         title="Solicitud y orden de compra"
-        description={`${orderNumber ?? 'Borrador'} · ${requestedBy}`}
+        title={isDraft ? 'Borrador de orden de compra' : `Orden ${orderNumber ?? ''}`.trim()}
+        description={isDraft ? `${draftProvisionalLabel(orden)} · ${requestedBy}` : `${requestedBy} · ${orden.supplierName ?? orden.proveedorNombre ?? ''}`}
       >
         <CompraStatusBadge estado={status as never} label={ORDER_STATUS_LABELS[status]} />
       </PageHeader>

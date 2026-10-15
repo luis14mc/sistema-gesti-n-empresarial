@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { MoreHorizontal, Download } from 'lucide-react';
+import { Download, ExternalLink, Maximize2, MoreHorizontal } from 'lucide-react';
 import { PrintPurchaseOrderPdfButton } from '@/components/compras/PrintPurchaseOrderPdfButton';
 import Swal from '@/lib/compras/orden/swal';
 import Link from 'next/link';
@@ -14,6 +14,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { PurchaseOrderPreview } from './PurchaseOrderPreview';
 import { PurchaseOrderAttachmentRows } from './PurchaseOrderAttachmentRows';
 import { CompraOrdenHistory } from './CompraOrdenHistory';
@@ -60,24 +66,23 @@ export function CompraOrdenGeneratedDetail({
   const [working, setWorking] = useState(false);
   const [documentType, setDocumentType] = useState<PurchaseDocumentType>('QUOTATION');
   const [uploading, setUploading] = useState(false);
+  const [fullscreenPdf, setFullscreenPdf] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isCreator = orden.createdById === userId;
   const status = (orden.status ?? orden.estado) as PurchaseOrderStatus;
   const documents = orden.documentos ?? [];
-  const orderNumber = orden.orderNumber ?? orden.numeroOrden;
   const activePdf = documents.find((document) => document.type === 'ORDER_PDF' && document.isActive);
   const canViewPdf = canOrdenAction(role, 'read', { isCreator, status });
+  const pdfViewUrl =
+    activePdf && canViewPdf ? compraOrdenService.getDocumentViewUrl(orden.id, activePdf.id) : null;
   const pdfDownloadUrl =
     activePdf && canViewPdf ? compraOrdenService.getDocumentDownloadUrl(orden.id, activePdf.id) : null;
 
-  const secondaryActions: Array<{ key: Exclude<OrdenWorkflowActionName, 'validar' | 'generar'>; destructive?: boolean }> = [];
-  (['anular'] as const).forEach((key) => {
-    if (canOrdenAction(role, key, { isCreator, status })) {
-      secondaryActions.push({ key, destructive: key === 'anular' });
-    }
-  });
-
+  const canEmitir = canOrdenAction(role, 'emitir', { isCreator, status });
+  const canCerrar = canOrdenAction(role, 'cerrar', { isCreator, status });
+  const canAnular = canOrdenAction(role, 'anular', { isCreator, status });
+  const canRegenerar = canOrdenAction(role, 'regenerar_pdf', { isCreator, status });
   const canManageDocuments = canOrdenAction(role, 'documentos', { isCreator, status });
 
   const handleUpload = async (files: FileList | null) => {
@@ -123,12 +128,100 @@ export function CompraOrdenGeneratedDetail({
 
   return (
     <div className="space-y-6">
+      <div className="sticky top-0 z-20 -mx-1 border-b bg-background/95 px-1 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild variant="ghost" size="sm" className="mr-auto sm:mr-0">
+            <Link href="/compras/ordenes">← Volver a órdenes</Link>
+          </Button>
+          {canViewPdf && pdfDownloadUrl ? (
+            <Button asChild variant="default" data-testid="download-purchase-order-pdf">
+              <a href={pdfDownloadUrl} download>
+                <Download className="mr-2 h-4 w-4" />
+                Descargar PDF
+              </a>
+            </Button>
+          ) : null}
+          {canViewPdf && activePdf ? (
+            <PrintPurchaseOrderPdfButton orderId={orden.id} documentId={activePdf.id} />
+          ) : null}
+          {canViewPdf && pdfViewUrl ? (
+            <Button asChild variant="outline">
+              <a href={pdfViewUrl} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Ver PDF
+              </a>
+            </Button>
+          ) : null}
+          {canEmitir ? (
+            <Button disabled={working || isSaving} onClick={() => void runAction('emitir')}>
+              {ACTION_LABELS.emitir}
+            </Button>
+          ) : null}
+          {canCerrar ? (
+            <Button variant="secondary" disabled={working || isSaving} onClick={() => void runAction('cerrar')}>
+              {ACTION_LABELS.cerrar}
+            </Button>
+          ) : null}
+          {canAnular ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" aria-label="Más acciones">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => setShowAnular(true)}
+                >
+                  Anular orden…
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null}
+        </div>
+      </div>
+
       <Card>
-        <CardHeader>
-          <CardTitle>Vista previa de la orden</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between gap-2">
+          <CardTitle>PDF oficial</CardTitle>
+          {pdfViewUrl ? (
+            <Button type="button" variant="outline" size="sm" onClick={() => setFullscreenPdf(true)}>
+              <Maximize2 className="mr-2 h-4 w-4" />
+              Pantalla completa
+            </Button>
+          ) : null}
         </CardHeader>
         <CardContent>
-           <PurchaseOrderPreview savedOrder={orden} />
+          {pdfViewUrl ? (
+            <iframe
+              title="PDF de la orden de compra"
+              src={pdfViewUrl}
+              className="h-[min(70vh,720px)] w-full rounded-md border bg-muted/30"
+            />
+          ) : (
+            <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
+              <p className="mb-4">No hay un PDF activo para esta orden.</p>
+              {canRegenerar ? (
+                <Button
+                  type="button"
+                  disabled={working || isSaving}
+                  onClick={() => void runAction('regenerar_pdf')}
+                >
+                  Regenerar PDF
+                </Button>
+              ) : null}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Datos de la orden</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PurchaseOrderPreview savedOrder={orden} />
         </CardContent>
       </Card>
 
@@ -138,6 +231,31 @@ export function CompraOrdenGeneratedDetail({
             <CardTitle>Documentos adjuntos</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {canManageDocuments && onUpload ? (
+              <div className="flex flex-wrap items-end gap-2">
+                <div>
+                  <label className="text-xs text-muted-foreground">Tipo</label>
+                  <select
+                    className="mt-1 block w-full rounded-md border bg-background px-3 py-2 text-sm"
+                    value={documentType}
+                    onChange={(e) => setDocumentType(e.target.value as PurchaseDocumentType)}
+                  >
+                    {RELATED_DOCUMENT_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {DOCUMENT_TYPE_LABELS[type]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <Input
+                  ref={inputRef}
+                  type="file"
+                  multiple
+                  disabled={uploading}
+                  onChange={(e) => void handleUpload(e.target.files)}
+                />
+              </div>
+            ) : null}
             <PurchaseOrderAttachmentRows
               orderId={orden.id}
               storedDocuments={documents}
@@ -148,34 +266,44 @@ export function CompraOrdenGeneratedDetail({
         </Card>
         <CompraOrdenHistory ordenId={orden.id} />
       </div>
-      <div className="border-t pt-6">
-        <div className="flex flex-wrap items-center gap-3">
-          <Link href="/compras/solicitudes" className="text-sm text-muted-foreground hover:text-foreground">Volver</Link>
-          {secondaryActions.length ? <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" size="icon" aria-label="Más acciones"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="start"><DropdownMenuItem className="text-destructive focus:text-destructive" onClick={async () => {
-            const result = await Swal.fire({ icon: 'warning', title: 'Anular orden', input: 'textarea', inputLabel: 'Motivo de anulación', inputPlaceholder: 'Escriba el motivo...', showCancelButton: true, confirmButtonText: 'Anular', cancelButtonText: 'Cancelar', reverseButtons: true, inputValidator: (value) => value.trim().length >= 5 ? undefined : 'Ingrese un motivo de al menos 5 caracteres.' });
-            if (result.isConfirmed) await onWorkflow('anular', result.value);
-          }}>Anular</DropdownMenuItem></DropdownMenuContent></DropdownMenu> : null}
-          {canOrdenAction(role, 'emitir', { isCreator, status }) ? (
-            <Button className="ml-auto" disabled={working || isSaving} onClick={() => void runAction('emitir')}>
-              {ACTION_LABELS.emitir}
+
+      <Dialog open={showAnular} onOpenChange={setShowAnular}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Anular orden</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">Indique el motivo de anulación (mínimo 5 caracteres).</p>
+          <Input
+            value={motivoAnulacion}
+            onChange={(e) => setMotivoAnulacion(e.target.value)}
+            placeholder="Motivo…"
+          />
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setShowAnular(false)}>
+              Cancelar
             </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={working || isSaving}
+              onClick={() => void runAction('anular')}
+            >
+              Anular
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={fullscreenPdf} onOpenChange={setFullscreenPdf}>
+        <DialogContent className="max-w-[95vw] sm:max-w-6xl h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>PDF — pantalla completa</DialogTitle>
+          </DialogHeader>
+          {pdfViewUrl ? (
+            <iframe title="PDF pantalla completa" src={pdfViewUrl} className="flex-1 w-full rounded-md border" />
           ) : null}
-          {activePdf && canViewPdf ? (
-            <>
-              <PrintPurchaseOrderPdfButton
-                orderId={orden.id}
-                documentId={activePdf.id}
-                className={canOrdenAction(role, 'emitir', { isCreator, status }) ? undefined : 'ml-auto'}
-              />
-              {pdfDownloadUrl ? (
-                <Button asChild variant="outline">
-                  <a href={pdfDownloadUrl} download><Download className="mr-2 h-4 w-4" />Descargar PDF</a>
-                </Button>
-              ) : null}
-            </>
-          ) : null}
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

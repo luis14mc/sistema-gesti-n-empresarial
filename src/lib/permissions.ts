@@ -164,6 +164,8 @@ export const ROUTE_PATH_TO_MODULE: Record<string, Module> = {
   '/purchases': 'purchases',
   '/compras': 'purchases',
   '/compras/solicitudes': 'purchases',
+  '/compras/borradores': 'purchases',
+  '/compras/ordenes': 'purchases',
   '/compras/bandeja': 'purchases',
   '/compras/proveedores': 'purchases',
   '/compras/reportes': 'purchases',

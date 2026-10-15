@@ -92,11 +92,12 @@ export const NAV_ITEMS: NavItem[] = [
   // Compras
   {
     label: 'Compras',
-    href: '/compras/solicitudes',
+    href: '/compras/ordenes',
     icon: ShoppingCart,
     module: 'purchases',
     children: [
-      { label: 'Órdenes de compra', href: '/compras/solicitudes' },
+      { label: 'Borradores', href: '/compras/borradores', badgeKey: 'compras-borradores' },
+      { label: 'Órdenes generadas', href: '/compras/ordenes' },
       { label: 'Nueva orden', href: '/compras/nueva' },
       { label: 'Proveedores', href: '/compras/proveedores' },
       { label: 'Formato CNI', href: '/compras/configuracion' },

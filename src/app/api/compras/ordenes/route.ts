@@ -6,7 +6,8 @@ import {
 } from '@/lib/compras/orden/service';
 import { createCompraOrdenSchema, normalizePurchaseOrderPayload } from '@/lib/compras/orden/schemas';
 import { canOrdenAction } from '@/lib/compras/orden/permissions';
-import { handlePrismaRouteError, mapLegacyEstadoFilter } from '@/lib/compras/orden/prisma-error';
+import { handlePrismaRouteError } from '@/lib/compras/orden/prisma-error';
+import { parsePurchaseOrderListStatus } from '@/lib/compras/orden/list-status-filter';
 import type { Role } from '@/types';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 
@@ -19,14 +20,16 @@ async function getHandler(req: AuthenticatedRequest) {
     const { searchParams } = new URL(req.url);
     const mine = searchParams.get('mine') === 'true' || role === 'USER';
 
+    const statusQuery = searchParams.get('status') || searchParams.get('estado') || undefined;
+    const statusFilter = parsePurchaseOrderListStatus(statusQuery);
+
     const result = await listCompraOrdenes({
       organizationId,
       page: Number.parseInt(searchParams.get('page') || '1', 10),
       pageSize: Number.parseInt(searchParams.get('pageSize') || '10', 10),
       search: searchParams.get('search') || undefined,
-      status: mapLegacyEstadoFilter(
-        searchParams.get('status') || searchParams.get('estado') || undefined
-      ),
+      status: statusFilter.status,
+      statusIn: statusFilter.statusIn,
       mine,
       userId: req.user!.userId,
     });

@@ -8,6 +8,7 @@ interface BandejaContador {
 
 const BADGE_KEYS = {
   'compras-bandeja': '/api/compras/bandeja/contador',
+  'compras-borradores': '/api/compras/borradores/contador',
 } as const;
 
 type BadgeKey = keyof typeof BADGE_KEYS;
