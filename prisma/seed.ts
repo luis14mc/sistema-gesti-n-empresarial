@@ -61,6 +61,26 @@ async function main() {
     },
   });
 
+  const { ORGANIZATION_ROLES } = await import(
+    '../src/platform/security/authorization/permissions'
+  );
+  const { ROLE_SETTING_DEFAULTS } = await import(
+    '../src/platform/security/authorization/role-settings-defaults'
+  );
+  await prisma.roleSetting.createMany({
+    data: ORGANIZATION_ROLES.map((role) => {
+      const defaults = ROLE_SETTING_DEFAULTS[role];
+      return {
+        organizationId: organization.id,
+        role,
+        displayName: defaults.displayName,
+        assignable: defaults.assignable,
+        description: defaults.description,
+      };
+    }),
+    skipDuplicates: true,
+  });
+
   // ── Departamentos ───────────────────────────────────────────
   console.log('🏢 Creando departamentos...');
   const deptTI = await prisma.department.create({

@@ -13,6 +13,10 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { MODULE_IDS, type ModuleAccessRow, type ModuleId } from '@/platform/security/modules';
 import type { RoleModuleMatrix } from '@/platform/security/role-permission-matrix';
 import { ModulePermissionMatrix } from '@/components/permissions/ModulePermissionMatrix';
+import {
+  RoleSettingsFields,
+  type RoleSettingsFormState,
+} from '@/components/permissions/RoleSettingsFields';
 import { swalConfirm } from '@/lib/swal';
 import { sileo } from 'sileo';
 
@@ -61,6 +65,14 @@ export function RolePermissionsEditor({ role, roleLabel }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [settings, setSettings] = useState<RoleSettingsFormState>({
+    displayName: roleLabel,
+    description: '',
+    assignable: false,
+  });
+  const [settingsBaseline, setSettingsBaseline] = useState<RoleSettingsFormState | null>(null);
+  const [adminLocked, setAdminLocked] = useState(false);
   const loadVersion = useRef(0);
 
   const load = useCallback(async () => {
@@ -68,14 +80,30 @@ export function RolePermissionsEditor({ role, roleLabel }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/roles/${role}/permissions`);
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
+      const [permRes, settingsRes] = await Promise.all([
+        fetch(`/api/roles/${role}/permissions`),
+        fetch(`/api/roles/${role}/settings`),
+      ]);
+      if (!permRes.ok) {
+        const body = await permRes.json().catch(() => ({}));
         throw new Error(body.error ?? 'No se pudieron cargar permisos del rol');
       }
-      const data = await res.json();
+      if (!settingsRes.ok) {
+        const body = await settingsRes.json().catch(() => ({}));
+        throw new Error(body.error ?? 'No se pudo cargar la configuración del rol');
+      }
+      const data = await permRes.json();
+      const settingsData = await settingsRes.json();
       if (version !== loadVersion.current) return;
-      setMemberCount(data.memberCount ?? 0);
+      setMemberCount(data.memberCount ?? settingsData.memberCount ?? 0);
+      setAdminLocked(Boolean(settingsData.adminLocked));
+      const nextSettings: RoleSettingsFormState = {
+        displayName: settingsData.displayName ?? roleLabel,
+        description: settingsData.description ?? '',
+        assignable: Boolean(settingsData.assignable),
+      };
+      setSettings(nextSettings);
+      setSettingsBaseline(nextSettings);
       setModified(Boolean(data.modified));
       const matrix = data.moduleAccess as RoleModuleMatrix;
       const nextRows = matrixToRows(matrix);
@@ -153,10 +181,67 @@ export function RolePermissionsEditor({ role, roleLabel }: Props) {
     }
   };
 
+  const saveSettings = async () => {
+    if (!settingsBaseline) return;
+    let confirmRetainMembers = false;
+    if (
+      settingsBaseline.assignable &&
+      !settings.assignable &&
+      memberCount > 0
+    ) {
+      const ok = await swalConfirm(
+        'Dejar de asignar este rol',
+        `${memberCount} usuario(s) conservan este rol, pero no se podrá asignar a nuevos.`,
+      );
+      if (!ok.isConfirmed) return;
+      confirmRetainMembers = true;
+    }
+    setSavingSettings(true);
+    try {
+      const res = await fetch(`/api/roles/${role}/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          displayName: settings.displayName,
+          description: settings.description || null,
+          assignable: settings.assignable,
+          confirmRetainMembers,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (res.status === 409 && body.error === 'CONFIRM_RETAIN_MEMBERS') {
+        const ok = await swalConfirm('Confirmar', body.message as string);
+        if (!ok.isConfirmed) return;
+        const retry = await fetch(`/api/roles/${role}/settings`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            displayName: settings.displayName,
+            description: settings.description || null,
+            assignable: settings.assignable,
+            confirmRetainMembers: true,
+          }),
+        });
+        if (!retry.ok) throw new Error((await retry.json().catch(() => ({}))).error ?? 'Error al guardar');
+      } else if (!res.ok) {
+        throw new Error(body.error ?? 'Error al guardar configuración');
+      }
+      sileo.success({ title: 'Configuración del rol guardada' });
+      await load();
+    } catch (e) {
+      sileo.error({
+        title: 'Error',
+        description: e instanceof Error ? e.message : 'Error al guardar configuración',
+      });
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
   const resetOfficial = async () => {
     const ok = await swalConfirm(
       'Restaurar valores oficiales',
-      `¿Restablecer el rol ${roleLabel} a la plantilla oficial?`,
+      `¿Restablecer el rol ${settings.displayName || roleLabel} a la plantilla oficial?`,
     );
     if (!ok.isConfirmed) return;
     setSaving(true);
@@ -173,7 +258,14 @@ export function RolePermissionsEditor({ role, roleLabel }: Props) {
     }
   };
 
+  const settingsDirty =
+    settingsBaseline !== null &&
+    (settings.displayName !== settingsBaseline.displayName ||
+      settings.description !== settingsBaseline.description ||
+      settings.assignable !== settingsBaseline.assignable);
+
   const statusLabel = modified ? 'Modificado' : 'Plantilla oficial';
+  const visibleTitle = settings.displayName || roleLabel;
 
   const headerMeta = (
     <p className="text-sm text-muted-foreground">
@@ -185,12 +277,12 @@ export function RolePermissionsEditor({ role, roleLabel }: Props) {
     <MainLayout>
       <div className="space-y-6">
         <PageHeader
-          title={`Permisos: ${roleLabel}`}
+          title={`Permisos: ${visibleTitle}`}
           description="Configure Ver, Crear, Editar, Eliminar y permisos especiales para este rol."
           breadcrumbs={[
             { label: 'Administración', href: '/settings' },
             { label: 'Roles y permisos', href: '/settings/roles' },
-            { label: roleLabel },
+            { label: visibleTitle },
           ]}
           secondaryActions={
             <>
@@ -235,6 +327,30 @@ export function RolePermissionsEditor({ role, roleLabel }: Props) {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         ) : (
+          <>
+          <Card>
+            <CardContent className="space-y-4 pt-6">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold">Catálogo de asignación</h2>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={saveSettings}
+                  disabled={savingSettings || !settingsDirty}
+                >
+                  {savingSettings ? 'Guardando…' : 'Guardar configuración'}
+                </Button>
+              </div>
+              <RoleSettingsFields
+                value={settings}
+                onChange={(patch) => setSettings((prev) => ({ ...prev, ...patch }))}
+                adminLocked={adminLocked}
+                memberCount={memberCount}
+                disabled={savingSettings}
+              />
+            </CardContent>
+          </Card>
           <Card>
             <CardContent className="pt-6">
               <ModulePermissionMatrix
@@ -248,6 +364,7 @@ export function RolePermissionsEditor({ role, roleLabel }: Props) {
               />
             </CardContent>
           </Card>
+          </>
         )}
       </div>
     </MainLayout>

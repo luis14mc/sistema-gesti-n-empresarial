@@ -1,36 +1,48 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
 import { authorizeOrganization, authorizationFailure } from '@/platform/security/authorization/http';
-import { ORGANIZATION_ROLE_LABELS } from '@/platform/security/authorization/roles';
-import { ORGANIZATION_ROLES } from '@/platform/security/authorization/permissions';
-import {
-  isRoleMatrixModified,
-  loadOrganizationRolePermissionMap,
-} from '@/platform/security/authorization/role-permission-service';
+import { PermissionDeniedError } from '@/platform/domain/errors';
+import { getRoleCatalog } from '@/platform/security/authorization/role-catalog-service';
 
 async function getHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   try {
-    const context = await authorizeOrganization(req, requestId, 'roles.manage');
-    const roleMap = await loadOrganizationRolePermissionMap(context.organizationId);
+    const { searchParams } = new URL(req.url);
+    const assignableOnly = searchParams.get('assignable') === 'true';
+    const scopeLabels = searchParams.get('scope') === 'labels';
 
-    const counts = await prisma.organizationMembership.groupBy({
-      by: ['role'],
-      where: { organizationId: context.organizationId, status: 'ACTIVE' },
-      _count: { _all: true },
+    const context = await authorizeOrganization(
+      req,
+      requestId,
+      assignableOnly || scopeLabels ? 'users.read' : 'roles.manage',
+    );
+
+    const roles = await getRoleCatalog(context.organizationId, {
+      assignableOnly: assignableOnly && !scopeLabels,
+      includeModuleLabels: assignableOnly && !scopeLabels,
     });
-    const countByRole = new Map(counts.map((row) => [row.role, row._count._all]));
 
-    const roles = ORGANIZATION_ROLES.map((role) => ({
-      role,
-      label: ORGANIZATION_ROLE_LABELS[role],
-      memberCount: countByRole.get(role) ?? 0,
-      modified: isRoleMatrixModified(role, roleMap),
-    }));
+    if (scopeLabels) {
+      return NextResponse.json({
+        roles: roles.map(({ role, displayName, assignable }) => ({
+          role,
+          displayName,
+          assignable,
+          label: displayName,
+        })),
+      });
+    }
 
-    return NextResponse.json({ roles });
+    return NextResponse.json({
+      roles: roles.map((entry) => ({
+        ...entry,
+        label: entry.displayName,
+      })),
+    });
   } catch (error) {
+    if (error instanceof PermissionDeniedError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     const denied = authorizationFailure(error, requestId);
     if (denied) return denied;
     console.error('GET /api/roles', error);
