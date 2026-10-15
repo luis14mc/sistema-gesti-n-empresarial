@@ -66,7 +66,7 @@ export function CompraOrdenDraftWorkspace({
   canDeleteDocuments,
   isSaving,
   isGenerating,
-  backHref = '/compras/solicitudes',
+  backHref = '/compras/borradores',
 }: CompraOrdenDraftWorkspaceProps) {
   const [previewValues, setPreviewValues] = useState<DraftPurchaseOrderInput | null>(null);
   const formRef = useRef<CompraOrdenFormHandle>(null);

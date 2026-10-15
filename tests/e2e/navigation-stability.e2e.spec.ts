@@ -2,7 +2,9 @@ import { test, expect } from './helpers/fixtures';
 
 const routes = [
   { requested: '/equipment', final: '/equipment' },
-  { requested: '/compras/solicitudes', final: '/compras/solicitudes' },
+  { requested: '/compras/solicitudes', final: '/compras/ordenes' },
+  { requested: '/compras/borradores', final: '/compras/borradores' },
+  { requested: '/compras/ordenes', final: '/compras/ordenes' },
   { requested: '/oficios/internos', final: '/oficios/internos' },
   { requested: '/employees', final: '/employees' },
   { requested: '/users', final: '/users' },

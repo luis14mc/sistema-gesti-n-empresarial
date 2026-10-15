@@ -1,4 +1,4 @@
-import { Prisma, type PurchaseDocumentType } from '@prisma/client';
+import { Prisma, type PurchaseDocumentType, type PurchaseOrderStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { renderHtmlToPdf } from '../pdf-renderer';
 import { calculatePurchaseOrder, toDecimal } from './calculos';
@@ -394,6 +394,7 @@ export async function listPurchaseOrders(params: {
   pageSize?: number;
   search?: string;
   status?: string;
+  statusIn?: string[];
   mine?: boolean;
   userId?: string;
 }) {
@@ -401,7 +402,11 @@ export async function listPurchaseOrders(params: {
   const pageSize = params.pageSize ?? 10;
   const skip = (page - 1) * pageSize;
   const where: Prisma.CompraOrdenWhereInput = { ...purchaseOrderScope(params.organizationId), deletedAt: null };
-  if (params.status) where.status = params.status as Prisma.CompraOrdenWhereInput['status'];
+  if (params.statusIn?.length) {
+    where.status = { in: params.statusIn as PurchaseOrderStatus[] };
+  } else if (params.status) {
+    where.status = params.status as Prisma.CompraOrdenWhereInput['status'];
+  }
   if (params.mine && params.userId) where.createdById = params.userId;
   if (params.search) {
     where.OR = [

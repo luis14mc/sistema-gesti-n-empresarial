@@ -106,6 +106,8 @@ export interface CompraOrden {
   format?: PurchaseOrderTemplateConfig;
   generatedById?: string | null;
   generatedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
   generatedByName?: string | null;
   generatedBy?: { id: string; firstName: string; lastName: string } | null;
   issuedById?: string | null;
@@ -163,8 +165,9 @@ export interface CompraOrdenFilters {
   page?: number;
   pageSize?: number;
   search?: string;
-  status?: PurchaseOrderStatus;
-  estado?: PurchaseOrderStatus;
+  /** Single status, comma-separated list, or aliases: active | closed | cancelled | all */
+  status?: PurchaseOrderStatus | 'active' | 'closed' | 'cancelled' | 'all' | string;
+  estado?: PurchaseOrderStatus | string;
   mine?: boolean;
 }
 
