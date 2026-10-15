@@ -17,6 +17,7 @@ model TimeEntry {
   @@unique([userId, date])
   @@index([userId])
   @@index([date])
+  @@schema("public")
   @@map("time_entries")
 }
 
@@ -37,7 +38,7 @@ model Ticket {
   updatedAt      DateTime       @updatedAt
   version        Int            @default(1)
   organizationId String
-  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   assignedTo     User?          @relation("TicketAssignee", fields: [assignedToId], references: [id])
   createdBy      User           @relation("TicketCreator", fields: [createdById], references: [id])
 
@@ -45,6 +46,7 @@ model Ticket {
   @@index([assignedToId])
   @@index([status])
   @@index([organizationId, status])
+  @@schema("public")
   @@map("tickets")
 }
 
@@ -61,6 +63,7 @@ model PromotionalItem {
   createdAt     DateTime              @default(now())
   movements     PromotionalMovement[]
 
+  @@schema("public")
   @@map("promotional_items")
 }
 
@@ -82,6 +85,7 @@ model PromotionalMovement {
   item           PromotionalItem @relation(fields: [itemId], references: [id])
 
   @@index([itemId])
+  @@schema("public")
   @@map("promotional_movements")
 }
 
@@ -93,6 +97,7 @@ model CompraSequence {
   lastValue Int    @default(0)
 
   @@unique([year, prefix])
+  @@schema("public")
   @@map("compras_sequences")
 }
 
@@ -138,6 +143,7 @@ model CompraSolicitud {
   @@index([fechaSolicitud])
   @@index([numeroOrden])
   @@index([proveedorId])
+  @@schema("public")
   @@map("compras_solicitudes")
 }
 
@@ -150,13 +156,14 @@ model CompraSolicitudItem {
   descripcion       String
   unidad            CompraUnidad    @default(UNIDAD)
   cantidad          Float
-  precioUnitario    Float
-  total             Float
+  precioUnitario    Float             @default(0)
+  total             Float             @default(0)
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
   solicitud         CompraSolicitud @relation(fields: [solicitudCompraId], references: [id], onDelete: Cascade)
 
   @@index([solicitudCompraId])
+  @@schema("public")
   @@map("compras_solicitud_items")
 }
 
@@ -176,6 +183,7 @@ model CompraAdjunto {
   uploadedBy        User              @relation("CompraAdjuntoUploader", fields: [uploadedById], references: [id])
 
   @@index([solicitudCompraId])
+  @@schema("public")
   @@map("compras_adjuntos")
 }
 
@@ -198,6 +206,7 @@ model CompraDocumento {
   @@index([solicitudCompraId, activo])
   @@index([solicitudCompraId])
   @@index([solicitudCompraId, tipoDocumento])
+  @@schema("public")
   @@map("compras_documentos")
 }
 
@@ -206,6 +215,7 @@ enum AttendanceStatus {
   LATE
   ABSENT
   EXCUSED
+  @@schema("public")
 }
 
 enum TicketPriority {
@@ -213,6 +223,7 @@ enum TicketPriority {
   MEDIUM
   HIGH
   URGENT
+  @@schema("public")
 }
 
 enum TicketStatus {
@@ -220,4 +231,5 @@ enum TicketStatus {
   IN_PROGRESS
   RESOLVED
   CLOSED
+  @@schema("public")
 }

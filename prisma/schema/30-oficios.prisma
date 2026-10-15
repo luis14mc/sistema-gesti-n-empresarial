@@ -47,7 +47,7 @@ model Oficio {
   createdBy            User          @relation("OficioCreator", fields: [createdById], references: [id])
   updatedBy            User?         @relation("OficioUpdater", fields: [updatedById], references: [id])
   importedBy           User?         @relation("OficioImporter", fields: [importedById], references: [id])
-  organization         Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organization         Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   responseTo           Oficio?       @relation("OficioResponseChain", fields: [responseToId], references: [id], onDelete: SetNull)
   responses            Oficio[]      @relation("OficioResponseChain")
   signer               OficioSigner? @relation(fields: [signerId], references: [id], onDelete: SetNull)
@@ -69,10 +69,12 @@ model Oficio {
   @@index([recordSource])
   @@index([oficioDate])
   @@index([organizationId, status])
+  @@index([organizationId, createdAt])
   @@index([organizationId, scope, type])
   @@index([responseToId])
   @@index([signerId])
   @@index([responsibleEmployeeId])
+  @@schema("public")
   @@map("oficios")
 }
 
@@ -100,6 +102,7 @@ model OficioNumberingConfig {
   @@unique([organizationId, dependency, year])
   @@index([organizationId, isActive])
   @@index([organizationId, dependency])
+  @@schema("public")
   @@map("oficio_numbering_configs")
 }
 
@@ -121,6 +124,7 @@ model OficioSigner {
 
   @@index([organizationId, isActive])
   @@index([organizationId, dependency])
+  @@schema("public")
   @@map("oficio_signers")
 }
 
@@ -146,6 +150,7 @@ model OficioDocument {
   @@index([oficioId])
   @@index([fileHash])
   @@index([documentType])
+  @@schema("public")
   @@map("oficio_documents")
 }
 
@@ -166,6 +171,7 @@ model OficioTracking {
   @@index([oficioId])
   @@index([action])
   @@index([createdAt])
+  @@schema("public")
   @@map("oficio_tracking")
 }
 
@@ -189,6 +195,7 @@ model OficioImportBatch {
 
   @@index([performedById])
   @@index([status])
+  @@schema("public")
   @@map("oficio_import_batches")
 }
 
@@ -210,6 +217,7 @@ model OficioImportBatchItem {
 
   @@index([batchId])
   @@index([status])
+  @@schema("public")
   @@map("oficio_import_batch_items")
 }
 
@@ -217,6 +225,7 @@ enum OficioType {
   INCOMING
   OUTGOING
   INTERNAL_MEMO
+  @@schema("public")
 }
 
 enum OficioStatus {
@@ -236,12 +245,14 @@ enum OficioStatus {
   ACKNOWLEDGED
   /// Incoming/outgoing: response registered
   RESPONDED
+  @@schema("public")
 }
 
 enum OficioRecordSource {
   SYSTEM_CREATED
   HISTORICAL_IMPORT
   MANUAL_REGISTRATION
+  @@schema("public")
 }
 
 enum OficioTrackingAction {
@@ -262,6 +273,7 @@ enum OficioTrackingAction {
   RELATIONSHIP_LINKED
   RELATIONSHIP_UNLINKED
   DOCUMENT_REMOVED
+  @@schema("public")
 }
 
 enum OficioImportBatchStatus {
@@ -270,6 +282,7 @@ enum OficioImportBatchStatus {
   COMPLETED
   FAILED
   CANCELLED
+  @@schema("public")
 }
 
 enum OficioImportBatchItemStatus {
@@ -277,4 +290,5 @@ enum OficioImportBatchItemStatus {
   IMPORTED
   SKIPPED
   ERROR
+  @@schema("public")
 }

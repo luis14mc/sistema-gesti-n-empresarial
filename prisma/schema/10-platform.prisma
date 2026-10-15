@@ -59,6 +59,7 @@ model Organization {
 
   @@index([status])
   @@index([onboardingStatus])
+  @@schema("public")
   @@map("organizations")
 }
 
@@ -71,13 +72,14 @@ model OrganizationMembership {
   accessVersion    Int               @default(0)
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
-  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   reportExecutions ReportExecution[]
 
   @@unique([organizationId, userId])
   @@index([userId])
   @@index([organizationId, role])
+  @@schema("public")
   @@map("organization_memberships")
 }
 
@@ -96,6 +98,7 @@ model UserPermissionOverride {
 
   @@unique([organizationId, userId, permission])
   @@index([userId, organizationId])
+  @@schema("public")
   @@map("user_permission_overrides")
 }
 
@@ -110,6 +113,7 @@ model RolePermission {
 
   @@unique([organizationId, role, permission])
   @@index([organizationId, role])
+  @@schema("public")
   @@map("role_permissions")
 }
 
@@ -128,6 +132,7 @@ model RoleSetting {
 
   @@unique([organizationId, role])
   @@index([organizationId, assignable])
+  @@schema("public")
   @@map("role_settings")
 }
 
@@ -138,10 +143,11 @@ model DocumentSequence {
   year           Int
   lastValue      Int          @default(0)
   updatedAt      DateTime     @updatedAt
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([organizationId, documentType, year])
   @@index([organizationId, year])
+  @@schema("public")
   @@map("document_sequences")
 }
 
@@ -167,13 +173,14 @@ model SystemAuditEvent {
   occurredAt     DateTime              @default(now())
   schemaVersion  Int                   @default(1)
   createdAt      DateTime              @default(now())
-  organization   Organization?         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organization   Organization?         @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
 
   @@index([organizationId, createdAt])
   @@index([organizationId, entityType, entityId])
   @@index([organizationId, action])
   @@index([eventType, occurredAt])
   @@index([outcome, occurredAt])
+  @@schema("public")
   @@map("system_audit_events")
 }
 
@@ -192,11 +199,12 @@ model DomainEventOutbox {
   occurredAt       DateTime     @default(now())
   processedAt      DateTime?
   lastError        String?
-  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
 
-  @@unique([organizationId, aggregateType, aggregateId, aggregateVersion, eventType])
+  @@unique([organizationId, aggregateType, aggregateId, aggregateVersion, eventType], map: "domain_event_outbox_organizationId_aggregateType_aggregateId_ag")
   @@index([status, occurredAt])
-  @@index([organizationId, aggregateType, aggregateId])
+  @@index([organizationId, aggregateType, aggregateId], map: "domain_event_outbox_organizationId_aggregateType_aggregateId_id")
+  @@schema("public")
   @@map("domain_event_outbox")
 }
 
@@ -218,6 +226,7 @@ model ReportExecution {
 
   @@index([organizationId, reportCode, createdAt])
   @@index([organizationId, userId, createdAt])
+  @@schema("public")
   @@map("report_executions")
 }
 
@@ -226,11 +235,13 @@ enum Role {
   USER
   RRHH
   IT
+  @@schema("public")
 }
 
 enum PlatformRole {
   PLATFORM_ADMIN
   SUPPORT_ADMIN
+  @@schema("public")
 }
 
 enum OrganizationStatus {
@@ -240,6 +251,7 @@ enum OrganizationStatus {
   ARCHIVED
   PENDING_DELETION
   INACTIVE
+  @@schema("public")
 }
 
 enum MembershipStatus {
@@ -248,6 +260,7 @@ enum MembershipStatus {
   SUSPENDED
   REVOKED
   INACTIVE
+  @@schema("public")
 }
 
 enum OrganizationRole {
@@ -262,11 +275,13 @@ enum OrganizationRole {
   ADMINISTRACION
   SECRETARIA
   DIRECTOR
+  @@schema("public")
 }
 
 enum PermissionEffect {
   ALLOW
   DENY
+  @@schema("public")
 }
 
 enum OnboardingStatus {
@@ -274,6 +289,7 @@ enum OnboardingStatus {
   IN_PROGRESS
   COMPLETED
   SKIPPED
+  @@schema("public")
 }
 
 enum DocumentType {
@@ -281,6 +297,7 @@ enum DocumentType {
   PURCHASE_ORDER
   OFFICE_DOCUMENT
   EQUIPMENT_ASSET_CODE
+  @@schema("public")
 }
 
 enum OutboxStatus {
@@ -288,6 +305,7 @@ enum OutboxStatus {
   PROCESSING
   PROCESSED
   FAILED
+  @@schema("public")
 }
 
 enum ReportExecutionStatus {
@@ -296,11 +314,13 @@ enum ReportExecutionStatus {
   COMPLETED
   FAILED
   CANCELLED
+  @@schema("public")
 }
 
 enum NotificationChannel {
   IN_APP
   EMAIL
+  @@schema("public")
 }
 
 enum NotificationStatus {
@@ -309,6 +329,7 @@ enum NotificationStatus {
   SENT
   FAILED
   CANCELLED
+  @@schema("public")
 }
 
 enum NotificationDeliveryStatus {
@@ -317,6 +338,7 @@ enum NotificationDeliveryStatus {
   SENT
   FAILED
   SKIPPED
+  @@schema("public")
 }
 
 model Notification {
@@ -343,10 +365,11 @@ model Notification {
   deliveries     NotificationDelivery[]
 
   @@unique([organizationId, idempotencyKey])
-  @@index([organizationId, userId, createdAt])
-  @@index([organizationId, status, createdAt])
-  @@index([organizationId, eventType, createdAt])
+  @@index([organizationId, userId, createdAt(sort: Desc)])
+  @@index([organizationId, status, createdAt(sort: Desc)])
+  @@index([organizationId, eventType, createdAt(sort: Desc)])
   @@index([userId, readAt])
+  @@schema("public")
   @@map("notifications")
 }
 
@@ -367,7 +390,8 @@ model NotificationDelivery {
   notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
 
   @@index([notificationId, attempt])
-  @@index([status, createdAt])
+  @@index([status, createdAt(sort: Desc)])
+  @@schema("public")
   @@map("notification_deliveries")
 }
 
@@ -377,6 +401,7 @@ enum IntegrationStatus {
   DEGRADED
   DISABLED
   ERROR
+  @@schema("public")
 }
 
 enum IntegrationCapability {
@@ -392,6 +417,7 @@ enum IntegrationCapability {
   WEBHOOK_SEND
   WEBHOOK_RECEIVE
   ELECTRONIC_SIGNATURE
+  @@schema("public")
 }
 
 enum IntegrationExecutionStatus {
@@ -401,6 +427,7 @@ enum IntegrationExecutionStatus {
   PERMANENT_FAILURE
   CIRCUIT_OPEN
   CANCELLED
+  @@schema("public")
 }
 
 model OrganizationIntegration {
@@ -427,6 +454,7 @@ model OrganizationIntegration {
   @@unique([organizationId, provider, name])
   @@index([organizationId, status])
   @@index([provider, status])
+  @@schema("public")
   @@map("organization_integrations")
 }
 
@@ -449,8 +477,9 @@ model IntegrationExecution {
   completedAt        DateTime?
   integration        OrganizationIntegration    @relation(fields: [integrationId], references: [id], onDelete: Cascade)
 
-  @@index([organizationId, integrationId, startedAt])
-  @@index([status, startedAt])
-  @@index([integrationId, startedAt])
+  @@index([organizationId, integrationId, startedAt(sort: Desc)], map: "integration_executions_organizationId_integrationId_startedAt_i")
+  @@index([status, startedAt(sort: Desc)], map: "integration_executions_status_startedAt_idx")
+  @@index([integrationId, startedAt(sort: Desc)], map: "integration_executions_integrationId_startedAt_idx")
+  @@schema("public")
   @@map("integration_executions")
 }

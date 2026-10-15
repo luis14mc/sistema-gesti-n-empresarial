@@ -11,8 +11,9 @@ model PayrollSettings {
   updatedById             String?
   updatedAt               DateTime     @updatedAt
   organization            Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  updatedBy               User?        @relation("PayrollSettingsUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedBy               User?        @relation("PayrollSettingsUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
+  @@schema("public")
   @@map("payroll_settings")
 }
 
@@ -27,6 +28,7 @@ model PayrollIsrBracket {
 
   @@unique([organizationId, year, order])
   @@index([organizationId, year])
+  @@schema("public")
   @@map("payroll_isr_brackets")
 }
 
@@ -53,11 +55,12 @@ model Payslip {
   generatedAt         DateTime            @default(now())
   organization        Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   employee            Employee            @relation(fields: [employeeId], references: [id], onDelete: Restrict)
-  generatedBy         User                @relation("PayslipGeneratedBy", fields: [generatedById], references: [id], onDelete: Restrict)
+  generatedBy         User                @relation("PayslipGeneratedBy", fields: [generatedById], references: [id], onDelete: Restrict, onUpdate: NoAction)
 
   @@unique([organizationId, employeeId, year, month])
   @@index([organizationId, year, month])
   @@index([employeeId])
+  @@schema("public")
   @@map("payslips")
 }
 
@@ -65,10 +68,12 @@ enum PayslipEmailStatus {
   NONE
   SENT
   FAILED
+  @@schema("public")
 }
 
 enum PayslipDeliveryType {
   PDF
   EMAIL
   PDF_EMAIL
+  @@schema("public")
 }

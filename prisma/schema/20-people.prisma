@@ -11,10 +11,11 @@ model Department {
   employees      Employee[]
   positions      JobPosition[]
   users          User[]
-  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
 
   @@unique([organizationId, name])
   @@index([organizationId, isActive])
+  @@schema("public")
   @@map("departments")
 }
 
@@ -30,6 +31,7 @@ model JobPosition {
   users        User[]
 
   @@index([departmentId])
+  @@schema("public")
   @@map("job_positions")
 }
 
@@ -41,6 +43,7 @@ model AttendancePolicy {
   toleranceMinutes Int     @default(15)
   isActive         Boolean @default(true)
 
+  @@schema("public")
   @@map("attendance_policies")
 }
 
@@ -72,6 +75,13 @@ model User {
   comprasOrdenesCerradas       CompraOrden[]                @relation("CompraOrdenClosedBy")
   comprasOrdenDocumentos       CompraOrdenDocumento[]       @relation("CompraOrdenDocumentoUploader")
   comprasOrdenHistorial        CompraOrdenHistorial[]       @relation("CompraOrdenHistorialPerformer")
+  comprasOrdenLegacySolicitadas CompraOrdenLegacy[]         @relation("CompraOrdenLegacySolicitante") @ignore
+  comprasOrdenLegacyGeneradas  CompraOrdenLegacy[]          @relation("CompraOrdenLegacyGenerado") @ignore
+  comprasOrdenLegacyEmitidas   CompraOrdenLegacy[]          @relation("CompraOrdenLegacyEmitido") @ignore
+  comprasOrdenLegacyAnuladas   CompraOrdenLegacy[]          @relation("CompraOrdenLegacyAnulado") @ignore
+  comprasOrdenLegacyCerradas   CompraOrdenLegacy[]          @relation("CompraOrdenLegacyCerrado") @ignore
+  comprasOrdenDocumentosLegacy CompraOrdenDocumentoLegacy[] @relation("CompraOrdenDocumentoLegacy") @ignore
+  comprasOrdenHistorialLegacy  CompraOrdenHistorialLegacy[] @relation("CompraOrdenHistorialLegacy") @ignore
   comprasOrdenTemplates        CompraOrdenTemplate[]        @relation("CompraOrdenTemplateCreator")
   correctiveActions            CorrectiveAction[]           @relation("CorrectiveActionResponsible")
   employeeProfile              Employee?
@@ -109,6 +119,7 @@ model User {
   @@index([positionId])
   @@index([role])
   @@index([platformRole])
+  @@schema("public")
   @@map("users")
 }
 
@@ -133,7 +144,7 @@ model Employee {
   payrollEnabled      Boolean               @default(false)
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
-  organization        Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organization        Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   department     Department?           @relation(fields: [departmentId], references: [id])
   position       JobPosition?          @relation(fields: [positionId], references: [id])
   user           User?                 @relation(fields: [userId], references: [id])
@@ -146,7 +157,11 @@ model Employee {
   @@unique([organizationId, email])
   @@unique([organizationId, employeeCode])
   @@index([organizationId, isActive])
+  @@index([organizationId, createdAt])
+  @@index([email], map: "employees_email_idx")
+  @@index([organizationId, hireDate], map: "employees_organizationId_hireDate_idx")
   @@index([departmentId])
   @@index([positionId])
+  @@schema("public")
   @@map("employees")
 }

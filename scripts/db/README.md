@@ -4,6 +4,8 @@ Convenciones y reglas de PR: [docs/database/conventions.md](../docs/database/con
 
 | Script | Uso |
 |--------|-----|
-| `inventory-counts.sql` | Solo lectura: conteos por tabla. Producción: `railway run psql "$DATABASE_URL" -f scripts/db/inventory-counts.sql`. **No corre en CI.** |
-| `check-drift.sh` | CI/local: (1) `main` monolítico vs `prisma/schema` sin cambio de datamodel; (2) hash de drift migraciones→schema vs baseline. Requiere `SHADOW_DATABASE_URL` (Postgres vacío). |
-| `migration-drift-baseline.sha256` | Huella del drift migraciones→datamodel en esta rama; no debe cambiar hasta PR de alineación (N2). |
+| `inventory-counts.sql` | Solo lectura: conteos por tabla (`public` + `archive`). Regenerar: `node scripts/db/generate-inventory-counts.mjs`. CI/local: `psql "$DATABASE_URL" -f scripts/db/inventory-counts.sql` |
+| `generate-inventory-counts.mjs` | Genera `inventory-counts.sql` desde `prisma/schema` + tablas archivadas |
+| `check-drift.sh` | CI/local: `prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema --script --exit-code`. Requiere `SHADOW_DATABASE_URL` (Postgres vacío; ver `prisma.config.ts`) |
+
+Drift conocido documentado: [docs/database/drift-baseline.md](../docs/database/drift-baseline.md).

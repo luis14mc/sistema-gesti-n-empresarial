@@ -27,7 +27,7 @@ model AuditRecord {
   requestId      String?
   createdAt      DateTime     @default(now())
   user           User?        @relation("AuditUser", fields: [userId], references: [id])
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
 
   @@index([userId])
   @@index([module])
@@ -35,6 +35,7 @@ model AuditRecord {
   @@index([createdAt])
   @@index([organizationId, createdAt])
   @@index([organizationId, entityType, entityId])
+  @@schema("public")
   @@map("audit_records")
 }
 
@@ -66,13 +67,14 @@ model Audit {
   findings        AuditFinding[]
   createdBy       User?                @relation("AuditCreator", fields: [createdById], references: [id])
   leadAuditor     User?                @relation("AuditLeadAuditor", fields: [leadAuditorId], references: [id])
-  organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
 
   @@unique([organizationId, code])
   @@index([organizationId, status])
   @@index([status])
   @@index([leadAuditorId])
   @@index([plannedDate])
+  @@schema("public")
   @@map("audits")
 }
 
@@ -91,6 +93,7 @@ model AuditFinding {
 
   @@index([auditId])
   @@index([severity])
+  @@schema("public")
   @@map("audit_findings")
 }
 
@@ -111,6 +114,7 @@ model AuditChecklistItem {
 
   @@index([auditId])
   @@index([sortOrder])
+  @@schema("public")
   @@map("audit_checklist_items")
 }
 
@@ -133,6 +137,7 @@ model CorrectiveAction {
   @@index([auditId])
   @@index([status])
   @@index([responsibleId])
+  @@schema("public")
   @@map("corrective_actions")
 }
 
@@ -141,12 +146,14 @@ enum AuditStatus {
   IN_PROGRESS
   COMPLETED
   CANCELLED
+  @@schema("public")
 }
 
 enum AuditType {
   INTERNAL
   EXTERNAL
   COMBINED
+  @@schema("public")
 }
 
 enum AuditFindingSeverity {
@@ -155,6 +162,7 @@ enum AuditFindingSeverity {
   OBSERVATION
   MINOR_NC
   MAJOR_NC
+  @@schema("public")
 }
 
 enum ChecklistResult {
@@ -162,6 +170,7 @@ enum ChecklistResult {
   NON_CONFORMING
   OBSERVATION
   NOT_APPLICABLE
+  @@schema("public")
 }
 
 enum CorrectiveActionStatus {
@@ -170,4 +179,5 @@ enum CorrectiveActionStatus {
   COMPLETED
   OVERDUE
   CANCELLED
+  @@schema("public")
 }

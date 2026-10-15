@@ -1,0 +1,182 @@
+// Tablas en schema `archive` (N2). @@ignore: no exponer en Prisma Client.
+
+enum CompraOrdenEstado {
+  BORRADOR
+  GENERADA
+  EMITIDA
+  ANULADA
+  CERRADA
+
+  @@schema("public")
+}
+
+enum CompraDocumentoTipo {
+  ORDEN_PDF
+  COTIZACION
+  FACTURA
+  PROFORMA
+  SOPORTE
+  ACTA_RECEPCION
+  OTRO
+
+  @@schema("public")
+}
+
+enum CompraHistorialAccion {
+  CREATED
+  UPDATED
+  GENERATED
+  PDF_GENERATED
+  PDF_REGENERATED
+  ISSUED
+  CANCELLED
+  CLOSED
+  DOCUMENT_ADDED
+  STATUS_CHANGED
+
+  @@schema("public")
+}
+
+/// Archivado: solo alineación migraciones ↔ schema
+model CompraOrdenLegacy {
+  id                  String            @id @default(cuid())
+  numeroOrden         String?
+  correlativo         Int?
+  anioCorrelativo     Int?
+  referenciaCompra    String
+  fechaSolicitud      DateTime          @default(now()) @db.Date
+  fechaRequerida      DateTime          @db.Date
+  solicitadoPorId     String
+  solicitadoPorNombre String
+  solicitadoPorEmail  String?
+  cargoSolicitante    String
+  proveedorId         String?
+  proveedorNombre     String
+  proveedorRtn        String
+  proveedorTelefono   String
+  proveedorEmail      String?
+  proveedorContacto   String?
+  proveedorDireccion  String?           @db.Text
+  justificacionCompra String            @db.Text
+  observaciones       String?           @db.Text
+  condicionesEntrega  String?           @db.Text
+  formaPago           String?
+  plazoPagoDias       Int?
+  subtotal            Decimal           @default(0) @db.Decimal(14, 2)
+  descuento           Decimal           @default(0) @db.Decimal(14, 2)
+  tasaImpuesto        Decimal           @default(15) @db.Decimal(5, 2)
+  impuesto            Decimal           @default(0) @db.Decimal(14, 2)
+  total               Decimal           @default(0) @db.Decimal(14, 2)
+  estado              CompraOrdenEstado @default(BORRADOR)
+  pdfStorageKey       String?
+  pdfUrl              String?
+  pdfVersion          Int               @default(0)
+  generadoPorId       String?
+  generadoEn          DateTime?
+  emitidoPorId        String?
+  emitidoEn           DateTime?
+  anuladoPorId        String?
+  anuladoEn           DateTime?
+  motivoAnulacion     String?           @db.Text
+  cerradoPorId        String?
+  cerradoEn           DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  deletedAt           DateTime?
+
+  items      CompraOrdenItemLegacy[]
+  documentos CompraOrdenDocumentoLegacy[]
+  historial  CompraOrdenHistorialLegacy[]
+
+  solicitadoPor User       @relation("CompraOrdenLegacySolicitante", fields: [solicitadoPorId], references: [id], onDelete: Restrict, map: "compras_ordenes_solicitadoPorId_fkey")
+  proveedor     Proveedor? @relation(fields: [proveedorId], references: [id], onDelete: SetNull, map: "compras_ordenes_proveedorId_fkey")
+  generadoPor   User?      @relation("CompraOrdenLegacyGenerado", fields: [generadoPorId], references: [id], onDelete: SetNull, map: "compras_ordenes_generadoPorId_fkey")
+  emitidoPor    User?      @relation("CompraOrdenLegacyEmitido", fields: [emitidoPorId], references: [id], onDelete: SetNull, map: "compras_ordenes_emitidoPorId_fkey")
+  anuladoPor    User?      @relation("CompraOrdenLegacyAnulado", fields: [anuladoPorId], references: [id], onDelete: SetNull, map: "compras_ordenes_anuladoPorId_fkey")
+  cerradoPor    User?      @relation("CompraOrdenLegacyCerrado", fields: [cerradoPorId], references: [id], onDelete: SetNull, map: "compras_ordenes_cerradoPorId_fkey")
+
+  @@unique([numeroOrden], map: "compras_ordenes_legacy_numeroorden_key")
+  @@unique([anioCorrelativo, correlativo], map: "compras_ordenes_legacy_aniocorrelativo_correlativo_key")
+  @@index([estado], map: "compras_ordenes_legacy_estado_idx")
+  @@schema("archive")
+  @@ignore
+  @@map("compras_ordenes_legacy")
+}
+
+model CompraOrdenItemLegacy {
+  id             String            @id @default(cuid())
+  ordenId        String
+  item           Int
+  descripcion    String
+  unidad         CompraUnidad
+  cantidad       Decimal           @db.Decimal(14, 2)
+  precioUnitario Decimal           @db.Decimal(14, 2)
+  total          Decimal           @db.Decimal(14, 2)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  orden          CompraOrdenLegacy @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+
+  @@unique([ordenId, item])
+  @@index([ordenId])
+  @@schema("archive")
+  @@ignore
+  @@map("compras_orden_items")
+}
+
+model CompraOrdenDocumentoLegacy {
+  id           String              @id @default(cuid())
+  ordenId      String
+  tipo         CompraDocumentoTipo
+  nombre       String
+  originalName String
+  mimeType     String
+  size         Int
+  storageKey   String
+  url          String
+  fileHash     String?
+  version      Int                 @default(1)
+  isActive     Boolean             @default(true)
+  uploadedById String
+  uploadedAt   DateTime            @default(now())
+  orden        CompraOrdenLegacy   @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+  uploadedBy   User                @relation("CompraOrdenDocumentoLegacy", fields: [uploadedById], references: [id], onDelete: Restrict)
+
+  @@index([ordenId])
+  @@index([tipo])
+  @@index([fileHash])
+  @@schema("archive")
+  @@ignore
+  @@map("compras_orden_documentos")
+}
+
+model CompraOrdenHistorialLegacy {
+  id            String                @id @default(cuid())
+  ordenId       String
+  action        CompraHistorialAccion
+  title         String
+  description   String?               @db.Text
+  previousData  Json?
+  newData       Json?
+  performedById String
+  createdAt     DateTime              @default(now())
+  orden         CompraOrdenLegacy     @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+  performedBy   User                  @relation("CompraOrdenHistorialLegacy", fields: [performedById], references: [id], onDelete: Restrict)
+
+  @@index([ordenId])
+  @@index([action])
+  @@index([createdAt])
+  @@schema("archive")
+  @@ignore
+  @@map("compras_orden_historial")
+}
+
+model CompraOrdenSequenceLegacy {
+  id        String   @id @default(cuid())
+  year      Int      @unique
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@schema("archive")
+  @@ignore
+  @@map("compras_orden_sequences")
+}

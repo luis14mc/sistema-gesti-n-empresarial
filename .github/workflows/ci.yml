@@ -22,6 +22,7 @@ permissions:
 
 env:
   DATABASE_URL: "postgresql://postgres:postgres@localhost:5433/sge_test"
+  SHADOW_DATABASE_URL: "postgresql://postgres:postgres@localhost:5433/sge_shadow"
   JWT_SECRET: "ci-test-secret-key-do-not-use-00000000"
 
 jobs:

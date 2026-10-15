@@ -31,7 +31,7 @@ model Equipment {
   purchaseOrder          String?
   supplier               String?
   organizationId         String
-  organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   assignments            EquipmentAssignment[]
   history                EquipmentHistory[]
   maintenances           EquipmentMaintenance[]
@@ -46,6 +46,8 @@ model Equipment {
   @@index([inventoryCode])
   @@index([serialNumber])
   @@index([organizationId, status])
+  @@index([organizationId, createdAt])
+  @@schema("public")
   @@map("equipment")
 }
 
@@ -89,7 +91,7 @@ model EquipmentAssignment {
   operatingSystemSnapshot String?
   accessoriesSnapshot     String?          @db.Text
   softwareSnapshot        String?          @db.Text
-  organization            Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organization            Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   employee                Employee?        @relation(fields: [employeeId], references: [id], onDelete: Restrict)
   equipment               Equipment        @relation(fields: [equipmentId], references: [id])
   user                    User?            @relation(fields: [userId], references: [id])
@@ -100,6 +102,7 @@ model EquipmentAssignment {
   @@index([status])
   @@index([assignedDate])
   @@index([organizationId, status])
+  @@schema("public")
   @@map("equipment_assignments")
 }
 
@@ -114,11 +117,12 @@ model EquipmentHistory {
   performedById String?
   createdAt     DateTime               @default(now())
   equipment     Equipment              @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
-  performedBy   User?                  @relation("EquipmentHistoryPerformer", fields: [performedById], references: [id], onDelete: SetNull)
+  performedBy   User?                  @relation("EquipmentHistoryPerformer", fields: [performedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
   @@index([equipmentId])
   @@index([action])
   @@index([createdAt])
+  @@schema("public")
   @@map("equipment_history")
 }
 
@@ -138,11 +142,12 @@ model EquipmentMaintenance {
   updatedAt     DateTime          @updatedAt
   documentUrl   String?
   equipment     Equipment         @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
-  performedBy   User?             @relation("EquipmentMaintenancePerformer", fields: [performedById], references: [id], onDelete: SetNull)
+  performedBy   User?             @relation("EquipmentMaintenancePerformer", fields: [performedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
   @@index([equipmentId])
   @@index([status])
   @@index([scheduledDate])
+  @@schema("public")
   @@map("equipment_maintenances")
 }
 
@@ -162,8 +167,9 @@ model DisposalPolicy {
   signatureTitle         String             @default("APROBACIÓN INSTITUCIONAL")
   approverRoles          OrganizationRole[] @default([OWNER, ADMIN, IT_MANAGER])
   updatedAt              DateTime           @updatedAt
-  organization           Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization           Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
+  @@schema("public")
   @@map("disposal_policies")
 }
 
@@ -205,10 +211,10 @@ model EquipmentDisposal {
   version                   Int                        @default(1)
   createdAt                 DateTime                   @default(now())
   updatedAt                 DateTime                   @updatedAt
-  organization              Organization               @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  equipment                 Equipment                  @relation(fields: [equipmentId], references: [id], onDelete: Restrict)
-  evaluatedBy               User                       @relation("DisposalEvaluator", fields: [evaluatedById], references: [id], onDelete: Restrict)
-  approvedBy                User?                      @relation("DisposalApprover", fields: [approvedById], references: [id], onDelete: Restrict)
+  organization              Organization               @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  equipment                 Equipment                  @relation(fields: [equipmentId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  evaluatedBy               User                       @relation("DisposalEvaluator", fields: [evaluatedById], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  approvedBy                User?                      @relation("DisposalApprover", fields: [approvedById], references: [id], onDelete: Restrict, onUpdate: NoAction)
   documents                 DisposalDocument[]
   history                   EquipmentDisposalHistory[]
   replacementProjection     ReplacementProjection?
@@ -219,6 +225,7 @@ model EquipmentDisposal {
   @@index([organizationId, createdAt])
   @@index([organizationId, disposalResult])
   @@index([organizationId, evaluatedById])
+  @@schema("public")
   @@map("equipment_disposals")
 }
 
@@ -234,12 +241,13 @@ model DisposalDocument {
   fileHash       String?
   uploadedById   String
   createdAt      DateTime          @default(now())
-  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  disposal       EquipmentDisposal @relation(fields: [disposalId], references: [id], onDelete: Cascade)
-  uploadedBy     User              @relation("DisposalDocumentUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  disposal       EquipmentDisposal @relation(fields: [disposalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  uploadedBy     User              @relation("DisposalDocumentUploader", fields: [uploadedById], references: [id], onDelete: Restrict, onUpdate: NoAction)
 
   @@index([organizationId, disposalId])
   @@index([organizationId, fileHash])
+  @@schema("public")
   @@map("disposal_documents")
 }
 
@@ -254,11 +262,12 @@ model EquipmentDisposalHistory {
   requestId      String?
   performedById  String
   createdAt      DateTime              @default(now())
-  disposal       EquipmentDisposal     @relation(fields: [disposalId], references: [id], onDelete: Cascade)
-  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  performedBy    User                  @relation("DisposalHistoryPerformer", fields: [performedById], references: [id], onDelete: Restrict)
+  disposal       EquipmentDisposal     @relation(fields: [disposalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  performedBy    User                  @relation("DisposalHistoryPerformer", fields: [performedById], references: [id], onDelete: Restrict, onUpdate: NoAction)
 
-  @@index([organizationId, disposalId, createdAt])
+  @@index([organizationId, disposalId, createdAt], map: "equipment_disposal_history_organizationId_disposalId_createdAt_")
+  @@schema("public")
   @@map("equipment_disposal_history")
 }
 
@@ -272,13 +281,14 @@ model ReplacementProjection {
   purchaseOrderId String?
   createdAt       DateTime                    @default(now())
   updatedAt       DateTime                    @updatedAt
-  organization    Organization                @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  disposal        EquipmentDisposal           @relation(fields: [disposalId], references: [id], onDelete: Restrict)
-  equipment       Equipment                   @relation(fields: [equipmentId], references: [id], onDelete: Restrict)
-  purchaseOrder   CompraOrden?                @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull)
+  organization    Organization                @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  disposal        EquipmentDisposal           @relation(fields: [disposalId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  equipment       Equipment                   @relation(fields: [equipmentId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  purchaseOrder   CompraOrden?                @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
   @@index([organizationId, status])
   @@index([organizationId, equipmentId])
+  @@schema("public")
   @@map("replacement_projections")
 }
 
@@ -286,6 +296,7 @@ enum SecurityEventOutcome {
   SUCCESS
   FAILURE
   DENIED
+  @@schema("public")
 }
 
 enum SecurityEventSeverity {
@@ -293,6 +304,7 @@ enum SecurityEventSeverity {
   NOTICE
   WARNING
   CRITICAL
+  @@schema("public")
 }
 
 enum PhysicalCondition {
@@ -301,6 +313,7 @@ enum PhysicalCondition {
   FAIR
   POOR
   CRITICAL
+  @@schema("public")
 }
 
 enum FunctionalCondition {
@@ -308,6 +321,7 @@ enum FunctionalCondition {
   SLOW
   FREQUENT_FAILURES
   INOPERABLE
+  @@schema("public")
 }
 
 enum SecuritySupportStatus {
@@ -315,6 +329,7 @@ enum SecuritySupportStatus {
   LIMITED_SUPPORT
   UNSUPPORTED
   VULNERABLE
+  @@schema("public")
 }
 
 enum DisposalStatus {
@@ -323,12 +338,14 @@ enum DisposalStatus {
   APPROVED
   REJECTED
   CANCELLED
+  @@schema("public")
 }
 
 enum DisposalResult {
   DISPOSAL_JUSTIFIED
   EVALUATION_REQUIRED
   KEEP_IN_SERVICE
+  @@schema("public")
 }
 
 enum DisposalHistoryAction {
@@ -343,12 +360,14 @@ enum DisposalHistoryAction {
   DISPOSAL_PDF_GENERATED
   EQUIPMENT_STATUS_CHANGED
   EQUIPMENT_STATUS_DRIFT_DETECTED
+  @@schema("public")
 }
 
 enum ReplacementProjectionStatus {
   PENDING
   CONVERTED
   CANCELLED
+  @@schema("public")
 }
 
 enum EquipmentCategory {
@@ -360,6 +379,7 @@ enum EquipmentCategory {
   UPS
   ACCESSORY
   OTHER
+  @@schema("public")
 }
 
 enum EquipmentStatus {
@@ -371,6 +391,7 @@ enum EquipmentStatus {
   DISPOSED
   RETIRED
   LOST
+  @@schema("public")
 }
 
 enum AssignmentStatus {
@@ -379,6 +400,7 @@ enum AssignmentStatus {
   REPLACED
   LOST
   CANCELLED
+  @@schema("public")
 }
 
 enum EquipmentHistoryAction {
@@ -390,11 +412,13 @@ enum EquipmentHistoryAction {
   STATUS_CHANGED
   RETIRED
   UPDATED
+  @@schema("public")
 }
 
 enum MovementType {
   EXIT
   RETURN
+  @@schema("public")
 }
 
 enum MaintenanceType {
@@ -402,6 +426,7 @@ enum MaintenanceType {
   CORRECTIVE
   UPDATE
   INSPECTION
+  @@schema("public")
 }
 
 enum MaintenanceStatus {
@@ -409,6 +434,7 @@ enum MaintenanceStatus {
   IN_PROGRESS
   COMPLETED
   CANCELLED
+  @@schema("public")
 }
 
 enum SoftwareBillingCycle {
@@ -416,22 +442,26 @@ enum SoftwareBillingCycle {
   ANNUAL
   QUARTERLY
   OTHER
+  @@schema("public")
 }
 
 enum SoftwareCurrency {
   USD
   HNL
+  @@schema("public")
 }
 
 enum SoftwareSubscriptionStatus {
   ACTIVE
   SUSPENDED
   CANCELLED
+  @@schema("public")
 }
 
 enum SoftwareSeatType {
   INDIVIDUAL
   SHARED
+  @@schema("public")
 }
 
 enum SoftwareSeatStatus {
@@ -439,6 +469,7 @@ enum SoftwareSeatStatus {
   ASSIGNED
   SUSPENDED
   CANCELLED
+  @@schema("public")
 }
 
 model SoftwareProduct {
@@ -457,6 +488,7 @@ model SoftwareProduct {
 
   @@unique([organizationId, name])
   @@index([organizationId, active])
+  @@schema("public")
   @@map("software_products")
 }
 
@@ -484,13 +516,14 @@ model SoftwareSubscription {
   updatedAt        DateTime                   @updatedAt
   organization     Organization               @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   product          SoftwareProduct            @relation(fields: [productId], references: [id], onDelete: Restrict)
-  createdBy        User                       @relation("SoftwareSubscriptionCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  updatedBy        User?                      @relation("SoftwareSubscriptionUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdBy        User                       @relation("SoftwareSubscriptionCreator", fields: [createdById], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  updatedBy        User?                      @relation("SoftwareSubscriptionUpdater", fields: [updatedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
   seats            SoftwareLicenseSeat[]
 
   @@index([organizationId, status])
   @@index([organizationId, renewalDate])
   @@index([productId])
+  @@schema("public")
   @@map("software_subscriptions")
 }
 
@@ -509,6 +542,7 @@ model SoftwareLicenseSeat {
 
   @@index([subscriptionId, status])
   @@index([accountEmail])
+  @@schema("public")
   @@map("software_license_seats")
 }
 
@@ -526,5 +560,6 @@ model LicenseAssignment {
 
   @@index([seatId, unassignedAt])
   @@index([employeeId])
+  @@schema("public")
   @@map("software_license_assignments")
 }
