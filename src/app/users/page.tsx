@@ -5,7 +5,7 @@
 // ============================================
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -32,17 +32,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { sileo } from 'sileo';
 import { swalConfirm } from '@/lib/swal';
 import { getInitials, formatDate } from '@/utils/helpers';
-import type { Role, User, UpdateUserData, CreateUserData } from '@/types';
-import { ROLE_LABELS } from '@/types';
-import { PROMOTED_ORGANIZATION_ROLES, organizationRoleLabel } from '@/platform/security/authorization/roles';
-
-// ============================================
-// ROLE CONFIG
-// ============================================
-
-const roleLabels: Record<string, string> = Object.fromEntries(
-    PROMOTED_ORGANIZATION_ROLES.map((role) => [role, organizationRoleLabel(role)]),
-);
+import type { Role, User, UpdateUserData, CreateUserData, SessionUser } from '@/types';
+import { useAssignableRoles, useRoleLabels } from '@/hooks/useRoleCatalog';
+import { UserRoleSelect } from '@/components/users/UserRoleSelect';
 
 const roleColors: Record<string, string> = {
     ADMIN: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900',
@@ -66,6 +58,18 @@ const emptyCreateForm: CreateUserData = {
 export default function UsersPage() {
     const { user: currentUser } = useAuth();
     const { users, isLoading, createUser, isCreating, updateUser, isUpdating } = useUsers();
+    const { data: assignableRoles = [] } = useAssignableRoles();
+    const { data: roleLabelRows = [] } = useRoleLabels();
+
+    const roleLabels = useMemo(
+        () => Object.fromEntries(roleLabelRows.map((row) => [row.role, row.displayName])),
+        [roleLabelRows],
+    );
+
+    const canViewRolePermissions =
+        (currentUser as SessionUser | null)?.moduleAccess?.settings?.extras?.includes('roles.manage') ??
+        false;
+
     const [search, setSearch] = useState('');
     const [roleFilter, setRoleFilter] = useState<string>('ALL');
 
@@ -77,6 +81,19 @@ export default function UsersPage() {
     // Edit dialog state
     const [editUser, setEditUser] = useState<User | null>(null);
     const [editForm, setEditForm] = useState<UpdateUserData>({});
+
+    const retainedEditRole = useMemo(() => {
+        if (!editUser) return null;
+        const role = editForm.role ?? editUser.role;
+        if (assignableRoles.some((r) => r.role === role)) return null;
+        const labelRow = roleLabelRows.find((r) => r.role === role);
+        return {
+            role,
+            displayName: labelRow?.displayName ?? role,
+            description: null,
+            accessibleModuleLabels: [] as string[],
+        };
+    }, [editUser, editForm.role, assignableRoles, roleLabelRows]);
 
     const filtered = users.filter((u: User) => {
         const matchSearch =
@@ -227,20 +244,12 @@ export default function UsersPage() {
                                         </Button>
                                     </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>Rol</Label>
-                                    <Select
-                                        value={createForm.role}
-                                        onValueChange={(v) => setCreateForm(f => ({ ...f, role: v as Role }))}
-                                    >
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                            {Object.entries(roleLabels).map(([k, v]) => (
-                                                <SelectItem key={k} value={k}>{v}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                <UserRoleSelect
+                                    value={createForm.role}
+                                    onValueChange={(v) => setCreateForm((f) => ({ ...f, role: v as Role }))}
+                                    options={assignableRoles}
+                                    canViewRolePermissions={canViewRolePermissions}
+                                />
                                 <DialogFooter>
                                     <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancelar</Button>
                                     <Button type="submit" disabled={isCreating}>
@@ -312,7 +321,7 @@ export default function UsersPage() {
                                             </TableCell>
                                             <TableCell>
                                                 <Badge variant="outline" className={roleColors[user.role] ?? 'bg-muted text-muted-foreground'}>
-                                                    {roleLabels[user.role] ?? ROLE_LABELS[user.role] ?? user.role}
+                                                    {roleLabels[user.role] ?? user.role}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="hidden md:table-cell">
@@ -385,17 +394,13 @@ export default function UsersPage() {
                                 <Label>Email</Label>
                                 <Input type="email" value={editForm.email ?? ''} onChange={(e) => setEditForm(f => ({ ...f, email: e.target.value }))} />
                             </div>
-                            <div className="space-y-2">
-                                <Label>Rol</Label>
-                                <Select value={editForm.role ?? 'ADMINISTRACION'} onValueChange={(v) => setEditForm(f => ({ ...f, role: v as Role }))}>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        {Object.entries(roleLabels).map(([k, v]) => (
-                                            <SelectItem key={k} value={k}>{v}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                            <UserRoleSelect
+                                value={editForm.role ?? editUser?.role ?? 'ADMINISTRACION'}
+                                onValueChange={(v) => setEditForm((f) => ({ ...f, role: v as Role }))}
+                                options={assignableRoles}
+                                retainedOption={retainedEditRole}
+                                canViewRolePermissions={canViewRolePermissions}
+                            />
                             <div className="flex items-center justify-between">
                                 <Label>Usuario activo</Label>
                                 <Switch

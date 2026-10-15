@@ -5,7 +5,12 @@ import { createAuditRecord } from '@/lib/audit';
 import { isOrganizationContextError } from '@/modules/organizations/application/context';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 import { PermissionDeniedError } from '@/platform/domain/errors';
-import { parsePromotedOrganizationRole, persistUserAccountRoles, presentAccountRole } from '@/platform/security/authorization/user-account-roles';
+import {
+  parseOrganizationRole,
+  persistUserAccountRoles,
+  presentAccountRole,
+} from '@/platform/security/authorization/user-account-roles';
+import { isOrganizationRoleAssignable } from '@/platform/security/authorization/role-catalog-service';
 
 // ============================================
 // GET /api/users/[id] — Obtener usuario por id (ADMIN, RRHH)
@@ -77,16 +82,6 @@ async function patchHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ 
         const { organizationId } = await authorizeOrganization(req, requestId, 'users.update');
         const body = await req.json();
 
-        let nextRoles: ReturnType<typeof persistUserAccountRoles> | null = null;
-        if (body.role) {
-            const promoted = parsePromotedOrganizationRole(body.role);
-            if (!promoted) {
-                return NextResponse.json({ error: 'Rol no permitido para asignación' }, { status: 400 });
-            }
-            await authorizeOrganization(req, requestId, 'memberships.manage');
-            nextRoles = persistUserAccountRoles(promoted);
-        }
-
         const membership = await prisma.organizationMembership.findFirst({
             where: { userId: id, organizationId, status: 'ACTIVE' },
             select: {
@@ -102,18 +97,38 @@ async function patchHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ 
         }
         const existing = membership.user;
 
-        if (id === req.user!.userId && body.role && body.role !== existing.role) {
+        const presentedExistingRole = presentAccountRole(membership.role, existing.role);
+        if (id === req.user!.userId && body.role && body.role !== presentedExistingRole) {
             return NextResponse.json(
                 { error: 'No puedes cambiar tu propio rol' },
                 { status: 403 }
             );
         }
 
+        let nextRoles: ReturnType<typeof persistUserAccountRoles> | null = null;
+        if (body.role) {
+            const parsedRole = parseOrganizationRole(body.role);
+            if (!parsedRole) {
+                return NextResponse.json({ error: 'Rol no válido' }, { status: 400 });
+            }
+            const roleUnchanged = parsedRole === membership.role;
+            if (!roleUnchanged && !(await isOrganizationRoleAssignable(organizationId, parsedRole))) {
+                return NextResponse.json(
+                    { error: 'Este rol no está disponible para asignación' },
+                    { status: 400 },
+                );
+            }
+            if (!roleUnchanged) {
+                await authorizeOrganization(req, requestId, 'memberships.manage');
+                nextRoles = persistUserAccountRoles(parsedRole);
+            }
+        }
+
         const user = await prisma.$transaction(async (tx) => {
             if (nextRoles) {
                 await tx.organizationMembership.update({
                     where: { id: membership.id },
-                    data: { role: nextRoles.membershipRole },
+                    data: { role: nextRoles.membershipRole, accessVersion: { increment: 1 } },
                 });
             }
             return tx.user.update({

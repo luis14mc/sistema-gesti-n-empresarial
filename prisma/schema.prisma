@@ -32,6 +32,7 @@ model Organization {
   updatedAt              DateTime                   @updatedAt
   memberships            OrganizationMembership[]
   rolePermissions        RolePermission[]
+  roleSettings           RoleSetting[]
   equipment              Equipment[]
   disposals              EquipmentDisposal[]
   disposalPolicies       DisposalPolicy[]
@@ -117,6 +118,24 @@ model RolePermission {
   @@unique([organizationId, role, permission])
   @@index([organizationId, role])
   @@map("role_permissions")
+}
+
+model RoleSetting {
+  id             String           @id @default(cuid())
+  organizationId String
+  role           OrganizationRole
+  displayName    String
+  assignable     Boolean          @default(false)
+  description    String?
+  updatedById    String?
+  updatedAt      DateTime         @updatedAt
+  createdAt      DateTime         @default(now())
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  updatedBy      User?            @relation("RoleSettingUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, role])
+  @@index([organizationId, assignable])
+  @@map("role_settings")
 }
 
 model Department {
@@ -219,6 +238,7 @@ model User {
   notifications                Notification[]
   permissionOverrides          UserPermissionOverride[]     @relation("UserPermissionOverrides")
   permissionOverridesCreated   UserPermissionOverride[]     @relation("PermissionOverrideCreator")
+  roleSettingsUpdated          RoleSetting[]                @relation("RoleSettingUpdatedBy")
   @@index([departmentId])
   @@index([positionId])
   @@index([role])
