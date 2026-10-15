@@ -1,0 +1,354 @@
+// LEGACY: no usar en features nuevas; archivar en N2
+
+/// LEGACY: no usar, se archivará en N2
+model TimeEntry {
+  id        String           @id @default(cuid())
+  userId    String
+  date      DateTime         @db.Date
+  checkIn   DateTime?
+  checkOut  DateTime?
+  latitude  Float
+  longitude Float
+  status    AttendanceStatus @default(ON_TIME)
+  notes     String?
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+  @@map("time_entries")
+}
+
+/// LEGACY: no usar, se archivará en N2
+model Ticket {
+  id             String         @id @default(cuid())
+  title          String
+  description    String
+  type           String
+  priority       TicketPriority @default(MEDIUM)
+  status         TicketStatus   @default(OPEN)
+  attachments    Json?
+  comments       Json?
+  createdById    String
+  assignedToId   String?
+  closedAt       DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  version        Int            @default(1)
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  assignedTo     User?          @relation("TicketAssignee", fields: [assignedToId], references: [id])
+  createdBy      User           @relation("TicketCreator", fields: [createdById], references: [id])
+
+  @@index([createdById])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([organizationId, status])
+  @@map("tickets")
+}
+
+/// LEGACY: no usar, se archivará en N2
+model PromotionalItem {
+  id            String                @id @default(cuid())
+  inventoryCode String                @unique
+  name          String
+  description   String?
+  quantity      Int                   @default(0)
+  unitPrice     Float
+  purchaseDate  DateTime              @db.Date
+  status        String                @default("ACTIVE")
+  createdAt     DateTime              @default(now())
+  movements     PromotionalMovement[]
+
+  @@map("promotional_items")
+}
+
+/// LEGACY: no usar, se archivará en N2
+model PromotionalMovement {
+  id             String          @id @default(cuid())
+  itemId         String
+  type           MovementType
+  quantityOut    Int
+  quantityReturn Int?            @default(0)
+  movementDate   DateTime        @db.Date
+  returnDate     DateTime?       @db.Date
+  eventName      String?
+  eventLocation  String?
+  eventDate      DateTime?       @db.Date
+  responsible    String?
+  comments       String?
+  createdAt      DateTime        @default(now())
+  item           PromotionalItem @relation(fields: [itemId], references: [id])
+
+  @@index([itemId])
+  @@map("promotional_movements")
+}
+
+/// LEGACY: no usar, se archivará en N2
+model CompraSequence {
+  id        String @id @default(cuid())
+  year      Int
+  prefix    String @default("OC-CNI")
+  lastValue Int    @default(0)
+
+  @@unique([year, prefix])
+  @@map("compras_sequences")
+}
+
+/// LEGACY: no usar, se archivará en N2
+model CompraSolicitud {
+  id               String       @id @default(cuid())
+  numeroOrden      String?      @unique
+  referenciaCompra String?
+  fechaSolicitud   DateTime     @default(now()) @db.Date
+  fechaRequerida   DateTime?    @db.Date
+  solicitadoPorId  String
+  cargoSolicitante String?
+  estado           CompraEstado @default(BORRADOR)
+
+  proveedorId             String?
+  proveedorNombre         String?
+  proveedorIdentificacion String?
+  proveedorTelefono       String?
+  proveedorEmail          String?
+  proveedorContacto       String?
+  proveedorDireccion      String? @db.Text
+
+  justificacionCompra      String  @default("")
+  observacionesAdicionales String?
+
+  subtotal  Float @default(0)
+  descuento Float @default(0)
+  impuesto  Float @default(0)
+  total     Float @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  adjuntos      CompraAdjunto[]
+  documentos    CompraDocumento[]
+  items         CompraSolicitudItem[]
+  proveedor     Proveedor?            @relation(fields: [proveedorId], references: [id], onDelete: SetNull)
+  solicitadoPor User                  @relation("CompraSolicitante", fields: [solicitadoPorId], references: [id], onDelete: Restrict)
+
+  @@index([estado])
+  @@index([solicitadoPorId])
+  @@index([fechaSolicitud])
+  @@index([numeroOrden])
+  @@index([proveedorId])
+  @@map("compras_solicitudes")
+}
+
+/// LEGACY: no usar, se archivará en N2
+model CompraSolicitudItem {
+  id                String          @id @default(cuid())
+  solicitudCompraId String
+  item              Int
+  codigo            String?
+  descripcion       String
+  unidad            CompraUnidad    @default(UNIDAD)
+  cantidad          Float
+  precioUnitario    Float
+  total             Float
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  solicitud         CompraSolicitud @relation(fields: [solicitudCompraId], references: [id], onDelete: Cascade)
+
+  @@index([solicitudCompraId])
+  @@map("compras_solicitud_items")
+}
+
+/// LEGACY: no usar, se archivará en N2
+model CompraAdjunto {
+  id                String            @id @default(cuid())
+  solicitudCompraId String
+  tipoAdjunto       CompraTipoAdjunto @default(OTRO)
+  nombre            String
+  mimeType          String
+  size              Int
+  storagePath       String
+  url               String
+  uploadedById      String
+  uploadedAt        DateTime          @default(now())
+  solicitud         CompraSolicitud   @relation(fields: [solicitudCompraId], references: [id], onDelete: Cascade)
+  uploadedBy        User              @relation("CompraAdjuntoUploader", fields: [uploadedById], references: [id])
+
+  @@index([solicitudCompraId])
+  @@map("compras_adjuntos")
+}
+
+/// LEGACY: no usar, se archivará en N2
+model CompraDocumento {
+  id                String              @id
+  solicitudCompraId String
+  tipoDocumento     CompraTipoDocumento @default(ORDEN_COMPRA_PDF)
+  nombreArchivo     String
+  mimeType          String              @default("application/pdf")
+  storagePath       String
+  url               String
+  version           Int                 @default(1)
+  activo            Boolean             @default(true)
+  generadoEn        DateTime            @default(now())
+  generadoPorId     String
+  generadoPor       User                @relation(fields: [generadoPorId], references: [id])
+  solicitud         CompraSolicitud     @relation(fields: [solicitudCompraId], references: [id], onDelete: Cascade)
+
+  @@index([solicitudCompraId, activo])
+  @@index([solicitudCompraId])
+  @@index([solicitudCompraId, tipoDocumento])
+  @@map("compras_documentos")
+}
+
+/// LEGACY: no usar, se archivará en N2
+model CompraOrdenLegacy {
+  id                  String            @id @default(cuid())
+  numeroOrden         String?           @unique
+  correlativo         Int?
+  anioCorrelativo     Int?
+  referenciaCompra    String
+  fechaSolicitud      DateTime          @default(now()) @db.Date
+  fechaRequerida      DateTime          @db.Date
+  solicitadoPorId     String
+  solicitadoPorNombre String
+  solicitadoPorEmail  String?
+  cargoSolicitante    String
+  proveedorId         String?
+  proveedorNombre     String
+  proveedorRtn        String
+  proveedorTelefono   String
+  proveedorEmail      String?
+  proveedorContacto   String?
+  proveedorDireccion  String?           @db.Text
+  justificacionCompra String            @db.Text
+  observaciones       String?           @db.Text
+  condicionesEntrega  String?           @db.Text
+  formaPago           String?
+  plazoPagoDias       Int?
+  subtotal            Decimal           @default(0) @db.Decimal(14, 2)
+  descuento           Decimal           @default(0) @db.Decimal(14, 2)
+  tasaImpuesto        Decimal           @default(15) @db.Decimal(5, 2)
+  impuesto            Decimal           @default(0) @db.Decimal(14, 2)
+  total               Decimal           @default(0) @db.Decimal(14, 2)
+  estado              CompraOrdenEstado @default(BORRADOR)
+  pdfStorageKey       String?
+  pdfUrl              String?
+  pdfVersion          Int               @default(0)
+  generadoPorId       String?
+  generadoEn          DateTime?
+  emitidoPorId        String?
+  emitidoEn           DateTime?
+  anuladoPorId        String?
+  anuladoEn           DateTime?
+  motivoAnulacion     String?           @db.Text
+  cerradoPorId        String?
+  cerradoEn           DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  deletedAt           DateTime?
+
+  items      CompraOrdenItemLegacy[]
+  documentos CompraOrdenDocumentoLegacy[]
+  historial  CompraOrdenHistorialLegacy[]
+
+  @@unique([anioCorrelativo, correlativo])
+  @@index([numeroOrden])
+  @@index([estado])
+  @@map("compras_ordenes_legacy")
+}
+
+/// LEGACY: no usar, se archivará en N2
+model CompraOrdenItemLegacy {
+  id             String            @id @default(cuid())
+  ordenId        String
+  item           Int
+  descripcion    String
+  unidad         CompraUnidad
+  cantidad       Decimal           @db.Decimal(14, 2)
+  precioUnitario Decimal           @db.Decimal(14, 2)
+  total          Decimal           @db.Decimal(14, 2)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  orden          CompraOrdenLegacy @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+
+  @@unique([ordenId, item])
+  @@index([ordenId])
+  @@map("compras_orden_items")
+}
+
+/// LEGACY: no usar, se archivará en N2
+model CompraOrdenDocumentoLegacy {
+  id           String              @id @default(cuid())
+  ordenId      String
+  tipo         CompraDocumentoTipo
+  nombre       String
+  originalName String
+  mimeType     String
+  size         Int
+  storageKey   String
+  url          String
+  fileHash     String?
+  version      Int                 @default(1)
+  isActive     Boolean             @default(true)
+  uploadedById String
+  uploadedAt   DateTime            @default(now())
+  orden        CompraOrdenLegacy   @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+  uploadedBy   User                @relation("CompraOrdenDocumentoLegacy", fields: [uploadedById], references: [id], onDelete: Restrict)
+
+  @@index([ordenId])
+  @@index([tipo])
+  @@index([fileHash])
+  @@map("compras_orden_documentos")
+}
+
+/// LEGACY: no usar, se archivará en N2
+model CompraOrdenHistorialLegacy {
+  id            String                @id @default(cuid())
+  ordenId       String
+  action        CompraHistorialAccion
+  title         String
+  description   String?               @db.Text
+  previousData  Json?
+  newData       Json?
+  performedById String
+  createdAt     DateTime              @default(now())
+  orden         CompraOrdenLegacy     @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+  performedBy   User                  @relation("CompraOrdenHistorialLegacy", fields: [performedById], references: [id], onDelete: Restrict)
+
+  @@index([ordenId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("compras_orden_historial")
+}
+
+/// LEGACY: no usar, se archivará en N2
+model CompraOrdenSequenceLegacy {
+  id        String   @id @default(cuid())
+  year      Int      @unique
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@map("compras_orden_sequences")
+}
+
+enum AttendanceStatus {
+  ON_TIME
+  LATE
+  ABSENT
+  EXCUSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}

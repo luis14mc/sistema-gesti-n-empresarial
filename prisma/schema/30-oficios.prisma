@@ -1,0 +1,280 @@
+// Correspondence (oficios)
+
+model Oficio {
+  id             String             @id @default(cuid())
+  organizationId String
+  number         String
+  systemNumber   String?
+  type           OficioType
+  /// Document kind catalog: OFICIO | NOTA | MEMORANDO | CIRCULAR | CARTA | OTRO
+  documentKind   String             @default("OFICIO")
+  subject        String
+  status         OficioStatus       @default(DRAFT)
+  attachments    Json?
+  comments       String?
+  oficioDate     DateTime           @db.Date
+  receivedDate   DateTime?          @db.Date
+  sentDate       DateTime?          @db.Date
+  recordSource   OficioRecordSource @default(SYSTEM_CREATED)
+
+  createdById String
+  updatedById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  archivedAt  DateTime?
+  version     Int       @default(1)
+  institution String?
+  preparedBy  String?
+  recipient   String?
+  /// Institutional dependency catalog: CNI | DESPACHO | INTERNO
+  scope       String?
+
+  /// Year used for outgoing numbering uniqueness (independent of oficioDate edits)
+  sequenceYear Int?
+
+  senderName           String?
+  senderPosition       String?
+  recipientName        String?
+  recipientPosition    String?
+  cc                   String?
+  responseToId         String?
+  signerId             String?
+  responsibleEmployeeId String?
+
+  importedById String?
+  importedAt   DateTime?
+
+  createdBy            User          @relation("OficioCreator", fields: [createdById], references: [id])
+  updatedBy            User?         @relation("OficioUpdater", fields: [updatedById], references: [id])
+  importedBy           User?         @relation("OficioImporter", fields: [importedById], references: [id])
+  organization         Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  responseTo           Oficio?       @relation("OficioResponseChain", fields: [responseToId], references: [id], onDelete: SetNull)
+  responses            Oficio[]      @relation("OficioResponseChain")
+  signer               OficioSigner? @relation(fields: [signerId], references: [id], onDelete: SetNull)
+  responsibleEmployee  Employee?     @relation("OficioResponsibleEmployee", fields: [responsibleEmployeeId], references: [id], onDelete: SetNull)
+
+  documents              OficioDocument[]
+  tracking               OficioTracking[]
+  importBatches          OficioImportBatch[]
+  oficioImportBatchItems OficioImportBatchItem[]
+
+  @@unique([organizationId, systemNumber])
+  @@index([number])
+  @@index([institution, number])
+  @@index([createdById])
+  @@index([status])
+  @@index([type])
+  @@index([scope])
+  @@index([documentKind])
+  @@index([recordSource])
+  @@index([oficioDate])
+  @@index([organizationId, status])
+  @@index([organizationId, scope, type])
+  @@index([responseToId])
+  @@index([signerId])
+  @@index([responsibleEmployeeId])
+  @@map("oficios")
+}
+
+model OficioNumberingConfig {
+  id                     String   @id @default(cuid())
+  organizationId         String
+  /// CNI | DESPACHO | INTERNO
+  dependency             String
+  year                   Int
+  nomenclaturePattern    String
+  lastGeneratedSequence  Int      @default(0)
+  prefix                 String?
+  sequencePadding        Int      @default(0)
+  notes                  String?
+  isActive               Boolean  @default(true)
+  createdById            String?
+  updatedById            String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  createdBy    User?        @relation("OficioNumberingConfigCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy    User?        @relation("OficioNumberingConfigUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, dependency, year])
+  @@index([organizationId, isActive])
+  @@index([organizationId, dependency])
+  @@map("oficio_numbering_configs")
+}
+
+model OficioSigner {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  positionTitle  String
+  /// CNI | DESPACHO | null (any)
+  dependency     String?
+  isActive       Boolean  @default(true)
+  createdById    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  createdBy    User?        @relation("OficioSignerCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  oficios      Oficio[]
+
+  @@index([organizationId, isActive])
+  @@index([organizationId, dependency])
+  @@map("oficio_signers")
+}
+
+model OficioDocument {
+  id           String   @id @default(cuid())
+  oficioId     String
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  storageKey   String
+  url          String
+  fileHash     String?
+  documentType String   @default("OFICIO_PRINCIPAL")
+  isPrimary    Boolean  @default(false)
+  version      Int      @default(1)
+  uploadedById String
+  uploadedAt   DateTime @default(now())
+
+  oficio     Oficio @relation(fields: [oficioId], references: [id], onDelete: Cascade)
+  uploadedBy User   @relation("OficioDocumentUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
+
+  @@index([oficioId])
+  @@index([fileHash])
+  @@index([documentType])
+  @@map("oficio_documents")
+}
+
+model OficioTracking {
+  id            String               @id @default(cuid())
+  oficioId      String
+  action        OficioTrackingAction
+  title         String
+  description   String?
+  previousData  Json?
+  newData       Json?
+  performedById String
+  createdAt     DateTime             @default(now())
+
+  oficio      Oficio @relation(fields: [oficioId], references: [id], onDelete: Cascade)
+  performedBy User   @relation("OficioTrackingPerformer", fields: [performedById], references: [id], onDelete: Restrict)
+
+  @@index([oficioId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("oficio_tracking")
+}
+
+model OficioImportBatch {
+  id            String                  @id @default(cuid())
+  source        OficioRecordSource      @default(HISTORICAL_IMPORT)
+  status        OficioImportBatchStatus @default(PENDING)
+  totalFiles    Int                     @default(0)
+  imported      Int                     @default(0)
+  skipped       Int                     @default(0)
+  errors        Int                     @default(0)
+  notes         String?
+  performedById String
+  startedAt     DateTime                @default(now())
+  finishedAt    DateTime?
+
+  performedBy User                    @relation("OficioImportBatchPerformer", fields: [performedById], references: [id], onDelete: Restrict)
+  items       OficioImportBatchItem[]
+  oficio      Oficio?                 @relation(fields: [oficioId], references: [id])
+  oficioId    String?
+
+  @@index([performedById])
+  @@index([status])
+  @@map("oficio_import_batches")
+}
+
+model OficioImportBatchItem {
+  id           String                      @id @default(cuid())
+  batchId      String
+  rowIndex     Int
+  status       OficioImportBatchItemStatus @default(PENDING)
+  originalName String?
+  number       String?
+  institution  String?
+  oficioDate   DateTime?                   @db.Date
+  fileHash     String?
+  errorMessage String?
+  oficioId     String?
+
+  batch  OficioImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  oficio Oficio?           @relation(fields: [oficioId], references: [id], onDelete: SetNull)
+
+  @@index([batchId])
+  @@index([status])
+  @@map("oficio_import_batch_items")
+}
+
+enum OficioType {
+  INCOMING
+  OUTGOING
+  INTERNAL_MEMO
+}
+
+enum OficioStatus {
+  DRAFT
+  SENT
+  RECEIVED
+  IN_PROCESS
+  COMPLETED
+  ARCHIVED
+  /// Incoming: assigned to responsible area/person
+  ASSIGNED
+  /// Outgoing: awaiting signature
+  PENDING_SIGNATURE
+  /// Outgoing: signed
+  SIGNED
+  /// Outgoing: recipient acknowledged
+  ACKNOWLEDGED
+  /// Incoming/outgoing: response registered
+  RESPONDED
+}
+
+enum OficioRecordSource {
+  SYSTEM_CREATED
+  HISTORICAL_IMPORT
+  MANUAL_REGISTRATION
+}
+
+enum OficioTrackingAction {
+  CREATED
+  IMPORTED
+  RECEIVED
+  SENT
+  ASSIGNED
+  IN_REVIEW
+  FORWARDED
+  RESPONDED
+  COMPLETED
+  ARCHIVED
+  DOCUMENT_ADDED
+  STATUS_CHANGED
+  COMMENT_ADDED
+  NUMBER_GENERATED
+  RELATIONSHIP_LINKED
+  RELATIONSHIP_UNLINKED
+  DOCUMENT_REMOVED
+}
+
+enum OficioImportBatchStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum OficioImportBatchItemStatus {
+  PENDING
+  IMPORTED
+  SKIPPED
+  ERROR
+}

@@ -1,0 +1,377 @@
+// Procurement
+
+model CostCenter {
+  id             String       @id @default(cuid())
+  organizationId String
+  code           String
+  name           String
+  description    String?
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, code])
+  @@index([organizationId, isActive])
+  @@map("cost_centers")
+}
+
+model Proveedor {
+  id                 String            @id @default(cuid())
+  organizationId     String
+  nombreRazonSocial  String
+  rtn                String?
+  telefono           String?
+  email              String?
+  personaContacto    String?
+  direccion          String?
+  activo             Boolean           @default(true)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  version            Int               @default(1)
+  deletedAt          DateTime?
+  comprasSolicitudes CompraSolicitud[]
+  comprasOrdenes     CompraOrden[]
+  organization       Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, rtn])
+  @@index([organizationId, activo])
+  @@index([organizationId, nombreRazonSocial])
+  @@map("proveedores")
+}
+
+model CompraOrden {
+  id                    String              @id @default(cuid())
+  orderNumber           String?
+  sequenceNumber        Int?
+  sequenceYear          Int?
+  purchaseReference     String
+  requestDate           DateTime            @default(now()) @db.Date
+  requiredDate          DateTime            @db.Date
+  requestedByName       String
+  requesterJobTitle     String
+  supplierId            String?
+  supplierName          String
+  supplierRtn           String
+  supplierPhone         String
+  purchaseJustification String              @db.Text
+  subtotal              Decimal             @default(0) @db.Decimal(14, 2)
+  discountType          TipoDescuento       @default(NINGUNO)
+  discountValue         Decimal             @default(0) @db.Decimal(14, 2)
+  discount              Decimal             @default(0) @db.Decimal(14, 2)
+  taxRate               Decimal             @default(15) @db.Decimal(5, 2)
+  tax                   Decimal             @default(0) @db.Decimal(14, 2)
+  total                 Decimal             @default(0) @db.Decimal(14, 2)
+  status                PurchaseOrderStatus @default(DRAFT)
+  createdById           String
+  generatedById         String?
+  generatedAt           DateTime?
+  issuedById            String?
+  issuedAt              DateTime?
+  cancelledById         String?
+  cancelledAt           DateTime?
+  cancellationReason    String?             @db.Text
+  closedById            String?
+  closedAt              DateTime?
+  templateId            String?
+  templateVersion       Int?
+  templateSnapshot      Json?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  version               Int                 @default(1)
+  deletedAt             DateTime?
+  organizationId        String
+  requesterEmployeeId   String?
+
+  createdBy              User                    @relation("CompraOrdenCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  generatedBy            User?                   @relation("CompraOrdenGeneratedBy", fields: [generatedById], references: [id], onDelete: SetNull)
+  issuedBy               User?                   @relation("CompraOrdenIssuedBy", fields: [issuedById], references: [id], onDelete: SetNull)
+  cancelledBy            User?                   @relation("CompraOrdenCancelledBy", fields: [cancelledById], references: [id], onDelete: SetNull)
+  closedBy               User?                   @relation("CompraOrdenClosedBy", fields: [closedById], references: [id], onDelete: SetNull)
+  supplier               Proveedor?              @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  requesterEmployee      Employee?               @relation("CompraOrdenRequester", fields: [requesterEmployeeId], references: [id], onDelete: SetNull)
+  template               CompraOrdenTemplate?    @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  items                  CompraOrdenItem[]
+  documentos             CompraOrdenDocumento[]
+  historial              CompraOrdenHistorial[]
+  organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  replacementProjections ReplacementProjection[]
+
+  @@unique([organizationId, orderNumber])
+  @@unique([organizationId, sequenceYear, sequenceNumber])
+  @@index([orderNumber])
+  @@index([status])
+  @@index([requestDate])
+  @@index([requiredDate])
+  @@index([supplierId])
+  @@index([requesterEmployeeId])
+  @@index([createdById])
+  @@index([sequenceYear])
+  @@index([organizationId, status])
+  @@map("purchase_orders")
+}
+
+enum TipoDescuento {
+  NINGUNO
+  MONTO
+  PORCENTAJE
+}
+
+enum PurchaseTaxProfile {
+  GENERAL_15
+  EXEMPT
+  ISV_18
+  HOTEL_15_TOURISM_4
+  CUSTOM
+}
+
+model CompraOrdenItem {
+  id          String              @id @default(cuid())
+  orderId     String
+  itemNumber  Int
+  description String
+  unit        PurchaseUnit
+  quantity    Decimal             @db.Decimal(14, 2)
+  unitPrice   Decimal             @db.Decimal(14, 2)
+  total       Decimal             @db.Decimal(14, 2)
+  taxProfile  PurchaseTaxProfile?
+  taxableBase Decimal             @default(0) @db.Decimal(14, 2)
+  taxAmount   Decimal             @default(0) @db.Decimal(14, 2)
+  itemTotal   Decimal             @default(0) @db.Decimal(14, 2)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  orden       CompraOrden         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  taxes       CompraOrdenItemTax[]
+
+  @@unique([orderId, itemNumber])
+  @@index([orderId])
+  @@map("purchase_order_items")
+}
+
+model CompraOrdenItemTax {
+  id          String          @id @default(cuid())
+  orderItemId String
+  code        String
+  name        String
+  rate        Decimal         @db.Decimal(7, 4)
+  taxableBase Decimal         @db.Decimal(14, 2)
+  amount      Decimal         @db.Decimal(14, 2)
+  sortOrder   Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  item        CompraOrdenItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@unique([orderItemId, code])
+  @@index([orderItemId])
+  @@map("purchase_order_item_taxes")
+}
+
+model CompraOrdenDocumento {
+  id           String               @id @default(cuid())
+  orderId      String
+  type         PurchaseDocumentType
+  name         String
+  originalName String
+  mimeType     String
+  size         Int
+  storageKey   String
+  url          String
+  fileHash     String?
+  version      Int                  @default(1)
+  isActive     Boolean              @default(true)
+  uploadedById String
+  uploadedAt   DateTime             @default(now())
+  orden        CompraOrden          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  uploadedBy   User                 @relation("CompraOrdenDocumentoUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([type])
+  @@index([fileHash])
+  @@map("purchase_order_documents")
+}
+
+model CompraOrdenHistorial {
+  id            String                @id @default(cuid())
+  orderId       String
+  action        PurchaseHistoryAction
+  title         String
+  description   String?               @db.Text
+  previousData  Json?
+  newData       Json?
+  performedById String
+  createdAt     DateTime              @default(now())
+  orden         CompraOrden           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  performedBy   User                  @relation("CompraOrdenHistorialPerformer", fields: [performedById], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("purchase_order_history")
+}
+
+model CompraOrdenSequence {
+  id        String   @id @default(cuid())
+  year      Int      @unique
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@map("purchase_order_sequences")
+}
+
+model CompraOrdenTemplate {
+  id                     String        @id @default(cuid())
+  organizationId         String
+  name                   String
+  isActive               Boolean       @default(false)
+  logoUrl                String?
+  institutionName        String        @default("Consejo Nacional de Inversiones")
+  institutionAddress     String?
+  institutionPhone       String?
+  institutionWebsite     String?
+  institutionRtn         String?
+  documentTitle          String        @default("ORDEN DE COMPRA")
+  orderPrefix            String        @default("COM-CNI")
+  footerText             String?
+  signatureTitle         String        @default("ÁREA ADMINISTRATIVA")
+  additionalNote         String?       @db.Text
+  primaryColor           String        @default("#334E88")
+  secondaryColor         String        @default("#32B372")
+  showInstitutionAddress Boolean       @default(true)
+  showInstitutionPhone   Boolean       @default(true)
+  showInstitutionWebsite Boolean       @default(true)
+  showInstitutionRtn     Boolean       @default(false)
+  showReference          Boolean       @default(true)
+  showRequiredDate       Boolean       @default(true)
+  version                Int           @default(1)
+  createdById            String
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  createdBy              User          @relation("CompraOrdenTemplateCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  orders                 CompraOrden[]
+  organization           Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, isActive])
+  @@map("purchase_order_templates")
+}
+
+enum CompraTipo {
+  BIENES
+  SERVICIOS
+  BIENES_SERVICIOS
+}
+
+enum CompraPrioridad {
+  URGENTE
+  ALTA
+  NORMAL
+  BAJA
+}
+
+enum CompraUnidad {
+  UNIDAD
+  CAJA
+  PAQUETE
+  SERVICIO
+  LOTE
+  MES
+  HORA
+  DIA
+  OTRO
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  GENERATED
+  ISSUED
+  CANCELLED
+  CLOSED
+}
+
+enum PurchaseUnit {
+  UNIT
+  BOX
+  PACKAGE
+  SERVICE
+  LOT
+  MONTH
+  HOUR
+  DAY
+  OTHER
+}
+
+enum PurchaseDocumentType {
+  ORDER_PDF
+  QUOTATION
+  INVOICE
+  PROFORMA
+  SUPPORT
+  RECEIPT
+  OTHER
+}
+
+enum PurchaseHistoryAction {
+  CREATED
+  UPDATED
+  GENERATED
+  PDF_GENERATED
+  PDF_REGENERATED
+  ISSUED
+  CANCELLED
+  CLOSED
+  DOCUMENT_ADDED
+  DOCUMENT_REMOVED
+  STATUS_CHANGED
+  TEMPLATE_CHANGED
+}
+
+enum CompraOrdenEstado {
+  BORRADOR
+  GENERADA
+  EMITIDA
+  ANULADA
+  CERRADA
+}
+
+enum CompraDocumentoTipo {
+  ORDEN_PDF
+  COTIZACION
+  FACTURA
+  PROFORMA
+  SOPORTE
+  ACTA_RECEPCION
+  OTRO
+}
+
+enum CompraHistorialAccion {
+  CREATED
+  UPDATED
+  GENERATED
+  PDF_GENERATED
+  PDF_REGENERATED
+  ISSUED
+  CANCELLED
+  CLOSED
+  DOCUMENT_ADDED
+  STATUS_CHANGED
+}
+
+enum CompraEstado {
+  BORRADOR
+  GENERADA
+  EMITIDA
+  ANULADA
+  CERRADA
+}
+
+enum CompraTipoAdjunto {
+  COTIZACION
+  FACTURA
+  PROFORMA
+  CORREO_AUTORIZACION
+  SOPORTE_TECNICO
+  OTRO
+}
+
+enum CompraTipoDocumento {
+  ORDEN_COMPRA_PDF
+}

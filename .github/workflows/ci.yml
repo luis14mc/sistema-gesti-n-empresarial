@@ -62,6 +62,21 @@ jobs:
         run: pnpm prisma validate
       - name: Generate Prisma client
         run: pnpm prisma generate
+      - name: Apply migrations (test DB)
+        run: pnpm prisma migrate deploy
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5433/sge_test"
+      - name: Prepare empty shadow database
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+          PGPASSWORD=postgres psql -h localhost -p 5433 -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            -c "DROP DATABASE IF EXISTS sge_shadow;" \
+            -c "CREATE DATABASE sge_shadow;"
+      - name: Check schema drift (migrations vs datamodel)
+        run: scripts/db/check-drift.sh
+        env:
+          SHADOW_DATABASE_URL: "postgresql://postgres:postgres@localhost:5433/sge_shadow"
       - name: Type Check
         run: pnpm typecheck
       - name: Run Linter
