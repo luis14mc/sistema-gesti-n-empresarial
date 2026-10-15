@@ -23,7 +23,7 @@ model Equipment {
   updatedAt              DateTime                @updatedAt
   version                Int                     @default(1)
   category               EquipmentCategory       @default(OTHER)
-  cost                   Float?
+  cost                   Decimal?                @db.Decimal(14, 2)
   ipAddress              String?
   location               String?
   macAddress             String?
@@ -114,6 +114,7 @@ model EquipmentHistory {
   performedById String?
   createdAt     DateTime               @default(now())
   equipment     Equipment              @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  performedBy   User?                  @relation("EquipmentHistoryPerformer", fields: [performedById], references: [id], onDelete: SetNull)
 
   @@index([equipmentId])
   @@index([action])
@@ -129,7 +130,7 @@ model EquipmentMaintenance {
   description   String
   scheduledDate DateTime?         @db.Date
   completedDate DateTime?         @db.Date
-  cost          Float?
+  cost          Decimal?          @db.Decimal(14, 2)
   technician    String?
   notes         String?
   performedById String?
@@ -137,6 +138,7 @@ model EquipmentMaintenance {
   updatedAt     DateTime          @updatedAt
   documentUrl   String?
   equipment     Equipment         @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  performedBy   User?             @relation("EquipmentMaintenancePerformer", fields: [performedById], references: [id], onDelete: SetNull)
 
   @@index([equipmentId])
   @@index([status])
@@ -482,6 +484,8 @@ model SoftwareSubscription {
   updatedAt        DateTime                   @updatedAt
   organization     Organization               @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   product          SoftwareProduct            @relation(fields: [productId], references: [id], onDelete: Restrict)
+  createdBy        User                       @relation("SoftwareSubscriptionCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedBy        User?                      @relation("SoftwareSubscriptionUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
   seats            SoftwareLicenseSeat[]
 
   @@index([organizationId, status])

@@ -1,5 +1,7 @@
 # Database scripts (N0)
 
+Convenciones y reglas de PR: [docs/database/conventions.md](../docs/database/conventions.md).
+
 | Script | Uso |
 |--------|-----|
 | `inventory-counts.sql` | Solo lectura: conteos por tabla. Producción: `railway run psql "$DATABASE_URL" -f scripts/db/inventory-counts.sql`. **No corre en CI.** |

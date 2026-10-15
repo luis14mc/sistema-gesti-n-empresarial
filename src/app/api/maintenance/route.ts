@@ -132,7 +132,7 @@ async function postHandler(req: AuthenticatedRequest) {
           description: data.description,
           scheduledDate: data.scheduledDate ?? null,
           completedDate: data.completedDate ?? null,
-          cost: data.cost ?? null,
+          cost: data.cost != null ? new Prisma.Decimal(data.cost) : null,
           technician: data.technician ?? null,
           notes: data.notes ?? null,
           status: data.status,

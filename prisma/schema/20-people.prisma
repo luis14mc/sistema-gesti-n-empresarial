@@ -73,8 +73,6 @@ model User {
   comprasOrdenDocumentos       CompraOrdenDocumento[]       @relation("CompraOrdenDocumentoUploader")
   comprasOrdenHistorial        CompraOrdenHistorial[]       @relation("CompraOrdenHistorialPerformer")
   comprasOrdenTemplates        CompraOrdenTemplate[]        @relation("CompraOrdenTemplateCreator")
-  comprasOrdenDocumentosLegacy CompraOrdenDocumentoLegacy[] @relation("CompraOrdenDocumentoLegacy")
-  comprasOrdenHistorialLegacy  CompraOrdenHistorialLegacy[] @relation("CompraOrdenHistorialLegacy")
   correctiveActions            CorrectiveAction[]           @relation("CorrectiveActionResponsible")
   employeeProfile              Employee?
   equipmentAssigned            EquipmentAssignment[]
@@ -101,6 +99,12 @@ model User {
   permissionOverrides          UserPermissionOverride[]     @relation("UserPermissionOverrides")
   permissionOverridesCreated   UserPermissionOverride[]     @relation("PermissionOverrideCreator")
   roleSettingsUpdated          RoleSetting[]                @relation("RoleSettingUpdatedBy")
+  payslipsGenerated            Payslip[]                    @relation("PayslipGeneratedBy")
+  payrollSettingsUpdated       PayrollSettings[]            @relation("PayrollSettingsUpdatedBy")
+  equipmentHistoryPerformed    EquipmentHistory[]           @relation("EquipmentHistoryPerformer")
+  equipmentMaintenancePerformed EquipmentMaintenance[]      @relation("EquipmentMaintenancePerformer")
+  softwareSubscriptionsCreated SoftwareSubscription[]       @relation("SoftwareSubscriptionCreator")
+  softwareSubscriptionsUpdated SoftwareSubscription[]       @relation("SoftwareSubscriptionUpdater")
   @@index([departmentId])
   @@index([positionId])
   @@index([role])

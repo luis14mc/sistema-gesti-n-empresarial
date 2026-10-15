@@ -11,6 +11,7 @@ model PayrollSettings {
   updatedById             String?
   updatedAt               DateTime     @updatedAt
   organization            Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  updatedBy               User?        @relation("PayrollSettingsUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   @@map("payroll_settings")
 }
@@ -52,6 +53,7 @@ model Payslip {
   generatedAt         DateTime            @default(now())
   organization        Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   employee            Employee            @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  generatedBy         User                @relation("PayslipGeneratedBy", fields: [generatedById], references: [id], onDelete: Restrict)
 
   @@unique([organizationId, employeeId, year, month])
   @@index([organizationId, year, month])

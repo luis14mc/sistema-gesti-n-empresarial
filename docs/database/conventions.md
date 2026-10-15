@@ -2,6 +2,25 @@
 
 Documento de la fase **N0** de normalización de BD. Aplica a todo modelo nuevo o ampliación futura; el schema existente se alinea de forma incremental en PRs posteriores (expandir → migrar datos → contraer).
 
+## Regla de base de datos (obligatoria)
+
+Todo **modelo nuevo** o **migración nueva** debe cumplir este documento.
+
+**Prohibido:**
+
+- `Float` (u otros tipos de punto flotante) para **dinero** — usar `Decimal @db.Decimal(14, 2)`.
+- Modelos o campos de dominio en **español** — inglés en código (`PascalCase` / `camelCase`); nombres de negocio visibles al usuario van en UI/i18n, no en el schema.
+- **Borrar o renombrar** tablas/columnas en el **mismo PR** en el que la aplicación deja de usarlas — separar en fases (expandir → migrar datos → contraer en PR distinto).
+
+**Cada PR que incluya migración** (`prisma/migrations/*`) debe traer en la descripción:
+
+1. Salida de `prisma migrate diff` relevante (p. ej. `--from-migrations prisma/migrations --to-schema prisma/schema --script` con shadow DB, o diff contra el estado previo acordado en el PR).
+2. **Plan de reversión**: SQL o pasos para deshacer la migración en staging/producción si falla el deploy (incl. orden inverso, datos afectados, backups).
+
+**Despliegue Railway:** probar la migración en PR Environment / staging antes del merge; respaldo manual Postgres en Railway antes de aprobar. Detalle en [docs/deployment/railway.md](../deployment/railway.md#regla-de-despliegue-obligatoria).
+
+PRs **sin** migración nueva no deben alterar el SQL desplegado; verificar con `scripts/db/check-drift.sh` cuando aplique.
+
 ## Nomenclatura
 
 - **Modelos** en inglés, `PascalCase`.
@@ -65,4 +84,5 @@ pnpm prisma generate
 SHADOW_DATABASE_URL="postgresql://..." scripts/db/check-drift.sh
 ```
 
-`check-drift.sh` debe producir **SQL vacío** entre migraciones aplicadas y el datamodel actual.
+- PR **sin** migraciones: `scripts/db/check-drift.sh` confirma equivalencia del datamodel vs `main` y que el drift migraciones→schema no empeora (baseline en `scripts/db/migration-drift-baseline.sha256`).
+- PR **con** migraciones: incluir en la descripción el diff SQL generado y el plan de reversión; tras merge, actualizar el baseline solo si el equipo acordó alinear drift en ese PR.

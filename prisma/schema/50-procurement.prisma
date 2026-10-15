@@ -324,37 +324,6 @@ enum PurchaseHistoryAction {
   TEMPLATE_CHANGED
 }
 
-enum CompraOrdenEstado {
-  BORRADOR
-  GENERADA
-  EMITIDA
-  ANULADA
-  CERRADA
-}
-
-enum CompraDocumentoTipo {
-  ORDEN_PDF
-  COTIZACION
-  FACTURA
-  PROFORMA
-  SOPORTE
-  ACTA_RECEPCION
-  OTRO
-}
-
-enum CompraHistorialAccion {
-  CREATED
-  UPDATED
-  GENERATED
-  PDF_GENERATED
-  PDF_REGENERATED
-  ISSUED
-  CANCELLED
-  CLOSED
-  DOCUMENT_ADDED
-  STATUS_CHANGED
-}
-
 enum CompraEstado {
   BORRADOR
   GENERADA

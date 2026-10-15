@@ -2,6 +2,25 @@
 
 Railway ejecuta la aplicación en contenedores sin roles IAM de AWS. El almacenamiento durable debe ser **Cloudflare R2** (API S3-compatible) con credenciales de acceso explícitas.
 
+## Regla de despliegue (obligatoria)
+
+**Todo merge a `main` se despliega a producción** y el pipeline ejecuta `prisma migrate deploy` contra la base Postgres de producción (ver `railway-predeploy.sh` / `railway-start.sh`).
+
+### PRs con migración (`prisma/migrations/*`)
+
+1. **Probar primero** en el **PR Environment / staging** de Railway (misma secuencia: build → `migrate deploy` → app). No mergear sin deploy verde en staging con la migración incluida.
+2. **Descripción del PR** (obligatorio): SQL generado (`prisma migrate diff` o contenido de `migration.sql`) y **plan de reversión** (pasos/SQL inverso, datos afectados). Ver también [docs/database/conventions.md](../database/conventions.md).
+3. **Antes de aprobar:** respaldo manual en Railway — servicio **Postgres → Backups** (snapshot/export según la UI de Railway). Quien aprueba confirma que el backup existe.
+
+### SQL de migración
+
+- Preferir cambios **aditivos** e **idempotentes** donde aplique (`CREATE … IF NOT EXISTS`, `ADD VALUE IF NOT EXISTS`, bloques `DO $$ … IF NOT EXISTS`).
+- **Nada destructivo** (`DROP TABLE/COLUMN`, `RENAME` que rompa lectores, `NOT NULL` sin backfill) sin una fase previa ya desplegada en la que el código **dejó de usar** el objeto (expandir → migrar datos → contraer en PRs separados).
+
+### PRs sin migración
+
+No deben cambiar el SQL desplegado; validar con `scripts/db/check-drift.sh` en CI cuando corresponda.
+
 ## Variables por ambiente
 
 | Variable | Staging | Producción | Notas |

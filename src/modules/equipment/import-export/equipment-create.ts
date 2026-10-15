@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { createAuditRecord } from '@/lib/audit';
 import { generateAssetCode, resolveEquipmentCategory, CATEGORY_LABELS } from '@/lib/equipment-asset-code';
@@ -31,7 +31,7 @@ export async function createEquipmentRecord(input: EquipmentInput, context: {
         purchaseOrder: data.purchaseOrder ?? null,
         supplier: data.supplier ?? null,
         warrantyDate: data.warrantyDate ?? null,
-        cost: data.cost ?? null,
+        cost: data.cost != null ? new Prisma.Decimal(data.cost) : null,
         ram: data.ram ?? null,
         processor: data.processor ?? null,
         storage: data.storage ?? null,
