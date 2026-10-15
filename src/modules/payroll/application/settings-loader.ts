@@ -3,27 +3,42 @@ import {
   DEFAULT_IHSS_SETTINGS,
   DEFAULT_ISR_SETTINGS,
   PAYROLL_YEAR,
+  assertIsrRatesArePercentUnits,
 } from '@/modules/payroll/domain';
 import {
   DEFAULT_MEDICAL_EXPENSES_ANNUAL,
   DEFAULT_IVM_DEDUCTIBLE_MONTHLY,
 } from '@/modules/payroll/domain/constants';
 import type { IsrBracket, PayrollSettings } from '@/modules/payroll/domain';
-
 function decimalToNumber(value: { toString(): string } | number | null | undefined, fallback: number): number {
   if (value === null || value === undefined) return fallback;
   return Number(value.toString());
 }
 
-function bracketsFromRows(
-  rows: Array<{ order: number; rate: { toString(): string }; toAnnual: { toString(): string } }>,
-): IsrBracket[] {
+export type PayrollIsrBracketRow = {
+  order: number;
+  rate: { toString(): string };
+  toAnnual: { toString(): string };
+};
+
+export type PayrollSettingsRow = {
+  medicalExpensesAnnual: { toString(): string };
+  ivmDeductibleMonthly: { toString(): string };
+  ihssEmRate: { toString(): string };
+  ihssIvmRate: { toString(): string };
+  ihssCeilingMonthly: { toString(): string };
+};
+
+export function bracketsFromRows(rows: PayrollIsrBracketRow[]): IsrBracket[] {
   const sorted = [...rows].sort((a, b) => a.order - b.order);
+  const rates = sorted.map((row) => Number(row.rate.toString()));
+  assertIsrRatesArePercentUnits(rates);
+
   let from = 0.01;
-  return sorted.map((row) => {
+  return sorted.map((row, index) => {
     const to = Number(row.toAnnual.toString());
     const bracket: IsrBracket = {
-      rate: Number(row.rate.toString()),
+      rate: rates[index],
       from,
       to: Number.isFinite(to) ? to : Number.POSITIVE_INFINITY,
     };
@@ -32,18 +47,10 @@ function bracketsFromRows(
   });
 }
 
-export async function loadPayrollSettings(
-  organizationId: string,
-  year: number = PAYROLL_YEAR,
-): Promise<PayrollSettings> {
-  const [settingsRow, bracketRows] = await Promise.all([
-    prisma.payrollSettings.findUnique({ where: { organizationId } }),
-    prisma.payrollIsrBracket.findMany({
-      where: { organizationId, year },
-      orderBy: { order: 'asc' },
-    }),
-  ]);
-
+export function payrollSettingsFromDatabase(
+  settingsRow: PayrollSettingsRow | null,
+  bracketRows: PayrollIsrBracketRow[],
+): PayrollSettings {
   const ihss = settingsRow
     ? {
         emRate: decimalToNumber(settingsRow.ihssEmRate, DEFAULT_IHSS_SETTINGS.emRate),
@@ -68,6 +75,21 @@ export async function loadPayrollSettings(
   };
 
   return { ihss, isr };
+}
+
+export async function loadPayrollSettings(
+  organizationId: string,
+  year: number = PAYROLL_YEAR,
+): Promise<PayrollSettings> {
+  const [settingsRow, bracketRows] = await Promise.all([
+    prisma.payrollSettings.findUnique({ where: { organizationId } }),
+    prisma.payrollIsrBracket.findMany({
+      where: { organizationId, year },
+      orderBy: { order: 'asc' },
+    }),
+  ]);
+
+  return payrollSettingsFromDatabase(settingsRow, bracketRows);
 }
 
 export async function getPayrollSettingsRecord(organizationId: string) {
@@ -138,6 +160,7 @@ export async function replaceIsrBracketRecords(
   year: number,
   brackets: Array<{ order: number; rate: number; toAnnual: number }>,
 ) {
+  assertIsrRatesArePercentUnits(brackets.map((b) => b.rate));
   await prisma.$transaction([
     prisma.payrollIsrBracket.deleteMany({ where: { organizationId, year } }),
     prisma.payrollIsrBracket.createMany({

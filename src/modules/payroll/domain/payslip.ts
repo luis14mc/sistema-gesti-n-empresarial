@@ -50,11 +50,11 @@ export function calculatePayslip(input: PayslipInput): PayslipResult {
   );
 
   const ihss = calculateIhss(salarioPeriodo, settings.ihss);
+  const isPrimerMes = isPrimerMesForIsr(input.hireDate, payPeriod.end);
   const isr = calculateIsr({
     monthlySalary: input.monthlySalary,
     salarioPeriodo,
-    hireDate: input.hireDate,
-    periodEnd: payPeriod.end,
+    isPrimerMes,
     monthsInYear,
     settings: settings.isr,
   });
@@ -72,6 +72,6 @@ export function calculatePayslip(input: PayslipInput): PayslipResult {
     otherDeductions,
     netPay,
     monthsWorkedInYear: monthsInYear,
-    isPrimerMes: isPrimerMesForIsr(input.hireDate, payPeriod.end),
+    isPrimerMes,
   };
 }

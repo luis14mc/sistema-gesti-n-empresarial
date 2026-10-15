@@ -14,11 +14,12 @@ export const DEFAULT_IHSS_SETTINGS: IhssSettings = {
   ceilingMonthly: 11_903.13,
 };
 
+/** Tasas en porcentaje (0, 15, 20, 25), igual que payroll_isr_brackets y server.py. */
 export const DEFAULT_ISR_BRACKETS_2026 = [
   { rate: 0, from: 0.01, to: 228_324.32 },
-  { rate: 0.15, from: 228_324.33, to: 348_154.1 },
-  { rate: 0.2, from: 348_154.11, to: 809_660.75 },
-  { rate: 0.25, from: 809_660.76, to: Number.POSITIVE_INFINITY },
+  { rate: 15, from: 228_324.33, to: 348_154.1 },
+  { rate: 20, from: 348_154.11, to: 809_660.75 },
+  { rate: 25, from: 809_660.76, to: Number.POSITIVE_INFINITY },
 ] as const;
 
 export const DEFAULT_ISR_SETTINGS: IsrSettings = {
