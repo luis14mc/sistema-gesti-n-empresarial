@@ -135,6 +135,10 @@ model OficioDocument {
   originalName String
   mimeType     String
   size         Int
+  originalSizeBytes Int?
+  storedSizeBytes   Int?
+  optimized    Boolean  @default(false)
+  signedPdf    Boolean  @default(false)
   storageKey   String
   url          String
   fileHash     String?
@@ -177,17 +181,22 @@ model OficioTracking {
 
 model OficioImportBatch {
   id            String                  @id @default(cuid())
+  organizationId String
   source        OficioRecordSource      @default(HISTORICAL_IMPORT)
   status        OficioImportBatchStatus @default(PENDING)
   totalFiles    Int                     @default(0)
+  totalRows     Int                     @default(0)
   imported      Int                     @default(0)
   skipped       Int                     @default(0)
   errors        Int                     @default(0)
   notes         String?
+  sequenceSnapshot Json?
+  archivedAt    DateTime?
   performedById String
   startedAt     DateTime                @default(now())
   finishedAt    DateTime?
 
+  organization Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   performedBy User                    @relation("OficioImportBatchPerformer", fields: [performedById], references: [id], onDelete: Restrict)
   items       OficioImportBatchItem[]
   oficio      Oficio?                 @relation(fields: [oficioId], references: [id])
@@ -195,6 +204,7 @@ model OficioImportBatch {
 
   @@index([performedById])
   @@index([status])
+  @@index([organizationId, startedAt])
   @@schema("public")
   @@map("oficio_import_batches")
 }

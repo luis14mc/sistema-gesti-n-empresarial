@@ -7,13 +7,21 @@
  *   - STORAGE_DRIVER=s3:   S3StorageAdapter (Sprint 2)
  */
 
+import { createHash } from 'crypto';
 import type { OficioAttachment } from '@/types';
 import { sanitizeOriginalName, validateOficioUploadFile } from '@/lib/oficios-attachments';
 import { getStorage } from '@/lib/storage';
+import { prepareUploadBuffer } from '@/platform/storage/prepare-upload-buffer';
 
 export interface SaveOficioDocumentResult extends OficioAttachment {
   /** Storage key (full path) returned by the StorageAdapter. */
   storageKey: string;
+  originalSizeBytes?: number;
+  storedSizeBytes?: number;
+  optimized?: boolean;
+  signedPdf?: boolean;
+  pdfOptimizationSummary?: string;
+  fileHash?: string;
 }
 
 export async function saveOficioDocument(file: File, organizationId: string): Promise<SaveOficioDocumentResult> {
@@ -24,7 +32,9 @@ export async function saveOficioDocument(file: File, organizationId: string): Pr
     size: file.size,
   });
 
-  const buffer = Buffer.from(await file.arrayBuffer());
+  const rawBuffer = Buffer.from(await file.arrayBuffer());
+  const prepared = await prepareUploadBuffer(rawBuffer, mimeType);
+  const buffer = prepared.buffer;
   const storage = getStorage();
 
   const baseName = originalName.replace(/\.[^.]+$/, '');
@@ -34,10 +44,12 @@ export async function saveOficioDocument(file: File, organizationId: string): Pr
     prefix: `organizations/${organizationId}/oficios`,
     originalName: `${baseName}${extension}`,
     mimeType,
-    size: file.size,
+    size: prepared.size,
     buffer,
     desiredName,
   });
+
+  const fileHash = createHash('sha256').update(buffer).digest('hex');
 
   return {
     url: stored.url,
@@ -47,5 +59,11 @@ export async function saveOficioDocument(file: File, organizationId: string): Pr
     size: stored.size,
     uploadedAt: stored.uploadedAt,
     storageKey: stored.key,
+    originalSizeBytes: prepared.originalSizeBytes,
+    storedSizeBytes: prepared.storedSizeBytes ?? stored.size,
+    optimized: prepared.optimized,
+    signedPdf: prepared.signedPdf,
+    pdfOptimizationSummary: prepared.pdfOptimizationSummary,
+    fileHash,
   };
 }

@@ -181,6 +181,19 @@ function validationError(error: z.ZodError): EnvironmentValidationError {
   return new EnvironmentValidationError(variables);
 }
 
+const pdfOptimizeSchema = z.object({
+  PDF_OPTIMIZE_ENABLED: booleanString(true),
+  PDF_OPTIMIZE_MAX_INPUT_MB: integerString(50, 1, 200),
+});
+
+export type PdfOptimizeEnvironment = z.infer<typeof pdfOptimizeSchema>;
+
+export function validatePdfOptimizeEnvironment(source: EnvironmentSource): PdfOptimizeEnvironment {
+  const parsed = pdfOptimizeSchema.safeParse(normalizedSource(source));
+  if (!parsed.success) throw validationError(parsed.error);
+  return parsed.data;
+}
+
 export function validateStorageEnvironment(source: EnvironmentSource): z.infer<typeof storageSchema> {
   const parsed = storageSchema.safeParse(normalizedSource(source));
   if (!parsed.success) throw validationError(parsed.error);

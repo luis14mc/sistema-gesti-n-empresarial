@@ -204,6 +204,42 @@ export function formatOficioNumber(params: {
  * Extracts the sequence integer from a generated document number given a pattern.
  * Falls back to the first numeric segment that is not a 4-digit year.
  */
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Parses sequence from a document number using the configured nomenclature pattern.
+ * Returns null when the number does not match the pattern.
+ */
+export function parseSequenceFromPattern(
+  number: string,
+  pattern: string,
+  year: number,
+  prefix?: string | null,
+): number | null {
+  const validation = validateNomenclaturePattern(pattern);
+  if (!validation.valid) return null;
+
+  let regexSource = escapeRegExp(pattern.trim());
+  regexSource = regexSource.replace(escapeRegExp('{NUMERO}'), '(?<num>\\d+)');
+  regexSource = regexSource.replace(escapeRegExp('{AÑO}'), escapeRegExp(String(year)));
+  const pref = prefix?.trim();
+  regexSource = regexSource.replace(
+    escapeRegExp('{PREFIJO}'),
+    pref ? escapeRegExp(pref) : '.*?',
+  );
+
+  const match = new RegExp(`^${regexSource}$`, 'i').exec(number.trim());
+  if (!match?.groups?.num) return null;
+  const value = Number.parseInt(match.groups.num, 10);
+  return Number.isNaN(value) ? null : value;
+}
+
+export function numberingDependencyYearKey(dependency: string, year: number): string {
+  return `${normalizeOficioDependency(dependency)}-${year}`;
+}
+
 export function parseOficioSequence(number: string, year?: number): number {
   const parts = number.split(/[-_/]/).map((p) => p.trim()).filter(Boolean);
   for (const part of parts) {

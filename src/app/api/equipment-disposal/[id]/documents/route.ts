@@ -26,12 +26,12 @@ async function postHandler(request: AuthenticatedRequest, { params }: { params: 
     if (!disposal) throw new EquipmentDisposalError('DISPOSAL_NOT_EDITABLE', 409);
     const file = (await request.formData()).get('file');
     if (!(file instanceof File)) throw new EquipmentDisposalError('INVALID_DISPOSAL_DOCUMENT', 400);
-    const { stored, hash } = await storeDisposalDocument({ organizationId: context.organizationId, disposalId: id, file });
+    const { stored, hash, originalSizeBytes, storedSizeBytes, optimized, signedPdf } = await storeDisposalDocument({ organizationId: context.organizationId, disposalId: id, file });
     try {
       const document = await prisma.$transaction(async (tx) => {
         const duplicate = await tx.disposalDocument.findFirst({ where: { organizationId: context.organizationId, disposalId: id, fileHash: hash } });
         if (duplicate) throw new EquipmentDisposalError('DUPLICATE_DISPOSAL_DOCUMENT', 409);
-        const created = await tx.disposalDocument.create({ data: { organizationId: context.organizationId, disposalId: id, storageKey: stored.key, fileName: stored.filename, originalName: file.name, mimeType: file.type, fileSize: file.size, fileHash: hash, uploadedById: context.userId } });
+        const created = await tx.disposalDocument.create({ data: { organizationId: context.organizationId, disposalId: id, storageKey: stored.key, fileName: stored.filename, originalName: file.name, mimeType: file.type, fileSize: stored.size, originalSizeBytes: originalSizeBytes ?? null, storedSizeBytes: storedSizeBytes ?? stored.size, optimized: optimized ?? false, signedPdf: signedPdf ?? false, fileHash: hash, uploadedById: context.userId } });
         await tx.equipmentDisposalHistory.create({ data: { organizationId: context.organizationId, disposalId: id, action: 'DISPOSAL_DOCUMENT_UPLOADED', performedById: context.userId, requestId, newValues: { documentId: created.id, fileName: created.fileName } } });
         return created;
       });

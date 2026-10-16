@@ -238,6 +238,10 @@ model DisposalDocument {
   originalName   String
   mimeType       String
   fileSize       Int
+  originalSizeBytes Int?
+  storedSizeBytes   Int?
+  optimized      Boolean  @default(false)
+  signedPdf      Boolean  @default(false)
   fileHash       String?
   uploadedById   String
   createdAt      DateTime          @default(now())

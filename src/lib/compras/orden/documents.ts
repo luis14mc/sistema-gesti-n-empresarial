@@ -1,5 +1,6 @@
 import { createHash } from 'crypto';
 import { getStorage } from '@/lib/storage';
+import { prepareUploadBuffer } from '@/platform/storage/prepare-upload-buffer';
 
 const ALLOWED_MIME = new Set([
   'application/pdf',
@@ -32,14 +33,16 @@ export async function saveOrdenDocument(file: File, organizationId: string, orde
     type: file.type,
     size: file.size,
   });
-  const buffer = Buffer.from(await file.arrayBuffer());
+  const rawBuffer = Buffer.from(await file.arrayBuffer());
+  const prepared = await prepareUploadBuffer(rawBuffer, mimeType);
+  const buffer = prepared.buffer;
   const fileHash = createHash('sha256').update(buffer).digest('hex');
   const storage = getStorage();
   const stored = await storage.put({
     prefix: `organizations/${organizationId}/compras/ordenes/${ordenId}/documentos`,
     originalName,
     mimeType,
-    size: file.size,
+    size: prepared.size,
     buffer,
     desiredName: originalName.replace(/\s+/g, '_'),
   });
@@ -51,6 +54,11 @@ export async function saveOrdenDocument(file: File, organizationId: string, orde
     storageKey: stored.key,
     url: stored.url,
     fileHash,
+    originalSizeBytes: prepared.originalSizeBytes,
+    storedSizeBytes: prepared.storedSizeBytes ?? stored.size,
+    optimized: prepared.optimized,
+    signedPdf: prepared.signedPdf,
+    pdfOptimizationSummary: prepared.pdfOptimizationSummary,
   };
 }
 
