@@ -132,11 +132,11 @@ describe('migration 20261016160000_remove_admin_locked_deny_overrides', () => {
       ),
       'utf8',
     );
-    expect(sql).toMatch(/effect\s*=\s*'DENY'/i);
-    expect(sql).toMatch(/users\.read/);
-    expect(sql).toMatch(/roles\.manage/);
-    expect(sql).toMatch(/RAISE NOTICE/i);
-    expect(sql).toMatch(/organization_memberships/i);
-    expect(sql).not.toMatch(/effect\s*=\s*'ALLOW'/i);
+    expect(sql).toContain("'DENY'");
+    expect(sql).toContain('users.read');
+    expect(sql).toContain('roles.manage');
+    expect(sql).toContain('RAISE NOTICE');
+    expect(sql).toContain('organization_memberships');
+    expect(sql).not.toContain("'ALLOW'");
   });
 });
