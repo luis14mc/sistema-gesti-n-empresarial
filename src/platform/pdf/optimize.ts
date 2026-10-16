@@ -19,15 +19,41 @@ export type PdfOptimizeResult = {
 const OPTIMIZE_TIMEOUT_MS = 60_000;
 const MIN_REDUCTION_RATIO = 0.1;
 
-function detectSignedPdf(buffer: Buffer): boolean {
-  const sample = buffer.subarray(0, Math.min(buffer.length, 512_000)).toString('latin1');
-  return sample.includes('/ByteRange') || /\/Type\s*\/Sig\b/.test(sample);
+const SIGNED_MARKERS = [
+  '/ByteRange',
+  '/Type /Sig',
+  '/SigFlags',
+  '/Type /DocTimeStamp',
+] as const;
+
+/** Scans the full PDF buffer for digital signature markers. */
+export function detectSignedPdf(buffer: Buffer): boolean {
+  const text = buffer.toString('latin1');
+  return SIGNED_MARKERS.some((marker) => text.includes(marker));
+}
+
+async function isPdfEncrypted(inputPath: string): Promise<boolean> {
+  try {
+    const { stdout } = await execFileAsync('qpdf', ['--show-encryption', inputPath], {
+      timeout: OPTIMIZE_TIMEOUT_MS,
+    });
+    return !/not encrypted/i.test(stdout);
+  } catch {
+    return true;
+  }
 }
 
 async function runQpdf(inputPath: string, outputPath: string): Promise<void> {
   await execFileAsync(
     'qpdf',
-    ['--object-streams=generate', '--compress-streams=y', inputPath, outputPath],
+    [
+      '--warning-exit-0',
+      '--decrypt=n',
+      '--object-streams=generate',
+      '--compress-streams=y',
+      inputPath,
+      outputPath,
+    ],
     { timeout: OPTIMIZE_TIMEOUT_MS },
   );
 }
@@ -90,21 +116,33 @@ export async function optimizePdf(input: Buffer): Promise<PdfOptimizeResult> {
   try {
     await writeFile(inputPath, input);
 
-    let best = input;
-    try {
-      await runQpdf(inputPath, qpdfPath);
-      best = await readFile(qpdfPath);
-    } catch {
+    if (await isPdfEncrypted(inputPath)) {
       return baseResult;
     }
 
-    if (best.length > 1_024 * 1024) {
+    let best = input;
+    let qpdfSucceeded = false;
+
+    try {
+      await runQpdf(inputPath, qpdfPath);
+      const qpdfBuffer = await readFile(qpdfPath);
+      best = qpdfBuffer;
+      qpdfSucceeded = true;
+    } catch {
+      // fall through to Ghostscript on original
+    }
+
+    const shouldTryGhostscript = !qpdfSucceeded || best.length > 1_024 * 1024;
+    if (shouldTryGhostscript) {
+      const gsInputPath = qpdfSucceeded ? qpdfPath : inputPath;
       try {
-        await runGhostscript(best.length > input.length ? inputPath : qpdfPath, gsPath);
+        await runGhostscript(gsInputPath, gsPath);
         const gsBuffer = await readFile(gsPath);
         if (gsBuffer.length < best.length) best = gsBuffer;
       } catch {
-        // keep qpdf result
+        if (!qpdfSucceeded) {
+          return baseResult;
+        }
       }
     }
 

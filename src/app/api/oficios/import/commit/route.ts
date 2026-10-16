@@ -42,12 +42,17 @@ async function postHandler(req: AuthenticatedRequest) {
       return apiFailure('INVALID_FILE_SIZE', 'El archivo debe pesar como máximo 5 MB.', { requestId, status: 413, details: [], stage: 'VALIDATE_UPLOAD' });
     }
 
+    const lastUsedSequenceOverrides = {
+      ...payload.data.nextSequenceOverrides,
+      ...payload.data.lastUsedSequenceOverrides,
+    };
+
     const result = await commitOficioImportWorkbook({
       buffer: Buffer.from(await file.arrayBuffer()),
       organizationId: organization.organizationId,
       userId: organization.userId,
       duplicates: payload.data.duplicates,
-      nextSequenceOverrides: payload.data.nextSequenceOverrides,
+      lastUsedSequenceOverrides,
       notes: typeof form.get('notes') === 'string' ? String(form.get('notes')) : undefined,
     });
 

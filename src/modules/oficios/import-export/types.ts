@@ -69,7 +69,10 @@ export interface OficioImportNumberingSummary {
   dependency: string;
   year: number;
   maxImportedSequence: number;
-  suggestedNextSequence: number;
+  /** Confirmed last used sequence (≥ maxImportedSequence); persisted as lastGeneratedSequence. */
+  lastUsedSequence: number;
+  lastImportedNumber: string;
+  nextOficioNumber: string;
   pattern?: string;
   patternWarnings: string[];
   configCreated?: boolean;

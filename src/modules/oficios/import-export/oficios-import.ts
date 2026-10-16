@@ -1,10 +1,12 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
 import {
+  applyNomenclaturePattern,
   numberingDependencyYearKey,
   parseOficioSequence,
   parseSequenceFromPattern,
   type OficioDependency,
 } from '@/lib/oficios-numbering';
+import { oficioImportRowSchema } from './schemas';
 import { prisma } from '@/lib/prisma';
 import { defaultConfigSeed } from '@/modules/oficios/infrastructure/numbering';
 import { oficioTenantScope } from '@/modules/oficios/infrastructure/tenant-scope';
@@ -132,16 +134,47 @@ function buildNumberingSummaries(
     const config = configs.find((item) => item.dependency === value.dependency && item.year === value.year);
     const maxImportedSequence = value.sequences.length > 0 ? Math.max(...value.sequences) : 0;
     const floor = Math.max(config?.lastGeneratedSequence ?? 0, maxImportedSequence);
+    const lastUsedSequence = Math.max(floor, maxImportedSequence);
+    const pattern = config?.nomenclaturePattern ?? defaultConfigSeed(value.dependency, value.year).nomenclaturePattern;
+    const prefix = config?.prefix;
+    const sequencePadding = config?.sequencePadding ?? 0;
+    const format = (sequence: number) =>
+      applyNomenclaturePattern({
+        pattern,
+        sequence,
+        year: value.year,
+        prefix,
+        sequencePadding,
+      });
+
     return {
       key,
       dependency: value.dependency,
       year: value.year,
       maxImportedSequence,
-      suggestedNextSequence: Math.max(floor, maxImportedSequence),
+      lastUsedSequence,
+      lastImportedNumber: maxImportedSequence > 0 ? format(maxImportedSequence) : '—',
+      nextOficioNumber: format(lastUsedSequence + 1),
       pattern: config?.nomenclaturePattern,
       patternWarnings: [...new Set(value.warnings)],
     };
   });
+}
+
+function validateParsedRowForCommit(row: OficioImportParsedRow): string | null {
+  const parsed = oficioImportRowSchema.safeParse(row);
+  if (!parsed.success) {
+    return parsed.error.issues[0]?.message ?? 'Fila inválida.';
+  }
+  if (!row.number.trim()) return 'Número de oficio obligatorio.';
+  if (row.responsibleRef && !row.responsibleEmployeeId) {
+    return 'Responsable no encontrado.';
+  }
+  return null;
+}
+
+function savepointName(rowIndex: number): string {
+  return `import_row_${rowIndex}`.replace(/[^a-zA-Z0-9_]/g, '_');
 }
 
 export async function previewOficioImportWorkbook(input: {
@@ -232,7 +265,7 @@ export async function commitOficioImportWorkbook(input: {
   organizationId: string;
   userId: string;
   duplicates: OficioImportDuplicatePolicy;
-  nextSequenceOverrides: Record<string, number>;
+  lastUsedSequenceOverrides: Record<string, number>;
   notes?: string;
 }): Promise<{
   batchId: string;
@@ -262,8 +295,8 @@ export async function commitOficioImportWorkbook(input: {
   }
 
   for (const summary of preview.numbering) {
-    const override = input.nextSequenceOverrides[summary.key];
-    const confirmed = override ?? summary.suggestedNextSequence;
+    const override = input.lastUsedSequenceOverrides[summary.key];
+    const confirmed = override ?? summary.lastUsedSequence;
     if (confirmed < summary.maxImportedSequence) {
       throw new Error(`SEQUENCE_TOO_LOW:${summary.key}`);
     }
@@ -316,17 +349,36 @@ export async function commitOficioImportWorkbook(input: {
   const importableParsed: OficioImportParsedRow[] = [];
   for (const previewRow of rowsToImport) {
     if (!previewRow.parsed) continue;
-    importableParsed.push({
+    const candidate: OficioImportParsedRow = {
       row: previewRow.row,
       ...(previewRow.parsed as Omit<OficioImportParsedRow, 'row'>),
       warnings: previewRow.warnings ?? [],
-    });
+    };
+    const validationError = validateParsedRowForCommit(candidate);
+    if (validationError) {
+      errors += 1;
+      await prisma.oficioImportBatchItem.create({
+        data: {
+          batchId: batch.id,
+          rowIndex: candidate.row,
+          status: 'ERROR',
+          number: candidate.number,
+          institution: candidate.institution ?? null,
+          oficioDate: candidate.oficioDate,
+          errorMessage: validationError,
+        },
+      });
+      continue;
+    }
+    importableParsed.push(candidate);
   }
 
   for (let offset = 0; offset < importableParsed.length; offset += OFICIO_IMPORT_CHUNK_SIZE) {
     const chunk = importableParsed.slice(offset, offset + OFICIO_IMPORT_CHUNK_SIZE);
     await prisma.$transaction(async (tx) => {
       for (const row of chunk) {
+        const sp = savepointName(row.row);
+        await tx.$executeRawUnsafe(`SAVEPOINT ${sp}`);
         try {
           const oficio = await tx.oficio.create({
             data: {
@@ -376,9 +428,12 @@ export async function commitOficioImportWorkbook(input: {
               oficioId: oficio.id,
             },
           });
+          await tx.$executeRawUnsafe(`RELEASE SAVEPOINT ${sp}`);
           imported += 1;
-        } catch {
+        } catch (error) {
+          await tx.$executeRawUnsafe(`ROLLBACK TO SAVEPOINT ${sp}`);
           errors += 1;
+          const message = error instanceof Error ? error.message.slice(0, 500) : 'No se pudo crear el oficio.';
           await tx.oficioImportBatchItem.create({
             data: {
               batchId: batch.id,
@@ -387,7 +442,7 @@ export async function commitOficioImportWorkbook(input: {
               number: row.number,
               institution: row.institution ?? null,
               oficioDate: row.oficioDate,
-              errorMessage: 'No se pudo crear el oficio.',
+              errorMessage: message,
             },
           });
         }
@@ -397,7 +452,7 @@ export async function commitOficioImportWorkbook(input: {
 
   const numberingApplied: OficioImportNumberingSummary[] = [];
   for (const summary of preview.numbering) {
-    const confirmed = input.nextSequenceOverrides[summary.key] ?? summary.suggestedNextSequence;
+    const confirmed = input.lastUsedSequenceOverrides[summary.key] ?? summary.lastUsedSequence;
     let config = configs.find((item) => item.dependency === summary.dependency && item.year === summary.year);
     if (!config) {
       const seed = defaultConfigSeed(summary.dependency as OficioDependency, summary.year);
@@ -422,7 +477,19 @@ export async function commitOficioImportWorkbook(input: {
         data: { lastGeneratedSequence: confirmed, updatedById: input.userId },
       });
     }
-    numberingApplied.push({ ...summary, suggestedNextSequence: confirmed });
+    numberingApplied.push({
+      ...summary,
+      lastUsedSequence: confirmed,
+      nextOficioNumber: summary.pattern
+        ? applyNomenclaturePattern({
+            pattern: summary.pattern,
+            sequence: confirmed + 1,
+            year: summary.year,
+            prefix: config.prefix,
+            sequencePadding: config.sequencePadding,
+          })
+        : summary.nextOficioNumber,
+    });
   }
 
   await prisma.oficioImportBatch.update({

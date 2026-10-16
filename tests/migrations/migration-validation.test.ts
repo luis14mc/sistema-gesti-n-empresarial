@@ -136,6 +136,20 @@ describe('No post-Phase-1 migration drops a business table (Phase 10A data quali
   }
 });
 
+describe('Oficios Excel import batch organization backfill migration', () => {
+  const migrations = listMigrations();
+  const migration = migrations.find((m) => m.directory.includes('oficios_excel_import_pdf_meta'));
+
+  it('exists and backfills organizationId via organization_memberships (not users.organizationId)', () => {
+    expect(migration).toBeDefined();
+    if (!migration) return;
+    expect(migration.content).toMatch(/organization_memberships/i);
+    expect(migration.content).not.toMatch(/FROM\s+"users"\s+u[\s\S]*u\."organizationId"/i);
+    expect(migration.content).toMatch(/org_cni_default/);
+    expect(migration.content).toMatch(/ALTER TABLE\s+"oficio_import_batches"\s+ALTER COLUMN\s+"organizationId"\s+SET NOT NULL/i);
+  });
+});
+
 describe('Every CREATE TABLE has a primary key (Phase 10A data quality)', () => {
   const migrations = listMigrations();
   for (const migration of migrations) {

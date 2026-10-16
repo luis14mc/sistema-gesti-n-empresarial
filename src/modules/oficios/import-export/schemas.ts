@@ -31,5 +31,7 @@ export type OficioImportRowSchema = z.infer<typeof oficioImportRowSchema> & {
 
 export const oficioImportCommitSchema = z.object({
   duplicates: z.enum(['skip', 'import']),
-  nextSequenceOverrides: z.record(z.string(), z.coerce.number().int().min(0)).default({}),
+  lastUsedSequenceOverrides: z.record(z.string(), z.coerce.number().int().min(0)).default({}),
+  /** @deprecated use lastUsedSequenceOverrides */
+  nextSequenceOverrides: z.record(z.string(), z.coerce.number().int().min(0)).optional(),
 });

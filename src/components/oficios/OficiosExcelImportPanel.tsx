@@ -27,7 +27,7 @@ export function OficiosExcelImportPanel() {
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [committing, setCommitting] = useState(false);
   const [duplicatePolicy, setDuplicatePolicy] = useState<'skip' | 'import'>('skip');
-  const [sequenceOverrides, setSequenceOverrides] = useState<Record<string, number>>({});
+  const [lastUsedSequenceOverrides, setLastUsedSequenceOverrides] = useState<Record<string, number>>({});
   const [batchId, setBatchId] = useState<string | null>(null);
 
   const filteredRows = useMemo(() => {
@@ -52,9 +52,9 @@ export function OficiosExcelImportPanel() {
       setPreview(json.data);
       const overrides: Record<string, number> = {};
       for (const item of json.data.numbering as OficioImportPreviewResult['numbering']) {
-        overrides[item.key] = item.suggestedNextSequence;
+        overrides[item.key] = item.lastUsedSequence;
       }
-      setSequenceOverrides(overrides);
+      setLastUsedSequenceOverrides(overrides);
       sileo.success({ title: 'Vista previa lista' });
     } catch (error) {
       sileo.error({ title: 'Vista previa fallida', description: error instanceof Error ? error.message : undefined });
@@ -69,7 +69,10 @@ export function OficiosExcelImportPanel() {
     try {
       const fd = new FormData();
       fd.append('file', file);
-      fd.append('payload', JSON.stringify({ duplicates: duplicatePolicy, nextSequenceOverrides: sequenceOverrides }));
+      fd.append(
+        'payload',
+        JSON.stringify({ duplicates: duplicatePolicy, lastUsedSequenceOverrides }),
+      );
       const res = await fetch('/api/oficios/import/commit', { method: 'POST', body: fd });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error?.message ?? json.message ?? 'Error al importar');
@@ -243,7 +246,13 @@ export function OficiosExcelImportPanel() {
                         {item.dependency} · {item.year}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Máximo importado: {item.maxImportedSequence} · Sugerido: {item.suggestedNextSequence}
+                        Último número importado: {item.lastImportedNumber}
+                        {item.nextOficioNumber !== '—' ? (
+                          <>
+                            {' '}
+                            · El próximo oficio será: {item.nextOficioNumber}
+                          </>
+                        ) : null}
                       </p>
                       {item.patternWarnings.slice(0, 2).map((warning) => (
                         <p key={warning} className="text-xs text-amber-600 dark:text-amber-400">
@@ -252,13 +261,13 @@ export function OficiosExcelImportPanel() {
                       ))}
                     </div>
                     <div className="space-y-1">
-                      <Label>Siguiente correlativo</Label>
+                      <Label>Último número usado</Label>
                       <Input
                         type="number"
                         min={item.maxImportedSequence}
-                        value={sequenceOverrides[item.key] ?? item.suggestedNextSequence}
+                        value={lastUsedSequenceOverrides[item.key] ?? item.lastUsedSequence}
                         onChange={(event) =>
-                          setSequenceOverrides((prev) => ({
+                          setLastUsedSequenceOverrides((prev) => ({
                             ...prev,
                             [item.key]: Number.parseInt(event.target.value, 10) || 0,
                           }))
