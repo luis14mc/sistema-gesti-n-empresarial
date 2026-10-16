@@ -32,9 +32,11 @@ const profileSchema = z.object({
 });
 type ProfileForm = z.infer<typeof profileSchema>;
 
+import { passwordPolicySchema } from '@/platform/security/password-policy';
+
 const passwordSchema = z.object({
   currentPassword: z.string().min(1, 'Requerida'),
-  newPassword:     z.string().min(8, 'Mínimo 8 caracteres'),
+  newPassword: passwordPolicySchema,
   confirmPassword: z.string(),
 }).refine((d) => d.newPassword === d.confirmPassword, {
   message: 'Las contraseñas no coinciden',

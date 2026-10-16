@@ -19,10 +19,16 @@ import {
 
 export async function generateSessionToken(input: TokenPayload): Promise<string> {
   const organizationId = canonicalOrganizationId();
-  const membership = await prisma.organizationMembership.findUnique({
-    where: { organizationId_userId: { organizationId, userId: input.userId } },
-    select: { role: true, accessVersion: true },
-  });
+  const [membership, userSecurity] = await Promise.all([
+    prisma.organizationMembership.findUnique({
+      where: { organizationId_userId: { organizationId, userId: input.userId } },
+      select: { role: true, accessVersion: true },
+    }),
+    prisma.user.findUnique({
+      where: { id: input.userId },
+      select: { mustChangePassword: true, passwordChangedAt: true },
+    }),
+  ]);
   const orgRole = membership?.role ?? organizationRoleForSessionRole(input.role as import('@/lib/session-roles').SessionRole);
   const [overrides, roleMap] = await Promise.all([
     prisma.userPermissionOverride.findMany({
@@ -51,6 +57,8 @@ export async function generateSessionToken(input: TokenPayload): Promise<string>
     ...input,
     orgId: organizationId,
     accessVersion: membership?.accessVersion ?? 0,
+    pwdChangedAtMs: userSecurity?.passwordChangedAt?.getTime() ?? 0,
+    mustChangePassword: userSecurity?.mustChangePassword ?? false,
     mod: encodeModulesForJwt(moduleIdsWithRead(matrix)),
     spe: encodeRouteSpecialsForJwt(routeSpecials),
   });

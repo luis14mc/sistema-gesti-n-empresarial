@@ -97,6 +97,7 @@ export interface SessionUser {
   position: { id: string; name: string } | null;
   organizationId?: string;
   accessVersion?: number;
+  mustChangePassword?: boolean;
   modulesRead?: string[];
   moduleAccess?: Record<
     string,
@@ -962,6 +963,7 @@ export interface CreateUserData {
   phone?: string;
   departmentId?: string;
   positionId?: string;
+  mustChangePassword?: boolean;
 }
 
 export interface UpdateUserData {

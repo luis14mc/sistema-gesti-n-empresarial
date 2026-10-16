@@ -105,16 +105,12 @@ export const NAV_ITEMS: NavItem[] = [
     ],
   },
 
-  // Personas
+  // Personas (single destination — no submenu)
   {
     label: 'Personas',
     href: '/employees',
     icon: Contact,
     module: 'employees',
-    children: [
-      { label: 'Empleados', href: '/employees', module: 'employees' },
-      { label: 'Usuarios', href: '/users', module: 'users' },
-    ],
   },
 
   // Planilla (módulo propio — acceso por matriz de usuario)
@@ -163,6 +159,7 @@ export const NAV_ITEMS: NavItem[] = [
         module: 'settings',
         requiredSpecial: 'roles.manage',
       },
+      { label: 'Usuarios', href: '/users', module: 'users' },
       { label: 'Correspondencia', href: '/settings/correspondencia', module: 'settings' },
     ],
   },

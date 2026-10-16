@@ -27,6 +27,7 @@ async function getHandler(req: AuthenticatedRequest) {
         phone: true,
         role: true,
         isActive: true,
+        mustChangePassword: true,
         departmentId: true,
         positionId: true,
         department: { select: { id: true, name: true } },

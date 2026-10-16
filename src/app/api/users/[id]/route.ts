@@ -11,6 +11,7 @@ import {
   presentAccountRole,
 } from '@/platform/security/authorization/user-account-roles';
 import { isOrganizationRoleAssignable } from '@/platform/security/authorization/role-catalog-service';
+import { countBlockingUserReferences } from '@/modules/users/application/user-reference-counts';
 
 // ============================================
 // GET /api/users/[id] — Obtener usuario por id (ADMIN, RRHH)
@@ -196,6 +197,8 @@ async function deleteHandler(req: AuthenticatedRequest, ctx: { params: Promise<{
     const requestId = crypto.randomUUID();
     try {
         const { id } = await ctx.params;
+        const { searchParams } = new URL(req.url);
+        const hard = searchParams.get('hard') === 'true';
         const { organizationId } = await authorizeOrganization(req, requestId, 'users.deactivate');
 
         if (id === req.user!.userId) {
@@ -208,6 +211,7 @@ async function deleteHandler(req: AuthenticatedRequest, ctx: { params: Promise<{
         const membership = await prisma.organizationMembership.findFirst({
             where: { userId: id, organizationId, status: 'ACTIVE' },
             select: {
+                id: true,
                 user: {
                     select: { firstName: true, lastName: true, email: true, isActive: true },
                 },
@@ -217,6 +221,30 @@ async function deleteHandler(req: AuthenticatedRequest, ctx: { params: Promise<{
             return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
         }
         const existing = membership.user;
+
+        if (hard) {
+            const references = await countBlockingUserReferences(id);
+            if (references > 0) {
+                return NextResponse.json(
+                    { error: 'Tiene historial; desactívelo en su lugar' },
+                    { status: 409 },
+                );
+            }
+            await prisma.$transaction([
+                prisma.organizationMembership.deleteMany({ where: { userId: id, organizationId } }),
+                prisma.user.delete({ where: { id } }),
+            ]);
+            await createAuditRecord({
+                title: 'Eliminación definitiva de usuario',
+                description: `Se eliminó usuario: ${existing.firstName} ${existing.lastName} (${existing.email})`,
+                module: 'USUARIOS',
+                category: 'DELETE',
+                userId: req.user!.userId,
+                entityId: id,
+                organizationId,
+            });
+            return NextResponse.json({ deleted: true });
+        }
 
         const user = await prisma.user.update({
             where: { id },

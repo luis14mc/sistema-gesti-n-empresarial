@@ -29,8 +29,18 @@ import {
 
 const AUTH_ROUTES  = ['/login', '/register'];
 
-function postLoginPathForRole(role?: string | null): string {
+const MUST_CHANGE_PASSWORD_PATH = '/settings/cambiar-contrasena';
+
+export function postLoginPathForRole(role?: string | null, mustChangePassword?: boolean): string {
+  if (mustChangePassword) return MUST_CHANGE_PASSWORD_PATH;
   return role === 'SECRETARIA' ? '/oficios/todos' : '/dashboard';
+}
+
+function isMustChangePasswordExemptPath(pathname: string): boolean {
+  return (
+    pathname === MUST_CHANGE_PASSWORD_PATH ||
+    pathname.startsWith(`${MUST_CHANGE_PASSWORD_PATH}/`)
+  );
 }
 
 export function buildRequestRedirectUrl(request: NextRequest, path: string, environment = process.env.NODE_ENV): URL {
@@ -288,6 +298,12 @@ export async function middleware(request: NextRequest) {
       }
     }
 
+    if (payload.mustChangePassword && !isMustChangePasswordExemptPath(pathname)) {
+      const res = NextResponse.redirect(buildRequestRedirectUrl(request, MUST_CHANGE_PASSWORD_PATH));
+      applySecurityHeaders(res, nonce);
+      return res;
+    }
+
     logAuthorizationDecision({
       requestedPath: pathname,
       resolvedModule: access.module,
@@ -303,7 +319,7 @@ export async function middleware(request: NextRequest) {
     const payload = await decodeAndVerifyJwt(token);
     if (payload) {
       const res = NextResponse.redirect(
-        buildRequestRedirectUrl(request, postLoginPathForRole(payload.role)),
+        buildRequestRedirectUrl(request, postLoginPathForRole(payload.role, payload.mustChangePassword)),
       );
       applySecurityHeaders(res, nonce);
       return res;
@@ -315,7 +331,7 @@ export async function middleware(request: NextRequest) {
     let landing = '/login';
     if (token) {
       const payload = await decodeAndVerifyJwt(token);
-      landing = payload ? postLoginPathForRole(payload.role) : '/login';
+      landing = payload ? postLoginPathForRole(payload.role, payload.mustChangePassword) : '/login';
     }
     const res = NextResponse.redirect(buildRequestRedirectUrl(request, landing));
     applySecurityHeaders(res, nonce);

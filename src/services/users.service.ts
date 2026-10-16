@@ -43,4 +43,21 @@ export const usersService = {
     /** Actualizar un usuario (rol, nombre, estado activo, etc.) */
     update: (id: string, data: UpdateUserData) =>
         apiHelpers.patch<UserResponse>(BASE, { id, ...data }),
+
+    /** Restablecer contraseña (admin) */
+    resetPassword: (
+        id: string,
+        data: { newPassword: string; mustChangePassword: boolean },
+    ) => apiHelpers.post<{ success: boolean }>(`${BASE}/${id}/password`, data),
+
+    /** Desactivar o eliminar definitivamente (?hard=true) */
+    remove: (id: string, hard = false) =>
+        apiHelpers.delete<{ user?: User; deleted?: boolean }>(
+            `${BASE}/${id}${hard ? '?hard=true' : ''}`,
+        ),
+
+    deleteEligibility: (id: string) =>
+        apiHelpers.get<{ canHardDelete: boolean; referenceCount: number }>(
+            `${BASE}/${id}/delete-eligibility`,
+        ),
 };

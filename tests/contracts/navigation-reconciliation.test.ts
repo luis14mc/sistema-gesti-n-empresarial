@@ -171,6 +171,20 @@ describe('navigation reconciliation', () => {
     expect(visibleNavHrefs('IT')).not.toContain('/settings/roles');
   });
 
+  it('lists Usuarios under Administración, not under Personas', () => {
+    const personas = NAV_ITEMS.find((i) => i.label === 'Personas');
+    expect(personas?.href).toBe('/employees');
+    expect(personas?.children).toBeUndefined();
+
+    const adminGroup = NAV_ITEMS.find((i) => i.label === 'Administración');
+    const usersChild = adminGroup?.children?.find((c) => c.href === '/users');
+    expect(usersChild, 'Usuarios must live under Administración').toBeTruthy();
+    expect(usersChild?.module).toBe('users');
+
+    const personasHrefs = personas?.children?.map((c) => c.href) ?? [personas?.href];
+    expect(personasHrefs).not.toContain('/users');
+  });
+
   it('permissions still filter the navigation per role (incl. per-child gating)', () => {
     const admin = reachableModules('ADMIN');
     expect(admin).toContain('users');

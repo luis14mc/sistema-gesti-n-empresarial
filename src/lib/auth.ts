@@ -15,6 +15,10 @@ export interface TokenPayload {
   role: string;
   orgId?: string;
   accessVersion?: number;
+  /** Unix ms of passwordChangedAt embedded at issuance (session invalidation). */
+  pwdChangedAtMs?: number;
+  mustChangePassword?: boolean;
+  iat?: number;
   mod?: string;
   spe?: string;
 }
@@ -86,6 +90,9 @@ export const verifyToken = (token: string): TokenPayload | null => {
       role: decoded.role,
       orgId: typeof decoded.orgId === 'string' ? decoded.orgId : undefined,
       accessVersion: typeof decoded.accessVersion === 'number' ? decoded.accessVersion : undefined,
+      pwdChangedAtMs: typeof decoded.pwdChangedAtMs === 'number' ? decoded.pwdChangedAtMs : undefined,
+      mustChangePassword: decoded.mustChangePassword === true,
+      iat: typeof decoded.iat === 'number' ? decoded.iat : undefined,
       mod: typeof decoded.mod === 'string' ? decoded.mod : undefined,
       spe: typeof decoded.spe === 'string' ? decoded.spe : undefined,
     };

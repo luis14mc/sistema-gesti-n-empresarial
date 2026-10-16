@@ -1,4 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@/lib/session-validity', () => ({
+  assertTokenSessionStillValid: vi.fn(async () => true),
+}));
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
 import { apiSuccess } from '@/platform/api/response';
 import { expectFailureEnvelope, expectRequestIdHeader, expectSuccessEnvelope } from '../helpers/contracts';
