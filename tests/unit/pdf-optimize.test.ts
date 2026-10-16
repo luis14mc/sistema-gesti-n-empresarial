@@ -16,6 +16,11 @@ describe('detectSignedPdf', () => {
     expect(detectSignedPdf(Buffer.from('%PDF\n/SigFlags 3\n'))).toBe(true);
     expect(detectSignedPdf(Buffer.from('%PDF\n/Type /DocTimeStamp\n'))).toBe(true);
   });
+
+  it('detects /Type/Sig and /Type/DocTimeStamp without spaces', () => {
+    expect(detectSignedPdf(Buffer.from('%PDF\n/Type/Sig\n'))).toBe(true);
+    expect(detectSignedPdf(Buffer.from('%PDF\n/Type/DocTimeStamp\n'))).toBe(true);
+  });
 });
 
 describe('optimizePdf', () => {

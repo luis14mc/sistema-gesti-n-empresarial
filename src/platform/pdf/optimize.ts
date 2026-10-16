@@ -19,17 +19,16 @@ export type PdfOptimizeResult = {
 const OPTIMIZE_TIMEOUT_MS = 60_000;
 const MIN_REDUCTION_RATIO = 0.1;
 
-const SIGNED_MARKERS = [
-  '/ByteRange',
-  '/Type /Sig',
-  '/SigFlags',
-  '/Type /DocTimeStamp',
-] as const;
+const SIGNED_LITERAL_MARKERS = ['/ByteRange', '/SigFlags'] as const;
+const SIGNED_TYPE_MARKER = /\/Type\s*\/(Sig|DocTimeStamp)\b/;
 
 /** Scans the full PDF buffer for digital signature markers. */
 export function detectSignedPdf(buffer: Buffer): boolean {
   const text = buffer.toString('latin1');
-  return SIGNED_MARKERS.some((marker) => text.includes(marker));
+  if (SIGNED_LITERAL_MARKERS.some((marker) => text.includes(marker))) {
+    return true;
+  }
+  return SIGNED_TYPE_MARKER.test(text);
 }
 
 async function isPdfEncrypted(inputPath: string): Promise<boolean> {
@@ -48,7 +47,6 @@ async function runQpdf(inputPath: string, outputPath: string): Promise<void> {
     'qpdf',
     [
       '--warning-exit-0',
-      '--decrypt=n',
       '--object-streams=generate',
       '--compress-streams=y',
       inputPath,
