@@ -13,8 +13,10 @@ export type RoleLabelEntry = {
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url);
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error ?? 'Error al cargar roles');
+    const { readApiErrorFromResponse } = await import('@/lib/api-error-message');
+    throw new Error(
+      await readApiErrorFromResponse(res, 'Error al cargar roles', { rolesContext: true }),
+    );
   }
   return res.json() as Promise<T>;
 }

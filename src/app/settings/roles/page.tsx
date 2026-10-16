@@ -30,6 +30,7 @@ import {
 } from '@/components/permissions/RoleSettingsFields';
 import { swalConfirm } from '@/lib/swal';
 import { sileo } from 'sileo';
+import { formatRolesApiErrorMessage, readApiErrorFromResponse } from '@/lib/api-error-message';
 
 type RoleRow = {
   role: string;
@@ -56,8 +57,9 @@ export default function RolesSettingsPage() {
     try {
       const res = await fetch('/api/roles');
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? 'No autorizado');
+        throw new Error(
+          await readApiErrorFromResponse(res, 'No autorizado', { rolesContext: true }),
+        );
       }
       const data = await res.json();
       setRoles(data.roles ?? []);
@@ -124,7 +126,7 @@ export default function RolesSettingsPage() {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(body.error ?? 'Error al guardar');
+        throw new Error(formatRolesApiErrorMessage(res.status, body, 'Error al guardar'));
       }
       sileo.success({ title: 'Configuración guardada' });
       setSettingsRole(null);
