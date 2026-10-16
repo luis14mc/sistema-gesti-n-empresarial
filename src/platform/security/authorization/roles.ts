@@ -105,6 +105,7 @@ export function fromPrismaUserRole(role: PrismaUserRole): SessionRole {
 }
 
 /** Landing path after login. Correspondencia has no dashboard entitlement. */
-export function postLoginPath(role: string): string {
+export function postLoginPath(role: string, mustChangePassword?: boolean): string {
+  if (mustChangePassword) return '/settings/cambiar-contrasena';
   return role === 'SECRETARIA' ? '/oficios/todos' : '/dashboard';
 }

@@ -169,6 +169,7 @@ export interface User {
   phone: string | null;
   role: Role;
   isActive: boolean;
+  mustChangePassword?: boolean;
   departmentId: string | null;
   positionId: string | null;
   createdAt: string;
