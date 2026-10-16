@@ -33,7 +33,7 @@ export function detectSignedPdf(buffer: Buffer): boolean {
 
 async function isPdfEncrypted(inputPath: string): Promise<boolean> {
   try {
-    const { stdout } = await execFileAsync('qpdf', ['--show-encryption', inputPath], {
+    const { stdout } = await execFileAsync('qpdf', ['--warning-exit-0', '--show-encryption', inputPath], {
       timeout: OPTIMIZE_TIMEOUT_MS,
     });
     return !/not encrypted/i.test(stdout);
@@ -73,6 +73,13 @@ async function runGhostscript(inputPath: string, outputPath: string): Promise<vo
     { timeout: OPTIMIZE_TIMEOUT_MS },
   );
 }
+
+/** External tool runners. Exported as an object so tests can spy on them (vi.spyOn). */
+export const pdfTools = {
+  isPdfEncrypted,
+  runQpdf,
+  runGhostscript,
+};
 
 export async function optimizePdf(input: Buffer): Promise<PdfOptimizeResult> {
   const env = validatePdfOptimizeEnvironment(process.env);
@@ -114,7 +121,7 @@ export async function optimizePdf(input: Buffer): Promise<PdfOptimizeResult> {
   try {
     await writeFile(inputPath, input);
 
-    if (await isPdfEncrypted(inputPath)) {
+    if (await pdfTools.isPdfEncrypted(inputPath)) {
       return baseResult;
     }
 
@@ -122,7 +129,7 @@ export async function optimizePdf(input: Buffer): Promise<PdfOptimizeResult> {
     let qpdfSucceeded = false;
 
     try {
-      await runQpdf(inputPath, qpdfPath);
+      await pdfTools.runQpdf(inputPath, qpdfPath);
       const qpdfBuffer = await readFile(qpdfPath);
       best = qpdfBuffer;
       qpdfSucceeded = true;
@@ -134,7 +141,7 @@ export async function optimizePdf(input: Buffer): Promise<PdfOptimizeResult> {
     if (shouldTryGhostscript) {
       const gsInputPath = qpdfSucceeded ? qpdfPath : inputPath;
       try {
-        await runGhostscript(gsInputPath, gsPath);
+        await pdfTools.runGhostscript(gsInputPath, gsPath);
         const gsBuffer = await readFile(gsPath);
         if (gsBuffer.length < best.length) best = gsBuffer;
       } catch {

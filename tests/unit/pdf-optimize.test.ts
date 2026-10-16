@@ -42,6 +42,7 @@ describe('optimizePdf', () => {
     const input = Buffer.from('%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF');
     const result = await optimizePdf(input);
     expect(result.buffer.equals(input)).toBe(true);
-    process.env.PDF_OPTIMIZE_ENABLED = previous;
+    if (previous === undefined) delete process.env.PDF_OPTIMIZE_ENABLED;
+    else process.env.PDF_OPTIMIZE_ENABLED = previous;
   });
 });

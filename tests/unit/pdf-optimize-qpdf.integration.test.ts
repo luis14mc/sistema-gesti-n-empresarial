@@ -1,5 +1,6 @@
 import { execSync } from 'node:child_process';
-import { describe, expect, it, vi, afterEach } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { optimizePdf, pdfTools } from '@/platform/pdf/optimize';
 
 /** Plain text PDF (no signature); qpdf rewrites it with --warning-exit-0. */
 const PLAIN_TEXT_PDF = Buffer.from(
@@ -38,44 +39,30 @@ function hasQpdf(): boolean {
 
 describe.skipIf(!hasQpdf())('optimizePdf with qpdf (integration)', () => {
   afterEach(() => {
-    vi.doUnmock('node:child_process');
-    vi.resetModules();
+    vi.restoreAllMocks();
   });
 
-  it('runs qpdf successfully on a plain PDF without invoking Ghostscript', async () => {
-    const commands: string[] = [];
-
-    vi.doMock('node:child_process', async (importOriginal) => {
-      const original = await importOriginal<typeof import('node:child_process')>();
-      const realExecFile = original.execFile;
-
-      const wrapped = ((file: string, ...rest: unknown[]) => {
-        commands.push(file);
-        if (file === 'gs') {
-          const callback = rest.find((arg) => typeof arg === 'function') as
-            | ((error: Error | null, stdout: string, stderr: string) => void)
-            | undefined;
-          callback?.(new Error('Ghostscript must not run when qpdf succeeds'), '', '');
-          return {} as import('node:child_process').ChildProcess;
-        }
-        return (realExecFile as (...args: unknown[]) => import('node:child_process').ChildProcess)(file, ...rest);
-      }) as typeof realExecFile;
-      wrapped.__promisify__ = realExecFile.__promisify__;
-
-      return { ...original, execFile: wrapped };
-    });
-
+  it('runs qpdf on a plain (non-encrypted) PDF and does not invoke Ghostscript', async () => {
     const previousEnabled = process.env.PDF_OPTIMIZE_ENABLED;
     process.env.PDF_OPTIMIZE_ENABLED = 'true';
 
-    const { optimizePdf } = await import('@/platform/pdf/optimize');
-    const result = await optimizePdf(PLAIN_TEXT_PDF);
+    // Spies call through to the real implementation (real qpdf binary in CI).
+    const encryptedSpy = vi.spyOn(pdfTools, 'isPdfEncrypted');
+    const qpdfSpy = vi.spyOn(pdfTools, 'runQpdf');
+    const gsSpy = vi.spyOn(pdfTools, 'runGhostscript');
 
-    process.env.PDF_OPTIMIZE_ENABLED = previousEnabled;
+    try {
+      const result = await optimizePdf(PLAIN_TEXT_PDF);
 
-    expect(commands.filter((cmd) => cmd === 'qpdf').length).toBeGreaterThanOrEqual(1);
-    expect(commands.filter((cmd) => cmd === 'gs')).toHaveLength(0);
-    expect(result.signed).toBe(false);
-    expect(result.buffer.length).toBeGreaterThan(0);
+      expect(encryptedSpy).toHaveBeenCalledTimes(1);
+      await expect(encryptedSpy.mock.results[0].value).resolves.toBe(false);
+      expect(qpdfSpy).toHaveBeenCalledTimes(1);
+      expect(gsSpy).not.toHaveBeenCalled();
+      expect(result.signed).toBe(false);
+      expect(result.buffer.length).toBeGreaterThan(0);
+    } finally {
+      if (previousEnabled === undefined) delete process.env.PDF_OPTIMIZE_ENABLED;
+      else process.env.PDF_OPTIMIZE_ENABLED = previousEnabled;
+    }
   });
 });
