@@ -26,3 +26,20 @@ export function findMissingLockedPermissions(
   const set = new Set(permissions);
   return lockedPermissionsForRole(role).filter((permission) => !set.has(permission));
 }
+
+export const LOCKED_ADMIN_PERMISSIONS = USER_ADMIN_PERMISSIONS;
+
+export function findDenyOverridesOnLockedPermissions(
+  role: OrganizationRole,
+  overrides: readonly { permission: Permission; effect: 'ALLOW' | 'DENY' }[],
+): Permission[] {
+  const locked = new Set(lockedPermissionsForRole(role));
+  if (!locked.size) return [];
+  return overrides
+    .filter((o) => o.effect === 'DENY' && locked.has(o.permission))
+    .map((o) => o.permission);
+}
+
+export function isLockedPermissionForRole(role: OrganizationRole, permission: Permission): boolean {
+  return lockedPermissionsForRole(role).includes(permission);
+}

@@ -16,6 +16,7 @@ import {
   createRolePermissionCheck,
   loadOrganizationRolePermissionMap,
 } from '@/platform/security/authorization/role-permission-service';
+import { findDenyOverridesOnLockedPermissions } from '@/platform/security/authorization/role-permission-locks';
 
 const rowSchema = z.object({
   module: z.enum(MODULE_IDS as [ModuleId, ...ModuleId[]]),
@@ -80,13 +81,6 @@ async function putHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ id
 
   const parsed = putSchema.parse(await req.json());
 
-  if (targetUserId === actorId) {
-    const usersRow = parsed.rows.find((r) => r.module === 'users');
-    if (!usersRow?.canRead) {
-      return NextResponse.json({ error: 'No puede quitarse el acceso a Usuarios' }, { status: 400 });
-    }
-  }
-
   const targetMembership = await prisma.organizationMembership.findUnique({
     where: { organizationId_userId: { organizationId, userId: targetUserId } },
     select: { role: true },
@@ -110,6 +104,17 @@ async function putHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ id
       extras: row.extras.filter((e) => allowedExtras.has(e as never)),
     });
     nextOverrides = overridesFromDesiredMatrix(targetMembership.role, nextOverrides, normalized, roleHas);
+  }
+
+  const illegalDenies = findDenyOverridesOnLockedPermissions(targetMembership.role, nextOverrides);
+  if (illegalDenies.length > 0) {
+    return NextResponse.json(
+      {
+        error: 'No se pueden denegar permisos obligatorios del rol',
+        permissions: illegalDenies,
+      },
+      { status: 400 },
+    );
   }
 
   await prisma.$transaction(async (tx) => {

@@ -1,6 +1,7 @@
 import { PermissionDeniedError } from '@/platform/domain/errors';
 import { ORGANIZATION_PERMISSIONS } from './organization-permission-catalog';
 import { OFFICIAL_ROLE_PERMISSIONS } from './official-role-permissions';
+import { lockedPermissionsForRole } from './role-permission-locks';
 
 export { ORGANIZATION_PERMISSIONS } from './organization-permission-catalog';
 export { OFFICIAL_ROLE_PERMISSIONS } from './official-role-permissions';
@@ -87,13 +88,18 @@ export type PermissionOverride = Readonly<{
 
 export type RolePermissionCheck = (permission: Permission) => boolean;
 
-/** Applies user exceptions after role defaults. DENY always wins. */
+/** Applies user exceptions after role defaults. Order: lock → DENY → ALLOW → role. */
 export function canWithOverrides(
   scopedRole: ScopedRole,
   permission: Permission,
   overrides: readonly PermissionOverride[],
   roleHas?: RolePermissionCheck,
 ): boolean {
+  if (scopedRole.scope === 'organization') {
+    if (lockedPermissionsForRole(scopedRole.role).includes(permission)) {
+      return true;
+    }
+  }
   const matching = overrides.filter((override) => override.permission === permission);
   if (matching.some((override) => override.effect === 'DENY')) return false;
   if (matching.some((override) => override.effect === 'ALLOW')) return true;

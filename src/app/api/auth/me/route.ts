@@ -13,6 +13,7 @@ import {
   createRolePermissionCheck,
   loadOrganizationRolePermissionMap,
 } from '@/platform/security/authorization/role-permission-service';
+import { getRoleSettingRow } from '@/platform/security/authorization/role-catalog-service';
 
 async function getHandler(req: AuthenticatedRequest) {
   try {
@@ -61,6 +62,14 @@ async function getHandler(req: AuthenticatedRequest) {
       roleHas,
     );
     const accessVersion = membership?.accessVersion ?? 0;
+    const membershipRole = orgRole;
+    let membershipRoleDisplayName: string | null = null;
+    try {
+      const settings = await getRoleSettingRow(organizationId, orgRole);
+      membershipRoleDisplayName = settings.displayName;
+    } catch {
+      membershipRoleDisplayName = null;
+    }
 
     const cookieToken = req.cookies.get('token')?.value;
     const claims = cookieToken ? verifyToken(cookieToken) : null;
@@ -70,6 +79,8 @@ async function getHandler(req: AuthenticatedRequest) {
       user: {
         ...user,
         role,
+        membershipRole,
+        membershipRoleDisplayName,
         organizationId,
         accessVersion,
         modulesRead: moduleIdsWithRead(moduleAccess),
