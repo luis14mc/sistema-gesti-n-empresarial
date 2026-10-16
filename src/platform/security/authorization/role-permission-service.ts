@@ -1,4 +1,3 @@
-import { cache } from 'react';
 import type { OrganizationRole as PrismaOrganizationRole } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import {
@@ -32,6 +31,16 @@ function buildMapFromRows(
   return map;
 }
 
+function rolePermissionSetFromMap(
+  role: OrganizationRole,
+  map: OrganizationRolePermissionMap | null,
+): ReadonlySet<Permission> | null {
+  if (!map) return null;
+  const fromDb = map.get(role);
+  if (!fromDb || fromDb.size === 0) return null;
+  return fromDb;
+}
+
 export async function loadOrganizationRolePermissionMapUncached(
   organizationId: string,
 ): Promise<OrganizationRolePermissionMap | null> {
@@ -43,7 +52,8 @@ export async function loadOrganizationRolePermissionMapUncached(
   return buildMapFromRows(rows);
 }
 
-export const loadOrganizationRolePermissionMap = cache(loadOrganizationRolePermissionMapUncached);
+/** Always reads from DB — do not wrap in React cache (stale matrices after PUT). */
+export const loadOrganizationRolePermissionMap = loadOrganizationRolePermissionMapUncached;
 
 export function roleHasOrganizationPermission(
   role: OrganizationRole,
@@ -53,8 +63,9 @@ export function roleHasOrganizationPermission(
   if (lockedPermissionsForRole(role).includes(permission)) {
     return true;
   }
-  if (!map) return can(organizationRole(role), permission);
-  return map.get(role)?.has(permission) ?? false;
+  const roleSet = rolePermissionSetFromMap(role, map);
+  if (!roleSet) return can(organizationRole(role), permission);
+  return roleSet.has(permission);
 }
 
 export function createRolePermissionCheck(
@@ -68,8 +79,9 @@ export function effectivePermissionSetForRole(
   role: OrganizationRole,
   map: OrganizationRolePermissionMap | null,
 ): ReadonlySet<Permission> {
-  if (!map) return officialPermissionSetForRole(role);
-  return map.get(role) ?? new Set();
+  const roleSet = rolePermissionSetFromMap(role, map);
+  if (!roleSet) return officialPermissionSetForRole(role);
+  return roleSet;
 }
 
 export function isRoleMatrixModified(
