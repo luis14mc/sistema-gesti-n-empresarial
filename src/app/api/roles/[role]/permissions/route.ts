@@ -101,35 +101,36 @@ async function putHandler(req: AuthenticatedRequest, ctx: { params: Promise<{ ro
     const desiredSet = new Set(desiredPermissions);
     applyLockedPermissions(role, desiredSet);
 
-    const beforeRows = await prisma.rolePermission.findMany({
-      where: { organizationId, role },
-      select: { permission: true },
-    });
-    const before = beforeRows.map((row) => row.permission).sort();
+    if (desiredSet.size === 0) {
+      return NextResponse.json(
+        {
+          error:
+            'Un rol debe tener al menos un permiso. Para dejar de usarlo, desactive "Disponible para asignar" en Ajustes.',
+        },
+        { status: 400 },
+      );
+    }
 
+    // "Before" = what the role effectively had (DB rows, or the official template
+    // when the role was never materialized in role_permissions).
     const roleMap = await loadOrganizationRolePermissionMap(organizationId);
     const currentSet = effectivePermissionSetForRole(role, roleMap);
+    const before = [...currentSet].sort();
     const nextSet = desiredSet;
 
     const toAdd = [...nextSet].filter((permission) => !currentSet.has(permission));
     const toRemove = [...currentSet].filter((permission) => !nextSet.has(permission));
 
+    // Persist the COMPLETE desired set for this role (replace, not diff).
+    // A diff against the official fallback stored only additions: removals were
+    // lost (role had no rows → fell back to the official template) and, after an
+    // addition, the role kept ONLY the added permissions.
     await prisma.$transaction(async (tx) => {
-      if (toRemove.length) {
-        await tx.rolePermission.deleteMany({
-          where: {
-            organizationId,
-            role,
-            permission: { in: toRemove },
-          },
-        });
-      }
-      if (toAdd.length) {
-        await tx.rolePermission.createMany({
-          data: toAdd.map((permission) => ({ organizationId, role, permission })),
-          skipDuplicates: true,
-        });
-      }
+      await tx.rolePermission.deleteMany({ where: { organizationId, role } });
+      await tx.rolePermission.createMany({
+        data: [...nextSet].map((permission) => ({ organizationId, role, permission })),
+        skipDuplicates: true,
+      });
       await bumpOrganizationRoleAccessVersion(organizationId, tx);
     });
 
