@@ -1,3 +1,4 @@
+import { extractApiErrorMessage } from '@/lib/api-error-message';
 import { getToken } from '@/utils/api';
 import type { OficioAttachment } from '@/types';
 import type { EquipmentDocumentMeta } from '@/lib/equipment-storage';
@@ -32,7 +33,9 @@ export const uploadsService = {
 
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
-      throw new Error(body.error || 'No se pudo subir el documento');
+      throw new Error(
+        extractApiErrorMessage(body, 'No se pudo subir el documento', response.status),
+      );
     }
 
     const data: OficioUploadResponse = await response.json();
@@ -60,7 +63,9 @@ export const uploadsService = {
 
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
-      throw new Error(body.error || 'No se pudo subir el documento');
+      throw new Error(
+        extractApiErrorMessage(body, 'No se pudo subir el documento', response.status),
+      );
     }
 
     const data: EquipmentUploadResponse = await response.json();

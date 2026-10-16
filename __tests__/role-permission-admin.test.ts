@@ -47,4 +47,11 @@ describe('configurable role permissions', () => {
   it('falls back to official template when map is null', () => {
     expect(roleHasOrganizationPermission('ADMINISTRACION', 'purchase-orders.read', null)).toBe(true);
   });
+
+  it('ADMIN keeps locked roles.manage even when DB matrix omits it', () => {
+    const map = new Map<OrganizationRole, ReadonlySet<Permission>>();
+    map.set('ADMIN', new Set<Permission>(['dashboard.view']));
+    expect(roleHasOrganizationPermission('ADMIN', 'roles.manage', map)).toBe(true);
+    expect(roleHasOrganizationPermission('OWNER', 'users.read', map)).toBe(true);
+  });
 });

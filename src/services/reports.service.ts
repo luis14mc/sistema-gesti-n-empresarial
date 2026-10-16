@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type { ReportDefinition } from '@/modules/reporting/domain/report-types';
 import { defaultExportFilename } from '@/lib/reportes/report-ui';
+import { extractApiErrorMessage, parseApiErrorPayload } from '@/lib/api-error-message';
 
 export type ReportExportParams = {
   from: string;
@@ -22,16 +23,6 @@ type ApiErrorBody = {
   code?: string;
   message?: string;
 };
-
-function errorMessage(body: ApiErrorBody | undefined, fallback: string): string {
-  if (!body) return fallback;
-  if (typeof body.error === 'string') return body.error;
-  if (body.message) return body.message;
-  if (body.error && typeof body.error === 'object' && body.error.message) {
-    return body.error.message;
-  }
-  return fallback;
-}
 
 export async function fetchReportsCatalog(): Promise<ReportDefinition[]> {
   const { data } = await axios.get<CatalogResponse>('/api/reports/catalog');
@@ -61,15 +52,15 @@ export async function downloadReportExport(
     } catch {
       body = undefined;
     }
-    const err = new Error(errorMessage(body, 'No se pudo exportar el reporte.')) as Error & {
+    const parsed = parseApiErrorPayload(body);
+    const err = new Error(
+      extractApiErrorMessage(body, 'No se pudo exportar el reporte.', response.status),
+    ) as Error & {
       status: number;
       code?: string;
     };
     err.status = response.status;
-    err.code =
-      (typeof body?.error === 'object' && body.error?.code
-        ? body.error.code
-        : body?.code) ?? undefined;
+    err.code = parsed.code ?? body?.code ?? undefined;
     throw err;
   }
 

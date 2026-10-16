@@ -17,6 +17,8 @@ import {
   RoleSettingsFields,
   type RoleSettingsFormState,
 } from '@/components/permissions/RoleSettingsFields';
+import { countUnsavedPermissionChanges } from '@/components/permissions/role-editor-unsaved';
+import { formatRolesApiErrorMessage, readApiErrorFromResponse } from '@/lib/api-error-message';
 import { swalConfirm } from '@/lib/swal';
 import { sileo } from 'sileo';
 
@@ -39,22 +41,6 @@ function matrixToRows(matrix: RoleModuleMatrix): ModuleAccessRow[] {
   });
 }
 
-function countUnsavedChanges(current: ModuleAccessRow[], baseline: ModuleAccessRow[]): number {
-  let changes = 0;
-  for (const id of MODULE_IDS) {
-    const a = current.find((r) => r.module === id)!;
-    const b = baseline.find((r) => r.module === id)!;
-    if (a.canRead !== b.canRead) changes++;
-    if (a.canCreate !== b.canCreate) changes++;
-    if (a.canUpdate !== b.canUpdate) changes++;
-    if (a.canDelete !== b.canDelete) changes++;
-    const extrasA = [...a.extras].sort().join(',');
-    const extrasB = [...b.extras].sort().join(',');
-    if (extrasA !== extrasB) changes++;
-  }
-  return changes;
-}
-
 export function RolePermissionsEditor({ role, roleLabel }: Props) {
   const router = useRouter();
   const [rows, setRows] = useState<ModuleAccessRow[]>([]);
@@ -64,6 +50,7 @@ export function RolePermissionsEditor({ role, roleLabel }: Props) {
   const [modified, setModified] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [baselineLoaded, setBaselineLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [settings, setSettings] = useState<RoleSettingsFormState>({
@@ -79,22 +66,32 @@ export function RolePermissionsEditor({ role, roleLabel }: Props) {
     const version = ++loadVersion.current;
     setLoading(true);
     setError(null);
+    setBaselineLoaded(false);
     try {
       const [permRes, settingsRes] = await Promise.all([
         fetch(`/api/roles/${role}/permissions`),
         fetch(`/api/roles/${role}/settings`),
       ]);
+
+      const failures: string[] = [];
       if (!permRes.ok) {
-        const body = await permRes.json().catch(() => ({}));
-        throw new Error(body.error ?? 'No se pudieron cargar permisos del rol');
+        failures.push(
+          `Permisos: ${await readApiErrorFromResponse(permRes, 'No se pudieron cargar permisos del rol', { rolesContext: true })}`,
+        );
       }
       if (!settingsRes.ok) {
-        const body = await settingsRes.json().catch(() => ({}));
-        throw new Error(body.error ?? 'No se pudo cargar la configuración del rol');
+        failures.push(
+          `Configuración: ${await readApiErrorFromResponse(settingsRes, 'No se pudo cargar la configuración del rol', { rolesContext: true })}`,
+        );
       }
+      if (failures.length > 0) {
+        throw new Error(failures.join(' · '));
+      }
+
       const data = await permRes.json();
       const settingsData = await settingsRes.json();
       if (version !== loadVersion.current) return;
+
       setMemberCount(data.memberCount ?? settingsData.memberCount ?? 0);
       setAdminLocked(Boolean(settingsData.adminLocked));
       const nextSettings: RoleSettingsFormState = {
@@ -114,23 +111,29 @@ export function RolePermissionsEditor({ role, roleLabel }: Props) {
           MODULE_IDS.map((id) => [id, matrix[id].origin]),
         ) as Partial<Record<ModuleId, 'official' | 'modified'>>,
       );
+      setBaselineLoaded(true);
     } catch (e) {
       if (version !== loadVersion.current) return;
+      setRows([]);
+      setBaselineRows([]);
+      setSettingsBaseline(null);
+      setBaselineLoaded(false);
       setError(e instanceof Error ? e.message : 'Error al cargar permisos del rol');
     } finally {
       if (version === loadVersion.current) setLoading(false);
     }
-  }, [role]);
+  }, [role, roleLabel]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const unsavedCount = useMemo(
-    () => (loading ? 0 : countUnsavedChanges(rows, baselineRows)),
-    [loading, rows, baselineRows],
-  );
-  const isDirty = unsavedCount > 0;
+  const unsavedCount = useMemo(() => {
+    if (!baselineLoaded) return 0;
+    return countUnsavedPermissionChanges(rows, baselineRows);
+  }, [baselineLoaded, rows, baselineRows]);
+
+  const isDirty = baselineLoaded && unsavedCount > 0;
 
   useEffect(() => {
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -165,8 +168,10 @@ export function RolePermissionsEditor({ role, roleLabel }: Props) {
         body: JSON.stringify({ rows }),
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error ?? 'Error al guardar');
+        const body = await res.json().catch(() => null);
+        throw new Error(
+          formatRolesApiErrorMessage(res.status, body, 'Error al guardar permisos'),
+        );
       }
       await fetch('/api/auth/refresh-session', { method: 'POST' });
       sileo.success({ title: 'Permisos del rol guardados' });
@@ -222,9 +227,16 @@ export function RolePermissionsEditor({ role, roleLabel }: Props) {
             confirmRetainMembers: true,
           }),
         });
-        if (!retry.ok) throw new Error((await retry.json().catch(() => ({}))).error ?? 'Error al guardar');
+        if (!retry.ok) {
+          const retryBody = await retry.json().catch(() => null);
+          throw new Error(
+            formatRolesApiErrorMessage(retry.status, retryBody, 'Error al guardar configuración'),
+          );
+        }
       } else if (!res.ok) {
-        throw new Error(body.error ?? 'Error al guardar configuración');
+        throw new Error(
+          formatRolesApiErrorMessage(res.status, body, 'Error al guardar configuración'),
+        );
       }
       sileo.success({ title: 'Configuración del rol guardada' });
       await load();
@@ -247,7 +259,12 @@ export function RolePermissionsEditor({ role, roleLabel }: Props) {
     setSaving(true);
     try {
       const res = await fetch(`/api/roles/${role}/reset`, { method: 'POST' });
-      if (!res.ok) throw new Error('No se pudo restablecer');
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(
+          formatRolesApiErrorMessage(res.status, body, 'No se pudo restablecer'),
+        );
+      }
       await fetch('/api/auth/refresh-session', { method: 'POST' });
       sileo.success({ title: 'Rol restablecido' });
       await load();
@@ -266,6 +283,7 @@ export function RolePermissionsEditor({ role, roleLabel }: Props) {
 
   const statusLabel = modified ? 'Modificado' : 'Plantilla oficial';
   const visibleTitle = settings.displayName || roleLabel;
+  const actionsDisabled = loading || Boolean(error) || !baselineLoaded;
 
   const headerMeta = (
     <p className="text-sm text-muted-foreground">
@@ -295,14 +313,19 @@ export function RolePermissionsEditor({ role, roleLabel }: Props) {
                 variant="outline"
                 size="sm"
                 onClick={resetOfficial}
-                disabled={saving || loading}
+                disabled={saving || actionsDisabled}
               >
                 Restaurar valores oficiales
               </Button>
             </>
           }
           primaryAction={
-            <Button type="button" size="sm" onClick={save} disabled={saving || loading || !isDirty}>
+            <Button
+              type="button"
+              size="sm"
+              onClick={save}
+              disabled={saving || actionsDisabled || !isDirty}
+            >
               {saving
                 ? 'Guardando…'
                 : isDirty
@@ -311,7 +334,7 @@ export function RolePermissionsEditor({ role, roleLabel }: Props) {
             </Button>
           }
         >
-          {!loading && !error ? headerMeta : null}
+          {!loading && !error && baselineLoaded ? headerMeta : null}
         </PageHeader>
 
         {loading ? (
@@ -324,46 +347,51 @@ export function RolePermissionsEditor({ role, roleLabel }: Props) {
         ) : error ? (
           <Alert variant="destructive">
             <AlertTitle>No se pudo cargar</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription className="space-y-3">
+              <p>{error}</p>
+              <Button type="button" variant="outline" size="sm" onClick={() => void load()}>
+                Reintentar
+              </Button>
+            </AlertDescription>
           </Alert>
         ) : (
           <>
-          <Card>
-            <CardContent className="space-y-4 pt-6">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-sm font-semibold">Catálogo de asignación</h2>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  onClick={saveSettings}
-                  disabled={savingSettings || !settingsDirty}
-                >
-                  {savingSettings ? 'Guardando…' : 'Guardar configuración'}
-                </Button>
-              </div>
-              <RoleSettingsFields
-                value={settings}
-                onChange={(patch) => setSettings((prev) => ({ ...prev, ...patch }))}
-                adminLocked={adminLocked}
-                memberCount={memberCount}
-                disabled={savingSettings}
-              />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <ModulePermissionMatrix
-                mode="role"
-                orgRole={role}
-                rows={rows}
-                onRowsChange={setRows}
-                moduleOrigins={origins}
-                memberCount={memberCount}
-                disabled={saving}
-              />
-            </CardContent>
-          </Card>
+            <Card>
+              <CardContent className="space-y-4 pt-6">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="text-sm font-semibold">Catálogo de asignación</h2>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={saveSettings}
+                    disabled={savingSettings || !settingsDirty}
+                  >
+                    {savingSettings ? 'Guardando…' : 'Guardar configuración'}
+                  </Button>
+                </div>
+                <RoleSettingsFields
+                  value={settings}
+                  onChange={(patch) => setSettings((prev) => ({ ...prev, ...patch }))}
+                  adminLocked={adminLocked}
+                  memberCount={memberCount}
+                  disabled={savingSettings}
+                />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <ModulePermissionMatrix
+                  mode="role"
+                  orgRole={role}
+                  rows={rows}
+                  onRowsChange={setRows}
+                  moduleOrigins={origins}
+                  memberCount={memberCount}
+                  disabled={saving}
+                />
+              </CardContent>
+            </Card>
           </>
         )}
       </div>

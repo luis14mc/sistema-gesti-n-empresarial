@@ -13,6 +13,7 @@ import {
   OFFICIAL_ROLE_PERMISSIONS,
   officialPermissionSetForRole,
 } from './official-role-permissions';
+import { lockedPermissionsForRole } from './role-permission-locks';
 
 export type OrganizationRolePermissionMap = ReadonlyMap<OrganizationRole, ReadonlySet<Permission>>;
 
@@ -49,6 +50,9 @@ export function roleHasOrganizationPermission(
   permission: Permission,
   map: OrganizationRolePermissionMap | null,
 ): boolean {
+  if (lockedPermissionsForRole(role).includes(permission)) {
+    return true;
+  }
   if (!map) return can(organizationRole(role), permission);
   return map.get(role)?.has(permission) ?? false;
 }
