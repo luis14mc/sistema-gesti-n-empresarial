@@ -173,9 +173,27 @@ export function RolePermissionsEditor({ role, roleLabel }: Props) {
           formatRolesApiErrorMessage(res.status, body, 'Error al guardar permisos'),
         );
       }
+      const saved = (await res.json()) as {
+        modified?: boolean;
+        moduleAccess?: RoleModuleMatrix;
+      };
+      if (saved.moduleAccess) {
+        const nextRows = matrixToRows(saved.moduleAccess);
+        setRows(nextRows);
+        setBaselineRows(nextRows);
+        setModified(Boolean(saved.modified));
+        setOrigins(
+          Object.fromEntries(
+            MODULE_IDS.map((id) => [id, saved.moduleAccess![id].origin]),
+          ) as Partial<Record<ModuleId, 'official' | 'modified'>>,
+        );
+        setBaselineLoaded(true);
+      }
       await fetch('/api/auth/refresh-session', { method: 'POST' });
       sileo.success({ title: 'Permisos del rol guardados' });
-      await load();
+      if (!saved.moduleAccess) {
+        await load();
+      }
     } catch (e) {
       sileo.error({
         title: 'Error',

@@ -48,6 +48,15 @@ describe('configurable role permissions', () => {
     expect(roleHasOrganizationPermission('ADMINISTRACION', 'purchase-orders.read', null)).toBe(true);
   });
 
+  it('falls back to official template when role has no rows in a sparse map', () => {
+    const map = new Map<OrganizationRole, ReadonlySet<Permission>>();
+    map.set('ADMINISTRACION', new Set());
+    map.set('HR', new Set<Permission>(['employees.read']));
+    expect(roleHasOrganizationPermission('ADMINISTRACION', 'purchase-orders.read', map)).toBe(true);
+    expect(roleHasOrganizationPermission('HR', 'employees.read', map)).toBe(true);
+    expect(roleHasOrganizationPermission('HR', 'purchase-orders.read', map)).toBe(false);
+  });
+
   it('ADMIN keeps locked roles.manage even when DB matrix omits it', () => {
     const map = new Map<OrganizationRole, ReadonlySet<Permission>>();
     map.set('ADMIN', new Set<Permission>(['dashboard.view']));
