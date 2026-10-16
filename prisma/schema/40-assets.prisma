@@ -1,0 +1,565 @@
+// Assets, equipment, licenses, disposal
+
+model Equipment {
+  id                     String                  @id @default(cuid())
+  inventoryCode          String
+  type                   String
+  brand                  String
+  model                  String
+  serialNumber           String?
+  status                 EquipmentStatus         @default(AVAILABLE)
+  purchaseDate           DateTime?               @db.Date
+  warrantyDate           DateTime?               @db.Date
+  depreciationDate       DateTime?               @db.Date
+  ram                    String?
+  processor              String?
+  storage                String?
+  os                     String?
+  includedAccessories    String?                 @db.Text
+  installedSoftware      String?                 @db.Text
+  retirementReason       String?
+  retiredAt              DateTime?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  version                Int                     @default(1)
+  category               EquipmentCategory       @default(OTHER)
+  cost                   Decimal?                @db.Decimal(14, 2)
+  ipAddress              String?
+  location               String?
+  macAddress             String?
+  notes                  String?
+  purchaseOrder          String?
+  supplier               String?
+  organizationId         String
+  organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  assignments            EquipmentAssignment[]
+  history                EquipmentHistory[]
+  maintenances           EquipmentMaintenance[]
+  disposals              EquipmentDisposal[]
+  replacementProjections ReplacementProjection[]
+
+  @@unique([organizationId, inventoryCode])
+  @@unique([organizationId, serialNumber])
+  @@index([status])
+  @@index([category])
+  @@index([type])
+  @@index([inventoryCode])
+  @@index([serialNumber])
+  @@index([organizationId, status])
+  @@index([organizationId, createdAt])
+  @@schema("public")
+  @@map("equipment")
+}
+
+model EquipmentAssignment {
+  id                      String           @id @default(cuid())
+  equipmentId             String
+  userId                  String?
+  assignedDate            DateTime         @default(now())
+  returnedDate            DateTime?
+  departmentAtTime        String?
+  positionAtTime          String?
+  notes                   String?
+  urlNotaPdf              String?
+  assignedById            String?
+  assignmentNotes         String?
+  createdAt               DateTime         @default(now())
+  deliveryDocumentUrl     String?
+  deliveryReason          String?
+  employeeEmailAtTime     String?
+  employeeId              String?
+  employeeNameAtTime      String?
+  returnCondition         String?
+  returnDocumentUrl       String?
+  returnNotes             String?
+  returnReason            String?
+  returnedById            String?
+  updatedAt               DateTime         @default(now()) @updatedAt
+  version                 Int              @default(1)
+  status                  AssignmentStatus @default(ACTIVE)
+  organizationId          String
+  employeeNameSnapshot    String?
+  departmentSnapshot      String?
+  positionSnapshot        String?
+  inventoryNumberSnapshot String?
+  brandSnapshot           String?
+  modelSnapshot           String?
+  serialNumberSnapshot    String?
+  ramSnapshot             String?
+  processorSnapshot       String?
+  storageSnapshot         String?
+  operatingSystemSnapshot String?
+  accessoriesSnapshot     String?          @db.Text
+  softwareSnapshot        String?          @db.Text
+  organization            Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  employee                Employee?        @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  equipment               Equipment        @relation(fields: [equipmentId], references: [id])
+  user                    User?            @relation(fields: [userId], references: [id])
+
+  @@index([equipmentId])
+  @@index([employeeId])
+  @@index([userId])
+  @@index([status])
+  @@index([assignedDate])
+  @@index([organizationId, status])
+  @@schema("public")
+  @@map("equipment_assignments")
+}
+
+model EquipmentHistory {
+  id            String                 @id @default(cuid())
+  equipmentId   String
+  action        EquipmentHistoryAction
+  title         String
+  description   String?
+  previousData  Json?
+  newData       Json?
+  performedById String?
+  createdAt     DateTime               @default(now())
+  equipment     Equipment              @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  performedBy   User?                  @relation("EquipmentHistoryPerformer", fields: [performedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([equipmentId])
+  @@index([action])
+  @@index([createdAt])
+  @@schema("public")
+  @@map("equipment_history")
+}
+
+model EquipmentMaintenance {
+  id            String            @id @default(cuid())
+  equipmentId   String
+  type          MaintenanceType   @default(PREVENTIVE)
+  status        MaintenanceStatus @default(SCHEDULED)
+  description   String
+  scheduledDate DateTime?         @db.Date
+  completedDate DateTime?         @db.Date
+  cost          Decimal?          @db.Decimal(14, 2)
+  technician    String?
+  notes         String?
+  performedById String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  documentUrl   String?
+  equipment     Equipment         @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  performedBy   User?             @relation("EquipmentMaintenancePerformer", fields: [performedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([equipmentId])
+  @@index([status])
+  @@index([scheduledDate])
+  @@schema("public")
+  @@map("equipment_maintenances")
+}
+
+model DisposalPolicy {
+  id                     String             @id @default(cuid())
+  organizationId         String             @unique
+  maxAgeYears            Decimal            @default(5) @db.Decimal(5, 2)
+  repairThresholdPct     Decimal            @default(50) @db.Decimal(5, 2)
+  ageWeight              Int                @default(25)
+  repairWeight           Int                @default(30)
+  conditionWeight        Int                @default(30)
+  securityWeight         Int                @default(15)
+  approvalScoreThreshold Int                @default(60)
+  reviewScoreThreshold   Int                @default(35)
+  folioPrefix            String             @default("DICT-BAJA")
+  footerText             String?
+  signatureTitle         String             @default("APROBACIÓN INSTITUCIONAL")
+  approverRoles          OrganizationRole[] @default([OWNER, ADMIN, IT_MANAGER])
+  updatedAt              DateTime           @updatedAt
+  organization           Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("public")
+  @@map("disposal_policies")
+}
+
+model EquipmentDisposal {
+  id                        String                     @id @default(cuid())
+  organizationId            String
+  folio                     String
+  equipmentId               String
+  previousEquipmentStatus   EquipmentStatus
+  serialNumber              String
+  category                  String
+  brand                     String
+  model                     String
+  department                String
+  custodianName             String?
+  purchaseDate              DateTime                   @db.Date
+  purchasePrice             Decimal                    @db.Decimal(14, 2)
+  estimatedRepairCost       Decimal                    @default(0) @db.Decimal(14, 2)
+  estimatedReplacementPrice Decimal                    @db.Decimal(14, 2)
+  physicalCondition         PhysicalCondition
+  functionalCondition       FunctionalCondition
+  securitySupportStatus     SecuritySupportStatus
+  technicalNotes            String?                    @db.Text
+  evaluationScore           Int
+  disposalResult            DisposalResult
+  evaluationRationales      Json?
+  status                    DisposalStatus             @default(DRAFT)
+  evaluatedById             String
+  approvedById              String?
+  approvedAt                DateTime?
+  submittedAt               DateTime?
+  rejectedAt                DateTime?
+  rejectionReason           String?                    @db.Text
+  cancelledAt               DateTime?
+  cancellationReason        String?                    @db.Text
+  pdfStorageKey             String?
+  templateSnapshot          Json?
+  dataSnapshot              Json?
+  version                   Int                        @default(1)
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  organization              Organization               @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  equipment                 Equipment                  @relation(fields: [equipmentId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  evaluatedBy               User                       @relation("DisposalEvaluator", fields: [evaluatedById], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  approvedBy                User?                      @relation("DisposalApprover", fields: [approvedById], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  documents                 DisposalDocument[]
+  history                   EquipmentDisposalHistory[]
+  replacementProjection     ReplacementProjection?
+
+  @@unique([organizationId, folio])
+  @@index([organizationId, status])
+  @@index([organizationId, equipmentId])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, disposalResult])
+  @@index([organizationId, evaluatedById])
+  @@schema("public")
+  @@map("equipment_disposals")
+}
+
+model DisposalDocument {
+  id             String            @id @default(cuid())
+  organizationId String
+  disposalId     String
+  storageKey     String
+  fileName       String
+  originalName   String
+  mimeType       String
+  fileSize       Int
+  fileHash       String?
+  uploadedById   String
+  createdAt      DateTime          @default(now())
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  disposal       EquipmentDisposal @relation(fields: [disposalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  uploadedBy     User              @relation("DisposalDocumentUploader", fields: [uploadedById], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@index([organizationId, disposalId])
+  @@index([organizationId, fileHash])
+  @@schema("public")
+  @@map("disposal_documents")
+}
+
+model EquipmentDisposalHistory {
+  id             String                @id @default(cuid())
+  organizationId String
+  disposalId     String
+  action         DisposalHistoryAction
+  previousValues Json?
+  newValues      Json?
+  metadata       Json?
+  requestId      String?
+  performedById  String
+  createdAt      DateTime              @default(now())
+  disposal       EquipmentDisposal     @relation(fields: [disposalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  performedBy    User                  @relation("DisposalHistoryPerformer", fields: [performedById], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@index([organizationId, disposalId, createdAt], map: "equipment_disposal_history_organizationId_disposalId_createdAt_")
+  @@schema("public")
+  @@map("equipment_disposal_history")
+}
+
+model ReplacementProjection {
+  id              String                      @id @default(cuid())
+  organizationId  String
+  disposalId      String                      @unique
+  equipmentId     String
+  estimatedAmount Decimal                     @db.Decimal(14, 2)
+  status          ReplacementProjectionStatus @default(PENDING)
+  purchaseOrderId String?
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+  organization    Organization                @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  disposal        EquipmentDisposal           @relation(fields: [disposalId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  equipment       Equipment                   @relation(fields: [equipmentId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  purchaseOrder   CompraOrden?                @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([organizationId, status])
+  @@index([organizationId, equipmentId])
+  @@schema("public")
+  @@map("replacement_projections")
+}
+
+enum SecurityEventOutcome {
+  SUCCESS
+  FAILURE
+  DENIED
+  @@schema("public")
+}
+
+enum SecurityEventSeverity {
+  INFO
+  NOTICE
+  WARNING
+  CRITICAL
+  @@schema("public")
+}
+
+enum PhysicalCondition {
+  EXCELLENT
+  ACCEPTABLE
+  FAIR
+  POOR
+  CRITICAL
+  @@schema("public")
+}
+
+enum FunctionalCondition {
+  OPERATIONAL
+  SLOW
+  FREQUENT_FAILURES
+  INOPERABLE
+  @@schema("public")
+}
+
+enum SecuritySupportStatus {
+  SUPPORTED
+  LIMITED_SUPPORT
+  UNSUPPORTED
+  VULNERABLE
+  @@schema("public")
+}
+
+enum DisposalStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  CANCELLED
+  @@schema("public")
+}
+
+enum DisposalResult {
+  DISPOSAL_JUSTIFIED
+  EVALUATION_REQUIRED
+  KEEP_IN_SERVICE
+  @@schema("public")
+}
+
+enum DisposalHistoryAction {
+  DISPOSAL_CREATED
+  DISPOSAL_UPDATED
+  DISPOSAL_SUBMITTED
+  DISPOSAL_APPROVED
+  DISPOSAL_REJECTED
+  DISPOSAL_CANCELLED
+  DISPOSAL_DOCUMENT_UPLOADED
+  DISPOSAL_DOCUMENT_DELETED
+  DISPOSAL_PDF_GENERATED
+  EQUIPMENT_STATUS_CHANGED
+  EQUIPMENT_STATUS_DRIFT_DETECTED
+  @@schema("public")
+}
+
+enum ReplacementProjectionStatus {
+  PENDING
+  CONVERTED
+  CANCELLED
+  @@schema("public")
+}
+
+enum EquipmentCategory {
+  DESKTOP_PC
+  LAPTOP
+  PRINTER
+  PHONE
+  MONITOR
+  UPS
+  ACCESSORY
+  OTHER
+  @@schema("public")
+}
+
+enum EquipmentStatus {
+  AVAILABLE
+  ASSIGNED
+  IN_MAINTENANCE
+  DAMAGED
+  DISPOSAL_IN_PROGRESS
+  DISPOSED
+  RETIRED
+  LOST
+  @@schema("public")
+}
+
+enum AssignmentStatus {
+  ACTIVE
+  RETURNED
+  REPLACED
+  LOST
+  CANCELLED
+  @@schema("public")
+}
+
+enum EquipmentHistoryAction {
+  CREATED
+  ASSIGNED
+  RETURNED
+  REPLACED
+  MAINTENANCE
+  STATUS_CHANGED
+  RETIRED
+  UPDATED
+  @@schema("public")
+}
+
+enum MovementType {
+  EXIT
+  RETURN
+  @@schema("public")
+}
+
+enum MaintenanceType {
+  PREVENTIVE
+  CORRECTIVE
+  UPDATE
+  INSPECTION
+  @@schema("public")
+}
+
+enum MaintenanceStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  @@schema("public")
+}
+
+enum SoftwareBillingCycle {
+  MONTHLY
+  ANNUAL
+  QUARTERLY
+  OTHER
+  @@schema("public")
+}
+
+enum SoftwareCurrency {
+  USD
+  HNL
+  @@schema("public")
+}
+
+enum SoftwareSubscriptionStatus {
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+  @@schema("public")
+}
+
+enum SoftwareSeatType {
+  INDIVIDUAL
+  SHARED
+  @@schema("public")
+}
+
+enum SoftwareSeatStatus {
+  AVAILABLE
+  ASSIGNED
+  SUSPENDED
+  CANCELLED
+  @@schema("public")
+}
+
+model SoftwareProduct {
+  id             String                 @id @default(cuid())
+  organizationId String
+  name           String
+  vendor         String?
+  category       String?
+  description    String?                @db.Text
+  website        String?
+  active         Boolean                @default(true)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  subscriptions  SoftwareSubscription[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId, active])
+  @@schema("public")
+  @@map("software_products")
+}
+
+model SoftwareSubscription {
+  id               String                     @id @default(cuid())
+  organizationId   String
+  productId        String
+  planName         String
+  totalSeats       Int
+  billingCycle     SoftwareBillingCycle
+  currency         SoftwareCurrency           @default(USD)
+  billingAmount    Decimal                    @db.Decimal(14, 2)
+  monthlyCost      Decimal                    @db.Decimal(14, 2)
+  annualCost       Decimal                    @db.Decimal(14, 2)
+  startDate        DateTime                   @db.Date
+  renewalDate      DateTime?                  @db.Date
+  paymentDay       Int?
+  autoRenew        Boolean                    @default(true)
+  status           SoftwareSubscriptionStatus @default(ACTIVE)
+  notes            String?                    @db.Text
+  expiringSoonDays Int                        @default(30)
+  createdById      String
+  updatedById      String?
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+  organization     Organization               @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  product          SoftwareProduct            @relation(fields: [productId], references: [id], onDelete: Restrict)
+  createdBy        User                       @relation("SoftwareSubscriptionCreator", fields: [createdById], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  updatedBy        User?                      @relation("SoftwareSubscriptionUpdater", fields: [updatedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  seats            SoftwareLicenseSeat[]
+
+  @@index([organizationId, status])
+  @@index([organizationId, renewalDate])
+  @@index([productId])
+  @@schema("public")
+  @@map("software_subscriptions")
+}
+
+model SoftwareLicenseSeat {
+  id                String             @id @default(cuid())
+  subscriptionId    String
+  accountEmail      String?
+  accountIdentifier String?
+  seatType          SoftwareSeatType   @default(INDIVIDUAL)
+  status            SoftwareSeatStatus @default(AVAILABLE)
+  notes             String?            @db.Text
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  subscription      SoftwareSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  assignments       LicenseAssignment[]
+
+  @@index([subscriptionId, status])
+  @@index([accountEmail])
+  @@schema("public")
+  @@map("software_license_seats")
+}
+
+model LicenseAssignment {
+  id             String              @id @default(cuid())
+  seatId         String
+  employeeId     String
+  assignedAt     DateTime            @default(now())
+  unassignedAt   DateTime?
+  assignedById   String
+  unassignedById String?
+  notes          String?             @db.Text
+  seat           SoftwareLicenseSeat @relation(fields: [seatId], references: [id], onDelete: Cascade)
+  employee       Employee            @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+
+  @@index([seatId, unassignedAt])
+  @@index([employeeId])
+  @@schema("public")
+  @@map("software_license_assignments")
+}

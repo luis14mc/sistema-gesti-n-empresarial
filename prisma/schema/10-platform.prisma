@@ -1,0 +1,485 @@
+// Platform & tenancy
+
+model Organization {
+  id                     String                     @id @default(cuid())
+  name                   String
+  slug                   String                     @unique
+  legalName              String?
+  rtn                    String?
+  logoKey                String?
+  status                 OrganizationStatus         @default(PROVISIONING)
+  settings               Json?
+  timezone               String                     @default("America/Tegucigalpa")
+  locale                 String                     @default("es-HN")
+  currency               String                     @default("HNL")
+  primaryContactName     String?
+  primaryContactEmail    String?
+  primaryContactPhone    String?
+  onboardingStatus       OnboardingStatus           @default(PENDING)
+  activatedAt            DateTime?
+  suspendedAt            DateTime?
+  archivedAt             DateTime?
+  deletionRequestedAt    DateTime?
+  roleAccessVersion      Int                        @default(0)
+  createdAt              DateTime                   @default(now())
+  updatedAt              DateTime                   @updatedAt
+  memberships            OrganizationMembership[]
+  rolePermissions        RolePermission[]
+  roleSettings           RoleSetting[]
+  equipment              Equipment[]
+  disposals              EquipmentDisposal[]
+  disposalPolicies       DisposalPolicy[]
+  disposalDocuments      DisposalDocument[]
+  disposalHistory        EquipmentDisposalHistory[]
+  documentSequences      DocumentSequence[]
+  replacementProjections ReplacementProjection[]
+  purchaseOrders         CompraOrden[]
+  auditRecords           AuditRecord[]
+  equipmentAssignments   EquipmentAssignment[]
+  tickets                Ticket[]
+  departments            Department[]
+  costCenters            CostCenter[]
+  suppliers              Proveedor[]
+  oficios                Oficio[]
+  audits                 Audit[]
+  purchaseOrderTemplates CompraOrdenTemplate[]
+  systemAuditEvents      SystemAuditEvent[]
+  domainEventOutbox      DomainEventOutbox[]
+  notifications          Notification[]
+  permissionOverrides    UserPermissionOverride[]   @relation("PermissionOverrideOrganization")
+  integrations           OrganizationIntegration[]
+  employees              Employee[]
+  payrollSettings        PayrollSettings?
+  payrollIsrBrackets     PayrollIsrBracket[]
+  payslips               Payslip[]
+  oficioNumberingConfigs OficioNumberingConfig[]
+  oficioSigners          OficioSigner[]
+  softwareProducts       SoftwareProduct[]
+  softwareSubscriptions  SoftwareSubscription[]
+
+  @@index([status])
+  @@index([onboardingStatus])
+  @@schema("public")
+  @@map("organizations")
+}
+
+model OrganizationMembership {
+  id               String            @id @default(cuid())
+  organizationId   String
+  userId           String
+  role             OrganizationRole
+  status           MembershipStatus  @default(ACTIVE)
+  accessVersion    Int               @default(0)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  reportExecutions ReportExecution[]
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@index([organizationId, role])
+  @@schema("public")
+  @@map("organization_memberships")
+}
+
+model UserPermissionOverride {
+  id             String           @id @default(cuid())
+  organizationId String
+  userId         String
+  permission     String
+  effect         PermissionEffect
+  createdById    String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  organization   Organization     @relation("PermissionOverrideOrganization", fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User             @relation("UserPermissionOverrides", fields: [userId], references: [id], onDelete: Cascade)
+  createdBy      User?            @relation("PermissionOverrideCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, userId, permission])
+  @@index([userId, organizationId])
+  @@schema("public")
+  @@map("user_permission_overrides")
+}
+
+model RolePermission {
+  id             String           @id @default(cuid())
+  organizationId String
+  role           OrganizationRole
+  permission     String
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, role, permission])
+  @@index([organizationId, role])
+  @@schema("public")
+  @@map("role_permissions")
+}
+
+model RoleSetting {
+  id             String           @id @default(cuid())
+  organizationId String
+  role           OrganizationRole
+  displayName    String
+  assignable     Boolean          @default(false)
+  description    String?
+  updatedById    String?
+  updatedAt      DateTime         @updatedAt
+  createdAt      DateTime         @default(now())
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  updatedBy      User?            @relation("RoleSettingUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, role])
+  @@index([organizationId, assignable])
+  @@schema("public")
+  @@map("role_settings")
+}
+
+model DocumentSequence {
+  id             String       @id @default(cuid())
+  organizationId String
+  documentType   DocumentType
+  year           Int
+  lastValue      Int          @default(0)
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([organizationId, documentType, year])
+  @@index([organizationId, year])
+  @@schema("public")
+  @@map("document_sequences")
+}
+
+model SystemAuditEvent {
+  id             String                @id @default(cuid())
+  organizationId String?
+  userId         String?
+  eventType      String                @default("legacy.event.recorded")
+  outcome        SecurityEventOutcome  @default(SUCCESS)
+  severity       SecurityEventSeverity @default(INFO)
+  reasonCode     String?
+  module         String
+  entityType     String
+  entityId       String?
+  action         String
+  previousData   Json?
+  newData        Json?
+  metadata       Json?
+  attributes     Json?
+  requestId      String?
+  ipAddress      String?
+  userAgent      String?
+  occurredAt     DateTime              @default(now())
+  schemaVersion  Int                   @default(1)
+  createdAt      DateTime              @default(now())
+  organization   Organization?         @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, entityType, entityId])
+  @@index([organizationId, action])
+  @@index([eventType, occurredAt])
+  @@index([outcome, occurredAt])
+  @@schema("public")
+  @@map("system_audit_events")
+}
+
+model DomainEventOutbox {
+  id               String       @id @default(cuid())
+  organizationId   String
+  eventType        String
+  aggregateType    String
+  aggregateId      String
+  aggregateVersion Int
+  eventVersion     Int          @default(1)
+  payload          Json
+  metadata         Json?
+  status           OutboxStatus @default(PENDING)
+  attempts         Int          @default(0)
+  occurredAt       DateTime     @default(now())
+  processedAt      DateTime?
+  lastError        String?
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@unique([organizationId, aggregateType, aggregateId, aggregateVersion, eventType], map: "domain_event_outbox_organizationId_aggregateType_aggregateId_ag")
+  @@index([status, occurredAt])
+  @@index([organizationId, aggregateType, aggregateId], map: "domain_event_outbox_organizationId_aggregateType_aggregateId_id")
+  @@schema("public")
+  @@map("domain_event_outbox")
+}
+
+model ReportExecution {
+  id             String                 @id @default(cuid())
+  organizationId String
+  userId         String
+  reportCode     String
+  format         String
+  filters        Json
+  rowCount       Int?
+  status         ReportExecutionStatus  @default(PENDING)
+  storageKey     String?
+  durationMs     Int?
+  requestId      String?
+  createdAt      DateTime               @default(now())
+  completedAt    DateTime?
+  membership     OrganizationMembership @relation(fields: [organizationId, userId], references: [organizationId, userId], onDelete: Restrict)
+
+  @@index([organizationId, reportCode, createdAt])
+  @@index([organizationId, userId, createdAt])
+  @@schema("public")
+  @@map("report_executions")
+}
+
+enum Role {
+  ADMIN
+  USER
+  RRHH
+  IT
+  @@schema("public")
+}
+
+enum PlatformRole {
+  PLATFORM_ADMIN
+  SUPPORT_ADMIN
+  @@schema("public")
+}
+
+enum OrganizationStatus {
+  PROVISIONING
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+  PENDING_DELETION
+  INACTIVE
+  @@schema("public")
+}
+
+enum MembershipStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+  REVOKED
+  INACTIVE
+  @@schema("public")
+}
+
+enum OrganizationRole {
+  OWNER
+  ADMIN
+  IT_MANAGER
+  IT_TECHNICIAN
+  PROCUREMENT
+  HR
+  AUDITOR
+  USER
+  ADMINISTRACION
+  SECRETARIA
+  DIRECTOR
+  @@schema("public")
+}
+
+enum PermissionEffect {
+  ALLOW
+  DENY
+  @@schema("public")
+}
+
+enum OnboardingStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+  @@schema("public")
+}
+
+enum DocumentType {
+  EQUIPMENT_DISPOSAL
+  PURCHASE_ORDER
+  OFFICE_DOCUMENT
+  EQUIPMENT_ASSET_CODE
+  @@schema("public")
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSING
+  PROCESSED
+  FAILED
+  @@schema("public")
+}
+
+enum ReportExecutionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+  @@schema("public")
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  @@schema("public")
+}
+
+enum NotificationStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+  CANCELLED
+  @@schema("public")
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+  SKIPPED
+  @@schema("public")
+}
+
+model Notification {
+  id             String                 @id @default(cuid())
+  organizationId String
+  userId         String?
+  eventType      String
+  channel        NotificationChannel
+  status         NotificationStatus     @default(PENDING)
+  title          String
+  body           String
+  actionUrl      String?
+  metadata       Json?
+  idempotencyKey String
+  readAt         DateTime?
+  sentAt         DateTime?
+  failedAt       DateTime?
+  deliveredAt    DateTime?
+  cancelledAt    DateTime?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user           User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  deliveries     NotificationDelivery[]
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, userId, createdAt(sort: Desc)])
+  @@index([organizationId, status, createdAt(sort: Desc)])
+  @@index([organizationId, eventType, createdAt(sort: Desc)])
+  @@index([userId, readAt])
+  @@schema("public")
+  @@map("notifications")
+}
+
+model NotificationDelivery {
+  id             String       @id @default(cuid())
+  notificationId String
+  channel        String
+  destination    String?
+  provider       String?
+  status         String
+  attempt        Int          @default(1)
+  providerId     String?
+  errorCode      String?
+  errorMessage   String?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime     @default(now())
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@index([notificationId, attempt])
+  @@index([status, createdAt(sort: Desc)])
+  @@schema("public")
+  @@map("notification_deliveries")
+}
+
+enum IntegrationStatus {
+  DRAFT
+  ACTIVE
+  DEGRADED
+  DISABLED
+  ERROR
+  @@schema("public")
+}
+
+enum IntegrationCapability {
+  IDENTITY_LOGIN
+  USER_DIRECTORY_READ
+  EMAIL_SEND
+  CALENDAR_READ
+  CALENDAR_WRITE
+  TEAMS_NOTIFICATION
+  SHAREPOINT_FILE_READ
+  SHAREPOINT_FILE_WRITE
+  OBJECT_STORAGE
+  WEBHOOK_SEND
+  WEBHOOK_RECEIVE
+  ELECTRONIC_SIGNATURE
+  @@schema("public")
+}
+
+enum IntegrationExecutionStatus {
+  STARTED
+  SUCCESS
+  TRANSIENT_FAILURE
+  PERMANENT_FAILURE
+  CIRCUIT_OPEN
+  CANCELLED
+  @@schema("public")
+}
+
+model OrganizationIntegration {
+  id               String                  @id @default(cuid())
+  organizationId   String
+  provider         String
+  name             String
+  status           IntegrationStatus       @default(DRAFT)
+  capabilities     IntegrationCapability[] @default([])
+  publicConfig     Json?
+  secretReference  String?
+  lastTestedAt     DateTime?
+  lastSuccessfulAt DateTime?
+  lastFailureAt    DateTime?
+  lastErrorCode    String?
+  lastErrorMessage String?
+  createdById      String
+  updatedById      String?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  organization     Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  executions       IntegrationExecution[]
+
+  @@unique([organizationId, provider, name])
+  @@index([organizationId, status])
+  @@index([provider, status])
+  @@schema("public")
+  @@map("organization_integrations")
+}
+
+model IntegrationExecution {
+  id                 String                     @id @default(cuid())
+  organizationId     String
+  integrationId      String
+  operation          String
+  status             IntegrationExecutionStatus
+  entityType         String?
+  entityId           String?
+  requestId          String?
+  correlationId      String?
+  attempt            Int                        @default(1)
+  durationMs         Int?
+  providerStatusCode Int?
+  errorCode          String?
+  errorMessage       String?
+  startedAt          DateTime                   @default(now())
+  completedAt        DateTime?
+  integration        OrganizationIntegration    @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, integrationId, startedAt(sort: Desc)], map: "integration_executions_organizationId_integrationId_startedAt_i")
+  @@index([status, startedAt(sort: Desc)], map: "integration_executions_status_startedAt_idx")
+  @@index([integrationId, startedAt(sort: Desc)], map: "integration_executions_integrationId_startedAt_idx")
+  @@schema("public")
+  @@map("integration_executions")
+}

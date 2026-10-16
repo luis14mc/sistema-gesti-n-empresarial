@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
@@ -80,6 +81,9 @@ async function patchHandler(
     allowedFields.forEach((field) => {
       if (data[field] !== undefined) updateData[field] = data[field];
     });
+    if (updateData.cost != null && typeof updateData.cost === 'number') {
+      updateData.cost = new Prisma.Decimal(updateData.cost);
+    }
 
     const equipment = await prisma.equipment.update({
       where: { id, organizationId: organization.organizationId },

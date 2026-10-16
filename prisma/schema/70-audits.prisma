@@ -1,0 +1,183 @@
+// Audits (institutional + audit records)
+
+model AuditRecord {
+  id             String       @id @default(cuid())
+  title          String
+  description    String
+  justification  String?
+  module         String
+  category       String
+  priority       String
+  status         String
+  deliveryDate   DateTime?
+  receptionDate  DateTime?
+  closingDate    DateTime?
+  attachments    Json?
+  comments       String?
+  entityId       String?
+  previousData   Json?
+  newData        Json?
+  userId         String?
+  organizationId String
+  entityType     String?
+  action         String?
+  metadata       Json?
+  ipAddress      String?
+  userAgent      String?
+  requestId      String?
+  createdAt      DateTime     @default(now())
+  user           User?        @relation("AuditUser", fields: [userId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@index([userId])
+  @@index([module])
+  @@index([entityId])
+  @@index([createdAt])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, entityType, entityId])
+  @@schema("public")
+  @@map("audit_records")
+}
+
+model Audit {
+  id              String               @id @default(cuid())
+  organizationId  String
+  code            String
+  title           String
+  description     String?
+  type            AuditType            @default(INTERNAL)
+  status          AuditStatus          @default(PLANNED)
+  standard        String?
+  scope           String?
+  objectives      String?
+  criteria        String?
+  department      String?
+  conclusions     String?
+  recommendations String?
+  auditeeContact  String?
+  plannedDate     DateTime?            @db.Date
+  startDate       DateTime?
+  endDate         DateTime?
+  leadAuditorId   String?
+  createdById     String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  version         Int                  @default(1)
+  checklist       AuditChecklistItem[]
+  findings        AuditFinding[]
+  createdBy       User?                @relation("AuditCreator", fields: [createdById], references: [id])
+  leadAuditor     User?                @relation("AuditLeadAuditor", fields: [leadAuditorId], references: [id])
+  organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@unique([organizationId, code])
+  @@index([organizationId, status])
+  @@index([status])
+  @@index([leadAuditorId])
+  @@index([plannedDate])
+  @@schema("public")
+  @@map("audits")
+}
+
+model AuditFinding {
+  id          String               @id @default(cuid())
+  auditId     String
+  code        String?
+  description String
+  evidence    String?
+  severity    AuditFindingSeverity
+  clause      String?
+  status      String               @default("OPEN")
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  audit       Audit                @relation(fields: [auditId], references: [id], onDelete: Cascade)
+
+  @@index([auditId])
+  @@index([severity])
+  @@schema("public")
+  @@map("audit_findings")
+}
+
+model AuditChecklistItem {
+  id          String           @id @default(cuid())
+  auditId     String
+  description String?
+  requirement String
+  clause      String?
+  sortOrder   Int              @default(0)
+  completed   Boolean          @default(false)
+  result      ChecklistResult?
+  notes       String?
+  evidence    String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  audit       Audit            @relation(fields: [auditId], references: [id], onDelete: Cascade)
+
+  @@index([auditId])
+  @@index([sortOrder])
+  @@schema("public")
+  @@map("audit_checklist_items")
+}
+
+model CorrectiveAction {
+  id            String                 @id @default(cuid())
+  findingId     String?
+  auditId       String?
+  description   String
+  responsibleId String?
+  dueDate       DateTime?              @db.Date
+  completedDate DateTime?
+  status        CorrectiveActionStatus @default(PENDING)
+  evidence      String?
+  notes         String?
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  responsible   User?                  @relation("CorrectiveActionResponsible", fields: [responsibleId], references: [id])
+
+  @@index([findingId])
+  @@index([auditId])
+  @@index([status])
+  @@index([responsibleId])
+  @@schema("public")
+  @@map("corrective_actions")
+}
+
+enum AuditStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  @@schema("public")
+}
+
+enum AuditType {
+  INTERNAL
+  EXTERNAL
+  COMBINED
+  @@schema("public")
+}
+
+enum AuditFindingSeverity {
+  STRENGTH
+  CONFORMITY
+  OBSERVATION
+  MINOR_NC
+  MAJOR_NC
+  @@schema("public")
+}
+
+enum ChecklistResult {
+  CONFORMING
+  NON_CONFORMING
+  OBSERVATION
+  NOT_APPLICABLE
+  @@schema("public")
+}
+
+enum CorrectiveActionStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+  CANCELLED
+  @@schema("public")
+}

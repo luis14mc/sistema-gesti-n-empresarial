@@ -14,8 +14,8 @@ else
   echo "[railway-start] DIRECT_URL not defined; Prisma CLI will use DATABASE_URL"
 fi
 
-if [ ! -f prisma/schema.prisma ]; then
-  echo "[railway-start] ERROR: prisma/schema.prisma is missing from runtime image"
+if [ ! -f prisma/schema/00-base.prisma ]; then
+  echo "[railway-start] ERROR: prisma/schema is missing from runtime image"
   exit 1
 fi
 
@@ -33,7 +33,7 @@ if [ "${MIGRATION_COUNT}" -eq 0 ]; then
 fi
 
 echo "[railway-start] Applying Prisma migrations to PostgreSQL"
-pnpm exec prisma migrate deploy --schema=prisma/schema.prisma
+pnpm exec prisma migrate deploy
 
 echo "[railway-start] Prisma migrations completed successfully"
 

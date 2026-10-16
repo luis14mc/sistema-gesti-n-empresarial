@@ -16,8 +16,8 @@ else
   echo "[railway-predeploy] DIRECT_URL not defined; Prisma CLI will use DATABASE_URL"
 fi
 
-if [ ! -f prisma/schema.prisma ]; then
-  echo "[railway-predeploy] ERROR: prisma/schema.prisma is missing from runtime image"
+if [ ! -f prisma/schema/00-base.prisma ]; then
+  echo "[railway-predeploy] ERROR: prisma/schema is missing from runtime image"
   exit 1
 fi
 
@@ -38,7 +38,7 @@ echo "[railway-predeploy] Prisma version:"
 pnpm exec prisma --version
 
 echo "[railway-predeploy] Applying migrations to PostgreSQL"
-pnpm exec prisma migrate deploy --schema=prisma/schema.prisma
+pnpm exec prisma migrate deploy
 
 echo "[railway-predeploy] Prisma migrations completed successfully"
 

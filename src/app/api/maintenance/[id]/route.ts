@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
@@ -121,7 +122,9 @@ async function patchHandler(
           ...(updateData.description !== undefined && { description: updateData.description }),
           ...(updateData.scheduledDate !== undefined && { scheduledDate: updateData.scheduledDate }),
           ...(updateData.completedDate !== undefined && { completedDate: updateData.completedDate }),
-          ...(updateData.cost !== undefined && { cost: updateData.cost }),
+          ...(updateData.cost !== undefined && {
+            cost: updateData.cost != null ? new Prisma.Decimal(updateData.cost) : null,
+          }),
           ...(updateData.technician !== undefined && { technician: updateData.technician }),
           ...(updateData.notes !== undefined && { notes: updateData.notes }),
           ...(updateData.status !== undefined && { status: updateData.status }),

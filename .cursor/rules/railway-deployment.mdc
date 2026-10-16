@@ -1,0 +1,13 @@
+---
+description: Despliegue Railway, migrate deploy en main y checklist para PRs con migración
+globs: prisma/migrations/**,docs/deployment/**,railway-*.sh
+alwaysApply: true
+---
+
+# Despliegue Railway
+
+Fuente de verdad: [docs/deployment/railway.md](docs/deployment/railway.md#regla-de-despliegue-obligatoria).
+
+- Merge a **main** → deploy a producción con **`prisma migrate deploy`**.
+- **PR con migración:** probar en PR Environment / staging de Railway; descripción con SQL generado y plan de reversión; **backup manual** Postgres (Railway → Backups) antes de aprobar.
+- Migraciones: **aditivas e idempotentes** (`IF NOT EXISTS`); sin cambios destructivos sin fase previa “dejar de usar” desplegada ([docs/database/conventions.md](docs/database/conventions.md)).

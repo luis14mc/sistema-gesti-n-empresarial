@@ -1,0 +1,79 @@
+// Payroll
+
+model PayrollSettings {
+  id                      String       @id @default(cuid())
+  organizationId          String       @unique
+  medicalExpensesAnnual   Decimal      @db.Decimal(12, 2)
+  ivmDeductibleMonthly    Decimal      @db.Decimal(12, 2)
+  ihssEmRate              Decimal      @db.Decimal(5, 2)
+  ihssIvmRate             Decimal      @db.Decimal(5, 2)
+  ihssCeilingMonthly      Decimal      @db.Decimal(12, 2)
+  updatedById             String?
+  updatedAt               DateTime     @updatedAt
+  organization            Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  updatedBy               User?        @relation("PayrollSettingsUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@schema("public")
+  @@map("payroll_settings")
+}
+
+model PayrollIsrBracket {
+  id             String       @id @default(cuid())
+  organizationId String
+  year           Int
+  order          Int
+  rate           Decimal      @db.Decimal(5, 2)
+  toAnnual       Decimal      @db.Decimal(14, 2)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, year, order])
+  @@index([organizationId, year])
+  @@schema("public")
+  @@map("payroll_isr_brackets")
+}
+
+model Payslip {
+  id                  String              @id @default(cuid())
+  organizationId      String
+  employeeId          String
+  year                Int
+  month               Int
+  periodStart         DateTime            @db.Date
+  periodEnd           DateTime            @db.Date
+  salarioPeriodo      Decimal             @db.Decimal(12, 2)
+  ihss                Decimal             @db.Decimal(12, 2)
+  isr                 Decimal             @db.Decimal(12, 2)
+  otro                Decimal             @db.Decimal(12, 2)
+  totalDeducciones    Decimal             @db.Decimal(12, 2)
+  neto                Decimal             @db.Decimal(12, 2)
+  parametersSnapshot  Json
+  pdfStorageKey       String?
+  emailStatus         PayslipEmailStatus  @default(NONE)
+  deliveryType        PayslipDeliveryType @default(PDF)
+  emailError          String?
+  generatedById       String
+  generatedAt         DateTime            @default(now())
+  organization        Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employee            Employee            @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  generatedBy         User                @relation("PayslipGeneratedBy", fields: [generatedById], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@unique([organizationId, employeeId, year, month])
+  @@index([organizationId, year, month])
+  @@index([employeeId])
+  @@schema("public")
+  @@map("payslips")
+}
+
+enum PayslipEmailStatus {
+  NONE
+  SENT
+  FAILED
+  @@schema("public")
+}
+
+enum PayslipDeliveryType {
+  PDF
+  EMAIL
+  PDF_EMAIL
+  @@schema("public")
+}

@@ -1,11 +1,14 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const SCHEMA_PATH = join(process.cwd(), 'prisma', 'schema.prisma');
+const SCHEMA_DIR = join(process.cwd(), 'prisma', 'schema');
 
 function readSchema(): string {
-  return readFileSync(SCHEMA_PATH, 'utf-8');
+  const files = readdirSync(SCHEMA_DIR)
+    .filter((f) => f.endsWith('.prisma'))
+    .sort();
+  return files.map((f) => readFileSync(join(SCHEMA_DIR, f), 'utf-8')).join('\n');
 }
 
 function extractModelBlock(schema: string, modelName: string): string | null {

@@ -1,0 +1,14 @@
+---
+description: Reglas obligatorias para modelos Prisma y migraciones (ver docs/database/conventions.md)
+globs: prisma/**,docs/database/**
+alwaysApply: true
+---
+
+# Base de datos (Prisma)
+
+Fuente de verdad: [docs/database/conventions.md](docs/database/conventions.md).
+
+- Todo modelo o migración nueva debe cumplir ese documento.
+- **Prohibido:** `Float` para dinero; modelos/campos de dominio en español; borrar o renombrar tablas/columnas en el mismo PR en que el código deja de usarlas (usar expandir → migrar → contraer en PRs separados).
+- **PR con migración:** staging Railway primero; SQL + plan de reversión en el PR; backup Postgres antes de aprobar ([docs/deployment/railway.md](docs/deployment/railway.md)).
+- Schema multi-archivo en `prisma/schema/`; no editar `prisma/schema.prisma` (eliminado).

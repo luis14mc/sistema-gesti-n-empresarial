@@ -25,7 +25,7 @@ export function mapEquipmentResponse(equipment: EquipmentWithRelations) {
     assetCode: equipment.inventoryCode,
     name: `${equipment.brand} ${equipment.model}`,
     categoryLabel: CATEGORY_LABELS[equipment.category],
-    purchaseCost: equipment.cost,
+    purchaseCost: equipment.cost != null ? equipment.cost.toString() : null,
     warrantyDate: equipment.warrantyDate,
     description: equipment.notes,
     assignedTo: activeAssignment
