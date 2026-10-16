@@ -17,6 +17,7 @@ import {
   type PermissionOverride,
   type RolePermissionCheck,
 } from '@/platform/security/authorization/permissions';
+import { isLockedPermissionForRole } from '@/platform/security/authorization/role-permission-locks';
 
 export type EffectiveModuleAccess = Record<ModuleId, ModuleAccessRow>;
 
@@ -208,6 +209,9 @@ function applyPermissionTarget(
   want: boolean,
   roleHasCheck?: RolePermissionCheck,
 ) {
+  if (!want && isLockedPermissionForRole(orgRole, permission)) {
+    return;
+  }
   const roleHas = roleHasCheck
     ? roleHasCheck(permission)
     : can(organizationRole(orgRole), permission);
@@ -217,6 +221,9 @@ function applyPermissionTarget(
     return;
   }
   const effect = want ? ('ALLOW' as const) : ('DENY' as const);
+  if (effect === 'DENY' && isLockedPermissionForRole(orgRole, permission)) {
+    return;
+  }
   if (idx >= 0) overrides[idx] = { permission, effect };
   else overrides.push({ permission, effect });
 }

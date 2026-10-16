@@ -90,6 +90,10 @@ export interface SessionUser {
   lastName: string;
   phone: string | null;
   role: Role;
+  /** Organization membership role (OrganizationRole enum). */
+  membershipRole?: string;
+  /** Catalog display name for membershipRole (sidebar label). */
+  membershipRoleDisplayName?: string | null;
   isActive: boolean;
   departmentId: string | null;
   positionId: string | null;
@@ -976,6 +980,7 @@ export interface UpdateUserData {
   phone?: string;
   departmentId?: string;
   positionId?: string;
+  confirmSelfRoleDemotion?: boolean;
 }
 
 export interface CreateAssignmentData {

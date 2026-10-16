@@ -12,6 +12,10 @@ import {
   presentAccountRole,
 } from '@/platform/security/authorization/user-account-roles';
 import { isOrganizationRoleAssignable } from '@/platform/security/authorization/role-catalog-service';
+import {
+  countActiveSuperAdminMemberships,
+  isSuperAdminMembershipRole,
+} from '@/modules/users/application/super-admin-membership';
 import type { OrganizationRole } from '@prisma/client';
 import { passwordPolicySchema } from '@/platform/security/password-policy';
 import { z } from 'zod';
@@ -134,19 +138,12 @@ async function patchHandler(req: AuthenticatedRequest) {
         const context = await authorizeOrganization(req, requestId, 'users.update');
         const { organizationId } = context;
         const body = await req.json();
-        const { id, ...data } = body;
+        const { id, confirmSelfRoleDemotion, ...data } = body;
 
         if (!id) {
             return NextResponse.json(
                 { error: 'ID de usuario requerido' },
                 { status: 400 }
-            );
-        }
-
-        if (id === req.user!.userId && data.role) {
-            return NextResponse.json(
-                { error: 'No puedes cambiar tu propio rol' },
-                { status: 403 }
             );
         }
 
@@ -180,7 +177,46 @@ async function patchHandler(req: AuthenticatedRequest) {
             }
             if (!roleUnchanged) {
                 await authorizeOrganization(req, requestId, 'memberships.manage');
+
+                if (
+                    isSuperAdminMembershipRole(membership.role) &&
+                    !isSuperAdminMembershipRole(parsedRole)
+                ) {
+                    const remaining = await countActiveSuperAdminMemberships(organizationId, id);
+                    if (remaining === 0) {
+                        return NextResponse.json(
+                            { error: 'Debe existir al menos un Super Admin activo' },
+                            { status: 400 },
+                        );
+                    }
+                }
+
+                if (id === req.user!.userId && !confirmSelfRoleDemotion) {
+                    return NextResponse.json(
+                        {
+                            error: 'CONFIRM_SELF_ROLE_CHANGE',
+                            message:
+                                'Perderá privilegios de administración si el nuevo rol no incluye Roles y permisos. Confirme para continuar.',
+                        },
+                        { status: 409 },
+                    );
+                }
+
                 nextRoles = persistUserAccountRoles(parsedRole);
+            }
+        }
+
+        if (
+            data.isActive === false &&
+            membership.user.isActive &&
+            isSuperAdminMembershipRole(membership.role)
+        ) {
+            const remaining = await countActiveSuperAdminMemberships(organizationId, id);
+            if (remaining === 0) {
+                return NextResponse.json(
+                    { error: 'Debe existir al menos un Super Admin activo' },
+                    { status: 400 },
+                );
             }
         }
 

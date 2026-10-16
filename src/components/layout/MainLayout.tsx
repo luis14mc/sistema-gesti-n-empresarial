@@ -331,6 +331,8 @@ export default function MainLayout({
     moduleExtras,
   };
   const initials = `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase();
+  const membershipRoleLabel =
+    user.membershipRoleDisplayName ?? user.membershipRole ?? user.role;
 
   const handleLogout = () => {
     startLogout(async () => {
@@ -379,7 +381,7 @@ export default function MainLayout({
                   {user.firstName} {user.lastName}
                 </p>
                 <p className="text-xs text-muted-foreground truncate">
-                  {user.role}
+                  {membershipRoleLabel}
                 </p>
               </div>
             </div>
@@ -456,7 +458,7 @@ export default function MainLayout({
                     <p className="text-sm font-medium truncate">
                       {user.firstName} {user.lastName}
                     </p>
-                    <p className="text-xs text-muted-foreground">{user.role}</p>
+                    <p className="text-xs text-muted-foreground">{membershipRoleLabel}</p>
                   </div>
                 </div>
                 <Button

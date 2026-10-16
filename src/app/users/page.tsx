@@ -267,10 +267,24 @@ export default function UsersPage() {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editUser) return;
+    let data: UpdateUserData = { ...editForm };
+    if (
+      currentUser?.id === editUser.id &&
+      editForm.role &&
+      editForm.role !== editUser.role
+    ) {
+      const ok = await swalConfirm(
+        'Cambiar su propio rol',
+        'Si el nuevo rol no incluye Roles y permisos, perderá esa capacidad. ¿Desea continuar?',
+        'Sí, cambiar rol',
+      );
+      if (!ok.isConfirmed) return;
+      data = { ...data, confirmSelfRoleDemotion: true };
+    }
     updateUser(
-      { id: editUser.id, data: editForm },
+      { id: editUser.id, data },
       {
         onSuccess: () => {
           sileo.success({ title: 'Usuario actualizado' });
