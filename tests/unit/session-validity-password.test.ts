@@ -37,13 +37,27 @@ describe('assertTokenSessionStillValid (password rotation)', () => {
     expect(ok).toBe(false);
   });
 
-  it('rejects when accessVersion on token is stale', async () => {
+  it('accepts a token whose accessVersion is stale (permissions changed, not revoked)', async () => {
     const { assertTokenSessionStillValid } = await import('@/lib/session-validity');
     const ok = await assertTokenSessionStillValid({
       userId: 'u1',
       email: 'u@test',
       role: 'ADMIN',
       accessVersion: 1,
+      iat: Math.floor(Date.now() / 1000),
+      pwdChangedAtMs: new Date('2026-01-01T12:00:00.000Z').getTime(),
+    });
+    expect(ok).toBe(true);
+  });
+
+  it('rejects when the user was deactivated', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ isActive: false, passwordChangedAt: null });
+    const { assertTokenSessionStillValid } = await import('@/lib/session-validity');
+    const ok = await assertTokenSessionStillValid({
+      userId: 'u1',
+      email: 'u@test',
+      role: 'ADMIN',
+      accessVersion: 2,
       iat: Math.floor(Date.now() / 1000),
     });
     expect(ok).toBe(false);
