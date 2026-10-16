@@ -281,9 +281,12 @@ export default function MainLayout({
   const [fetchedUser, setFetchedUser] = useState<SessionUser | null>(null);
   const [isFetching, setIsFetching] = useState(!propUser);
 
+  // Always load /api/auth/me: it is the only source of effective module access
+  // (modulesRead, moduleAccess.extras, membership role). A server-provided
+  // `propUser` (e.g. requireSession() on /dashboard) only has the base User
+  // row, so relying on it hid items gated by requiredSpecial (Roles y
+  // permisos, Planilla → Configuración) and fell back to the legacy role.
   useEffect(() => {
-    if (propUser) return;
-
     const abortController = new AbortController();
 
     fetch('/api/auth/me', { signal: abortController.signal })
@@ -312,9 +315,10 @@ export default function MainLayout({
       });
 
     return () => abortController.abort();
-  }, [propUser, router]);
+  }, [router]);
 
-  const user = propUser ?? fetchedUser;
+  // Prefer the full profile (with module access); propUser is only an initial placeholder.
+  const user = fetchedUser ?? propUser;
 
   if (isFetching && !user) return <LoadingShell />;
   if (!user) return <LoadingShell />;
