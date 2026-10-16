@@ -4,6 +4,8 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const MIGRATIONS_ROOT = join(process.cwd(), 'prisma', 'migrations');
+// Replays every migration with psql (one process per file) on a fresh DB: needs more than the 5s default.
+const MIGRATION_REPLAY_TIMEOUT_MS = 120_000;
 const TARGET_DIR = '20261016120000_oficios_excel_import_pdf_meta';
 const FIXTURE_USER_PATH = join(process.cwd(), 'tests/migrations/fixtures/oficio_import_batches_orphan_user.sql');
 
@@ -70,6 +72,6 @@ describe.skipIf(!process.env.SHADOW_DATABASE_URL)(
       ).trim();
 
       expect(membershipOrg).toBe('org_cni_default');
-    });
+    }, MIGRATION_REPLAY_TIMEOUT_MS);
   },
 );
