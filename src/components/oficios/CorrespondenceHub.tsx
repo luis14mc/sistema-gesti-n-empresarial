@@ -29,7 +29,7 @@ import {
   OFICIO_DOCUMENT_KIND_LABELS,
   type OficioScope,
 } from '@/lib/oficios-numbering';
-import { OFICIO_STATUS_LABELS, type OficioStatus, type Role } from '@/types';
+import { OFICIO_RECORD_SOURCE_LABELS, OFICIO_STATUS_LABELS, type OficioStatus, type Role } from '@/types';
 import { CorrespondenceRegisterDialog } from '@/components/oficios/CorrespondenceRegisterDialog';
 
 type DirectionTab = 'ALL' | 'INCOMING' | 'OUTGOING';
@@ -71,6 +71,7 @@ export function CorrespondenceHub({
   );
   const [status, setStatus] = useState(searchParams.get('status') ?? 'ALL');
   const [year, setYear] = useState(searchParams.get('year') ?? String(new Date().getFullYear()));
+  const [recordSource, setRecordSource] = useState(searchParams.get('recordSource') ?? 'ALL');
   const [registerOpen, setRegisterOpen] = useState(false);
 
   const filters = useMemo(
@@ -85,15 +86,16 @@ export function CorrespondenceHub({
           : (directionTab as 'INCOMING' | 'OUTGOING'),
       status: status !== 'ALL' ? status : undefined,
       year: year !== 'ALL' ? year : undefined,
+      recordSource: recordSource !== 'ALL' ? recordSource : undefined,
     }),
-    [page, debouncedSearch, dependency, directionTab, status, year],
+    [page, debouncedSearch, dependency, directionTab, status, year, recordSource],
   );
 
   const { oficios, total, totalPages, isLoading, createOficio, isCreating } = useOficios(filters);
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, dependency, directionTab, status, year]);
+  }, [debouncedSearch, dependency, directionTab, status, year, recordSource]);
 
   const canCreate = canAccess(role, 'oficios', 'create');
 
@@ -132,7 +134,7 @@ export function CorrespondenceHub({
         </div>
 
         <Card className="p-4">
-          <div className="grid gap-3 md:grid-cols-4">
+          <div className="grid gap-3 md:grid-cols-5">
             <div className="relative md:col-span-2">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -182,6 +184,19 @@ export function CorrespondenceHub({
                 })}
               </SelectContent>
             </Select>
+            <Select value={recordSource} onValueChange={setRecordSource}>
+              <SelectTrigger>
+                <SelectValue placeholder="Origen" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Todos los orígenes</SelectItem>
+                {Object.entries(OFICIO_RECORD_SOURCE_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </Card>
 
@@ -218,9 +233,16 @@ export function CorrespondenceHub({
                     onClick={() => router.push(`/oficios/${oficio.id}`)}
                   >
                     <TableCell className="font-medium">
-                      <Link href={`/oficios/${oficio.id}`} className="hover:underline">
-                        {oficio.number}
-                      </Link>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Link href={`/oficios/${oficio.id}`} className="hover:underline">
+                          {oficio.number}
+                        </Link>
+                        {oficio.recordSource === 'HISTORICAL_IMPORT' ? (
+                          <Badge variant="outline" className="text-xs">
+                            Histórico
+                          </Badge>
+                        ) : null}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">

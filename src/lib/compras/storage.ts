@@ -1,4 +1,5 @@
 import { getStorage } from '@/lib/storage';
+import { prepareUploadBuffer } from '@/platform/storage/prepare-upload-buffer';
 
 const ALLOWED_MIME = new Set([
   'application/pdf',
@@ -32,13 +33,15 @@ export async function saveCompraDocument(file: File) {
     size: file.size,
   });
 
-  const buffer = Buffer.from(await file.arrayBuffer());
+  const rawBuffer = Buffer.from(await file.arrayBuffer());
+  const prepared = await prepareUploadBuffer(rawBuffer, mimeType);
+  const buffer = prepared.buffer;
   const storage = getStorage();
   const stored = await storage.put({
     prefix: 'compras',
     originalName,
     mimeType,
-    size: file.size,
+    size: prepared.size,
     buffer,
     desiredName: originalName.replace(/\s+/g, '_'),
   });
@@ -49,5 +52,10 @@ export async function saveCompraDocument(file: File) {
     size: stored.size,
     storagePath: stored.key,
     url: stored.url,
+    originalSizeBytes: prepared.originalSizeBytes,
+    storedSizeBytes: prepared.storedSizeBytes ?? stored.size,
+    optimized: prepared.optimized,
+    signedPdf: prepared.signedPdf,
+    pdfOptimizationSummary: prepared.pdfOptimizationSummary,
   };
 }

@@ -853,6 +853,7 @@ export interface OficioFilters extends PaginationParams {
   dependency?: OficioScope;
   documentKind?: string;
   year?: string | number;
+  recordSource?: string;
 }
 
 export interface TimeEntryFilters extends PaginationParams {

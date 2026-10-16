@@ -72,6 +72,7 @@ async function getHandler(req: AuthenticatedRequest) {
     const directionParam = searchParams.get('direction');
     const documentKind = searchParams.get('documentKind');
     const yearParam = searchParams.get('year');
+    const recordSource = searchParams.get('recordSource');
     const search = searchParams.get('search');
     const page = Math.max(1, Math.min(parseInt(searchParams.get('page') || '1') || 1, 10_000));
     const pageSize = Math.min(Math.max(1, parseInt(searchParams.get('pageSize') || '10') || 10), 100);
@@ -85,6 +86,7 @@ async function getHandler(req: AuthenticatedRequest) {
     }
 
     if (status) where.status = status as Prisma.EnumOficioStatusFilter;
+    if (recordSource) where.recordSource = recordSource as Prisma.EnumOficioRecordSourceFilter;
     if (documentKind) where.documentKind = documentKind;
 
     if (yearParam) {

@@ -53,6 +53,7 @@ model Organization {
   payrollIsrBrackets     PayrollIsrBracket[]
   payslips               Payslip[]
   oficioNumberingConfigs OficioNumberingConfig[]
+  oficioImportBatches    OficioImportBatch[]
   oficioSigners          OficioSigner[]
   softwareProducts       SoftwareProduct[]
   softwareSubscriptions  SoftwareSubscription[]

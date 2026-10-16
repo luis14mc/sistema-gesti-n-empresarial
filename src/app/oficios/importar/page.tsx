@@ -26,6 +26,8 @@ import {
   OFICIO_STATUS_LABELS,
   type OficioStatus,
 } from '@/types';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { OficiosExcelImportPanel } from '@/components/oficios/OficiosExcelImportPanel';
 
 const SCOPES = [
   { value: 'INTERNO', label: 'Interno / Memo' },
@@ -304,13 +306,22 @@ export default function ImportarOficioPage() {
     <MainLayout>
       <PageHeader
         title="Importar oficios"
-        description="Carga individual o por lotes — conserva número y fecha original, no genera correlativo"
+        description="Importación histórica desde Excel o registro documental con PDF"
       >
         <Button asChild variant="outline">
-          <Link href="/oficios/todos"><FileText className="h-4 w-4 mr-2" /> Repositorio</Link>
+          <Link href="/oficios"><FileText className="h-4 w-4 mr-2" /> Correspondencia</Link>
         </Button>
       </PageHeader>
 
+      <Tabs defaultValue="excel" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="excel">Importación histórica (Excel)</TabsTrigger>
+          <TabsTrigger value="document">Documento individual</TabsTrigger>
+        </TabsList>
+        <TabsContent value="excel">
+          <OficiosExcelImportPanel />
+        </TabsContent>
+        <TabsContent value="document" className="space-y-6">
       <DropZone
         isDragging={isDragging}
         onDragChange={setIsDragging}
@@ -378,6 +389,8 @@ export default function ImportarOficioPage() {
           </div>
         </>
       )}
+        </TabsContent>
+      </Tabs>
     </MainLayout>
   );
 }

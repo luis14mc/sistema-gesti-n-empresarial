@@ -77,7 +77,11 @@ RUN corepack enable \
        openssl \
        dumb-init \
        chromium \
+       ghostscript \
+       qpdf \
     && chromium --version \
+    && gs --version \
+    && qpdf --version \
     && rm -rf /var/lib/apt/lists/*
 
 # Full node_modules is intentionally retained for Prisma CLI and the one-time

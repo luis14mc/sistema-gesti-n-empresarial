@@ -34,7 +34,7 @@ async function postHandler(req: AuthenticatedRequest, context: RouteContext) {
     const isPrimary = formData.get('isPrimary') === 'true';
 
     const stored = await saveOficioDocument(file, organization.organizationId);
-    const fileHash = createHash('sha256').update(Buffer.from(await file.arrayBuffer())).digest('hex');
+    const fileHash = stored.fileHash ?? createHash('sha256').update(Buffer.from(await file.arrayBuffer())).digest('hex');
 
     const document = await prisma.oficioDocument.create({
       data: {
@@ -43,6 +43,10 @@ async function postHandler(req: AuthenticatedRequest, context: RouteContext) {
         originalName: stored.originalName,
         mimeType: stored.mimeType,
         size: stored.size,
+        originalSizeBytes: stored.originalSizeBytes ?? null,
+        storedSizeBytes: stored.storedSizeBytes ?? stored.size,
+        optimized: stored.optimized ?? false,
+        signedPdf: stored.signedPdf ?? false,
         storageKey: stored.storageKey,
         url: stored.url,
         fileHash,
@@ -81,7 +85,10 @@ async function postHandler(req: AuthenticatedRequest, context: RouteContext) {
       newData: { documentId: document.id, documentType },
     });
 
-    return NextResponse.json({ document }, { status: 201 });
+    return NextResponse.json(
+      { document, pdfOptimizationSummary: stored.pdfOptimizationSummary ?? null },
+      { status: 201 },
+    );
   } catch (error) {
     const organizationResponse = oficioOrganizationFailure(error, requestId);
     if (organizationResponse) return organizationResponse;

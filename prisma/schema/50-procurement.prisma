@@ -183,6 +183,10 @@ model CompraOrdenDocumento {
   originalName String
   mimeType     String
   size         Int
+  originalSizeBytes Int?
+  storedSizeBytes   Int?
+  optimized    Boolean  @default(false)
+  signedPdf    Boolean  @default(false)
   storageKey   String
   url          String
   fileHash     String?

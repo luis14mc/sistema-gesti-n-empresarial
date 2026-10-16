@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { getStorage } from '@/lib/storage';
+import { prepareUploadBuffer } from '@/platform/storage/prepare-upload-buffer';
 
 const ALLOWED_TYPES = new Map([
   ['application/pdf', '.pdf'],
@@ -16,14 +17,24 @@ export async function storeDisposalDocument(input: { organizationId: string; dis
     throw new Error('INVALID_DISPOSAL_DOCUMENT_TYPE');
   }
   if (input.file.size <= 0 || input.file.size > MAX_SIZE) throw new Error('INVALID_DISPOSAL_DOCUMENT_SIZE');
-  const buffer = Buffer.from(await input.file.arrayBuffer());
+  const rawBuffer = Buffer.from(await input.file.arrayBuffer());
+  const prepared = await prepareUploadBuffer(rawBuffer, input.file.type);
+  const buffer = prepared.buffer;
   const hash = createHash('sha256').update(buffer).digest('hex');
   const stored = await getStorage().put({
     prefix: `organizations/${input.organizationId}/equipment-disposals/${input.disposalId}/evidence`,
     originalName: input.file.name,
     mimeType: input.file.type,
-    size: input.file.size,
+    size: prepared.size,
     buffer,
   });
-  return { stored, hash };
+  return {
+    stored,
+    hash,
+    originalSizeBytes: prepared.originalSizeBytes,
+    storedSizeBytes: prepared.storedSizeBytes ?? stored.size,
+    optimized: prepared.optimized,
+    signedPdf: prepared.signedPdf,
+    pdfOptimizationSummary: prepared.pdfOptimizationSummary,
+  };
 }

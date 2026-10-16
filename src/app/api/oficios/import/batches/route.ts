@@ -31,7 +31,7 @@ async function getHandler(req: AuthenticatedRequest) {
     }
 
     const batches = await prisma.oficioImportBatch.findMany({
-      where: oficioBatchTenantScope(organization.organizationId),
+      where: { ...oficioBatchTenantScope(organization.organizationId), archivedAt: null },
       take: limit,
       orderBy: { startedAt: 'desc' },
       include: {
