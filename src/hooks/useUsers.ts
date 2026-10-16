@@ -64,6 +64,33 @@ export function useUsers(filters?: UsersFilters) {
         },
     });
 
+    const resetPasswordMutation = useMutation({
+        mutationFn: async ({
+            id,
+            newPassword,
+            mustChangePassword,
+        }: {
+            id: string;
+            newPassword: string;
+            mustChangePassword: boolean;
+        }) => {
+            await usersService.resetPassword(id, { newPassword, mustChangePassword });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+        },
+    });
+
+    const removeMutation = useMutation({
+        mutationFn: async ({ id, hard }: { id: string; hard?: boolean }) => {
+            const response = await usersService.remove(id, hard);
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+        },
+    });
+
     return {
         // --- Datos ---
         users: usersQuery.data?.users ?? [],
@@ -81,6 +108,12 @@ export function useUsers(filters?: UsersFilters) {
 
         updateUser: updateMutation.mutate,
         isUpdating: updateMutation.isPending,
+
+        resetPassword: resetPasswordMutation.mutateAsync,
+        isResettingPassword: resetPasswordMutation.isPending,
+
+        removeUser: removeMutation.mutateAsync,
+        isRemoving: removeMutation.isPending,
 
         // --- Refetch manual ---
         refetch: usersQuery.refetch,

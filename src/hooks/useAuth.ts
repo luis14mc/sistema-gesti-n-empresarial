@@ -106,7 +106,12 @@ export function useAuth() {
       // Guardar en store (persiste en localStorage + cookie)
       storeLogin(data.user, data.token);
       queryClient.invalidateQueries({ queryKey: authKeys.me() });
-      router.push(postLoginPath(data.user.role));
+      router.push(
+        postLoginPath(
+          data.user.role,
+          (data.user as { mustChangePassword?: boolean }).mustChangePassword,
+        ),
+      );
     },
   });
 

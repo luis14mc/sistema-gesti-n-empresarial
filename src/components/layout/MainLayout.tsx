@@ -125,6 +125,29 @@ function SidebarNav({
       {filteredItems.map((item) => {
         const childItems = visibleChildren(navAccess, item);
         const hasChildren = childItems.length > 0;
+        if (hasChildren && childItems.length === 1 && !collapsed) {
+          const onlyChild = childItems[0]!;
+          const selfActive =
+            pathname === onlyChild.href || pathname.startsWith(`${onlyChild.href}/`);
+          return (
+            <Link
+              key={item.href}
+              href={onlyChild.href}
+              onClick={onNavClick}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                selfActive
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+              )}
+              title={item.label}
+              aria-current={selfActive ? 'page' : undefined}
+            >
+              <item.icon className="h-5 w-5 shrink-0" />
+              <span className="truncate">{item.label}</span>
+            </Link>
+          );
+        }
         const activeHref = hasChildren
           ? childItems
             .filter((child) => pathname === child.href || pathname.startsWith(`${child.href}/`))
@@ -239,9 +262,15 @@ function LoadingShell() {
 interface MainLayoutProps {
   children: React.ReactNode;
   user?: SessionUser;
+  /** Oculta navegación lateral (p. ej. cambio de contraseña forzado). */
+  layoutMode?: 'default' | 'minimal';
 }
 
-export default function MainLayout({ children, user: propUser }: MainLayoutProps) {
+export default function MainLayout({
+  children,
+  user: propUser,
+  layoutMode = 'default',
+}: MainLayoutProps) {
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -330,7 +359,11 @@ export default function MainLayout({ children, user: propUser }: MainLayoutProps
         </div>
 
         <div className="flex-1 overflow-y-auto py-4">
-          <SidebarNav navAccess={navAccess} collapsed={collapsed} />
+          {layoutMode === 'default' ? (
+            <SidebarNav navAccess={navAccess} collapsed={collapsed} />
+          ) : (
+            <p className="px-4 text-xs text-muted-foreground">Complete el paso requerido para continuar.</p>
+          )}
         </div>
 
         <div className="border-t border-sidebar-border p-3 space-y-2">
@@ -386,22 +419,30 @@ export default function MainLayout({ children, user: propUser }: MainLayoutProps
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <header className="flex items-center justify-between h-16 px-4 sm:px-6 border-b border-border bg-card shrink-0">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="lg:hidden">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
+            {layoutMode === 'default' ? (
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="lg:hidden">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+            ) : (
+              <div className="lg:hidden w-10" aria-hidden />
+            )}
             <SheetContent side="left" className="w-72 p-0">
               <div className="flex items-center gap-3 px-4 h-16 border-b border-border overflow-hidden">
                 <BrandLogo height={36} className="shrink-0" />
                 <span className="font-heading font-bold text-xs leading-tight">{BRAND_APP_NAME}</span>
               </div>
               <div className="py-4">
-                <SidebarNav
-                  navAccess={navAccess}
-                  collapsed={false}
-                  onNavClick={() => setMobileOpen(false)}
-                />
+                {layoutMode === 'default' ? (
+                  <SidebarNav
+                    navAccess={navAccess}
+                    collapsed={false}
+                    onNavClick={() => setMobileOpen(false)}
+                  />
+                ) : (
+                  <p className="px-4 text-xs text-muted-foreground">Complete el paso requerido.</p>
+                )}
               </div>
               <Separator />
               <div className="p-4">

@@ -33,6 +33,7 @@ export const ROUTE_PATH_TO_MODULE: Record<string, ModuleId> = {
   '/audit-records': 'audit-records',
   '/reportes': 'reports',
   '/settings': 'settings',
+  '/settings/cambiar-contrasena': 'dashboard',
   '/settings/permisos': 'users',
   '/ti/licencias': 'software-licenses',
   '/planilla': 'payroll',

@@ -13,6 +13,21 @@ import {
 } from '@/platform/security/authorization/user-account-roles';
 import { isOrganizationRoleAssignable } from '@/platform/security/authorization/role-catalog-service';
 import type { OrganizationRole } from '@prisma/client';
+import { passwordPolicySchema } from '@/platform/security/password-policy';
+import { z } from 'zod';
+
+const createUserBodySchema = z.object({
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  email: z.string().email(),
+  password: passwordPolicySchema,
+  role: z.string(),
+  employeeNumber: z.string().min(1),
+  phone: z.string().optional(),
+  departmentId: z.string().optional(),
+  positionId: z.string().optional(),
+  mustChangePassword: z.boolean().optional().default(true),
+});
 
 // ============================================
 // GET /api/users — Listar usuarios miembros de la organización actual
@@ -247,15 +262,25 @@ async function postHandler(req: AuthenticatedRequest) {
     const requestId = crypto.randomUUID();
     try {
         const { organizationId } = await authorizeOrganization(req, requestId, 'users.create');
-        const body = await req.json();
-        const { firstName, lastName, email, password, role, employeeNumber, phone, departmentId, positionId } = body;
-
-        if (!firstName || !lastName || !email || !password || !employeeNumber) {
+        const parsedBody = createUserBodySchema.safeParse(await req.json());
+        if (!parsedBody.success) {
             return NextResponse.json(
-                { error: 'Nombre, apellido, email, contraseña y número de empleado son requeridos' },
-                { status: 400 }
+                { error: parsedBody.error.issues[0]?.message ?? 'Datos inválidos' },
+                { status: 400 },
             );
         }
+        const {
+            firstName,
+            lastName,
+            email,
+            password,
+            role,
+            employeeNumber,
+            phone,
+            departmentId,
+            positionId,
+            mustChangePassword,
+        } = parsedBody.data;
 
         const parsedRole = parseOrganizationRole(role);
         if (!parsedRole) {
@@ -289,6 +314,7 @@ async function postHandler(req: AuthenticatedRequest) {
                 lastName,
                 email,
                 password: hashedPassword,
+                mustChangePassword,
                 phone,
                 role: accountRoles.prismaUserRole,
                 departmentId,

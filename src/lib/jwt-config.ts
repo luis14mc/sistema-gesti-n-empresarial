@@ -29,6 +29,8 @@ export interface TokenClaims {
   mod?: string;
   /** Comma-separated route-gated special permissions (edge middleware) */
   spe?: string;
+  pwdChangedAtMs?: number;
+  mustChangePassword?: boolean;
   iss?: string;
   aud?: string | string[];
   iat?: number;
@@ -71,6 +73,8 @@ export function validateTokenClaims(payload: unknown): TokenClaims | null {
     accessVersion: typeof p.accessVersion === 'number' ? p.accessVersion : undefined,
     mod: typeof p.mod === 'string' ? p.mod : undefined,
     spe: typeof p.spe === 'string' ? p.spe : undefined,
+    pwdChangedAtMs: typeof p.pwdChangedAtMs === 'number' ? p.pwdChangedAtMs : undefined,
+    mustChangePassword: p.mustChangePassword === true,
     iss: p.iss as string,
     aud: p.aud as string | string[],
     iat: p.iat,

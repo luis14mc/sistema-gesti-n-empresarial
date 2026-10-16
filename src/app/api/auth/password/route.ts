@@ -3,35 +3,31 @@ import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { comparePassword, hashPassword } from '@/lib/auth';
 import { createAuditRecord } from '@/lib/audit';
+import { passwordPolicySchema } from '@/platform/security/password-policy';
+import { canonicalOrganizationId } from '@/platform/security/organization-scope';
+import { z } from 'zod';
 
 // ============================================
 // POST /api/auth/password
 // Body: { currentPassword: string, newPassword: string }
 // Cambia la contraseña del usuario autenticado.
-// Requiere contraseña actual válida. Política: mínimo 8 caracteres.
 // ============================================
 
-const MIN_LENGTH = 8;
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Contraseña actual requerida'),
+  newPassword: passwordPolicySchema,
+});
 
 async function postHandler(req: AuthenticatedRequest) {
   try {
-    const body = await req.json().catch(() => ({}));
-    const currentPassword = (body.currentPassword ?? '').toString();
-    const newPassword     = (body.newPassword ?? '').toString();
-
-    if (!currentPassword || !newPassword) {
+    const body = changePasswordSchema.safeParse(await req.json().catch(() => ({})));
+    if (!body.success) {
       return NextResponse.json(
-        { error: 'Contraseña actual y nueva son requeridas' },
-        { status: 400 }
+        { error: body.error.issues[0]?.message ?? 'Datos inválidos' },
+        { status: 400 },
       );
     }
-
-    if (newPassword.length < MIN_LENGTH) {
-      return NextResponse.json(
-        { error: `La nueva contraseña debe tener al menos ${MIN_LENGTH} caracteres` },
-        { status: 400 }
-      );
-    }
+    const { currentPassword, newPassword } = body.data;
 
     if (currentPassword === newPassword) {
       return NextResponse.json(
@@ -58,10 +54,23 @@ async function postHandler(req: AuthenticatedRequest) {
     }
 
     const newHashed = await hashPassword(newPassword);
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { password: newHashed },
-    });
+    const now = new Date();
+    const organizationId = canonicalOrganizationId();
+
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: user.id },
+        data: {
+          password: newHashed,
+          passwordChangedAt: now,
+          mustChangePassword: false,
+        },
+      }),
+      prisma.organizationMembership.updateMany({
+        where: { userId: user.id, organizationId },
+        data: { accessVersion: { increment: 1 } },
+      }),
+    ]);
 
     await createAuditRecord({
       title: 'Cambio de contraseña',

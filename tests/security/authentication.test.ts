@@ -12,6 +12,10 @@ import type { NextResponse } from 'next/server';
 
 const TEST_SECRET = 'a'.repeat(48);
 
+vi.mock('@/lib/session-validity', () => ({
+  assertTokenSessionStillValid: vi.fn(async () => true),
+}));
+
 describe('password primitives', () => {
   it('produces a bcrypt hash that is not the plaintext', async () => {
     const hashed = await hashPassword('PlainPassword!23');

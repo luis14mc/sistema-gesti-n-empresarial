@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
+import { assertTokenSessionStillValid } from '@/lib/session-validity';
 import { isOrganizationContextError } from '@/modules/organizations/application/context';
 import { PermissionDeniedError } from '@/platform/domain/errors';
 import { sessionRoleMatchesAllowlist } from '@/platform/security/authorization/roles';
@@ -39,6 +40,14 @@ export function withAuth(
       if (!payload) {
         return NextResponse.json(
           { success: false, error: { code: 'AUTHENTICATION_REQUIRED', message: 'La sesión no es válida.' }, requestId },
+          { status: 401, headers: { 'x-request-id': requestId } }
+        );
+      }
+
+      const sessionValid = await assertTokenSessionStillValid(payload);
+      if (!sessionValid) {
+        return NextResponse.json(
+          { success: false, error: { code: 'SESSION_REVOKED', message: 'La sesión expiró. Inicie sesión de nuevo.' }, requestId },
           { status: 401, headers: { 'x-request-id': requestId } }
         );
       }

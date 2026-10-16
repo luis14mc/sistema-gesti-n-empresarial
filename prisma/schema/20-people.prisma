@@ -52,6 +52,8 @@ model User {
   employeeNumber               String                       @unique
   email                        String                       @unique
   password                     String
+  mustChangePassword           Boolean                      @default(false)
+  passwordChangedAt            DateTime?
   firstName                    String
   lastName                     String
   phone                        String?
