@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import {
   createPrintPdfDeps,
+  fetchPdfBlobUrl,
   isPdfContentType,
   openPdfFallback,
   printPdf,
@@ -24,6 +25,21 @@ function createAutoLoadIframe(): HTMLIFrameElement {
   });
   return el;
 }
+
+describe('fetchPdfBlobUrl', () => {
+  it('returns a blob URL for a valid PDF response', async () => {
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/pdf' },
+      blob: () => Promise.resolve(new Blob(['%PDF'], { type: 'application/pdf' })),
+    });
+    const createObjectURLSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:viewer');
+    const url = await fetchPdfBlobUrl('/api/doc/view', undefined, fetchFn);
+    expect(url).toBe('blob:viewer');
+    expect(fetchFn).toHaveBeenCalledWith('/api/doc/view', expect.objectContaining({ credentials: 'include', cache: 'no-store' }));
+    createObjectURLSpy.mockRestore();
+  });
+});
 
 describe('isPdfContentType', () => {
   it('accepts application/pdf with charset', () => {

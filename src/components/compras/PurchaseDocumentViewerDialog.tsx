@@ -9,12 +9,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import Swal from '@/lib/compras/orden/swal';
 import {
   buildDocumentDownloadUrl,
   resolveViewerUrl,
   type ViewerDocument,
 } from '@/types/compra-orden-documents';
+import { PurchaseOrderPdfViewer } from '@/components/compras/PurchaseOrderPdfViewer';
 
 type ViewerState = {
   isLoading: boolean;
@@ -67,25 +67,7 @@ export function PurchaseDocumentViewerDialog({
       return;
     }
 
-    if (document.localUrl) {
-      setState({ isLoading: false, error: null, viewUrl: url });
-      return;
-    }
-
-    const controller = new AbortController();
-    setState({ isLoading: true, error: null, viewUrl: null });
-    void fetch(url, { credentials: 'include', cache: 'no-store', signal: controller.signal })
-      .then((response) => {
-        if (!response.ok) throw new Error('No se pudo recuperar el documento adjunto.');
-        setState({ isLoading: false, error: null, viewUrl: url });
-      })
-      .catch((error: unknown) => {
-        if (controller.signal.aborted) return;
-        const message = error instanceof Error ? error.message : 'No se pudo recuperar el documento adjunto.';
-        setState({ isLoading: false, error: message, viewUrl: null });
-        void Swal.fire({ icon: 'error', title: 'No se pudo abrir el documento', text: message, confirmButtonText: 'Cerrar' });
-      });
-    return () => controller.abort();
+    setState({ isLoading: false, error: null, viewUrl: url });
   }, [open, document]);
 
   const fileName = document?.originalName ?? 'Documento';
@@ -113,11 +95,19 @@ export function PurchaseDocumentViewerDialog({
               {error}
             </div>
           ) : viewUrl && isPdf(document?.mimeType ?? '') ? (
-            <iframe
-              src={viewUrl}
-              title={fileName}
-              className="h-[75vh] w-full rounded-md border bg-white"
-            />
+            document?.localUrl ? (
+              <iframe
+                src={viewUrl}
+                title={fileName}
+                className="h-[75vh] w-full rounded-md border bg-white"
+              />
+            ) : (
+              <PurchaseOrderPdfViewer
+                srcUrl={viewUrl}
+                title={fileName}
+                minHeightClass="min-h-[75vh]"
+              />
+            )
           ) : viewUrl && isImage(document?.mimeType ?? '') ? (
             <img
               src={viewUrl}

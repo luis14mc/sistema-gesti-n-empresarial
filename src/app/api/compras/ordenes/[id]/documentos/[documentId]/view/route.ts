@@ -44,6 +44,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest, { params }) => {
         'Content-Disposition': buildInlineContentDisposition(document.originalName),
         'Cache-Control': 'private, no-store',
         'X-Content-Type-Options': 'nosniff',
+        'Cross-Origin-Resource-Policy': 'same-origin',
       },
     });
   } catch (error) {

@@ -5,7 +5,7 @@
 // ============================================
 // CRUD: crear, ver detalle, editar, eliminar, cambiar estado
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,7 @@ import {
 import {
     Plus, Search, Filter, Edit3, Trash2, Monitor, Laptop,
     Printer, Phone, Tablet, HardDrive, Package, FileText, Printer as PrintIcon,
-    History
+    History, ArrowLeft,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEquipment, useEquipmentDetail, useEquipmentStats } from '@/hooks/useEquipment';
@@ -50,7 +50,7 @@ import { formatRelativeDate } from '@/utils/helpers';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Textarea } from '@/components/ui/textarea';
-import type { Role, EquipmentType, EquipmentStatus, Equipment } from '@/types';
+import type { Role, EquipmentType, EquipmentStatus, Equipment, EquipmentAssignment } from '@/types';
 
 // ============================================
 // CONSTANTS
@@ -474,14 +474,16 @@ export default function EquipmentPage() {
 
             {/* Detail Sheet */}
             <Sheet open={sheetOpen} onOpenChange={(open) => { if (!open) setSelectedEquipmentId(null); }}>
-                <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
-                    {selectedEquipmentId && (
-                        <EquipmentDetailPanel
-                            equipmentId={selectedEquipmentId}
-                            role={role}
-                            onClose={() => setSelectedEquipmentId(null)}
-                        />
-                    )}
+                <SheetContent className="flex h-full w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-xl md:max-w-2xl lg:max-w-3xl xl:max-w-4xl">
+                    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-6">
+                        {selectedEquipmentId && (
+                            <EquipmentDetailPanel
+                                equipmentId={selectedEquipmentId}
+                                role={role}
+                                onClose={() => setSelectedEquipmentId(null)}
+                            />
+                        )}
+                    </div>
                 </SheetContent>
             </Sheet>
         </MainLayout>
@@ -492,14 +494,21 @@ export default function EquipmentPage() {
 // DETAIL PANEL
 // ============================================
 
+type EquipmentDocumentPreview =
+    | { kind: 'delivery'; assignment: EquipmentAssignment }
+    | { kind: 'return'; assignment: EquipmentAssignment };
+
 function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: string; role: Role; onClose: () => void }) {
     const { equipment: eq, isLoading, updateEquipment, isUpdating, deleteEquipment, isDeleting, addMaintenance, isAddingMaintenance, refetch } = useEquipmentDetail(equipmentId);
     const canUpdate = canAccess(role, 'equipment', 'update');
     const canDelete = canAccess(role, 'equipment', 'delete');
     const [editing, setEditing] = useState(false);
-    const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
-    const [returnPreviewAssignment, setReturnPreviewAssignment] = useState<any>(null);
+    const [documentPreview, setDocumentPreview] = useState<EquipmentDocumentPreview | null>(null);
     const [maintenanceOpen, setMaintenanceOpen] = useState(false);
+
+    useEffect(() => {
+        setDocumentPreview(null);
+    }, [equipmentId]);
     const [maintenanceForm, setMaintenanceForm] = useState({
         type: 'CORRECTIVE', description: '', scheduledDate: '', technician: '',
     });
@@ -605,6 +614,54 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
             sileo.error({ title: 'Error', description: 'No se pudo actualizar' });
         }
     };
+
+    if (documentPreview) {
+        const isDelivery = documentPreview.kind === 'delivery';
+        const printTargetId = isDelivery ? 'assignment-note-print' : 'return-note-print';
+        return (
+            <div className="flex min-h-full flex-col gap-4 pt-2">
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="-ml-2 w-fit"
+                    onClick={() => setDocumentPreview(null)}
+                >
+                    <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
+                    Volver al detalle del equipo
+                </Button>
+                <SheetHeader className="px-0">
+                    <SheetTitle className="font-heading text-lg">
+                        {isDelivery ? 'Acta de entrega' : 'Acta de devolución'}
+                    </SheetTitle>
+                    <p className="text-sm text-muted-foreground">
+                        {eq.code} · {eq.name}
+                        {isDelivery
+                            ? ' — Revise el documento antes de imprimir o guardar como PDF.'
+                            : ' — Documento de devolución del equipo.'}
+                    </p>
+                </SheetHeader>
+                <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border bg-muted/20 p-4">
+                    <div id={printTargetId} className="mx-auto w-full max-w-[800px] bg-white shadow-sm">
+                        {isDelivery ? (
+                            <AssignmentNoteContent equipment={eq as Equipment} assignment={documentPreview.assignment} />
+                        ) : (
+                            <ReturnNoteContent equipment={eq as Equipment} assignment={documentPreview.assignment} />
+                        )}
+                    </div>
+                </div>
+                <div className="flex flex-wrap gap-2 border-t pt-4">
+                    <Button type="button" variant="outline" onClick={() => setDocumentPreview(null)}>
+                        Cerrar vista
+                    </Button>
+                    <Button type="button" onClick={() => setTimeout(() => window.print(), 100)}>
+                        <PrintIcon className="mr-2 h-4 w-4" aria-hidden="true" />
+                        Imprimir / Guardar PDF
+                    </Button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6 pt-2">
@@ -722,7 +779,7 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
                                                     variant="outline"
                                                     size="sm"
                                                     className="h-7 text-[10px] px-2"
-                                                    onClick={() => setSelectedAssignment(a)}
+                                                    onClick={() => setDocumentPreview({ kind: 'delivery', assignment: a })}
                                                 >
                                                     <FileText className="h-3 w-3 mr-1" />
                                                     Acta entrega
@@ -740,7 +797,7 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
                                                 variant="ghost"
                                                 size="sm"
                                                 className="h-7 text-[10px] px-2"
-                                                onClick={() => setReturnPreviewAssignment(a)}
+                                                onClick={() => setDocumentPreview({ kind: 'return', assignment: a })}
                                             >
                                                 <FileText className="h-3 w-3 mr-1" />
                                                 Acta devolución
@@ -753,61 +810,6 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
                     </div>
                 </div>
             )}
-
-            {/* Assignment Note Modal */}
-            <Dialog open={!!selectedAssignment} onOpenChange={(open) => !open && setSelectedAssignment(null)}>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>Previsualización de Acta de Entrega</DialogTitle>
-                        <DialogDescription>
-                            Verifica la información antes de imprimir. El documento se ajustará automáticamente al tamaño de papel.
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <div className="border rounded-xl bg-muted/20 p-4 overflow-hidden">
-                        <div id="assignment-note-print" className="bg-white">
-                            {selectedAssignment && (
-                                <AssignmentNoteContent
-                                    equipment={eq as Equipment}
-                                    assignment={selectedAssignment}
-                                />
-                            )}
-                        </div>
-                    </div>
-
-                    <DialogFooter className="gap-2">
-                        <Button variant="outline" onClick={() => setSelectedAssignment(null)}>
-                            Cerrar
-                        </Button>
-                        <Button onClick={() => setTimeout(() => window.print(), 100)}>
-                            <PrintIcon className="h-4 w-4 mr-2" />
-                            Imprimir / Guardar PDF
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            {/* Return note preview */}
-            <Dialog open={!!returnPreviewAssignment} onOpenChange={(open) => !open && setReturnPreviewAssignment(null)}>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>Acta de Devolución</DialogTitle>
-                    </DialogHeader>
-                    <div className="border rounded-xl bg-muted/20 p-4">
-                        <div id="return-note-print" className="bg-white">
-                            {returnPreviewAssignment && (
-                                <ReturnNoteContent equipment={eq as Equipment} assignment={returnPreviewAssignment} />
-                            )}
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setReturnPreviewAssignment(null)}>Cerrar</Button>
-                        <Button onClick={() => setTimeout(() => window.print(), 100)}>
-                            <PrintIcon className="h-4 w-4 mr-2" /> Imprimir / PDF
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
 
             {/* Maintenance dialog */}
             <Dialog open={maintenanceOpen} onOpenChange={setMaintenanceOpen}>

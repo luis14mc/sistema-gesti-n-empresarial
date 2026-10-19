@@ -12,6 +12,7 @@ const MESSAGES: Record<string, string> = {
   EMPLOYEE_ALREADY_ASSIGNED: 'Ese empleado ya tiene una asignación activa en el asiento.',
   SEAT_NOT_ASSIGNABLE: 'El asiento no admite otra asignación.',
   SEAT_LIMIT_REACHED: 'La suscripción ya tiene todos los asientos contratados.',
+  TOTAL_SEATS_CANNOT_SHRINK: 'No se pueden reducir asientos: libera o cancela asientos vacíos antes de bajar el total contratado.',
   SEAT_STILL_ASSIGNED: 'Quite las asignaciones activas antes de marcar el asiento como disponible.',
   SHARED_SEAT_HAS_MULTIPLE_ASSIGNMENTS: 'Un asiento compartido con varias personas no puede volver a individual.',
   CROSS_ORGANIZATION_ASSIGNMENT: 'El empleado pertenece a otra organización.',

@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { Download, ExternalLink, Maximize2, MoreHorizontal } from 'lucide-react';
 import { PrintPurchaseOrderPdfButton } from '@/components/compras/PrintPurchaseOrderPdfButton';
+import { PurchaseOrderPdfViewer } from '@/components/compras/PurchaseOrderPdfViewer';
 import Swal from '@/lib/compras/orden/swal';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -194,11 +195,7 @@ export function CompraOrdenGeneratedDetail({
         </CardHeader>
         <CardContent>
           {pdfViewUrl ? (
-            <iframe
-              title="PDF de la orden de compra"
-              src={pdfViewUrl}
-              className="h-[min(70vh,720px)] w-full rounded-md border bg-muted/30"
-            />
+            <PurchaseOrderPdfViewer srcUrl={pdfViewUrl} title="PDF de la orden de compra" />
           ) : (
             <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
               <p className="mb-4">No hay un PDF activo para esta orden.</p>
@@ -295,12 +292,19 @@ export function CompraOrdenGeneratedDetail({
       </Dialog>
 
       <Dialog open={fullscreenPdf} onOpenChange={setFullscreenPdf}>
-        <DialogContent className="max-w-[95vw] sm:max-w-6xl h-[90vh] flex flex-col">
-          <DialogHeader>
+        <DialogContent className="flex h-[90vh] max-h-[90vh] w-[95vw] max-w-6xl flex-col gap-3 overflow-hidden p-4 sm:p-6">
+          <DialogHeader className="shrink-0">
             <DialogTitle>PDF — pantalla completa</DialogTitle>
           </DialogHeader>
           {pdfViewUrl ? (
-            <iframe title="PDF pantalla completa" src={pdfViewUrl} className="flex-1 w-full rounded-md border" />
+            <div className="min-h-0 flex-1">
+              <PurchaseOrderPdfViewer
+                srcUrl={pdfViewUrl}
+                title="PDF pantalla completa"
+                minHeightClass="min-h-full h-full"
+                className="h-full"
+              />
+            </div>
           ) : null}
         </DialogContent>
       </Dialog>
