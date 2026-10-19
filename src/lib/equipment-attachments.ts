@@ -1,3 +1,9 @@
+import {
+  EQUIPMENT_DOCUMENT_FILE_ROUTE,
+  equipmentDocumentKeyFromUrl,
+  isEquipmentDocumentKeyForOrganization,
+} from '@/lib/equipment-document-access';
+
 export const EQUIPMENT_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
 
 export const EQUIPMENT_ALLOWED_EXTENSIONS = new Set(['.pdf', '.jpg', '.jpeg', '.png']);
@@ -71,6 +77,10 @@ export function validateEquipmentUploadFile(file: {
 export function isEquipmentDocumentUrlAllowed(url: unknown, organizationId: string): boolean {
   if (typeof url !== 'string' || url.length === 0 || url.length > 2048) return false;
   const tenantSegment = `organizations/${organizationId}/`;
+
+  if (url.startsWith(`${EQUIPMENT_DOCUMENT_FILE_ROUTE}?`)) {
+    return isEquipmentDocumentKeyForOrganization(equipmentDocumentKeyFromUrl(url), organizationId);
+  }
 
   if (url.startsWith('/')) {
     return url.startsWith('/uploads/') && url.includes(tenantSegment) && !url.includes('..');
