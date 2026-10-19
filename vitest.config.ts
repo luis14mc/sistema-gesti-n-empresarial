@@ -17,6 +17,8 @@ export default defineConfig({
       '**/dist/**',
       'tests/e2e/**',
       'tests/accessibility/**',
+      '.agents/**',
+      '.minimax/**',
     ],
     alias: {
       '@': path.resolve(__dirname, './src'),

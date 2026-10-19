@@ -1,4 +1,5 @@
 import { access, mkdir, readFile, writeFile } from 'fs/promises';
+import { checkUrlForSsrf } from '@/platform/integrations/application/ssrf-guard';
 import path from 'path';
 import {
   DEFAULT_INSTITUTION_SETTINGS,
@@ -36,6 +37,9 @@ export function sanitizeLogoCandidate(candidate: string): string | null {
       if (!u.hostname || u.hostname === 'localhost' || u.hostname === '127.0.0.1' || u.hostname.startsWith('192.168.') || u.hostname.startsWith('10.')) {
         return null;
       }
+      // Política de host completa de la plataforma (169.254/16 metadata, 172.16/12,
+      // 100.64/10, IPv6 privadas, metadata.google.internal…). Auditoría 2026-10-19, F-2.
+      if (!checkUrlForSsrf(candidate).ok) return null;
       return candidate;
     } catch {
       return null;

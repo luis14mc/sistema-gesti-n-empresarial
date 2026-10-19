@@ -5,6 +5,7 @@ import { generateSessionToken } from '@/lib/session-token';
 import { createAuditRecord } from '@/lib/audit';
 import { resolveSessionRole } from '@/platform/security/authorization/session-role';
 import { loginSchema } from '@/lib/zod-schemas';
+import { createHash } from 'node:crypto';
 import {
   createRateLimiter,
   RATE_LIMIT_RULES,
@@ -15,6 +16,13 @@ import {
 // Limiter por proceso (Edge-friendly). En producción multi-worker,
 // reemplazar por Upstash Redis o equivalente distribuido.
 const loginLimiter = createRateLimiter(RATE_LIMIT_RULES.LOGIN);
+// Segundo límite por cuenta: acota la fuerza bruta contra un usuario aunque
+// la clave por IP se evada (auditoría 2026-10-19, F-1).
+const loginAccountLimiter = createRateLimiter(RATE_LIMIT_RULES.LOGIN_ACCOUNT);
+
+function accountKey(email: string): string {
+  return `acct:${createHash('sha256').update(email.trim().toLowerCase()).digest('hex')}`;
+}
 
 // Delay artificial para mitigar fuerza bruta básica
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -62,6 +70,29 @@ export async function POST(req: NextRequest) {
     }
 
     const { email, password } = parsed.data;
+
+    const accountLimit = loginAccountLimiter.check(accountKey(email));
+    if (!accountLimit.success) {
+      await createAuditRecord({
+        title: 'Rate limit por cuenta excedido en login',
+        description: `Demasiados intentos para una cuenta desde IP ${ip}`,
+        module: 'USUARIOS',
+        category: 'LOGIN',
+      }).catch(() => undefined);
+      return NextResponse.json(
+        {
+          error: 'Demasiados intentos para esta cuenta. Intenta más tarde.',
+          retryAfterMs: accountLimit.resetMs,
+        },
+        {
+          status: 429,
+          headers: {
+            ...rateLimitHeaders(accountLimit),
+            'Retry-After': String(Math.ceil(accountLimit.resetMs / 1000)),
+          },
+        },
+      );
+    }
 
     const user = await prisma.user.findUnique({
       where: { email },

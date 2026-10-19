@@ -1,4 +1,5 @@
 import type { CompraOrden, CompraOrdenItem } from '@prisma/client';
+import { assertUrlIsSafe } from '@/platform/integrations/application/ssrf-guard';
 import { PurchaseOrderDocument } from '@/components/compras/document/PurchaseOrderDocument';
 import { buildPreviewDataFromOrder } from './preview-data';
 import type { PurchaseOrderTemplateConfig } from './template-config';
@@ -57,7 +58,10 @@ export async function buildPurchaseOrderHtml(
     try {
       const candidate = await resolveInstitutionLogoDataUri(logoSrc);
       if (candidate.startsWith('http://') || candidate.startsWith('https://')) {
-        const response = await fetch(candidate, { signal: AbortSignal.timeout(5_000) });
+        // Guardia SSRF de la plataforma antes de cualquier salida de red; sin seguir
+        // redirecciones (un 3xx podría apuntar a una red interna). Auditoría 2026-10-19, F-2.
+        assertUrlIsSafe(candidate);
+        const response = await fetch(candidate, { signal: AbortSignal.timeout(5_000), redirect: 'manual' });
         if (!response.ok) throw new Error(`Logo request failed with status ${response.status}`);
         const contentType = response.headers.get('content-type') ?? 'application/octet-stream';
         const buffer = Buffer.from(await response.arrayBuffer());
