@@ -130,6 +130,33 @@ export async function updateSoftwareSubscription(id: string, input: UpdateSubscr
         },
       });
     }
+    if (input.totalSeats !== undefined && input.totalSeats !== existing.totalSeats) {
+      const seatRows = await tx.softwareLicenseSeat.findMany({
+        where: { subscriptionId: id },
+        include: { assignments: { where: { unassignedAt: null } } },
+      });
+      const activeRows = seatRows.filter((seat) => seat.status !== 'CANCELLED');
+      if (input.totalSeats > activeRows.length) {
+        const needed = input.totalSeats - activeRows.length;
+        await tx.softwareLicenseSeat.createMany({
+          data: Array.from({ length: needed }, () => ({
+            subscriptionId: id,
+            seatType: 'INDIVIDUAL' as const,
+            status: 'AVAILABLE' as const,
+          })),
+        });
+      } else if (input.totalSeats < activeRows.length) {
+        const toRemove = activeRows.length - input.totalSeats;
+        const removable = activeRows
+          .filter((seat) => seat.assignments.length === 0 && effectiveSeatStatus({ status: seat.status, seatType: seat.seatType, activeAssignments: 0 }) === 'AVAILABLE')
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        if (removable.length < toRemove) throw new Error('TOTAL_SEATS_CANNOT_SHRINK');
+        for (const seat of removable.slice(0, toRemove)) {
+          await tx.softwareLicenseSeat.update({ where: { id: seat.id }, data: { status: 'CANCELLED' } });
+        }
+      }
+    }
+
     const subscription = await tx.softwareSubscription.update({
       where: { id },
       data: {

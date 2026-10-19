@@ -164,6 +164,7 @@ export default function SoftwareLicensesPage() {
               <th className="p-3 font-medium">Asientos</th>
               <th className="p-3 font-medium">Costo mensual</th>
               <th className="p-3 font-medium">Estado</th>
+              <th className="p-3 font-medium">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -174,6 +175,11 @@ export default function SoftwareLicensesPage() {
                 <td className="p-3 tabular-nums">{item.counts.occupiedSeats} ocupados · {item.counts.availableSeats} disponibles</td>
                 <td className="p-3 tabular-nums">{moneyLabel(item.currency, item.monthlyCost)}</td>
                 <td className="p-3">{STATUS_LABEL[item.displayStatus] ?? item.displayStatus}</td>
+                <td className="p-3">
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href={`/ti/licencias/${item.id}/editar`}>Editar</Link>
+                  </Button>
+                </td>
               </tr>
             ))}
           </tbody>

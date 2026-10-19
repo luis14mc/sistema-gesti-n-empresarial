@@ -24,6 +24,31 @@ export function isPdfContentType(contentType: string | null): boolean {
   return normalized === 'application/pdf';
 }
 
+/**
+ * Loads a same-origin PDF (session cookies) and returns a blob URL for embedding in iframe/object.
+ * Caller must revoke the URL when done.
+ */
+export async function fetchPdfBlobUrl(
+  url: string,
+  init?: RequestInit & { signal?: AbortSignal },
+  fetchFn: typeof fetch = globalThis.fetch.bind(globalThis),
+): Promise<string> {
+  const response = await fetchFn(url, {
+    credentials: 'include',
+    cache: 'no-store',
+    ...init,
+  });
+  if (!response.ok) {
+    throw new Error(`PDF_FETCH_FAILED:${response.status}`);
+  }
+  const contentType = response.headers.get('Content-Type');
+  if (!isPdfContentType(contentType)) {
+    throw new Error('PDF_FETCH_NOT_PDF');
+  }
+  const blob = await response.blob();
+  return URL.createObjectURL(blob);
+}
+
 function cleanupPrintFrame(iframe: HTMLIFrameElement, blobUrl: string): void {
   try {
     URL.revokeObjectURL(blobUrl);
