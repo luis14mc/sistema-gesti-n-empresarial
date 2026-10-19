@@ -1,9 +1,8 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Download, ExternalLink, Maximize2, MoreHorizontal } from 'lucide-react';
+import { Download, ExternalLink, MoreHorizontal } from 'lucide-react';
 import { PrintPurchaseOrderPdfButton } from '@/components/compras/PrintPurchaseOrderPdfButton';
-import { PurchaseOrderPdfViewer } from '@/components/compras/PurchaseOrderPdfViewer';
 import Swal from '@/lib/compras/orden/swal';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -67,7 +66,6 @@ export function CompraOrdenGeneratedDetail({
   const [working, setWorking] = useState(false);
   const [documentType, setDocumentType] = useState<PurchaseDocumentType>('QUOTATION');
   const [uploading, setUploading] = useState(false);
-  const [fullscreenPdf, setFullscreenPdf] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isCreator = orden.createdById === userId;
@@ -153,6 +151,16 @@ export function CompraOrdenGeneratedDetail({
               </a>
             </Button>
           ) : null}
+          {!activePdf && canRegenerar ? (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={working || isSaving}
+              onClick={() => void runAction('regenerar_pdf')}
+            >
+              {ACTION_LABELS.regenerar_pdf}
+            </Button>
+          ) : null}
           {canEmitir ? (
             <Button disabled={working || isSaving} onClick={() => void runAction('emitir')}>
               {ACTION_LABELS.emitir}
@@ -182,36 +190,6 @@ export function CompraOrdenGeneratedDetail({
           ) : null}
         </div>
       </div>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-2">
-          <CardTitle>PDF oficial</CardTitle>
-          {pdfViewUrl ? (
-            <Button type="button" variant="outline" size="sm" onClick={() => setFullscreenPdf(true)}>
-              <Maximize2 className="mr-2 h-4 w-4" />
-              Pantalla completa
-            </Button>
-          ) : null}
-        </CardHeader>
-        <CardContent>
-          {pdfViewUrl ? (
-            <PurchaseOrderPdfViewer srcUrl={pdfViewUrl} title="PDF de la orden de compra" />
-          ) : (
-            <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
-              <p className="mb-4">No hay un PDF activo para esta orden.</p>
-              {canRegenerar ? (
-                <Button
-                  type="button"
-                  disabled={working || isSaving}
-                  onClick={() => void runAction('regenerar_pdf')}
-                >
-                  Regenerar PDF
-                </Button>
-              ) : null}
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader>
@@ -291,23 +269,6 @@ export function CompraOrdenGeneratedDetail({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={fullscreenPdf} onOpenChange={setFullscreenPdf}>
-        <DialogContent className="flex h-[90vh] max-h-[90vh] w-[95vw] max-w-6xl flex-col gap-3 overflow-hidden p-4 sm:p-6">
-          <DialogHeader className="shrink-0">
-            <DialogTitle>PDF — pantalla completa</DialogTitle>
-          </DialogHeader>
-          {pdfViewUrl ? (
-            <div className="min-h-0 flex-1">
-              <PurchaseOrderPdfViewer
-                srcUrl={pdfViewUrl}
-                title="PDF pantalla completa"
-                minHeightClass="min-h-full h-full"
-                className="h-full"
-              />
-            </div>
-          ) : null}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
