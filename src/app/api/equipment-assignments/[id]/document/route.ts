@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { isEquipmentDocumentUrlAllowed } from '@/lib/equipment-attachments';
+import { toEquipmentDocumentHref } from '@/lib/equipment-document-access';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { logEquipmentHistory } from '@/lib/equipment-history';
@@ -32,6 +33,9 @@ async function patchHandler(
       );
     }
 
+    // Nunca persistir una URL firmada (vence): guardar la ruta estable.
+    const storedUrl = toEquipmentDocumentHref(documentUrl) ?? documentUrl;
+
     const assignment = await prisma.equipmentAssignment.findFirst({
       where: { id, ...assignmentScope(organizationId) },
       include: { equipment: true },
@@ -43,8 +47,8 @@ async function patchHandler(
 
     const updateData =
       documentType === 'return'
-        ? { returnDocumentUrl: documentUrl }
-        : { deliveryDocumentUrl: documentUrl, urlNotaPdf: documentUrl };
+        ? { returnDocumentUrl: storedUrl }
+        : { deliveryDocumentUrl: storedUrl, urlNotaPdf: storedUrl };
 
     const updated = await prisma.equipmentAssignment.update({
       where: { id, equipment: { organizationId } },
@@ -68,7 +72,7 @@ async function patchHandler(
       action: 'UPDATED',
       title: documentType === 'return' ? 'Formato de devolución adjunto' : 'Formato de asignación adjunto',
       description: `Documento firmado registrado para asignación ${id.slice(-8).toUpperCase()}.`,
-      newData: { documentType, documentUrl },
+      newData: { documentType, documentUrl: storedUrl },
       performedById: req.user!.userId,
     });
 

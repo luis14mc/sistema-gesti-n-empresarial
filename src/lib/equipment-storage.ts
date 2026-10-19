@@ -10,6 +10,7 @@ import {
   type EquipmentDocumentType,
 } from '@/lib/equipment-document-types';
 import { getStorage } from '@/lib/storage';
+import { equipmentDocumentFileUrl } from '@/lib/equipment-document-access';
 
 export interface EquipmentDocumentMeta {
   tipoDocumento: EquipmentDocumentType;
@@ -55,7 +56,9 @@ export async function saveEquipmentDocument(
 
   return {
     tipoDocumento,
-    url: stored.url,
+    // Rutas locales (/uploads/...) se sirven estáticas; en S3/R2 la URL firmada
+    // vence, así que se expone una ruta estable que resuelve la clave al abrir.
+    url: stored.url.startsWith('/') ? stored.url : equipmentDocumentFileUrl(stored.key),
     filename: stored.filename,
     originalName,
     mimeType,

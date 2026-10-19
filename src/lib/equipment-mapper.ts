@@ -1,5 +1,6 @@
 import type { Equipment, EquipmentAssignment, EquipmentHistory } from '@prisma/client';
 import { CATEGORY_LABELS } from '@/lib/equipment-asset-code';
+import { toEquipmentDocumentHref, withStableEquipmentDocumentUrls } from '@/lib/equipment-document-access';
 
 type EquipmentWithRelations = Equipment & {
   assignments?: (EquipmentAssignment & {
@@ -21,6 +22,9 @@ export function mapEquipmentResponse(equipment: EquipmentWithRelations) {
 
   return {
     ...equipment,
+    ...(equipment.assignments
+      ? { assignments: equipment.assignments.map((a) => withStableEquipmentDocumentUrls(a)) }
+      : {}),
     code: equipment.inventoryCode,
     assetCode: equipment.inventoryCode,
     name: `${equipment.brand} ${equipment.model}`,
@@ -69,7 +73,8 @@ export function mapAssignmentResponse(
     assigneeName,
     assigneeEmail,
     condition: assignment.returnCondition || null,
-    deliveryDocumentUrl: assignment.deliveryDocumentUrl || assignment.urlNotaPdf,
-    returnDocumentUrl: assignment.returnDocumentUrl,
+    urlNotaPdf: toEquipmentDocumentHref(assignment.urlNotaPdf),
+    deliveryDocumentUrl: toEquipmentDocumentHref(assignment.deliveryDocumentUrl || assignment.urlNotaPdf),
+    returnDocumentUrl: toEquipmentDocumentHref(assignment.returnDocumentUrl),
   };
 }
