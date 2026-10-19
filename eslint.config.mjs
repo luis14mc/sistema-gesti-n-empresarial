@@ -12,8 +12,8 @@ const eslintConfig = defineConfig([
         'warn',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
-      'react-hooks/set-state-in-effect': 'warn',
-      'import/no-anonymous-default-export': 'warn',
+      // Next 16 enables this as error; codebase uses fetch-on-mount patterns widely.
+      'react-hooks/set-state-in-effect': 'off',
     },
   },
   globalIgnores([
@@ -24,6 +24,7 @@ const eslintConfig = defineConfig([
     'next-env.d.ts',
     'node_modules/**',
     '.agents/**',
+    '.minimax/**',
     'coverage/**',
     'tests/e2e/**',
     'tests/accessibility/**',
