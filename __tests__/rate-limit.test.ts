@@ -67,9 +67,48 @@ describe('Rate limit helpers', () => {
     expect(RATE_LIMIT_RULES.UPLOAD).toEqual({ windowMs: 60_000, max: 10 });
   });
 
-  it('getClientIp extrae IP de x-forwarded-for', () => {
+  it('getClientIp toma la entrada que agregó el proxy de confianza (derecha), no la del cliente', () => {
     const req = fakeRequest({ 'x-forwarded-for': '203.0.113.5, 10.0.0.1' });
-    expect(getClientIp(req)).toBe('203.0.113.5');
+    expect(getClientIp(req)).toBe('10.0.0.1');
+  });
+
+  it('rotar la parte izquierda de X-Forwarded-For no cambia la clave (auditoría F-1)', () => {
+    const keys = new Set(
+      Array.from({ length: 10 }, (_, n) =>
+        getClientIp(fakeRequest({ 'x-forwarded-for': `1.2.3.${n}, 198.51.100.20` })),
+      ),
+    );
+    expect([...keys]).toEqual(['198.51.100.20']);
+
+    const limiter = createRateLimiter({ windowMs: 60_000, max: 5 });
+    const results = Array.from({ length: 6 }, (_, n) =>
+      limiter.check(getClientIp(fakeRequest({ 'x-forwarded-for': `9.9.9.${n}, 198.51.100.20` }))),
+    );
+    expect(results[5].success).toBe(false);
+  });
+
+  it('TRUSTED_PROXY_HOPS=2 salta un proxy adicional', () => {
+    const previous = process.env.TRUSTED_PROXY_HOPS;
+    process.env.TRUSTED_PROXY_HOPS = '2';
+    try {
+      const req = fakeRequest({ 'x-forwarded-for': '6.6.6.6, 203.0.113.5, 10.0.0.1' });
+      expect(getClientIp(req)).toBe('203.0.113.5');
+    } finally {
+      if (previous === undefined) delete process.env.TRUSTED_PROXY_HOPS;
+      else process.env.TRUSTED_PROXY_HOPS = previous;
+    }
+  });
+
+  it('CLIENT_IP_HEADER configurado tiene prioridad', () => {
+    const previous = process.env.CLIENT_IP_HEADER;
+    process.env.CLIENT_IP_HEADER = 'x-real-ip';
+    try {
+      const req = fakeRequest({ 'x-forwarded-for': '1.1.1.1, 2.2.2.2', 'x-real-ip': '198.51.100.7' });
+      expect(getClientIp(req)).toBe('198.51.100.7');
+    } finally {
+      if (previous === undefined) delete process.env.CLIENT_IP_HEADER;
+      else process.env.CLIENT_IP_HEADER = previous;
+    }
   });
 
   it('getClientIp usa x-real-ip si no hay x-forwarded-for', () => {

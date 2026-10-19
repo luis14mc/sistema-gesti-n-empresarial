@@ -60,3 +60,42 @@ export function validateEquipmentUploadFile(file: {
 
   return { extension, mimeType };
 }
+
+/**
+ * Valida que una URL de documento de asignación apunte al storage del propio
+ * tenant (auditoría 2026-10-19, hardening 2). Acepta:
+ *  - rutas locales "/uploads/..." que contengan "organizations/{org}/";
+ *  - URLs https del endpoint de storage configurado (S3_ENDPOINT / S3_PUBLIC_URL)
+ *    cuya ruta contenga "/organizations/{org}/".
+ */
+export function isEquipmentDocumentUrlAllowed(url: unknown, organizationId: string): boolean {
+  if (typeof url !== 'string' || url.length === 0 || url.length > 2048) return false;
+  const tenantSegment = `organizations/${organizationId}/`;
+
+  if (url.startsWith('/')) {
+    return url.startsWith('/uploads/') && url.includes(tenantSegment) && !url.includes('..');
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== 'https:') return false;
+
+  const allowedHosts = [process.env.S3_ENDPOINT, process.env.S3_PUBLIC_URL]
+    .filter((value): value is string => Boolean(value))
+    .map((value) => {
+      try {
+        return new URL(value).hostname.toLowerCase();
+      } catch {
+        return null;
+      }
+    })
+    .filter((value): value is string => Boolean(value));
+
+  const host = parsed.hostname.toLowerCase();
+  const hostAllowed = allowedHosts.some((allowed) => host === allowed || host.endsWith(`.${allowed}`));
+  return hostAllowed && decodeURIComponent(parsed.pathname).includes(`/${tenantSegment}`);
+}

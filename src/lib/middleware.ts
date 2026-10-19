@@ -13,6 +13,24 @@ export interface AuthenticatedRequest extends NextRequest {
   };
 }
 
+/** Rutas API permitidas mientras el usuario debe cambiar su contraseña. */
+const PASSWORD_CHANGE_ALLOWED_API_PATHS = [
+  '/api/auth/me',
+  '/api/auth/password',
+  '/api/auth/refresh-session',
+  '/api/auth/logout',
+];
+
+function isPasswordChangeAllowedPath(req: AuthenticatedRequest): boolean {
+  let pathname = '';
+  try {
+    pathname = req.nextUrl?.pathname ?? new URL(req.url).pathname;
+  } catch {
+    return false;
+  }
+  return PASSWORD_CHANGE_ALLOWED_API_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
 /**
  * Middleware de autenticación para route handlers.
  * Soporta handlers con y sin params (rutas dinámicas [id]).
@@ -49,6 +67,15 @@ export function withAuth(
         return NextResponse.json(
           { success: false, error: { code: 'SESSION_REVOKED', message: 'La sesión expiró. Inicie sesión de nuevo.' }, requestId },
           { status: 401, headers: { 'x-request-id': requestId } }
+        );
+      }
+
+      // Cambio de contraseña obligatorio: el middleware Edge solo redirige páginas;
+      // las APIs también deben bloquearse (auditoría 2026-10-19, hardening 1).
+      if (payload.mustChangePassword && !isPasswordChangeAllowedPath(req)) {
+        return NextResponse.json(
+          { success: false, error: { code: 'PASSWORD_CHANGE_REQUIRED', message: 'Debe cambiar su contraseña antes de continuar.' }, requestId },
+          { status: 403, headers: { 'x-request-id': requestId } }
         );
       }
 

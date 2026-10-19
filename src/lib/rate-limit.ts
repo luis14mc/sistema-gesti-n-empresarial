@@ -104,6 +104,8 @@ export function createRateLimiter(rule: RateLimitRule): RateLimiter {
 export const RATE_LIMIT_RULES = {
   /** Login: 5 intentos por minuto por IP */
   LOGIN: { windowMs: 60_000, max: 5 },
+  /** Login por cuenta (independiente de la IP): 10 intentos cada 15 minutos */
+  LOGIN_ACCOUNT: { windowMs: 15 * 60_000, max: 10 },
   /** Mutaciones (POST/PATCH/DELETE): 30 por minuto por usuario */
   MUTATION: { windowMs: 60_000, max: 30 },
   /** Read endpoints: 120 requests por minuto por IP */
@@ -113,13 +115,44 @@ export const RATE_LIMIT_RULES = {
 } as const;
 
 /**
- * Extrae la IP del request desde headers comunes de proxy.
- * Funciona en Edge runtime.
+ * Número de proxies de confianza delante de la app (Railway edge = 1).
+ * Se usa para leer X-Forwarded-For desde la DERECHA: cada proxy agrega la IP
+ * que ve al final, así que las entradas de la izquierda las controla el cliente.
+ */
+function trustedProxyHops(): number {
+  const raw = Number.parseInt(process.env.TRUSTED_PROXY_HOPS ?? '1', 10);
+  return Number.isFinite(raw) && raw >= 1 ? raw : 1;
+}
+
+/**
+ * Extrae la IP real del cliente para rate limiting.
+ *
+ * Seguridad (auditoría 2026-10-19, F-1): nunca se usa la entrada más a la
+ * IZQUIERDA de X-Forwarded-For (la controla el atacante y rotarla evadía el
+ * límite de login). Orden:
+ *   1. CLIENT_IP_HEADER (p. ej. "x-real-ip") si el despliegue confirma que el
+ *      proxy lo sobrescribe siempre.
+ *   2. X-Forwarded-For leído desde la derecha saltando TRUSTED_PROXY_HOPS - 1.
+ *   3. x-real-ip.
+ *   4. 'unknown' — un único bucket compartido (no una clave nueva por request).
  */
 export function getClientIp(request: Request): string {
+  const configuredHeader = process.env.CLIENT_IP_HEADER?.trim().toLowerCase();
+  if (configuredHeader) {
+    const value = request.headers.get(configuredHeader)?.split(',')[0]?.trim();
+    if (value) return value;
+  }
+
   const xff = request.headers.get('x-forwarded-for');
-  if (xff) return xff.split(',')[0].trim();
-  const realIp = request.headers.get('x-real-ip');
+  if (xff) {
+    const hops = xff.split(',').map((part) => part.trim()).filter(Boolean);
+    if (hops.length > 0) {
+      const index = Math.max(0, hops.length - trustedProxyHops());
+      return hops[index];
+    }
+  }
+
+  const realIp = request.headers.get('x-real-ip')?.trim();
   if (realIp) return realIp;
   return 'unknown';
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { isEquipmentDocumentUrlAllowed } from '@/lib/equipment-attachments';
 import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { logEquipmentHistory } from '@/lib/equipment-history';
@@ -18,6 +19,17 @@ async function patchHandler(
 
     if (!documentType || !documentUrl) {
       return NextResponse.json({ error: 'Tipo y URL del documento son requeridos' }, { status: 400 });
+    }
+
+    if (documentType !== 'delivery' && documentType !== 'return') {
+      return NextResponse.json({ error: 'Tipo de documento inválido' }, { status: 400 });
+    }
+
+    if (!isEquipmentDocumentUrlAllowed(documentUrl, organizationId)) {
+      return NextResponse.json(
+        { error: 'La URL del documento no pertenece al almacenamiento de la organización' },
+        { status: 400 },
+      );
     }
 
     const assignment = await prisma.equipmentAssignment.findFirst({
