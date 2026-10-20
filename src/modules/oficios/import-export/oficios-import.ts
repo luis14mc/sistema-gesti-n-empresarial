@@ -19,6 +19,10 @@ import type {
   OficioImportRowPreview,
 } from './types';
 import { OFICIO_IMPORT_CHUNK_SIZE } from './types';
+import {
+  employeeBelongsToOrganization,
+  isLikelyRecordId,
+} from '@/platform/import/organization-fk';
 
 type Db = PrismaClient | Prisma.TransactionClient;
 
@@ -34,13 +38,21 @@ async function resolveResponsibleEmployees(
   const unique = [...new Set(refs.map((ref) => ref.trim().toLowerCase()).filter(Boolean))];
   if (unique.length === 0) return new Map();
 
+  const idRefs = unique.filter(isLikelyRecordId);
+  const lookupRefs = unique.filter((ref) => !isLikelyRecordId(ref));
+
   const employees = await db.employee.findMany({
     where: {
       organizationId,
       isActive: true,
       OR: [
-        { email: { in: unique, mode: 'insensitive' } },
-        { employeeCode: { in: unique, mode: 'insensitive' } },
+        ...(lookupRefs.length > 0
+          ? [
+              { email: { in: lookupRefs, mode: 'insensitive' as const } },
+              { employeeCode: { in: lookupRefs, mode: 'insensitive' as const } },
+            ]
+          : []),
+        ...(idRefs.length > 0 ? [{ id: { in: idRefs } }] : []),
       ],
     },
     select: { id: true, email: true, employeeCode: true },
@@ -48,6 +60,7 @@ async function resolveResponsibleEmployees(
 
   const map = new Map<string, string>();
   for (const employee of employees) {
+    map.set(employee.id.toLowerCase(), employee.id);
     map.set(employee.email.trim().toLowerCase(), employee.id);
     if (employee.employeeCode) {
       map.set(employee.employeeCode.trim().toLowerCase(), employee.id);
@@ -168,7 +181,7 @@ function validateParsedRowForCommit(row: OficioImportParsedRow): string | null {
   }
   if (!row.number.trim()) return 'Número de oficio obligatorio.';
   if (row.responsibleRef && !row.responsibleEmployeeId) {
-    return 'Responsable no encontrado.';
+    return 'Responsable no encontrado en esta organización.';
   }
   return null;
 }
@@ -214,7 +227,7 @@ export async function previewOficioImportWorkbook(input: {
         previews.push({
           row: row.row,
           status: 'error',
-          errors: [{ field: 'Responsable', message: 'No se encontró empleado con ese correo o código.' }],
+          errors: [{ field: 'Responsable', message: 'No se encontró empleado con ese correo, código o id en esta organización.' }],
         });
         continue;
       }
@@ -380,6 +393,16 @@ export async function commitOficioImportWorkbook(input: {
         const sp = savepointName(row.row);
         await tx.$executeRawUnsafe(`SAVEPOINT ${sp}`);
         try {
+          if (row.responsibleEmployeeId) {
+            const inOrg = await employeeBelongsToOrganization(
+              tx,
+              row.responsibleEmployeeId,
+              input.organizationId,
+            );
+            if (!inOrg) {
+              throw new Error('EMPLOYEE_OUT_OF_ORGANIZATION');
+            }
+          }
           const oficio = await tx.oficio.create({
             data: {
               organizationId: input.organizationId,
@@ -433,7 +456,11 @@ export async function commitOficioImportWorkbook(input: {
         } catch (error) {
           await tx.$executeRawUnsafe(`ROLLBACK TO SAVEPOINT ${sp}`);
           errors += 1;
-          const message = error instanceof Error ? error.message.slice(0, 500) : 'No se pudo crear el oficio.';
+          const message = error instanceof Error && error.message === 'EMPLOYEE_OUT_OF_ORGANIZATION'
+            ? 'El responsable no pertenece a esta organización.'
+            : error instanceof Error
+              ? error.message.slice(0, 500)
+              : 'No se pudo crear el oficio.';
           await tx.oficioImportBatchItem.create({
             data: {
               batchId: batch.id,

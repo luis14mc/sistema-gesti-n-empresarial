@@ -3,7 +3,7 @@
 > **Sistema de Gestión Empresarial**
 > **Versión entregada:** 1.0.0
 > **Fecha de release:** 13 jul 2026
-> **Plataforma:** AWS (ECS Fargate + ALB + RDS-compatible/Neon + S3)
+> **Plataforma:** Railway (app + Postgres) y Cloudflare R2 (archivos). IaC AWS archivado en `docs/archive/aws-terraform/`.
 
 ---
 
@@ -71,7 +71,7 @@
 | Database backups | `docs/database_backups.md` |
 | ADRs | `docs/adr/` |
 | ISO docs | `docs/01-07` |
-| Infra README | `infra/terraform/README.md` |
+| Infra AWS (archivo) | `docs/archive/aws-terraform/README.md` |
 
 ---
 

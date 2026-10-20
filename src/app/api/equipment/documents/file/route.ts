@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
 import { getStorage } from '@/lib/storage';
 import { isEquipmentDocumentKeyForOrganization } from '@/lib/equipment-document-access';
+import { UPLOAD_FILE_SECURITY_HEADERS } from '@/lib/upload-security-headers';
 import { equipmentApiFailure } from '@/modules/equipment/tenant';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 
@@ -44,6 +45,7 @@ async function getHandler(req: AuthenticatedRequest) {
         'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(filename)}`,
         'Cache-Control': 'private, no-store',
         'X-Content-Type-Options': 'nosniff',
+        ...UPLOAD_FILE_SECURITY_HEADERS,
       },
     });
   } catch (error) {

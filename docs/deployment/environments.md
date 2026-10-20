@@ -30,7 +30,7 @@ Variables obligatorias en staging/producción:
 - `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (obligatorios con R2; ver [railway.md](./railway.md))
 - `PUPPETEER_EXECUTABLE_PATH` cuando el motor PDF es obligatorio (`/usr/bin/chromium` en la imagen Docker/Railway)
 
-ECS debe obtener credenciales mediante IAM task roles. `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` y `AWS_SESSION_TOKEN` se reservan para emuladores o pruebas locales.
+En Railway, el storage usa Cloudflare R2 con las variables `S3_*` y `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` documentadas en [railway.md](./railway.md). `AWS_SESSION_TOKEN` se reserva para emuladores o pruebas locales.
 
 ## Presupuestos de conexión iniciales
 
@@ -44,9 +44,9 @@ El valor debe permanecer por debajo del límite del pooler dejando capacidad par
 
 ## Inventario auditado
 
-- Objetivo declarado: ECS Fargate, Neon PostgreSQL, S3, ALB, SSM y CloudWatch.
-- CI existente: npm/Node 20 sin PostgreSQL ni migraciones; se reemplazará en 5B.
-- Terraform existente: borrador monolítico sin estado remoto separado, worker, TLS o alarmas; se abordará en 5D.
+- Producción actual: Railway (Next.js standalone + Postgres) y Cloudflare R2 para archivos ([railway.md](./railway.md)).
+- IaC AWS archivado en `docs/archive/aws-terraform/` (obsoleto).
+- CI: pnpm con PostgreSQL en GitHub Actions según el pipeline del repositorio.
 - Worker real: ausente. Solo existen dispatcher síncrono, outbox y ejecución de reportes sin procesador.
 - Health anterior: combinaba liveness/readiness y exponía errores internos.
 - Backups: documentación sin automatización ni evidencia de restauración.
