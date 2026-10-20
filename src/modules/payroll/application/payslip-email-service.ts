@@ -6,11 +6,13 @@ import { getPublicSmtpStatus, getSmtpRuntimeConfig } from '@/platform/email/smtp
 import type { EmailTransport } from '@/platform/email/types';
 import { monthLabelFromNumber } from '@/modules/payroll/application/payslip-email-format';
 import { sendEmailWithRetries } from '@/modules/payroll/application/payslip-email-retry';
+import { truncateDeliveryError } from '@/modules/payroll/application/payslip-delivery-error';
 import { getPayslipPdfBuffer } from '@/modules/payroll/application/payroll-service';
-import { formatPayrollDateHn } from '@/modules/payroll/infrastructure/payslip-pdf';
+import { escapeHtml, formatPayrollDateHn } from '@/modules/payroll/infrastructure/payslip-pdf';
 
 const MAX_CONCURRENT = 5;
 const DEFAULT_TIME_BUDGET_MS = 25_000;
+export const STUCK_SENDING_MS = 10 * 60 * 1000;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
 
@@ -19,11 +21,14 @@ export function isValidEmployeeEmail(email: string | null | undefined): boolean 
   return EMAIL_RE.test(email.trim());
 }
 
-export function truncateDeliveryError(message: string): string {
-  const sanitized = message
-    .replace(/SMTP_PASSWORD[^\s]*/gi, '[redacted]')
-    .replace(/password[=:]\S+/gi, 'password=[redacted]');
-  return sanitized.slice(0, 500);
+export { truncateDeliveryError };
+
+export async function claimPayslipEmailDeliveryForSend(deliveryId: string): Promise<boolean> {
+  const result = await prisma.payslipEmailDelivery.updateMany({
+    where: { id: deliveryId, status: 'QUEUED' },
+    data: { status: 'SENDING', attempts: { increment: 1 }, claimedAt: new Date() },
+  });
+  return result.count === 1;
 }
 
 async function mapWithConcurrency<T, R>(
@@ -54,8 +59,11 @@ async function buildPayslipEmailContent(input: {
 }) {
   const monthName = monthLabelFromNumber(input.month);
   const subject = `Boleta de pago – ${monthName} ${input.year} – Consejo Nacional de Inversiones`;
-  const period = `${formatPayrollDateHn(input.periodStart)} al ${formatPayrollDateHn(input.periodEnd)}`;
+  const periodStartLabel = formatPayrollDateHn(input.periodStart);
+  const periodEndLabel = formatPayrollDateHn(input.periodEnd);
+  const period = `${periodStartLabel} al ${periodEndLabel}`;
   const netoLabel = input.neto.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const safeName = escapeHtml(input.employeeName);
   const text = [
     `Estimado/a ${input.employeeName},`,
     '',
@@ -64,27 +72,32 @@ async function buildPayslipEmailContent(input: {
     '',
     input.replyTo ? '' : 'Este es un correo automático; por favor no responda a este mensaje.',
   ].filter(Boolean).join('\n');
-  const html = `<p>Estimado/a ${input.employeeName},</p>
-<p>Adjuntamos su boleta de pago correspondiente a <strong>${monthName} ${input.year}</strong>.</p>
-<p>Periodo: ${period}<br/>Salario neto: <strong>L. ${netoLabel}</strong></p>
+  const html = `<p>Estimado/a ${safeName},</p>
+<p>Adjuntamos su boleta de pago correspondiente a <strong>${escapeHtml(monthName)} ${input.year}</strong>.</p>
+<p>Periodo: ${escapeHtml(periodStartLabel)} al ${escapeHtml(periodEndLabel)}<br/>Salario neto: <strong>L. ${escapeHtml(netoLabel)}</strong></p>
 ${input.replyTo ? '' : '<p><em>Este es un correo automático; por favor no responda a este mensaje.</em></p>'}`;
   return { subject, text, html, attachmentName: `Boleta_${monthName}_${input.year}.pdf` };
 }
 
 export async function verifySmtpAndSendTestEmail(toEmail: string, transport?: EmailTransport) {
   getSmtpRuntimeConfig();
+  const ownedTransport = !transport;
   const sender = transport ?? createEmailTransport();
-  if (sender.verifyConnection) await sender.verifyConnection();
-  await sender.send({
-    to: toEmail,
-    subject: 'Prueba SMTP — SGE Planilla',
-    text: 'Correo de prueba del módulo de planilla (SGE).',
-    html: '<p>Correo de prueba del módulo de planilla (SGE).</p>',
-  });
-  return { ok: true as const };
+  try {
+    if (sender.verifyConnection) await sender.verifyConnection();
+    await sender.send({
+      to: toEmail,
+      subject: 'Prueba SMTP — SGE Planilla',
+      text: 'Correo de prueba del módulo de planilla (SGE).',
+      html: '<p>Correo de prueba del módulo de planilla (SGE).</p>',
+    });
+    return { ok: true as const };
+  } finally {
+    if (ownedTransport && sender.close) await sender.close();
+  }
 }
 
-type WorkItem = { payslipId: string; deliveryId: string };
+type WorkItem = { payslipId: string; deliveryId: string; toEmail: string };
 
 export async function sendPayslipEmails(input: {
   organizationId: string;
@@ -101,218 +114,231 @@ export async function sendPayslipEmails(input: {
   const timeBudgetMs = input.timeBudgetMs ?? DEFAULT_TIME_BUDGET_MS;
   const started = Date.now();
   getSmtpRuntimeConfig();
+  const ownedTransport = !input.transport;
   const transport = input.transport ?? createEmailTransport();
   const smtp = getPublicSmtpStatus();
+  const stuckBefore = new Date(Date.now() - STUCK_SENDING_MS);
 
-  const payslips = await prisma.payslip.findMany({
-    where: {
-      organizationId: input.organizationId,
-      year: input.year,
-      month: input.month,
-      ...(input.employeeIds?.length ? { employeeId: { in: input.employeeIds } } : {}),
-    },
-    include: {
-      employee: {
-        select: { id: true, fullName: true, email: true },
+  try {
+    const payslips = await prisma.payslip.findMany({
+      where: {
+        organizationId: input.organizationId,
+        year: input.year,
+        month: input.month,
+        ...(input.employeeIds?.length ? { employeeId: { in: input.employeeIds } } : {}),
       },
-    },
-    orderBy: { employee: { fullName: 'asc' } },
-  });
+      include: {
+        employee: {
+          select: { id: true, fullName: true, email: true },
+        },
+      },
+      orderBy: { employee: { fullName: 'asc' } },
+    });
 
-  const queue: WorkItem[] = [];
-  let skipped = 0;
+    const queue: WorkItem[] = [];
+    let skipped = 0;
 
-  for (const payslip of payslips) {
-    if (input.failedOnly && payslip.emailStatus !== 'FAILED') {
-      skipped += 1;
-      continue;
-    }
-
-    if (!input.force) {
-      const sent = await prisma.payslipEmailDelivery.findFirst({
-        where: { payslipId: payslip.id, status: 'SENT' },
-      });
-      if (sent) {
+    for (const payslip of payslips) {
+      if (input.failedOnly && payslip.emailStatus !== 'FAILED') {
         skipped += 1;
         continue;
       }
-    }
 
-    const email = payslip.employee.email?.trim() ?? '';
-    if (!isValidEmployeeEmail(email)) {
-      const existingFailed = await prisma.payslipEmailDelivery.findFirst({
-        where: { payslipId: payslip.id, status: 'FAILED', toEmail: email || '(sin correo)' },
+      if (!input.force) {
+        const sent = await prisma.payslipEmailDelivery.findFirst({
+          where: { payslipId: payslip.id, status: 'SENT' },
+        });
+        if (sent) {
+          skipped += 1;
+          continue;
+        }
+      }
+
+      const email = payslip.employee.email?.trim() ?? '';
+      if (!isValidEmployeeEmail(email)) {
+        const existingFailed = await prisma.payslipEmailDelivery.findFirst({
+          where: { payslipId: payslip.id, status: 'FAILED', toEmail: email || '(sin correo)' },
+          orderBy: { queuedAt: 'desc' },
+        });
+        if (!existingFailed) {
+          await prisma.payslipEmailDelivery.create({
+            data: {
+              organizationId: input.organizationId,
+              payslipId: payslip.id,
+              toEmail: email || '(sin correo)',
+              status: 'FAILED',
+              attempts: 1,
+              lastError: truncateDeliveryError('Empleado sin correo válido'),
+              createdById: input.userId,
+            },
+          });
+        }
+        await prisma.payslip.update({
+          where: { id: payslip.id },
+          data: { emailStatus: 'FAILED', emailError: 'Empleado sin correo válido' },
+        });
+        continue;
+      }
+
+      let delivery = await prisma.payslipEmailDelivery.findFirst({
+        where: {
+          payslipId: payslip.id,
+          status: { in: ['QUEUED', 'FAILED', 'SENDING'] },
+        },
         orderBy: { queuedAt: 'desc' },
       });
-      if (!existingFailed) {
-        await prisma.payslipEmailDelivery.create({
+
+      if (input.force && payslip.emailStatus === 'SENT') {
+        delivery = null;
+      }
+
+      if (delivery?.status === 'SENDING') {
+        const claimedAt = delivery.claimedAt;
+        if (claimedAt && claimedAt > stuckBefore) {
+          skipped += 1;
+          continue;
+        }
+        delivery = await prisma.payslipEmailDelivery.update({
+          where: { id: delivery.id },
+          data: { status: 'QUEUED', claimedAt: null, lastError: null, toEmail: email },
+        });
+      } else if (delivery?.status === 'FAILED') {
+        delivery = await prisma.payslipEmailDelivery.update({
+          where: { id: delivery.id },
+          data: { status: 'QUEUED', claimedAt: null, lastError: null, toEmail: email },
+        });
+      } else if (!delivery) {
+        delivery = await prisma.payslipEmailDelivery.create({
           data: {
             organizationId: input.organizationId,
             payslipId: payslip.id,
-            toEmail: email || '(sin correo)',
-            status: 'FAILED',
-            attempts: 1,
-            lastError: truncateDeliveryError('Empleado sin correo válido'),
+            toEmail: email,
+            status: 'QUEUED',
             createdById: input.userId,
           },
         });
       }
-      await prisma.payslip.update({
-        where: { id: payslip.id },
-        data: { emailStatus: 'FAILED', emailError: 'Empleado sin correo válido' },
-      });
-      continue;
+
+      queue.push({ payslipId: payslip.id, deliveryId: delivery.id, toEmail: email });
     }
 
-    let delivery = await prisma.payslipEmailDelivery.findFirst({
-      where: {
-        payslipId: payslip.id,
-        status: { in: ['QUEUED', 'FAILED', 'SENDING'] },
-      },
-      orderBy: { queuedAt: 'desc' },
-    });
+    let sent = 0;
+    let failed = 0;
 
-    if (input.force && payslip.emailStatus === 'SENT') {
-      delivery = null;
-    }
+    const processItem = async (item: WorkItem) => {
+      const claimed = await claimPayslipEmailDeliveryForSend(item.deliveryId);
+      if (!claimed) return;
 
-    if (delivery) {
-      if (delivery.status === 'FAILED' || delivery.status === 'SENDING') {
-        delivery = await prisma.payslipEmailDelivery.update({
-          where: { id: delivery.id },
-          data: { status: 'QUEUED', lastError: null, toEmail: email },
+      const payslip = payslips.find((p) => p.id === item.payslipId);
+      if (!payslip) return;
+      try {
+        const { buffer, filename } = await getPayslipPdfBuffer(input.organizationId, payslip.id);
+        const content = await buildPayslipEmailContent({
+          employeeName: payslip.employee.fullName,
+          month: payslip.month,
+          year: payslip.year,
+          periodStart: payslip.periodStart,
+          periodEnd: payslip.periodEnd,
+          neto: Number(payslip.neto.toString()),
+          replyTo: smtp.replyTo,
         });
-      }
-    } else {
-      delivery = await prisma.payslipEmailDelivery.create({
-        data: {
-          organizationId: input.organizationId,
-          payslipId: payslip.id,
-          toEmail: email,
-          status: 'QUEUED',
-          createdById: input.userId,
-        },
-      });
-    }
-
-    queue.push({ payslipId: payslip.id, deliveryId: delivery.id });
-  }
-
-  let sent = 0;
-  let failed = 0;
-
-  const processItem = async (item: WorkItem) => {
-    const payslip = payslips.find((p) => p.id === item.payslipId);
-    if (!payslip) return;
-    await prisma.payslipEmailDelivery.update({
-      where: { id: item.deliveryId },
-      data: { status: 'SENDING', attempts: { increment: 1 } },
-    });
-    try {
-      const { buffer, filename } = await getPayslipPdfBuffer(input.organizationId, payslip.id);
-      const content = await buildPayslipEmailContent({
-        employeeName: payslip.employee.fullName,
-        month: payslip.month,
-        year: payslip.year,
-        periodStart: payslip.periodStart,
-        periodEnd: payslip.periodEnd,
-        neto: Number(payslip.neto.toString()),
-        replyTo: smtp.replyTo,
-      });
-      const result = await sendEmailWithRetries(transport, {
-        to: payslip.employee.email,
-        subject: content.subject,
-        text: content.text,
-        html: content.html,
-        replyTo: smtp.replyTo ?? undefined,
-        attachments: [{
-          filename: content.attachmentName || filename,
-          content: buffer,
-          contentType: 'application/pdf',
-        }],
-      });
-      await prisma.$transaction([
-        prisma.payslipEmailDelivery.update({
-          where: { id: item.deliveryId },
-          data: {
-            status: 'SENT',
-            messageId: result.messageId,
-            sentAt: new Date(),
-            lastError: null,
-          },
-        }),
-        prisma.payslip.update({
-          where: { id: payslip.id },
-          data: {
-            emailStatus: 'SENT',
-            emailError: null,
-            deliveryType: 'PDF_EMAIL',
-          },
-        }),
-      ]);
-      sent += 1;
-    } catch (error) {
-      const message = truncateDeliveryError(
-        error instanceof EmailNotConfiguredError
-          ? error.message
-          : error instanceof Error
+        const result = await sendEmailWithRetries(transport, {
+          to: item.toEmail,
+          subject: content.subject,
+          text: content.text,
+          html: content.html,
+          replyTo: smtp.replyTo ?? undefined,
+          attachments: [{
+            filename: content.attachmentName || filename,
+            content: buffer,
+            contentType: 'application/pdf',
+          }],
+        });
+        await prisma.$transaction([
+          prisma.payslipEmailDelivery.update({
+            where: { id: item.deliveryId },
+            data: {
+              status: 'SENT',
+              messageId: result.messageId,
+              sentAt: new Date(),
+              lastError: null,
+            },
+          }),
+          prisma.payslip.update({
+            where: { id: payslip.id },
+            data: {
+              emailStatus: 'SENT',
+              emailError: null,
+              deliveryType: 'PDF_EMAIL',
+            },
+          }),
+        ]);
+        sent += 1;
+      } catch (error) {
+        const message = truncateDeliveryError(
+          error instanceof EmailNotConfiguredError
             ? error.message
-            : 'Error de envío',
-      );
-      await prisma.$transaction([
-        prisma.payslipEmailDelivery.update({
-          where: { id: item.deliveryId },
-          data: { status: 'FAILED', lastError: message },
-        }),
-        prisma.payslip.update({
-          where: { id: payslip.id },
-          data: { emailStatus: 'FAILED', emailError: message },
-        }),
-      ]);
-      failed += 1;
+            : error instanceof Error
+              ? error.message
+              : 'Error de envío',
+        );
+        await prisma.$transaction([
+          prisma.payslipEmailDelivery.update({
+            where: { id: item.deliveryId },
+            data: { status: 'FAILED', lastError: message },
+          }),
+          prisma.payslip.update({
+            where: { id: payslip.id },
+            data: { emailStatus: 'FAILED', emailError: message },
+          }),
+        ]);
+        failed += 1;
+      }
+    };
+
+    let processed = 0;
+    for (let offset = 0; offset < queue.length; offset += MAX_CONCURRENT) {
+      if (Date.now() - started > timeBudgetMs) break;
+      const batch = queue.slice(offset, offset + MAX_CONCURRENT);
+      await mapWithConcurrency(batch, MAX_CONCURRENT, processItem);
+      processed += batch.length;
     }
-  };
 
-  let processed = 0;
-  for (let offset = 0; offset < queue.length; offset += MAX_CONCURRENT) {
-    if (Date.now() - started > timeBudgetMs) break;
-    const batch = queue.slice(offset, offset + MAX_CONCURRENT);
-    await mapWithConcurrency(batch, MAX_CONCURRENT, processItem);
-    processed += batch.length;
-  }
-
-  const pending = queue.length - processed;
-  const summary = {
-    year: input.year,
-    month: input.month,
-    queued: queue.length,
-    sent,
-    failed,
-    skipped,
-    pending,
-    completed: pending === 0,
-  };
-
-  await createAuditRecord({
-    title: 'Envío de boletas por correo',
-    description: `Lote planilla ${input.month}/${input.year}: ${sent} enviados, ${failed} fallidos, ${pending} pendientes.`,
-    module: 'MANUAL',
-    category: 'PAYROLL',
-    userId: input.userId,
-    organizationId: input.organizationId,
-    action: input.force ? 'PAYROLL_EMAIL_RESEND' : 'PAYROLL_EMAIL_SEND',
-    requestId: input.requestId,
-    metadata: {
+    const pending = queue.length - processed;
+    const summary = {
       year: input.year,
       month: input.month,
+      queued: queue.length,
       sent,
       failed,
-      pending,
       skipped,
-    },
-  });
+      pending,
+      completed: pending === 0,
+    };
 
-  return summary;
+    await createAuditRecord({
+      title: 'Envío de boletas por correo',
+      description: `Lote planilla ${input.month}/${input.year}: ${sent} enviados, ${failed} fallidos, ${pending} pendientes.`,
+      module: 'MANUAL',
+      category: 'PAYROLL',
+      userId: input.userId,
+      organizationId: input.organizationId,
+      action: input.force ? 'PAYROLL_EMAIL_RESEND' : 'PAYROLL_EMAIL_SEND',
+      requestId: input.requestId,
+      metadata: {
+        year: input.year,
+        month: input.month,
+        sent,
+        failed,
+        pending,
+        skipped,
+      },
+    });
+
+    return summary;
+  } finally {
+    if (ownedTransport && transport.close) await transport.close();
+  }
 }
 
 export { getPublicSmtpStatus };

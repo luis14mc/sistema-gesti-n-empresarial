@@ -51,3 +51,5 @@ DO $$ BEGIN
 EXCEPTION
   WHEN duplicate_object THEN NULL;
 END $$;
+
+ALTER TABLE "payslip_email_deliveries" ADD COLUMN IF NOT EXISTS "claimedAt" TIMESTAMP(3);

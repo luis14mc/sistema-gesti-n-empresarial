@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { calculatePayslip, periodFromPayMonth } from '@/modules/payroll/domain';
+import { PayrollDomainError } from '@/modules/payroll/domain/errors';
 import { loadPayrollSettings } from '@/modules/payroll/application/settings-loader';
 import { mapPayslipAmounts } from '@/modules/payroll/application/mappers';
 import { buildPayslipHtml, renderAndStorePayslipPdf } from '@/modules/payroll/infrastructure/payslip-pdf';
@@ -36,29 +37,69 @@ export type PayslipOtroOverride = {
   otroConcepto?: string | null;
 };
 
+type ExistingPayslipOtro = { otro: number; otroConcepto: string | null };
+
 function resolveOtroForGeneration(
   employee: PayrollEmployeeRow,
-  override?: PayslipOtroOverride,
+  override: PayslipOtroOverride | undefined,
+  existing?: ExistingPayslipOtro | null,
 ): { amount: number; concepto: string | null } {
   const amount = override?.otro !== undefined
     ? override.otro
-    : Number(employee.otherDeduction.toString());
-  const rawConcept = override?.otroConcepto;
-  const concepto = rawConcept === undefined || rawConcept === null || rawConcept.trim() === ''
-    ? null
-    : rawConcept.trim();
+    : existing
+      ? existing.otro
+      : Number(employee.otherDeduction.toString());
+
+  let concepto: string | null;
+  if (override !== undefined && Object.prototype.hasOwnProperty.call(override, 'otroConcepto')) {
+    const rawConcept = override.otroConcepto;
+    concepto = rawConcept === undefined || rawConcept === null || rawConcept.trim() === ''
+      ? null
+      : rawConcept.trim();
+  } else if (existing) {
+    concepto = existing.otroConcepto;
+  } else {
+    concepto = null;
+  }
   return { amount, concepto };
+}
+
+function assertOtroWithinSalario(otro: number, salarioPeriodo: number) {
+  if (otro > salarioPeriodo) {
+    throw new PayrollDomainError(
+      'La deducción "Otro" no puede superar el salario del periodo.',
+      'PAYROLL_OTRO_EXCEEDS_SALARY',
+    );
+  }
+}
+
+async function loadExistingPayslipOtro(
+  organizationId: string,
+  employeeId: string,
+  year: number,
+  month: number,
+): Promise<ExistingPayslipOtro | null> {
+  const row = await prisma.payslip.findUnique({
+    where: { organizationId_employeeId_year_month: { organizationId, employeeId, year, month } },
+    select: { otro: true, otroConcepto: true },
+  });
+  if (!row) return null;
+  return {
+    otro: Number(row.otro.toString()),
+    otroConcepto: row.otroConcepto ?? null,
+  };
 }
 
 function employeeToInput(
   employee: PayrollEmployeeRow,
   payMonth: string,
   otroOverride?: PayslipOtroOverride,
+  existingOtro?: ExistingPayslipOtro | null,
 ) {
   if (!employee.payrollEnabled) throw new Error('EMPLOYEE_NOT_PAYROLL_ENABLED');
   if (!employee.hireDate) throw new Error('EMPLOYEE_MISSING_HIRE_DATE');
   if (employee.monthlySalary === null) throw new Error('EMPLOYEE_MISSING_SALARY');
-  const otro = resolveOtroForGeneration(employee, otroOverride);
+  const otro = resolveOtroForGeneration(employee, otroOverride, existingOtro);
   return {
     monthlySalary: Number(employee.monthlySalary.toString()),
     hireDate: employee.hireDate,
@@ -273,9 +314,11 @@ export async function previewPayslip(
   const { year, month } = parsePayMonth(payMonth);
   const employee = await getPayrollEmployee(organizationId, employeeId);
   const settings = await loadPayrollSettings(organizationId, year);
-  const input = employeeToInput(employee, payMonth, otroOverride);
+  const existingOtro = await loadExistingPayslipOtro(organizationId, employeeId, year, month);
+  const input = employeeToInput(employee, payMonth, otroOverride, existingOtro);
   const result = calculatePayslip({ ...toPayslipCalcInput(input), settings });
   const amounts = mapPayslipAmounts(result);
+  assertOtroWithinSalario(amounts.otro, amounts.salarioPeriodo);
   const previewHtml = await buildPayslipHtml({
     organizationId,
     employeeId,
@@ -316,9 +359,11 @@ export async function generatePayslip(
   const { year, month } = parsePayMonth(payMonth);
   const employee = await getPayrollEmployee(organizationId, employeeId);
   const settings = await loadPayrollSettings(organizationId, year);
-  const input = employeeToInput(employee, payMonth, options?.otroOverride);
+  const existingOtro = await loadExistingPayslipOtro(organizationId, employeeId, year, month);
+  const input = employeeToInput(employee, payMonth, options?.otroOverride, existingOtro);
   const result = calculatePayslip({ ...toPayslipCalcInput(input), settings });
   const amounts = mapPayslipAmounts(result);
+  assertOtroWithinSalario(amounts.otro, amounts.salarioPeriodo);
 
   let pdfStorageKey: string | null = null;
   if (!options?.skipPdf) {
@@ -412,8 +457,16 @@ export async function batchGeneratePayslips(
   for (const employeeId of ids) {
     try {
       const adjustment = adjustmentByEmployee.get(employeeId);
+      let otroOverride: PayslipOtroOverride | undefined;
+      if (adjustment) {
+        otroOverride = {};
+        if (adjustment.otro !== undefined) otroOverride.otro = adjustment.otro;
+        if (Object.prototype.hasOwnProperty.call(adjustment, 'otroConcepto')) {
+          otroOverride.otroConcepto = adjustment.otroConcepto;
+        }
+      }
       const payslip = await generatePayslip(organizationId, employeeId, payMonth, generatedById, {
-        otroOverride: adjustment,
+        otroOverride,
       });
       results.push({ employeeId, ok: true, payslipId: payslip.id });
     } catch (error) {

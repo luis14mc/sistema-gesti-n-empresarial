@@ -98,6 +98,7 @@ model PayslipEmailDelivery {
   lastError      String?
   messageId      String?
   queuedAt       DateTime                   @default(now())
+  claimedAt      DateTime?
   sentAt         DateTime?
   createdById    String
   organization   Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)

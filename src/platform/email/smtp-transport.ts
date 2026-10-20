@@ -29,6 +29,10 @@ export class SmtpTransport implements EmailTransport {
     await this.transporter.verify();
   }
 
+  async close(): Promise<void> {
+    this.transporter.close();
+  }
+
   async send(message: EmailMessage): Promise<EmailSendResult> {
     const result = await this.transporter.sendMail({
       from: this.config.SMTP_FROM,

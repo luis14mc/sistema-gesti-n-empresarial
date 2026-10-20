@@ -20,4 +20,5 @@ export type EmailSendResult = Readonly<{
 export interface EmailTransport {
   send(message: EmailMessage): Promise<EmailSendResult>;
   verifyConnection?(): Promise<void>;
+  close?(): Promise<void> | void;
 }

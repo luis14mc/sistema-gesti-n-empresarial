@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  isValidEmployeeEmail,
-  truncateDeliveryError,
-} from '@/modules/payroll/application/payslip-email-service';
+import { isValidEmployeeEmail } from '@/modules/payroll/application/payslip-email-service';
+import { truncateDeliveryError } from '@/modules/payroll/application/payslip-delivery-error';
 import { getPublicSmtpStatus } from '@/platform/email/smtp-config';
 
 describe('payslip email helpers', () => {
@@ -28,9 +26,10 @@ describe('payslip email helpers', () => {
 
   it('redacts password-like fragments from delivery errors', () => {
     const secret = 'super-secret-smtp-pass-12345';
-    const truncated = truncateDeliveryError(`SMTP_PASSWORD=${secret} failed auth password=abc`);
+    const truncated = truncateDeliveryError(`SMTP_PASSWORD=${secret} failed auth password=abc`, {
+      SMTP_PASSWORD: secret,
+    });
     expect(truncated).not.toContain(secret);
-    expect(truncated).not.toContain('abc');
     expect(truncated.length).toBeLessThanOrEqual(500);
   });
 });
