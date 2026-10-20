@@ -52,6 +52,7 @@ model Organization {
   payrollSettings        PayrollSettings?
   payrollIsrBrackets     PayrollIsrBracket[]
   payslips               Payslip[]
+  payslipEmailDeliveries PayslipEmailDelivery[]
   oficioNumberingConfigs OficioNumberingConfig[]
   oficioImportBatches    OficioImportBatch[]
   oficioSigners          OficioSigner[]

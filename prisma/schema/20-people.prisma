@@ -112,6 +112,7 @@ model User {
   permissionOverridesCreated   UserPermissionOverride[]     @relation("PermissionOverrideCreator")
   roleSettingsUpdated          RoleSetting[]                @relation("RoleSettingUpdatedBy")
   payslipsGenerated            Payslip[]                    @relation("PayslipGeneratedBy")
+  payslipEmailDeliveriesCreated PayslipEmailDelivery[]      @relation("PayslipEmailDeliveryCreatedBy")
   payrollSettingsUpdated       PayrollSettings[]            @relation("PayrollSettingsUpdatedBy")
   equipmentHistoryPerformed    EquipmentHistory[]           @relation("EquipmentHistoryPerformer")
   equipmentMaintenancePerformed EquipmentMaintenance[]      @relation("EquipmentMaintenancePerformer")

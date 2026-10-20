@@ -43,9 +43,38 @@ export type PayslipListItem = {
   neto: number;
   pdfStorageKey?: string | null;
   emailStatus?: string;
+  emailError?: string | null;
   deliveryType?: 'PDF' | 'EMAIL' | 'PDF_EMAIL';
   generatedAt?: string;
-  employee?: { id: string; fullName: string; employeeCode: string | null };
+  employee?: {
+    id: string;
+    fullName: string;
+    employeeCode: string | null;
+    positionName?: string | null;
+  };
+};
+
+export type PublicSmtpStatus = {
+  transport: 'smtp' | 'graph';
+  configured: boolean;
+  host: string | null;
+  port: number;
+  secure: boolean;
+  user: string | null;
+  from: string;
+  replyTo: string | null;
+  passwordConfigured: boolean;
+};
+
+export type PayslipEmailBatchSummary = {
+  year: number;
+  month: number;
+  queued: number;
+  sent: number;
+  failed: number;
+  skipped: number;
+  pending: number;
+  completed: boolean;
 };
 
 export type PayslipPreview = {
@@ -131,8 +160,23 @@ export const payrollService = {
     >(`${BASE}/payslips`, params),
   generatePayslip: (data: { employeeId: string; payMonth: string }) =>
     apiHelpers.post<ApiSuccess<PayslipListItem>>(`${BASE}/payslips`, data),
-  batchGenerate: (data: { payMonth: string; employeeIds?: string[] }) =>
-    apiHelpers.post<ApiSuccess<BatchGenerateResult>>(`${BASE}/payslips/batch`, data),
+  batchGenerate: (data: {
+    payMonth: string;
+    employeeIds?: string[];
+    employeeAdjustments?: Array<{ employeeId: string; otro?: number; otroConcepto?: string | null }>;
+  }) => apiHelpers.post<ApiSuccess<BatchGenerateResult>>(`${BASE}/payslips/batch`, data),
+  getSmtpStatus: () =>
+    apiHelpers.get<ApiSuccess<PublicSmtpStatus>>('/api/planilla/configuracion/smtp'),
+  testSmtp: () =>
+    apiHelpers.post<ApiSuccess<{ ok: boolean; sentTo: string }>>('/api/planilla/configuracion/smtp/probar'),
+  sendPayslipEmails: (data: {
+    year: number;
+    month: number;
+    employeeIds?: string[];
+    force?: boolean;
+    failedOnly?: boolean;
+  }) =>
+    apiHelpers.post<ApiSuccess<PayslipEmailBatchSummary>>('/api/planilla/boletas/enviar', data),
   getSettings: () =>
     apiHelpers.get<
       ApiSuccess<{

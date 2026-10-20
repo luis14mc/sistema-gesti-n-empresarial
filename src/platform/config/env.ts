@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { parseSmtpEnvironment } from '@/platform/email/smtp-config';
 
 export const APPLICATION_ENVIRONMENTS = ['development', 'test', 'staging', 'production'] as const;
 export type ApplicationEnvironment = (typeof APPLICATION_ENVIRONMENTS)[number];
@@ -240,4 +241,9 @@ export function getServerEnvironment(): ServerEnvironment {
 
 export function resetEnvironmentForTests(): void {
   cachedServerEnvironment = null;
+}
+
+/** Optional SMTP / email transport variables (does not fail when unset). */
+export function validateOptionalEmailEnvironment(source: EnvironmentSource = process.env) {
+  return parseSmtpEnvironment(source);
 }

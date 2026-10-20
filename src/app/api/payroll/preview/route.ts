@@ -13,9 +13,14 @@ async function getHandler(req: AuthenticatedRequest) {
     const input = previewPayslipSchema.parse({
       employeeId: searchParams.get('employeeId'),
       payMonth: searchParams.get('payMonth'),
+      otro: searchParams.get('otro') ? Number(searchParams.get('otro')) : undefined,
+      otroConcepto: searchParams.get('otroConcepto'),
     });
     return apiSuccess(
-      await previewPayslip(organizationId, input.employeeId, input.payMonth),
+      await previewPayslip(organizationId, input.employeeId, input.payMonth, {
+        otro: input.otro,
+        otroConcepto: input.otroConcepto,
+      }),
       { requestId },
     );
   } catch (error) {
@@ -29,7 +34,10 @@ async function postHandler(req: AuthenticatedRequest) {
     const { organizationId } = await authorizeOrganization(req, requestId, 'payroll.view');
     const body = previewPayslipSchema.parse(await req.json());
     return apiSuccess(
-      await previewPayslip(organizationId, body.employeeId, body.payMonth),
+      await previewPayslip(organizationId, body.employeeId, body.payMonth, {
+        otro: body.otro,
+        otroConcepto: body.otroConcepto,
+      }),
       { requestId },
     );
   } catch (error) {

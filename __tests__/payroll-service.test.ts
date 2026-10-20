@@ -21,6 +21,7 @@ vi.mock('@/lib/prisma', () => ({
       findFirst: vi.fn(),
     },
     payslip: {
+      findUnique: vi.fn().mockResolvedValue(null),
       upsert: vi.fn(),
       count: vi.fn(),
     },

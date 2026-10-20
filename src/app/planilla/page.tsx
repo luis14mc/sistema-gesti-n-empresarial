@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { PlanillaMonthEmailPanel } from '@/components/payroll/planilla-month-email-panel';
 import { usePayrollEmployees, usePayrollMutations } from '@/hooks/usePayroll';
 import type { PayrollEmployeeListItem } from '@/services/payroll.service';
 
@@ -288,6 +289,8 @@ export default function PlanillaPage() {
                 </CardContent>
               </Card>
             </div>
+
+            <PlanillaMonthEmailPanel payMonth={payMonth} />
           </PayrollChrome>
         </div>
 

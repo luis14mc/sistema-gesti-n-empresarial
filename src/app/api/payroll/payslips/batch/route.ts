@@ -11,7 +11,13 @@ async function postHandler(req: AuthenticatedRequest) {
   try {
     const { organizationId, userId } = await authorizeOrganization(req, requestId, 'payroll.generate');
     const body = batchPayslipSchema.parse(await req.json());
-    const result = await batchGeneratePayslips(organizationId, body.payMonth, body.employeeIds, userId);
+    const result = await batchGeneratePayslips(
+      organizationId,
+      body.payMonth,
+      body.employeeIds,
+      userId,
+      body.employeeAdjustments,
+    );
     await createAuditRecord({
       title: 'Generación masiva de planilla',
       description: `Se procesó la generación masiva para ${body.payMonth}.`,
