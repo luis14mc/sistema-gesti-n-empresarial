@@ -6,6 +6,8 @@ import { createAuditRecord } from '@/lib/audit';
 import { passwordPolicySchema } from '@/platform/security/password-policy';
 import { canonicalOrganizationId } from '@/platform/security/organization-scope';
 import { z } from 'zod';
+import { generateSessionToken } from '@/lib/session-token';
+import { resolveSessionRole } from '@/platform/security/authorization/session-role';
 
 // ============================================
 // POST /api/auth/password
@@ -38,7 +40,7 @@ async function postHandler(req: AuthenticatedRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: req.user!.userId },
-      select: { id: true, password: true, email: true },
+      select: { id: true, password: true, email: true, role: true },
     });
 
     if (!user) {
@@ -81,7 +83,21 @@ async function postHandler(req: AuthenticatedRequest) {
       entityId: user.id,
     });
 
-    return NextResponse.json({ success: true });
+    // Cambiar la contraseña revoca el token actual (passwordChangedAt). Emitimos
+    // la nueva sesión en esta misma respuesta: antes el cliente llamaba a
+    // /api/auth/refresh-session con el token ya revocado (401) y quedaba en un
+    // bucle /login <-> /settings/cambiar-contrasena con la pantalla cargando.
+    const sessionRole = await resolveSessionRole(user.id, user.role);
+    const token = await generateSessionToken({ userId: user.id, email: user.email, role: sessionRole });
+    const res = NextResponse.json({ success: true });
+    res.cookies.set('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60,
+      path: '/',
+    });
+    return res;
   } catch (error) {
     console.error('Error changing password:', error);
     return NextResponse.json(

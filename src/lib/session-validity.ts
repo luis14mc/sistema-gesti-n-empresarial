@@ -34,8 +34,11 @@ export async function assertTokenSessionStillValid(payload: TokenPayload): Promi
   // passwordChangedAt (below), user deactivation, or membership status.
 
   if (user.passwordChangedAt && payload.iat !== undefined) {
-    const issuedAtMs = payload.iat * 1000;
-    if (issuedAtMs < user.passwordChangedAt.getTime()) {
+    // iat tiene resolución de segundos: comparar contra el segundo del cambio.
+    // Comparar contra milisegundos revocaba el token emitido en el mismo segundo
+    // que el cambio de contraseña (la sesión nueva nacía inválida).
+    const changedAtSec = Math.floor(user.passwordChangedAt.getTime() / 1000);
+    if (payload.iat < changedAtSec) {
       return false;
     }
   }

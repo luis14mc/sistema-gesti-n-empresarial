@@ -293,7 +293,12 @@ export default function MainLayout({
       .then(async (r) => {
         if (!r.ok) {
           if (r.status === 401) {
-            router.push('/login');
+            // La cookie puede tener firma válida pero estar revocada en BD
+            // (p. ej. tras un cambio de contraseña). Si no se borra, el
+            // middleware Edge rebota /login -> landing y la página queda
+            // cargando en bucle.
+            await logoutAction().catch(() => undefined);
+            router.replace('/login');
             return null;
           }
           throw new Error(`Auth profile request failed with ${r.status}`);
