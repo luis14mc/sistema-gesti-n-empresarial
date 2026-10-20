@@ -145,6 +145,7 @@ export function usePayrollMutations() {
   return {
     preview: previewMutation.mutateAsync,
     isPreviewing: previewMutation.isPending,
+    clearPreview: () => previewMutation.reset(),
     previewData: (previewMutation.data?.data as ApiSuccess<PayslipPreview> | undefined)?.data,
     previewError: previewMutation.error,
     generate: generateMutation.mutateAsync,

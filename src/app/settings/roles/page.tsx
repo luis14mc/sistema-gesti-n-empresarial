@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
@@ -45,18 +46,14 @@ type RoleRow = {
 
 export default function RolesSettingsPage() {
   const pathname = usePathname();
-  const [roles, setRoles] = useState<RoleRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [settingsRole, setSettingsRole] = useState<RoleRow | null>(null);
   const [settingsForm, setSettingsForm] = useState<RoleSettingsFormState | null>(null);
   const [adminLocked, setAdminLocked] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const rolesQuery = useQuery({
+    queryKey: ['settings', 'roles', pathname],
+    queryFn: async () => {
       const res = await fetch('/api/roles');
       if (!res.ok) {
         throw new Error(
@@ -64,25 +61,24 @@ export default function RolesSettingsPage() {
         );
       }
       const data = await res.json();
-      setRoles(data.roles ?? []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error al cargar roles');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load, pathname]);
+      return (data.roles ?? []) as RoleRow[];
+    },
+  });
+  const roles = rolesQuery.data ?? [];
+  const loading = rolesQuery.isPending;
+  const error = rolesQuery.error
+    ? rolesQuery.error instanceof Error
+      ? rolesQuery.error.message
+      : 'Error al cargar roles'
+    : null;
 
   useEffect(() => {
     const onVisible = () => {
-      if (document.visibilityState === 'visible') void load();
+      if (document.visibilityState === 'visible') void rolesQuery.refetch();
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [load]);
+  }, [rolesQuery]);
 
   const openSettings = async (row: RoleRow) => {
     setSettingsRole(row);
@@ -140,7 +136,7 @@ export default function RolesSettingsPage() {
       }
       sileo.success({ title: 'Configuración guardada' });
       setSettingsRole(null);
-      await load();
+      await rolesQuery.refetch();
     } catch (e) {
       sileo.error({
         title: 'Error',

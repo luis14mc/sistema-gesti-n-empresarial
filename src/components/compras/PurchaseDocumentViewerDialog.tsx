@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { Download, ExternalLink } from 'lucide-react';
 import {
   Dialog,
@@ -36,39 +36,30 @@ function isImage(mimeType: string) {
   return mimeType.startsWith('image/');
 }
 
+function resolveViewerState(open: boolean, document: ViewerDocument | null): ViewerState {
+  if (!open) {
+    return { isLoading: false, error: null, viewUrl: null };
+  }
+  if (!document) {
+    return { isLoading: false, error: 'Documento no disponible.', viewUrl: null };
+  }
+  const url = resolveViewerUrl(document);
+  if (!url) {
+    return {
+      isLoading: false,
+      error: 'No se pudo determinar la URL del documento.',
+      viewUrl: null,
+    };
+  }
+  return { isLoading: false, error: null, viewUrl: url };
+}
+
 export function PurchaseDocumentViewerDialog({
   open,
   onOpenChange,
   document,
 }: PurchaseDocumentViewerDialogProps) {
-  const [state, setState] = useState<ViewerState>({
-    isLoading: false,
-    error: null,
-    viewUrl: null,
-  });
-
-  useEffect(() => {
-    if (!open) {
-      setState({ isLoading: false, error: null, viewUrl: null });
-      return;
-    }
-    if (!document) {
-      setState({ isLoading: false, error: 'Documento no disponible.', viewUrl: null });
-      return;
-    }
-
-    const url = resolveViewerUrl(document);
-    if (!url) {
-      setState({
-        isLoading: false,
-        error: 'No se pudo determinar la URL del documento.',
-        viewUrl: null,
-      });
-      return;
-    }
-
-    setState({ isLoading: false, error: null, viewUrl: url });
-  }, [open, document]);
+  const state = useMemo(() => resolveViewerState(open, document), [open, document]);
 
   const fileName = document?.originalName ?? 'Documento';
   const downloadUrl =

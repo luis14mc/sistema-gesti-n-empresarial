@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Check, ChevronsUpDown, FileDown, Mail, Play, Users } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -47,7 +47,6 @@ export default function PlanillaPage() {
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [comboOpen, setComboOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<PayrollEmployeeListItem | null>(null);
-  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [batchDialogOpen, setBatchDialogOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -59,6 +58,7 @@ export default function PlanillaPage() {
   });
   const {
     preview,
+    clearPreview,
     generate,
     batchGenerate,
     previewData,
@@ -70,13 +70,10 @@ export default function PlanillaPage() {
 
   const periodLabel = useMemo(() => formatPayrollPeriodLabel(payMonth), [payMonth]);
 
-  useEffect(() => {
-    if (!previewData || !selectedEmployee) return;
-    if (previewData.previewHtml) {
-      setPreviewHtml(previewData.previewHtml);
-    } else {
-      setPreviewHtml(buildMinimalPayslipHtml(previewData, selectedEmployee, payMonth));
-    }
+  const previewHtml = useMemo(() => {
+    if (!previewData || !selectedEmployee) return null;
+    if (previewData.previewHtml) return previewData.previewHtml;
+    return buildMinimalPayslipHtml(previewData, selectedEmployee, payMonth);
   }, [previewData, selectedEmployee, payMonth]);
 
   async function onPreview() {
@@ -179,7 +176,7 @@ export default function PlanillaPage() {
                                   onSelect={() => {
                                     setSelectedEmployee(e);
                                     setComboOpen(false);
-                                    setPreviewHtml(null);
+                                    clearPreview();
                                   }}
                                 >
                                   <Check
@@ -208,7 +205,7 @@ export default function PlanillaPage() {
                       value={payMonth}
                       onChange={(e) => {
                         setPayMonth(e.target.value);
-                        setPreviewHtml(null);
+                        clearPreview();
                       }}
                       className="font-mono"
                     />

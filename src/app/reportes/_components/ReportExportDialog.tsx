@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -120,27 +120,18 @@ export function ReportExportDialog({ report, open, onOpenChange }: ReportExportD
   const preset = useWatch({ control: form.control, name: 'preset' });
   const fromError = form.formState.errors.from?.message;
   const toError = form.formState.errors.to?.message;
+  const formInstanceKey = open && report ? `${report.code}-open` : 'closed';
 
-  useEffect(() => {
-    if (!open || !report) return;
-    const range = resolveDatePreset('this_month');
-    form.reset({
-      preset: 'this_month',
-      from: range.from,
-      to: range.to,
-      format: 'xlsx',
-      status: FILTER_NONE,
-      category: FILTER_NONE,
-      type: FILTER_NONE,
-    });
-  }, [open, report, form]);
-
-  useEffect(() => {
-    if (preset === 'custom') return;
+  function applyPreset(preset: ReportDatePreset) {
+    if (preset === 'custom') {
+      form.setValue('preset', preset, { shouldValidate: true });
+      return;
+    }
     const range = resolveDatePreset(preset);
+    form.setValue('preset', preset, { shouldValidate: true });
     form.setValue('from', range.from, { shouldValidate: true });
     form.setValue('to', range.to, { shouldValidate: true });
-  }, [preset, form]);
+  }
 
   const selectFilters = useMemo(() => {
     if (!report) return [];
@@ -182,6 +173,7 @@ export function ReportExportDialog({ report, open, onOpenChange }: ReportExportD
         </DialogHeader>
 
         <form
+          key={formInstanceKey}
           className="space-y-4"
           onSubmit={form.handleSubmit(onSubmit)}
           noValidate
@@ -195,7 +187,7 @@ export function ReportExportDialog({ report, open, onOpenChange }: ReportExportD
                   type="button"
                   size="sm"
                   variant={preset === key ? 'default' : 'outline'}
-                  onClick={() => form.setValue('preset', key)}
+                  onClick={() => applyPreset(key)}
                 >
                   {PRESET_LABELS[key]}
                 </Button>
@@ -204,7 +196,7 @@ export function ReportExportDialog({ report, open, onOpenChange }: ReportExportD
                 type="button"
                 size="sm"
                 variant={preset === 'custom' ? 'default' : 'outline'}
-                onClick={() => form.setValue('preset', 'custom')}
+                onClick={() => applyPreset('custom')}
               >
                 Personalizado
               </Button>

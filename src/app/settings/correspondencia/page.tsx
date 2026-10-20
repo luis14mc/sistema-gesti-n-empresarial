@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -72,10 +73,6 @@ export default function CorrespondenciaSettingsPage() {
   const canConfigure = NUMBERING_ROLES.has(user?.role ?? '');
   const canElevate = ELEVATED_ROLES.has(user?.role ?? '');
 
-  const [configs, setConfigs] = useState<OficioNumberingConfigView[]>([]);
-  const [signers, setSigners] = useState<OficioSignerView[]>([]);
-  const [loading, setLoading] = useState(true);
-
   const [numberingOpen, setNumberingOpen] = useState(false);
   const [editingConfig, setEditingConfig] = useState<OficioNumberingConfigView | null>(null);
 
@@ -129,29 +126,22 @@ export default function CorrespondenciaSettingsPage() {
     editingConfig != null &&
     Number(watched.lastGeneratedSequence) < editingConfig.lastGeneratedSequence;
 
-  const load = async () => {
-    setLoading(true);
-    try {
+  const settingsQuery = useQuery({
+    queryKey: ['settings', 'correspondencia'],
+    queryFn: async () => {
       const [numberingRes, signersRes] = await Promise.all([
         oficiosService.listNumbering(),
         oficiosService.listSigners({ active: false }),
       ]);
-      setConfigs(numberingRes.data.configs);
-      setSigners(signersRes.data.signers);
-    } catch (e) {
-      const err = e as { response?: { data?: { error?: string } } };
-      sileo.error({
-        title: 'Sin acceso a configuración',
-        description: err.response?.data?.error ?? 'Se requiere permiso oficios.configure',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void load();
-  }, []);
+      return {
+        configs: numberingRes.data.configs,
+        signers: signersRes.data.signers,
+      };
+    },
+  });
+  const loading = settingsQuery.isPending;
+  const configs = settingsQuery.data?.configs ?? [];
+  const signers = settingsQuery.data?.signers ?? [];
 
   const openCreateNumbering = (dependency: OficioDependency = 'CNI') => {
     setEditingConfig(null);
@@ -209,7 +199,7 @@ export default function CorrespondenciaSettingsPage() {
         title: editingConfig ? 'Configuración actualizada' : 'Configuración creada',
       });
       setNumberingOpen(false);
-      await load();
+      await settingsQuery.refetch();
     } catch (e) {
       const err = e as { response?: { data?: { error?: string } } };
       sileo.error({
@@ -257,7 +247,7 @@ export default function CorrespondenciaSettingsPage() {
         sileo.success({ title: 'Firmante creado' });
       }
       setSignerOpen(false);
-      await load();
+      await settingsQuery.refetch();
     } catch (e) {
       const err = e as { response?: { data?: { error?: string } } };
       sileo.error({
@@ -273,7 +263,7 @@ export default function CorrespondenciaSettingsPage() {
       sileo.success({
         title: signer.isActive ? 'Firmante desactivado' : 'Firmante activado',
       });
-      await load();
+      await settingsQuery.refetch();
     } catch (e) {
       const err = e as { response?: { data?: { error?: string } } };
       sileo.error({

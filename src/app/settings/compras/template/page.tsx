@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useForm, useWatch, type UseFormRegister, type FieldError } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Swal from '@/lib/compras/orden/swal';
 import MainLayout from '@/components/layout/MainLayout';
@@ -148,7 +148,6 @@ export default function ComprasTemplateSettingsPage() {
   const { user } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [ready, setReady] = useState(false);
   const form = useForm<PurchaseOrderTemplateInput>({
     resolver: zodResolver(purchaseOrderTemplateSchema),
     defaultValues: DEFAULTS,
@@ -160,22 +159,18 @@ export default function ComprasTemplateSettingsPage() {
     if (user && user.role !== 'ADMIN') router.replace('/settings');
   }, [user, router]);
 
+  const templateQuery = useQuery({
+    queryKey: ['settings', 'compras-template'],
+    queryFn: async () => {
+      const { data } = await compraOrdenService.getTemplate();
+      return (data.template as PurchaseOrderTemplateInput | null) ?? null;
+    },
+    enabled: user?.role === 'ADMIN',
+  });
+
   useEffect(() => {
-    let active = true;
-    compraOrdenService.getTemplate()
-      .then(({ data }) => {
-        if (!active) return;
-        const template = data.template as PurchaseOrderTemplateInput | null;
-        if (template) form.reset(template);
-      })
-      .catch(() => undefined)
-      .finally(() => {
-        if (active) setReady(true);
-      });
-    return () => {
-      active = false;
-    };
-  }, [form]);
+    if (templateQuery.data) form.reset(templateQuery.data);
+  }, [templateQuery.data, form]);
 
   if (!user || user.role !== 'ADMIN') return null;
 
@@ -201,7 +196,7 @@ export default function ComprasTemplateSettingsPage() {
             { label: 'Plantilla de compra' },
           ]}
           primaryAction={(
-            <Button type="submit" disabled={!ready || form.formState.isSubmitting}>
+            <Button type="submit" disabled={templateQuery.isPending || form.formState.isSubmitting}>
               {form.formState.isSubmitting ? 'Guardando…' : 'Guardar plantilla'}
             </Button>
           )}
@@ -242,7 +237,7 @@ export default function ComprasTemplateSettingsPage() {
                       <Input
                         id="logoFile"
                         type="file"
-                        accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml"
+                        accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
                         onChange={async (event) => {
                           const file = event.target.files?.[0];
                           if (!file) return;
