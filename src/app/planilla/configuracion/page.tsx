@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { usePayrollIsrBrackets, usePayrollSettings } from '@/hooks/usePayroll';
+import { usePayrollIsrBrackets, usePayrollSettings, usePayrollSmtp } from '@/hooks/usePayroll';
 import { PAYROLL_YEAR } from '@/modules/payroll/domain';
 import type { IsrBracketRecord } from '@/services/payroll.service';
 
@@ -27,6 +27,7 @@ export default function PlanillaConfiguracionPage() {
     resetTo2026Defaults,
     isResetting,
   } = usePayrollIsrBrackets(PAYROLL_YEAR);
+  const { smtp, isLoading: smtpLoading, testConnection, isTesting } = usePayrollSmtp();
 
   const [isrForm, setIsrForm] = useState({ medicalExpensesAnnual: '', ivmDeductibleMonthly: '' });
   const [ihssForm, setIhssForm] = useState({
@@ -98,6 +99,18 @@ export default function PlanillaConfiguracionPage() {
       setMessage('Tabla ISR actualizada.');
     } catch {
       setError('No se pudo guardar la tabla ISR.');
+    }
+  }
+
+  async function onTestSmtp() {
+    setError('');
+    setMessage('');
+    try {
+      const result = await testConnection();
+      const sentTo = result.data.data?.sentTo;
+      setMessage(sentTo ? `Correo de prueba enviado a ${sentTo}.` : 'Conexión SMTP verificada.');
+    } catch {
+      setError('No se pudo verificar SMTP. Revise las variables en Railway.');
     }
   }
 
@@ -249,34 +262,53 @@ export default function PlanillaConfiguracionPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/60 border-dashed">
-            <CardHeader>
-              <CardTitle className="text-base">Correo (SMTP)</CardTitle>
-              <CardDescription>
-                Configuración de envío de boletas por correo — próximamente.
-              </CardDescription>
+          <Card className="border-border/60">
+            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle className="text-base">Correo (SMTP)</CardTitle>
+                <CardDescription>
+                  Valores detectados desde el entorno (Railway). La contraseña nunca se muestra ni se guarda en la
+                  base de datos.
+                </CardDescription>
+              </div>
+              <Button type="button" variant="secondary" disabled={isTesting || smtpLoading} onClick={onTestSmtp}>
+                {isTesting ? 'Probando…' : 'Probar conexión'}
+              </Button>
             </CardHeader>
-            <CardContent className="space-y-4 opacity-80">
-              <p className="text-sm text-muted-foreground">
-                Por seguridad, las contraseñas SMTP no se almacenan en la aplicación. Use variables de entorno o
-                un gestor de secretos en el servidor.
-              </p>
+            <CardContent className="space-y-4">
+              {smtpLoading ? <p className="text-sm text-muted-foreground">Cargando…</p> : null}
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="smtpHost">Servidor SMTP</Label>
-                  <Input id="smtpHost" placeholder="smtp.ejemplo.hn" disabled />
+                  <Label>Servidor SMTP</Label>
+                  <Input readOnly value={smtp?.host ?? '—'} className="bg-muted/40 font-mono text-sm" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="smtpPort">Puerto</Label>
-                  <Input id="smtpPort" placeholder="587" disabled />
+                  <Label>Puerto</Label>
+                  <Input readOnly value={smtp ? String(smtp.port) : '—'} className="bg-muted/40 font-mono text-sm" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="smtpUser">Usuario</Label>
-                  <Input id="smtpUser" placeholder="planilla@empresa.hn" disabled />
+                  <Label>Usuario</Label>
+                  <Input readOnly value={smtp?.user ?? '—'} className="bg-muted/40 font-mono text-sm" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="smtpFrom">Remitente</Label>
-                  <Input id="smtpFrom" placeholder="Recursos Humanos &lt;rrhh@empresa.hn&gt;" disabled />
+                  <Label>Remitente</Label>
+                  <Input readOnly value={smtp?.from ?? '—'} className="bg-muted/40 text-sm" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Contraseña SMTP</Label>
+                  <Input
+                    readOnly
+                    value={smtp?.passwordConfigured ? 'configurada ✔' : 'no configurada ✖'}
+                    className="bg-muted/40 text-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Estado</Label>
+                  <Input
+                    readOnly
+                    value={smtp?.configured ? 'Listo para enviar ✔' : 'Incompleto ✖'}
+                    className="bg-muted/40 text-sm"
+                  />
                 </div>
               </div>
             </CardContent>

@@ -16,6 +16,7 @@ export const payrollKeys = {
   payslips: (filters?: Record<string, unknown>) => [...payrollKeys.all, 'payslips', filters] as const,
   settings: () => [...payrollKeys.all, 'settings'] as const,
   isr: (year: number) => [...payrollKeys.all, 'isr', year] as const,
+  smtp: () => [...payrollKeys.all, 'smtp'] as const,
 };
 
 export function usePayrollEmployees(filters?: {
@@ -118,6 +119,24 @@ export function usePayrollIsrBrackets(year: number) {
   };
 }
 
+export function usePayrollSmtp() {
+  const queryClient = useQueryClient();
+  const statusQuery = useQuery({
+    queryKey: payrollKeys.smtp(),
+    queryFn: async () => (await payrollService.getSmtpStatus()).data.data,
+  });
+  const testMutation = useMutation({
+    mutationFn: () => payrollService.testSmtp(),
+  });
+  return {
+    smtp: statusQuery.data,
+    isLoading: statusQuery.isLoading,
+    testConnection: testMutation.mutateAsync,
+    isTesting: testMutation.isPending,
+    refetch: () => queryClient.invalidateQueries({ queryKey: payrollKeys.smtp() }),
+  };
+}
+
 export function usePayrollMutations() {
   const queryClient = useQueryClient();
   const previewMutation = useMutation({
@@ -130,7 +149,23 @@ export function usePayrollMutations() {
     },
   });
   const batchMutation = useMutation({
-    mutationFn: (data: { payMonth: string; employeeIds?: string[] }) => payrollService.batchGenerate(data),
+    mutationFn: (data: {
+      payMonth: string;
+      employeeIds?: string[];
+      employeeAdjustments?: Array<{ employeeId: string; otro?: number; otroConcepto?: string | null }>;
+    }) => payrollService.batchGenerate(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: payrollKeys.payslips() });
+    },
+  });
+  const sendEmailsMutation = useMutation({
+    mutationFn: (data: {
+      year: number;
+      month: number;
+      employeeIds?: string[];
+      force?: boolean;
+      failedOnly?: boolean;
+    }) => payrollService.sendPayslipEmails(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: payrollKeys.payslips() });
     },
@@ -152,6 +187,9 @@ export function usePayrollMutations() {
     batchGenerate: batchMutation.mutateAsync,
     isBatching: batchMutation.isPending,
     batchResult: (batchMutation.data?.data as ApiSuccess<{ succeeded: number; failed: number; results: BatchGenerateResult['results'] }> | undefined)?.data,
+    sendPayslipEmails: sendEmailsMutation.mutateAsync,
+    isSendingEmails: sendEmailsMutation.isPending,
+    emailSendResult: (sendEmailsMutation.data?.data as ApiSuccess<import('@/services/payroll.service').PayslipEmailBatchSummary> | undefined)?.data,
     patchEmployee: patchEmployeeMutation.mutateAsync,
     isPatching: patchEmployeeMutation.isPending,
   };
