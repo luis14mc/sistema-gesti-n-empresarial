@@ -3,6 +3,7 @@ import { apiFailure } from '@/platform/api/response';
 import { authorizationFailure } from '@/platform/security/authorization/http';
 import { isOrganizationContextError } from '@/modules/organizations/application/context';
 import { EmployeeNotYetHiredError, PayrollDomainError } from '@/modules/payroll/domain';
+import { EmailNotConfiguredError } from '@/platform/email/errors';
 
 const MESSAGES: Record<string, string> = {
   EMPLOYEE_NOT_FOUND: 'El empleado no existe en esta organización.',
@@ -15,6 +16,8 @@ const MESSAGES: Record<string, string> = {
   PAYROLL_INVALID_RATE_UNITS:
     'Las tasas ISR deben estar en porcentaje (15), no como fracción (0.15). Restablezca la tabla 2026.',
   PDF_BROWSER_NOT_AVAILABLE: 'No se pudo generar el PDF en este entorno.',
+  USER_EMAIL_MISSING: 'Su usuario no tiene un correo válido para la prueba SMTP.',
+  EMAIL_NOT_CONFIGURED: 'El envío de correo no está configurado.',
 };
 
 export function payrollFailure(error: unknown, requestId: string) {
@@ -33,6 +36,13 @@ export function payrollFailure(error: unknown, requestId: string) {
       status: 400,
       details: error.issues,
       stage: 'VALIDATE',
+    });
+  }
+  if (error instanceof EmailNotConfiguredError) {
+    return apiFailure(error.code, error.message, {
+      requestId,
+      status: 503,
+      stage: 'EMAIL_TRANSPORT',
     });
   }
   if (error instanceof EmployeeNotYetHiredError || error instanceof PayrollDomainError) {
