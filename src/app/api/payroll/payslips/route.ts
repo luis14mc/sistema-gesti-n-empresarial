@@ -42,7 +42,9 @@ async function postHandler(req: AuthenticatedRequest) {
   try {
     const { organizationId, userId } = await authorizeOrganization(req, requestId, 'payroll.generate');
     const body = generatePayslipSchema.parse(await req.json());
-    const payslip = await generatePayslip(organizationId, body.employeeId, body.payMonth, userId);
+    const payslip = await generatePayslip(organizationId, body.employeeId, body.payMonth, userId, {
+      otroOverride: { otro: body.otro, otroConcepto: body.otroConcepto },
+    });
     await createAuditRecord({
       title: 'Recibo de planilla generado',
       description: `Se generó o actualizó un recibo de planilla para el periodo ${body.payMonth}.`,

@@ -2,17 +2,29 @@ import { z } from 'zod';
 
 export const payMonthSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Use formato YYYY-MM');
 
+const payslipOtroOverrideSchema = z.object({
+  otro: z.number().nonnegative().optional(),
+  otroConcepto: z.string().trim().max(200).nullable().optional(),
+});
+
 export const previewPayslipSchema = z.object({
   employeeId: z.string().min(1),
   payMonth: payMonthSchema,
-});
+}).merge(payslipOtroOverrideSchema);
 
 export const generatePayslipSchema = previewPayslipSchema;
+
+export const batchPayslipEmployeeAdjustmentSchema = z.object({
+  employeeId: z.string().min(1),
+  otro: z.number().nonnegative().optional(),
+  otroConcepto: z.string().trim().max(200).nullable().optional(),
+});
 
 export const batchPayslipSchema = z.object({
   payMonth: payMonthSchema,
   /** If omitted, all active employees with payrollEnabled are processed. */
   employeeIds: z.array(z.string().min(1)).max(500).optional(),
+  employeeAdjustments: z.array(batchPayslipEmployeeAdjustmentSchema).max(500).optional(),
 });
 
 export const patchPayrollEmployeeSchema = z.object({
@@ -34,6 +46,14 @@ export const isrBracketInputSchema = z.object({
   order: z.number().int().positive(),
   rate: z.number().min(0).max(100),
   toAnnual: z.number().nonnegative(),
+});
+
+export const sendPayslipEmailsSchema = z.object({
+  year: z.number().int().min(2000).max(2100),
+  month: z.number().int().min(1).max(12),
+  employeeIds: z.array(z.string().min(1)).max(500).optional(),
+  force: z.boolean().optional(),
+  failedOnly: z.boolean().optional(),
 });
 
 export const isrBracketsPutSchema = z.object({
