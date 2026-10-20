@@ -34,11 +34,11 @@ describe('S3 Compras — regresión de fixes críticos', () => {
       expect(sanitizeLogoCandidate('data:application/pdf;base64,xxx')).toBeNull();
     });
 
-    it('acepta data: URI de imagen con base64', () => {
+    it('acepta data: URI raster y rechaza SVG embebido', () => {
       const png = 'data:image/png;base64,iVBORw0KGgo=';
       expect(sanitizeLogoCandidate(png)).toBe(png);
       const svg = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciLz4=';
-      expect(sanitizeLogoCandidate(svg)).toBe(svg);
+      expect(sanitizeLogoCandidate(svg)).toBeNull();
     });
 
     it('rechaza path traversal con ../', () => {

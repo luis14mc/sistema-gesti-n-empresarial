@@ -1,6 +1,7 @@
 import { access, mkdir, readFile, writeFile } from 'fs/promises';
 import { checkUrlForSsrf } from '@/platform/integrations/application/ssrf-guard';
 import path from 'path';
+import { validateRasterLogoUpload } from '@/lib/raster-image-validation';
 import {
   DEFAULT_INSTITUTION_SETTINGS,
   getInstitutionSettings,
@@ -47,7 +48,7 @@ export function sanitizeLogoCandidate(candidate: string): string | null {
   }
 
   if (candidate.startsWith('data:')) {
-    if (!/^data:image\/(png|jpe?g|svg\+xml|webp|gif);base64,/i.test(candidate)) return null;
+    if (!/^data:image\/(png|jpe?g|webp);base64,/i.test(candidate)) return null;
     return candidate;
   }
 
@@ -94,8 +95,6 @@ export async function resolveInstitutionLogoDataUri(logoPath?: string): Promise<
     '/assets/logo/logo-cni.png',
     '/logo-cni.png',
     '/uploads/institution/logo.png',
-    '/logo-cni.svg',
-    '/assets/logo/logo.svg',
     '/assets/logo/logo.png',
   ].filter((value, index, arr): value is string => Boolean(value) && arr.indexOf(value) === index);
 
@@ -125,21 +124,18 @@ export async function getInstitutionConfig() {
 }
 
 const LOGO_DIR = path.join(PUBLIC_ROOT, 'uploads', 'institution');
-const ALLOWED_LOGO_EXT = new Set(['svg', 'png', 'jpg', 'jpeg', 'webp', 'gif']);
 
 export async function saveInstitutionLogo(file: File): Promise<string> {
-  const ext = path.extname(file.name).slice(1).toLowerCase();
-  if (!ALLOWED_LOGO_EXT.has(ext)) {
-    throw new Error('Formato de logo no permitido. Use SVG, PNG, JPG o WebP.');
-  }
   if (file.size > 2 * 1024 * 1024) {
     throw new Error('El logo no puede superar 2 MB.');
   }
 
-  await mkdir(LOGO_DIR, { recursive: true });
-  const filename = `logo.${ext}`;
-  const absolute = path.join(LOGO_DIR, filename);
   const buffer = Buffer.from(await file.arrayBuffer());
+  const kind = validateRasterLogoUpload(file.name, buffer);
+
+  await mkdir(LOGO_DIR, { recursive: true });
+  const filename = `logo.${kind === 'jpeg' ? 'jpg' : kind}`;
+  const absolute = path.join(LOGO_DIR, filename);
   await writeFile(absolute, buffer);
 
   return `/uploads/institution/${filename}`;

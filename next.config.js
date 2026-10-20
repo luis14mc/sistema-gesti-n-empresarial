@@ -10,6 +10,17 @@ const nextConfig = {
   async rewrites() {
     return [{ source: '/favicon.ico', destination: '/icon' }];
   },
+  async headers() {
+    return [
+      {
+        source: '/uploads/:path*',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Content-Security-Policy', value: "default-src 'none'; img-src 'self'; sandbox" },
+        ],
+      },
+    ];
+  },
   // Cabeceras de seguridad aplicadas por src/middleware.ts en cada request:
   //   - Content-Security-Policy con nonce dinámico
   //   - X-Frame-Options DENY
