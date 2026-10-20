@@ -1,3 +1,5 @@
+Obsoleto: producción corre en Railway + Cloudflare R2.
+
 # =====================================================
 # AWS Infrastructure — SGE
 # Terraform mínimo para App Runner / Fargate en AWS
