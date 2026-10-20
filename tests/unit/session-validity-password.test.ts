@@ -50,6 +50,23 @@ describe('assertTokenSessionStillValid (password rotation)', () => {
     expect(ok).toBe(true);
   });
 
+  it('accepts the token issued in the same second as the password change', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      isActive: true,
+      passwordChangedAt: new Date('2026-01-01T12:00:00.750Z'),
+    });
+    const { assertTokenSessionStillValid } = await import('@/lib/session-validity');
+    const ok = await assertTokenSessionStillValid({
+      userId: 'u1',
+      email: 'u@test',
+      role: 'ADMIN',
+      accessVersion: 2,
+      iat: Math.floor(new Date('2026-01-01T12:00:00.900Z').getTime() / 1000),
+      pwdChangedAtMs: new Date('2026-01-01T12:00:00.750Z').getTime(),
+    });
+    expect(ok).toBe(true);
+  });
+
   it('rejects when the user was deactivated', async () => {
     prismaMock.user.findUnique.mockResolvedValue({ isActive: false, passwordChangedAt: null });
     const { assertTokenSessionStillValid } = await import('@/lib/session-validity');

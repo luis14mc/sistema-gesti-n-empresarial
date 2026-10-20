@@ -39,10 +39,10 @@ export default function ForcedPasswordChangePage() {
     setIsSubmitting(true);
     try {
       await authService.changePassword({ currentPassword, newPassword });
-      await fetch('/api/auth/refresh-session', { method: 'POST' });
       sileo.success({ title: 'Contraseña actualizada' });
-      router.push('/dashboard');
-      router.refresh();
+      // Navegación completa: el middleware Edge debe leer la cookie nueva
+      // (sin mustChangePassword) que emitió /api/auth/password.
+      window.location.assign('/dashboard');
     } catch {
       sileo.error({
         title: 'No se pudo cambiar la contraseña',
