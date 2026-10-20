@@ -155,7 +155,7 @@ describe('Every CREATE TABLE has a primary key (Phase 10A data quality)', () => 
   for (const migration of migrations) {
     if (!/CREATE\s+TABLE/i.test(migration.content)) continue;
     it(`${migration.directory} declares primary keys`, () => {
-      const pkRegex = /CREATE\s+TABLE\s+[`"]?\w+[`"]?\s*\([^;]*PRIMARY\s+KEY/i;
+      const pkRegex = /CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+[`"]?\w+[`"]?\s*\([^;]*PRIMARY\s+KEY/i;
       expect(migration.content).toMatch(pkRegex);
     });
   }

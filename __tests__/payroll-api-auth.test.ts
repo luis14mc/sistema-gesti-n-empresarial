@@ -20,6 +20,7 @@ describe('payroll API authorization matrix', () => {
       const scoped = organizationRole(role);
       expect(can(scoped, 'payroll.view')).toBe(false);
       expect(can(scoped, 'payroll.generate')).toBe(false);
+      expect(can(scoped, 'payroll.configure')).toBe(false);
     }
   });
 });
