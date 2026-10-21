@@ -32,11 +32,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { PlanillaMonthEmailPanel } from '@/components/payroll/planilla-month-email-panel';
 import { usePayrollEmployees, usePayrollMutations } from '@/hooks/usePayroll';
-import type { PayrollEmployeeListItem } from '@/services/payroll.service';
+import type { PayrollEmployeeListItem, PayslipBatchDeliveryMode } from '@/services/payroll.service';
 
 function defaultPayMonth(): string {
   const now = new Date();
@@ -49,6 +49,8 @@ export default function PlanillaPage() {
   const [comboOpen, setComboOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<PayrollEmployeeListItem | null>(null);
   const [batchDialogOpen, setBatchDialogOpen] = useState(false);
+  const [batchMode, setBatchMode] = useState<PayslipBatchDeliveryMode>('pdf');
+  const [batchConfirmed, setBatchConfirmed] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -67,6 +69,8 @@ export default function PlanillaPage() {
     isGenerating,
     isBatching,
     batchResult,
+    sendPayslipEmails,
+    isSendingEmails,
   } = usePayrollMutations();
 
   const periodLabel = useMemo(() => formatPayrollPeriodLabel(payMonth), [payMonth]);
@@ -102,17 +106,60 @@ export default function PlanillaPage() {
     }
   }
 
-  async function onBatchAll() {
+  function payMonthParts() {
+    const [year, month] = payMonth.split('-').map(Number);
+    return { year, month };
+  }
+
+  async function onConfirmBatch() {
     setError('');
-    setBatchDialogOpen(true);
+    setMessage('');
+    setBatchConfirmed(true);
     try {
-      await batchGenerate({ payMonth });
+      await batchGenerate({ payMonth, deliveryMode: batchMode });
       setMessage('Generación masiva finalizada.');
     } catch {
       setError('No se pudo ejecutar la generación masiva.');
-      setBatchDialogOpen(false);
     }
   }
+
+  async function onSendEmailForSelected(force = true) {
+    if (!selectedEmployee) return;
+    setError('');
+    try {
+      await generate({ employeeId: selectedEmployee.id, payMonth });
+      const { year, month } = payMonthParts();
+      await sendPayslipEmails({
+        year,
+        month,
+        employeeIds: [selectedEmployee.id],
+        force,
+      });
+      setMessage('Boleta enviada por correo.');
+    } catch {
+      setError('No se pudo enviar el correo.');
+    }
+  }
+
+  async function onPdfAndEmailForSelected() {
+    if (!selectedEmployee) return;
+    setError('');
+    try {
+      await generate({ employeeId: selectedEmployee.id, payMonth });
+      const { year, month } = payMonthParts();
+      await sendPayslipEmails({
+        year,
+        month,
+        employeeIds: [selectedEmployee.id],
+        force: true,
+      });
+      setMessage('PDF generado y correo enviado.');
+    } catch {
+      setError('No se pudo completar PDF + correo.');
+    }
+  }
+
+  const employeeNameById = useMemo(() => new Map(employees.map((e) => [e.id, e.fullName])), [employees]);
 
   return (
     <MainLayout>
@@ -126,12 +173,15 @@ export default function PlanillaPage() {
               <Button
                 type="button"
                 disabled={isBatching}
-                onClick={onBatchAll}
+                onClick={() => {
+                  setBatchConfirmed(false);
+                  setBatchDialogOpen(true);
+                }}
                 style={{ backgroundColor: PAYROLL_BRAND }}
                 className="text-white hover:opacity-90"
               >
                 <Users className="mr-2 size-4" aria-hidden />
-                {isBatching ? 'Generando lote…' : 'Generar lote del mes'}
+                {isBatching ? 'Generando…' : 'Generar todos'}
               </Button>
             }
           />
@@ -252,17 +302,25 @@ export default function PlanillaPage() {
                       <FileDown className="mr-2 size-4" aria-hidden />
                       {isGenerating ? 'Generando PDF…' : 'Exportar PDF (generar)'}
                     </Button>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="w-full">
-                          <Button type="button" variant="outline" className="w-full" disabled>
-                            <Mail className="mr-2 size-4" aria-hidden />
-                            Enviar por correo
-                          </Button>
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>Envío por correo disponible próximamente.</TooltipContent>
-                    </Tooltip>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      disabled={isSendingEmails || !selectedEmployee || !previewData}
+                      onClick={() => void onSendEmailForSelected()}
+                    >
+                      <Mail className="mr-2 size-4" aria-hidden />
+                      {isSendingEmails ? 'Enviando…' : 'Enviar correo'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="w-full"
+                      disabled={isSendingEmails || isGenerating || !selectedEmployee || !previewData}
+                      onClick={() => void onPdfAndEmailForSelected()}
+                    >
+                      PDF + correo
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -297,30 +355,58 @@ export default function PlanillaPage() {
         <Dialog open={batchDialogOpen} onOpenChange={setBatchDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Generación masiva — {payMonth}</DialogTitle>
+              <DialogTitle>Generar todos — {payMonth}</DialogTitle>
               <DialogDescription>
                 {isBatching
-                  ? 'Procesando recibos para todos los empleados habilitados…'
-                  : 'Resultado del lote'}
+                  ? 'Procesando empleados habilitados…'
+                  : batchConfirmed && batchResult
+                    ? 'Resumen del lote'
+                    : 'Seleccione el modo de entrega'}
               </DialogDescription>
             </DialogHeader>
+            {!batchConfirmed && !isBatching ? (
+              <div className="space-y-4">
+                <div className="grid gap-2">
+                  {(
+                    [
+                      ['pdf', 'Solo PDF'],
+                      ['email', 'Solo correo'],
+                      ['both', 'PDF + correo'],
+                    ] as const
+                  ).map(([mode, label]) => (
+                    <Button
+                      key={mode}
+                      type="button"
+                      variant={batchMode === mode ? 'default' : 'outline'}
+                      className="justify-start"
+                      onClick={() => setBatchMode(mode)}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+                <Button type="button" className="w-full" onClick={() => void onConfirmBatch()}>
+                  Iniciar generación
+                </Button>
+              </div>
+            ) : null}
             {isBatching ? (
               <p className="text-sm text-muted-foreground">Espere un momento…</p>
-            ) : batchResult ? (
+            ) : batchConfirmed && batchResult ? (
               <div className="space-y-2 text-sm">
                 <p>
-                  <span className="font-medium text-emerald-600">{batchResult.succeeded}</span> exitosos,{' '}
-                  <span className="font-medium text-destructive">{batchResult.failed}</span> con error.
+                  Total: {batchResult.results?.length ?? 0} ·{' '}
+                  <span className="font-medium text-emerald-600">{batchResult.succeeded}</span> exitosos ·{' '}
+                  <span className="font-medium text-destructive">{batchResult.failed}</span> fallidos
                 </p>
-                {batchResult.results?.some((r) => !r.ok) ? (
-                  <ul className="max-h-40 overflow-y-auto rounded-md border p-2 text-xs">
-                    {batchResult.results
-                      .filter((r) => !r.ok)
-                      .map((r) => (
-                        <li key={r.employeeId} className="text-destructive">
-                          {r.employeeId}: {r.error ?? 'Error'}
-                        </li>
-                      ))}
+                {batchResult.results?.length ? (
+                  <ul className="max-h-48 overflow-y-auto rounded-md border p-2 text-xs">
+                    {batchResult.results.map((r) => (
+                      <li key={r.employeeId} className={r.ok ? 'text-emerald-700' : 'text-destructive'}>
+                        {r.ok ? '✓' : '✗'} {employeeNameById.get(r.employeeId) ?? r.employeeId}
+                        {r.error ? ` — ${r.error}` : ''}
+                      </li>
+                    ))}
                   </ul>
                 ) : null}
               </div>

@@ -27,7 +27,14 @@ export default function PlanillaConfiguracionPage() {
     resetTo2026Defaults,
     isResetting,
   } = usePayrollIsrBrackets(PAYROLL_YEAR);
-  const { smtp, isLoading: smtpLoading, testConnection, isTesting } = usePayrollSmtp();
+  const {
+    smtp,
+    isLoading: smtpLoading,
+    saveSettings: saveSmtpSettings,
+    isSaving: isSavingSmtp,
+    testConnection,
+    isTesting,
+  } = usePayrollSmtp();
 
   const [isrForm, setIsrForm] = useState({ medicalExpensesAnnual: '', ivmDeductibleMonthly: '' });
   const [ihssForm, setIhssForm] = useState({
@@ -38,6 +45,18 @@ export default function PlanillaConfiguracionPage() {
   const [bracketEdits, setBracketEdits] = useState<IsrBracketRecord[]>([]);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [smtpForm, setSmtpForm] = useState({
+    host: 'smtp.office365.com',
+    port: '587',
+    username: '',
+    password: '',
+    senderName: 'Servicios Online',
+    fromAddress: 'notificaciones@cni.hn',
+    replyTo: '',
+  });
+  const [isrTestSalary, setIsrTestSalary] = useState('');
+  const [isrTestResult, setIsrTestResult] = useState<string | null>(null);
+  const [isrTesting, setIsrTesting] = useState(false);
 
   useEffect(() => {
     if (!settings) return;
@@ -55,6 +74,20 @@ export default function PlanillaConfiguracionPage() {
   useEffect(() => {
     setBracketEdits(brackets);
   }, [brackets]);
+
+  useEffect(() => {
+    if (!smtp) return;
+    setSmtpForm((f) => ({
+      ...f,
+      host: smtp.host,
+      port: String(smtp.port),
+      username: smtp.username,
+      password: '',
+      senderName: smtp.senderName,
+      fromAddress: smtp.fromAddress,
+      replyTo: smtp.replyTo ?? '',
+    }));
+  }, [smtp]);
 
   async function saveIsrDeductions() {
     setError('');
@@ -102,6 +135,30 @@ export default function PlanillaConfiguracionPage() {
     }
   }
 
+  async function onSaveSmtp() {
+    setError('');
+    setMessage('');
+    if (!smtp?.secretsKeyConfigured && smtpForm.password.trim()) {
+      setError('Falta PAYROLL_SECRETS_KEY en Railway');
+      return;
+    }
+    try {
+      await saveSmtpSettings({
+        host: smtpForm.host.trim(),
+        port: Number(smtpForm.port),
+        username: smtpForm.username.trim(),
+        password: smtpForm.password,
+        senderName: smtpForm.senderName.trim(),
+        fromAddress: smtpForm.fromAddress.trim(),
+        replyTo: smtpForm.replyTo.trim() ? smtpForm.replyTo.trim() : null,
+      });
+      setSmtpForm((f) => ({ ...f, password: '' }));
+      setMessage('Configuración SMTP guardada.');
+    } catch {
+      setError('No se pudo guardar SMTP.');
+    }
+  }
+
   async function onTestSmtp() {
     setError('');
     setMessage('');
@@ -110,7 +167,36 @@ export default function PlanillaConfiguracionPage() {
       const sentTo = result.data.data?.sentTo;
       setMessage(sentTo ? `Correo de prueba enviado a ${sentTo}.` : 'Conexión SMTP verificada.');
     } catch {
-      setError('No se pudo verificar SMTP. Revise las variables en Railway.');
+      setError('No se pudo verificar SMTP. Guarde la configuración y revise credenciales.');
+    }
+  }
+
+  async function onTestIsrCalc() {
+    setError('');
+    setIsrTestResult(null);
+    setIsrTesting(true);
+    try {
+      const { payrollService } = await import('@/services/payroll.service');
+      const res = await payrollService.previewIsrCalc({ monthlySalary: Number(isrTestSalary) || 0 });
+      const d = res.data.data;
+      if (!d) return;
+      setIsrTestResult(`IHSS L. ${d.ihss.toFixed(2)} · ISR L. ${d.isr.toFixed(2)} · Neto L. ${d.neto.toFixed(2)}`);
+    } catch {
+      setError('No se pudo probar el cálculo ISR/IHSS.');
+    } finally {
+      setIsrTesting(false);
+    }
+  }
+
+  async function onRecalcAllEmployees() {
+    setError('');
+    setMessage('');
+    try {
+      const { payrollService } = await import('@/services/payroll.service');
+      const res = await payrollService.recalculateAllDeductions();
+      setMessage(res.data.data?.message ?? 'Recálculo registrado.');
+    } catch {
+      setError('No se pudo ejecutar el recálculo.');
     }
   }
 
@@ -196,6 +282,9 @@ export default function PlanillaConfiguracionPage() {
                     onChange={(e) => setIsrForm((f) => ({ ...f, ivmDeductibleMonthly: e.target.value }))}
                   />
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  ISR anual = (Salario × 12 − gastos médicos − IVM deducible × meses trabajados) × tabla progresiva.
+                </p>
                 <Button type="button" disabled={isUpdating} onClick={saveIsrDeductions}>
                   {isUpdating ? 'Guardando…' : 'Guardar deducciones'}
                 </Button>
@@ -232,6 +321,9 @@ export default function PlanillaConfiguracionPage() {
                     onChange={(e) => setIhssForm((f) => ({ ...f, ihssCeilingMonthly: e.target.value }))}
                   />
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  IHSS = min(salario periodo, techo) × (EM% + IVM%) / 100.
+                </p>
                 <Button type="button" disabled={isUpdating} onClick={saveIhss}>
                   {isUpdating ? 'Guardando…' : 'Guardar IHSS'}
                 </Button>
@@ -256,8 +348,56 @@ export default function PlanillaConfiguracionPage() {
                 rowKey={(b) => String(b.order)}
                 isLoading={bracketsLoading}
               />
+              <div className="flex flex-wrap gap-2">
+                <div className="flex flex-1 flex-wrap items-end gap-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="isrTestSalary">Probar cálculo (salario mensual L)</Label>
+                    <Input
+                      id="isrTestSalary"
+                      value={isrTestSalary}
+                      onChange={(e) => setIsrTestSalary(e.target.value)}
+                      className="w-40 font-mono"
+                    />
+                  </div>
+                  <Button type="button" variant="outline" disabled={isrTesting} onClick={onTestIsrCalc}>
+                    {isrTesting ? 'Calculando…' : 'Probar cálculo'}
+                  </Button>
+                </div>
+                <Button type="button" variant="outline" onClick={onRecalcAllEmployees}>
+                  Recalcular todos los empleados
+                </Button>
+              </div>
+              {isrTestResult ? <p className="text-sm text-muted-foreground">{isrTestResult}</p> : null}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setBracketEdits((rows) => [
+                      ...rows,
+                      {
+                        order: rows.length + 1,
+                        rate: 0,
+                        toAnnual: 999_999_999,
+                      },
+                    ])
+                  }
+                >
+                  Agregar tramo
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={bracketEdits.length <= 1}
+                  onClick={() => setBracketEdits((rows) => rows.slice(0, -1))}
+                >
+                  Eliminar último tramo
+                </Button>
+              </div>
               <Button type="button" variant="secondary" disabled={isSaving} onClick={saveBracketTable}>
-                {isSaving ? 'Guardando…' : 'Guardar tramos'}
+                {isSaving ? 'Guardando…' : 'Guardar tabla ISR'}
               </Button>
             </CardContent>
           </Card>
@@ -265,10 +405,10 @@ export default function PlanillaConfiguracionPage() {
           <Card className="border-border/60">
             <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <CardTitle className="text-base">Correo (SMTP)</CardTitle>
+                <CardTitle className="text-base">Configuración SMTP</CardTitle>
                 <CardDescription>
-                  Valores detectados desde el entorno (Railway). La contraseña nunca se muestra ni se guarda en la
-                  base de datos.
+                  Prioridad: base de datos; si no hay fila, variables SMTP_* del entorno. Puerto 465 = SSL; otros =
+                  STARTTLS.
                 </CardDescription>
               </div>
               <Button type="button" variant="secondary" disabled={isTesting || smtpLoading} onClick={onTestSmtp}>
@@ -277,40 +417,77 @@ export default function PlanillaConfiguracionPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {smtpLoading ? <p className="text-sm text-muted-foreground">Cargando…</p> : null}
+              {!smtp?.secretsKeyConfigured ? (
+                <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+                  Falta PAYROLL_SECRETS_KEY en Railway. No se puede cifrar una contraseña nueva hasta configurarla.
+                </p>
+              ) : null}
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Servidor SMTP</Label>
-                  <Input readOnly value={smtp?.host ?? '—'} className="bg-muted/40 font-mono text-sm" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Puerto</Label>
-                  <Input readOnly value={smtp ? String(smtp.port) : '—'} className="bg-muted/40 font-mono text-sm" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Usuario</Label>
-                  <Input readOnly value={smtp?.user ?? '—'} className="bg-muted/40 font-mono text-sm" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Remitente</Label>
-                  <Input readOnly value={smtp?.from ?? '—'} className="bg-muted/40 text-sm" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Contraseña SMTP</Label>
+                  <Label htmlFor="smtpHost">Servidor SMTP</Label>
                   <Input
-                    readOnly
-                    value={smtp?.passwordConfigured ? 'configurada ✔' : 'no configurada ✖'}
-                    className="bg-muted/40 text-sm"
+                    id="smtpHost"
+                    value={smtpForm.host}
+                    onChange={(e) => setSmtpForm((f) => ({ ...f, host: e.target.value }))}
+                    className="font-mono text-sm"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Estado</Label>
+                  <Label htmlFor="smtpPort">Puerto</Label>
                   <Input
-                    readOnly
-                    value={smtp?.configured ? 'Listo para enviar ✔' : 'Incompleto ✖'}
-                    className="bg-muted/40 text-sm"
+                    id="smtpPort"
+                    value={smtpForm.port}
+                    onChange={(e) => setSmtpForm((f) => ({ ...f, port: e.target.value }))}
+                    className="font-mono text-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="smtpUser">Usuario</Label>
+                  <Input
+                    id="smtpUser"
+                    value={smtpForm.username}
+                    onChange={(e) => setSmtpForm((f) => ({ ...f, username: e.target.value }))}
+                    className="font-mono text-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="smtpPassword">Contraseña</Label>
+                  <Input
+                    id="smtpPassword"
+                    type="password"
+                    autoComplete="new-password"
+                    placeholder={smtp?.passwordConfigured ? '•••••••• (conservar si vacío)' : 'Requerida'}
+                    value={smtpForm.password}
+                    onChange={(e) => setSmtpForm((f) => ({ ...f, password: e.target.value }))}
+                    disabled={!smtp?.secretsKeyConfigured && !smtp?.passwordConfigured}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="smtpSender">Nombre del emisor</Label>
+                  <Input
+                    id="smtpSender"
+                    value={smtpForm.senderName}
+                    onChange={(e) => setSmtpForm((f) => ({ ...f, senderName: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="smtpFrom">Correo remitente</Label>
+                  <Input
+                    id="smtpFrom"
+                    type="email"
+                    value={smtpForm.fromAddress}
+                    onChange={(e) => setSmtpForm((f) => ({ ...f, fromAddress: e.target.value }))}
                   />
                 </div>
               </div>
+              <p className="text-xs text-muted-foreground">
+                From: {smtpForm.senderName} &lt;{smtpForm.fromAddress}&gt; · Origen activo:{' '}
+                {smtp?.source === 'database' ? 'base de datos' : 'entorno'} ·{' '}
+                {smtp?.configured ? 'Listo para enviar ✔' : 'Incompleto ✖'}
+              </p>
+              <Button type="button" disabled={isSavingSmtp} onClick={onSaveSmtp}>
+                {isSavingSmtp ? 'Guardando…' : 'Guardar SMTP'}
+              </Button>
             </CardContent>
           </Card>
         </PayrollChrome>

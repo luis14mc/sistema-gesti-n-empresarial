@@ -63,14 +63,38 @@ const prismaMock = {
   $transaction: vi.fn(async (ops: unknown[]) => {
     for (const op of ops) await op;
   }),
+  payrollSmtpSettings: {
+    findUnique: vi.fn(async () => null),
+  },
 };
 
 vi.mock('@/lib/prisma', () => ({ prisma: prismaMock }));
 vi.mock('@/lib/audit', () => ({ createAuditRecord }));
 vi.mock('@/modules/payroll/application/payroll-service', () => ({ getPayslipPdfBuffer }));
 vi.mock('@/platform/email/smtp-config', () => ({
-  getSmtpRuntimeConfig: vi.fn(),
-  getPublicSmtpStatus: vi.fn(() => ({ replyTo: null })),
+  getSmtpRuntimeConfig: vi.fn(() => ({
+    EMAIL_TRANSPORT: 'smtp',
+    SMTP_HOST: 'smtp.test',
+    SMTP_PORT: 587,
+    SMTP_SECURE: false,
+    SMTP_USER: 'user@test',
+    SMTP_PASSWORD: 'pass',
+    SMTP_FROM: 'Test <test@test>',
+  })),
+  getPublicSmtpStatus: vi.fn(() => ({
+    replyTo: null,
+    passwordConfigured: true,
+    from: 'Test <test@test>',
+    configured: true,
+    host: 'smtp.test',
+    port: 587,
+    secure: false,
+    user: 'user@test',
+    transport: 'smtp',
+  })),
+}));
+vi.mock('@/platform/email/factory', () => ({
+  createEmailTransportForOrganization: vi.fn(),
 }));
 
 class CountingTransport implements EmailTransport {

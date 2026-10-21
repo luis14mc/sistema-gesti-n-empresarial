@@ -73,6 +73,9 @@ describe('sendPayslipEmails failure paths', () => {
         $transaction: vi.fn(async (ops: unknown[]) => {
           for (const op of ops) await op;
         }),
+        payrollSmtpSettings: {
+          findUnique: vi.fn(async () => null),
+        },
       },
     }));
 
@@ -81,8 +84,29 @@ describe('sendPayslipEmails failure paths', () => {
       getPayslipPdfBuffer: vi.fn(async () => ({ buffer: Buffer.from('pdf'), filename: 'x.pdf' })),
     }));
     vi.doMock('@/platform/email/smtp-config', () => ({
-      getSmtpRuntimeConfig: vi.fn(),
-      getPublicSmtpStatus: vi.fn(() => ({ replyTo: null })),
+      getSmtpRuntimeConfig: vi.fn(() => ({
+        EMAIL_TRANSPORT: 'smtp',
+        SMTP_HOST: 'smtp.test',
+        SMTP_PORT: 587,
+        SMTP_SECURE: false,
+        SMTP_USER: SMTP_USER,
+        SMTP_PASSWORD: SMTP_PASSWORD,
+        SMTP_FROM: 'Test <test@test>',
+      })),
+      getPublicSmtpStatus: vi.fn(() => ({
+        replyTo: null,
+        passwordConfigured: true,
+        from: 'Test <test@test>',
+        configured: true,
+        host: 'smtp.test',
+        port: 587,
+        secure: false,
+        user: SMTP_USER,
+        transport: 'smtp',
+      })),
+    }));
+    vi.doMock('@/platform/email/factory', () => ({
+      createEmailTransportForOrganization: vi.fn(),
     }));
 
     const transport = {

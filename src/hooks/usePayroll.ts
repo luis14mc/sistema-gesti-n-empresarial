@@ -125,12 +125,19 @@ export function usePayrollSmtp() {
     queryKey: payrollKeys.smtp(),
     queryFn: async () => (await payrollService.getSmtpStatus()).data.data,
   });
+  const saveMutation = useMutation({
+    mutationFn: (data: Parameters<typeof payrollService.putSmtpSettings>[0]) =>
+      payrollService.putSmtpSettings(data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: payrollKeys.smtp() }),
+  });
   const testMutation = useMutation({
     mutationFn: () => payrollService.testSmtp(),
   });
   return {
     smtp: statusQuery.data,
     isLoading: statusQuery.isLoading,
+    saveSettings: saveMutation.mutateAsync,
+    isSaving: saveMutation.isPending,
     testConnection: testMutation.mutateAsync,
     isTesting: testMutation.isPending,
     refetch: () => queryClient.invalidateQueries({ queryKey: payrollKeys.smtp() }),
@@ -153,6 +160,7 @@ export function usePayrollMutations() {
       payMonth: string;
       employeeIds?: string[];
       employeeAdjustments?: Array<{ employeeId: string; otro?: number; otroConcepto?: string | null }>;
+      deliveryMode?: import('@/services/payroll.service').PayslipBatchDeliveryMode;
     }) => payrollService.batchGenerate(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: payrollKeys.payslips() });

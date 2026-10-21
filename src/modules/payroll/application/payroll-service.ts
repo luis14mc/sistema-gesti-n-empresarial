@@ -59,7 +59,8 @@ function resolveOtroForGeneration(
   } else if (existing) {
     concepto = existing.otroConcepto;
   } else {
-    concepto = null;
+    const note = employee.otherDeductionNote?.trim();
+    concepto = note ? note : null;
   }
   return { amount, concepto };
 }
@@ -442,13 +443,18 @@ export async function resolveBatchEmployeeIds(
   return rows.map((r) => r.id);
 }
 
+export type PayslipBatchDeliveryMode = 'pdf' | 'email' | 'both';
+
 export async function batchGeneratePayslips(
   organizationId: string,
   payMonth: string,
   employeeIds: string[] | undefined,
   generatedById: string,
   employeeAdjustments?: Array<PayslipOtroOverride & { employeeId: string }>,
+  options?: { deliveryMode?: PayslipBatchDeliveryMode; requestId?: string },
 ) {
+  const deliveryMode = options?.deliveryMode ?? 'pdf';
+  const { year, month } = parsePayMonth(payMonth);
   const ids = await resolveBatchEmployeeIds(organizationId, employeeIds);
   const adjustmentByEmployee = new Map(
     (employeeAdjustments ?? []).map((row) => [row.employeeId, row]),
@@ -474,7 +480,105 @@ export async function batchGeneratePayslips(
       results.push({ employeeId, ok: false, error: message });
     }
   }
-  return { payMonth, results, succeeded: results.filter((r) => r.ok).length, failed: results.filter((r) => !r.ok).length };
+
+  let emailSummary:
+    | Awaited<ReturnType<(typeof import('./payslip-email-service'))['sendPayslipEmails']>>
+    | undefined;
+  if (deliveryMode === 'email' || deliveryMode === 'both') {
+    const succeededIds = results.filter((r) => r.ok).map((r) => r.employeeId);
+    if (succeededIds.length > 0) {
+      const { sendPayslipEmails } = await import('./payslip-email-service');
+      emailSummary = await sendPayslipEmails({
+        organizationId,
+        userId: generatedById,
+        year,
+        month,
+        employeeIds: succeededIds,
+        requestId: options?.requestId,
+      });
+      const failedPayslips = await prisma.payslip.findMany({
+        where: {
+          organizationId,
+          year,
+          month,
+          employeeId: { in: succeededIds },
+          emailStatus: 'FAILED',
+        },
+        select: { employeeId: true, emailError: true },
+      });
+      const errorByEmployee = new Map(failedPayslips.map((p) => [p.employeeId, p.emailError ?? 'Error de envío']));
+      for (const row of results) {
+        if (!row.ok) continue;
+        const emailErr = errorByEmployee.get(row.employeeId);
+        if (emailErr) {
+          row.ok = false;
+          row.error = emailErr;
+        }
+      }
+      if (deliveryMode === 'email') {
+        await prisma.payslip.updateMany({
+          where: {
+            organizationId,
+            year,
+            month,
+            employeeId: { in: succeededIds },
+            emailStatus: 'SENT',
+          },
+          data: { deliveryType: 'EMAIL' },
+        });
+      }
+    }
+  }
+
+  return {
+    payMonth,
+    deliveryMode,
+    results,
+    emailSummary,
+    succeeded: results.filter((r) => r.ok).length,
+    failed: results.filter((r) => !r.ok).length,
+  };
+}
+
+export async function getNextPayrollEmployeeCode(organizationId: string): Promise<string> {
+  const row = await prisma.employee.findFirst({
+    where: { organizationId, employeeCode: { startsWith: 'CNI', mode: 'insensitive' } },
+    orderBy: { employeeCode: 'desc' },
+    select: { employeeCode: true },
+  });
+  let nextNum = 1;
+  if (row?.employeeCode) {
+    const match = /^CNI(\d+)$/i.exec(row.employeeCode.trim());
+    if (match) {
+      nextNum = parseInt(match[1], 10) + 1;
+    }
+  }
+  return `CNI${String(nextNum).padStart(3, '0')}`;
+}
+
+export async function previewPayrollDeductionsForSalary(
+  organizationId: string,
+  input: { monthlySalary: number; hireDate?: string; payMonth: string },
+) {
+  const { year } = parsePayMonth(input.payMonth);
+  const settings = await loadPayrollSettings(organizationId, year);
+  const hireDate = input.hireDate ? new Date(`${input.hireDate}T12:00:00.000Z`) : new Date(`${year}-01-01T12:00:00.000Z`);
+  const result = calculatePayslip({
+    monthlySalary: input.monthlySalary,
+    hireDate,
+    payMonth: input.payMonth,
+    otherDeductions: 0,
+    settings,
+  });
+  const amounts = mapPayslipAmounts(result);
+  return {
+    payMonth: input.payMonth,
+    monthlySalary: input.monthlySalary,
+    hireDate: input.hireDate ?? null,
+    ...amounts,
+    monthsWorkedInYear: result.monthsWorkedInYear,
+    isPrimerMes: result.isPrimerMes,
+  };
 }
 
 function buildPayslipListWhere(

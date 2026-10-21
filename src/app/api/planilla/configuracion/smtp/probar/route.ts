@@ -8,7 +8,7 @@ import { verifySmtpAndSendTestEmail } from '@/modules/payroll/application/paysli
 async function postHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   try {
-    const { userId } = await authorizeOrganization(req, requestId, 'payroll.configure');
+    const { organizationId, userId } = await authorizeOrganization(req, requestId, 'payroll.configure');
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { email: true },
@@ -17,7 +17,7 @@ async function postHandler(req: AuthenticatedRequest) {
     if (!toEmail) {
       return payrollFailure(new Error('USER_EMAIL_MISSING'), requestId);
     }
-    await verifySmtpAndSendTestEmail(toEmail);
+    await verifySmtpAndSendTestEmail(organizationId, toEmail);
     return apiSuccess({ ok: true, sentTo: toEmail }, { requestId });
   } catch (error) {
     return payrollFailure(error, requestId);

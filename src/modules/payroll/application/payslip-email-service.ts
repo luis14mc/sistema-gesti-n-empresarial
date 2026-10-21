@@ -1,8 +1,8 @@
 import { prisma } from '@/lib/prisma';
 import { createAuditRecord } from '@/lib/audit';
-import { createEmailTransport } from '@/platform/email/factory';
+import { createEmailTransportForOrganization } from '@/platform/email/factory';
 import { EmailNotConfiguredError } from '@/platform/email/errors';
-import { getPublicSmtpStatus, getSmtpRuntimeConfig } from '@/platform/email/smtp-config';
+import { getOrganizationPublicSmtpStatus } from '@/modules/payroll/application/payroll-smtp-settings-service';
 import type { EmailTransport } from '@/platform/email/types';
 import { monthLabelFromNumber } from '@/modules/payroll/application/payslip-email-format';
 import { sendEmailWithRetries } from '@/modules/payroll/application/payslip-email-retry';
@@ -79,10 +79,13 @@ ${input.replyTo ? '' : '<p><em>Este es un correo automático; por favor no respo
   return { subject, text, html, attachmentName: `Boleta_${monthName}_${input.year}.pdf` };
 }
 
-export async function verifySmtpAndSendTestEmail(toEmail: string, transport?: EmailTransport) {
-  getSmtpRuntimeConfig();
+export async function verifySmtpAndSendTestEmail(
+  organizationId: string,
+  toEmail: string,
+  transport?: EmailTransport,
+) {
   const ownedTransport = !transport;
-  const sender = transport ?? createEmailTransport();
+  const sender = transport ?? await createEmailTransportForOrganization(organizationId);
   try {
     if (sender.verifyConnection) await sender.verifyConnection();
     await sender.send({
@@ -113,10 +116,9 @@ export async function sendPayslipEmails(input: {
 }) {
   const timeBudgetMs = input.timeBudgetMs ?? DEFAULT_TIME_BUDGET_MS;
   const started = Date.now();
-  getSmtpRuntimeConfig();
   const ownedTransport = !input.transport;
-  const transport = input.transport ?? createEmailTransport();
-  const smtp = getPublicSmtpStatus();
+  const transport = input.transport ?? await createEmailTransportForOrganization(input.organizationId);
+  const smtp = await getOrganizationPublicSmtpStatus(input.organizationId);
   const stuckBefore = new Date(Date.now() - STUCK_SENDING_MS);
 
   try {
@@ -341,4 +343,3 @@ export async function sendPayslipEmails(input: {
   }
 }
 
-export { getPublicSmtpStatus };

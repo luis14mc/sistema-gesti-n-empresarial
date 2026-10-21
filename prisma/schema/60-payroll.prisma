@@ -1,5 +1,24 @@
 // Payroll
 
+model PayrollSmtpSettings {
+  id                  String       @id @default(cuid())
+  organizationId      String       @unique
+  host                String
+  port                Int
+  username            String
+  passwordEncrypted   String?
+  senderName          String       @default("Servicios Online")
+  fromAddress         String       @default("notificaciones@cni.hn")
+  replyTo             String?
+  updatedById         String?
+  updatedAt           DateTime     @updatedAt
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  updatedBy           User?        @relation("PayrollSmtpSettingsUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@schema("public")
+  @@map("payroll_smtp_settings")
+}
+
 model PayrollSettings {
   id                      String       @id @default(cuid())
   organizationId          String       @unique

@@ -19,6 +19,8 @@ const MESSAGES: Record<string, string> = {
   PDF_BROWSER_NOT_AVAILABLE: 'No se pudo generar el PDF en este entorno.',
   USER_EMAIL_MISSING: 'Su usuario no tiene un correo válido para la prueba SMTP.',
   EMAIL_NOT_CONFIGURED: 'El envío de correo no está configurado.',
+  PAYROLL_SECRETS_KEY_MISSING: 'Falta PAYROLL_SECRETS_KEY en Railway.',
+  PAYROLL_SMTP_PASSWORD_REQUIRED: 'Indique la contraseña SMTP para guardar la configuración.',
 };
 
 export function payrollFailure(error: unknown, requestId: string) {

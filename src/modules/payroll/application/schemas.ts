@@ -20,11 +20,30 @@ export const batchPayslipEmployeeAdjustmentSchema = z.object({
   otroConcepto: z.string().trim().max(200).nullable().optional(),
 });
 
+export const payslipBatchDeliveryModeSchema = z.enum(['pdf', 'email', 'both']);
+
 export const batchPayslipSchema = z.object({
   payMonth: payMonthSchema,
   /** If omitted, all active employees with payrollEnabled are processed. */
   employeeIds: z.array(z.string().min(1)).max(500).optional(),
   employeeAdjustments: z.array(batchPayslipEmployeeAdjustmentSchema).max(500).optional(),
+  deliveryMode: payslipBatchDeliveryModeSchema.default('pdf'),
+});
+
+export const payrollSmtpSettingsPutSchema = z.object({
+  host: z.string().trim().min(1),
+  port: z.coerce.number().int().min(1).max(65535),
+  username: z.string().trim().min(1),
+  password: z.string().optional(),
+  senderName: z.string().trim().min(1).default('Servicios Online'),
+  fromAddress: z.string().trim().email(),
+  replyTo: z.string().trim().email().nullable().optional(),
+});
+
+export const isrPreviewCalcSchema = z.object({
+  monthlySalary: z.number().nonnegative(),
+  hireDate: z.string().optional(),
+  payMonth: payMonthSchema.optional(),
 });
 
 export const patchPayrollEmployeeSchema = z.object({
