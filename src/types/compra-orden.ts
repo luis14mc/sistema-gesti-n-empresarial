@@ -1,5 +1,5 @@
 import type { PurchaseOrderStatus, PurchaseUnit, PurchaseDocumentType } from '@prisma/client';
-import type { PurchaseOrderTemplateConfig } from '@/lib/compras/orden/template-config';
+import type { PurchaseOrderTemplateConfig } from '@/modules/purchases/infrastructure/purchase-order-template-config';
 
 export type { PurchaseOrderStatus, PurchaseUnit, PurchaseDocumentType };
 
@@ -171,8 +171,8 @@ export interface CompraOrdenFilters {
   mine?: boolean;
 }
 
-export type { PurchaseOrderTemplateConfig } from '@/lib/compras/orden/template-config';
-export type { PurchaseOrderPreviewData } from '@/lib/compras/orden/preview-data';
+export type { PurchaseOrderTemplateConfig } from '@/modules/purchases/infrastructure/purchase-order-template-config';
+export type { PurchaseOrderPreviewData } from '@/modules/purchases/presentation/purchase-order-preview-data';
 
 export type OrdenWorkflowAction =
   | 'generar'

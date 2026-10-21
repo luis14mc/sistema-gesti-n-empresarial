@@ -1,5 +1,5 @@
 import type { ReportCode, ReportDefinition, ReportModule } from '@/modules/reporting/domain/report-types';
-import { COMPRA_ESTADO_LABELS } from '@/lib/compras/constants';
+import { COMPRA_ESTADO_LABELS } from '@/modules/purchases/domain/constants-legacy';
 import {
   EQUIPMENT_STATUS_LABELS,
   OFICIO_STATUS_LABELS,

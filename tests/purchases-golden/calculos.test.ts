@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Prisma } from '@prisma/client';
-import { calcularTotalesCompra } from '@/lib/compras/calculos';
-import { calculatePurchaseOrder, decimalToNumber } from '@/lib/compras/orden/calculos';
+import { calcularTotalesCompra } from '@/modules/purchases/domain/calculos-legacy';
+import { calculatePurchaseOrder, decimalToNumber } from '@/modules/purchases/infrastructure/purchase-order-calculos';
 import fixture from './__fixtures__/calculos.json';
 
 describe('purchases golden — cálculos', () => {

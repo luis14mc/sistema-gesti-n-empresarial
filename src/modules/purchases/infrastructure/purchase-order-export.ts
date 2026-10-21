@@ -1,8 +1,6 @@
 import type { PrismaClient, PurchaseOrderStatus } from '@prisma/client';
 import type { ExportDataset } from '@/platform/reporting/export';
-import {
-  buildPurchaseOrderExportDatasetByYear,
-} from '@/lib/reportes/purchase-order-summary-export';
+import { buildPurchaseOrderExportDatasetByYear } from '@/lib/reportes/purchase-order-summary-export';
 import { ReportExportTooLargeError } from '@/lib/reportes/errors';
 
 export type PurchaseOrderExportParams = {

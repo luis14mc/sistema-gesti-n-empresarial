@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Prisma } from '@prisma/client';
-import { allocateNumeroOrden } from '@/lib/compras/numbering';
-import { allocateOrderNumber, formatOrderNumber } from '@/lib/compras/orden/numbering';
+import { allocateNumeroOrden } from '@/modules/purchases/infrastructure/legacy-numbering';
+import { allocateOrderNumber, formatOrderNumber } from '@/modules/purchases/infrastructure/purchase-order-numbering';
 
 describe('purchases golden — numeración', () => {
   it('formato COM-CNI-{año}-{secuencia 5 dígitos}', () => {

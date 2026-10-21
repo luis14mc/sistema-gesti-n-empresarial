@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import { Download, ExternalLink, MoreHorizontal } from 'lucide-react';
 import { PrintPurchaseOrderPdfButton } from '@/components/compras/PrintPurchaseOrderPdfButton';
-import Swal from '@/lib/compras/orden/swal';
+import Swal from '@/components/compras/purchase-order-swal';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,11 +23,11 @@ import {
 import { PurchaseOrderPreview } from './PurchaseOrderPreview';
 import { PurchaseOrderAttachmentRows } from './PurchaseOrderAttachmentRows';
 import { CompraOrdenHistory } from './CompraOrdenHistory';
-import { RELATED_DOCUMENT_TYPES, DOCUMENT_TYPE_LABELS } from '@/lib/compras/orden/constants';
-import { validatePurchaseDocumentFile } from '@/lib/compras/orden/document-validation';
+import { RELATED_DOCUMENT_TYPES, DOCUMENT_TYPE_LABELS } from '@/modules/purchases/domain/purchase-order-constants';
+import { validatePurchaseDocumentFile } from '@/modules/purchases/domain/document-validation';
 import type { PurchaseDocumentType } from '@prisma/client';
 import { compraOrdenService } from '@/services/compra-orden.service';
-import { canOrdenAction } from '@/lib/compras/orden/permissions';
+import { canOrdenAction } from '@/modules/purchases/domain/purchase-order-permissions';
 import type { CompraOrden } from '@/types/compra-orden';
 import type { Role } from '@/types';
 import type { PurchaseOrderStatus } from '@prisma/client';

@@ -52,7 +52,7 @@ vi.mock('@/modules/purchases/infrastructure/purchase-order-history', () => ({
   recordOrdenAudit,
 }));
 
-import { issuePurchaseOrder } from '@/lib/compras/orden/service';
+import { issuePurchaseOrder } from '@/modules/purchases/application/purchase-order-use-cases';
 
 const generatedAt = new Date('2026-09-09T18:00:00.000Z');
 const issuedAt = new Date('2026-09-10T15:30:00.000Z');

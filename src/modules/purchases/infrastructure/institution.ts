@@ -6,7 +6,7 @@ import {
   DEFAULT_INSTITUTION_SETTINGS,
   getInstitutionSettings,
   type InstitutionSettings,
-} from './institution-store';
+} from '@/modules/purchases/infrastructure/institution-store';
 
 const MIME_BY_EXT: Record<string, string> = {
   svg: 'image/svg+xml',

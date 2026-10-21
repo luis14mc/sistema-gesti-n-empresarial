@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { Prisma } from '@prisma/client';
-import { buildPurchaseOrderExportDataset } from '@/lib/compras/reportes/purchase-order-export';
+import { buildPurchaseOrderExportDataset } from '@/modules/purchases/infrastructure/purchase-order-export';
 import fixture from './__fixtures__/reports.json';
 
 describe('purchases golden — reportes y exportación', () => {

@@ -2,7 +2,7 @@
 
 import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Swal from '@/lib/compras/orden/swal';
+import Swal from '@/components/compras/purchase-order-swal';
 import MainLayout from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { CompraOrdenDraftWorkspace } from '@/components/compras/CompraOrdenDraftWorkspace';
@@ -12,16 +12,16 @@ import { useCompraOrden, useCompraOrdenes } from '@/hooks/useCompraOrden';
 import { useProveedores } from '@/hooks/useCompras';
 import { useAuth } from '@/hooks/useAuth';
 import type { Role } from '@/types';
-import { canOrdenAction } from '@/lib/compras/orden/permissions';
-import { ORDER_STATUS_LABELS } from '@/lib/compras/orden/constants';
-import type { CreatePurchaseOrderInput, DraftPurchaseOrderInput } from '@/lib/compras/orden/schemas';
+import { canOrdenAction } from '@/modules/purchases/domain/purchase-order-permissions';
+import { ORDER_STATUS_LABELS } from '@/modules/purchases/domain/purchase-order-constants';
+import type { CreatePurchaseOrderInput, DraftPurchaseOrderInput } from '@/modules/purchases/presentation/purchase-order-schemas';
 import type { OrdenWorkflowActionName } from '@/hooks/useCompraOrden';
 import type { PurchaseOrderStatus } from '@prisma/client';
 import {
   getPurchaseOrderApiErrorMessage,
   getPurchaseOrderValidationDetails,
 } from '@/lib/api-error';
-import { draftProvisionalLabel } from '@/lib/compras/format-list';
+import { draftProvisionalLabel } from '@/components/compras/purchase-order-format-list';
 
 const ACTION_LABELS: Record<OrdenWorkflowActionName, string> = {
   validar: 'Orden generada',

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   parsePurchaseOrderListStatus,
   resolveComprasSolicitudesRedirect,
-} from '@/lib/compras/orden/list-status-filter';
+} from '@/modules/purchases/domain/list-status-filter';
 
 describe('compras list status filters', () => {
   it('defaults to active generated orders when status is omitted', () => {

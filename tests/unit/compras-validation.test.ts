@@ -1,6 +1,6 @@
 // Phase 10B — domain unit tests for compras validation helpers.
 import { describe, expect, it } from 'vitest';
-import { normalizeRtn, validateRtn } from '@/lib/compras/validation';
+import { normalizeRtn, validateRtn } from '@/modules/purchases/domain/rtn-validation';
 import {
   COMPRA_ESTADO_LABELS,
   COMPRA_ESTADOS_EDITABLES,
@@ -8,7 +8,7 @@ import {
   COMPRA_ESTADOS_PENDIENTES,
   COMPRA_IMPUESTO_TASA,
   COMPRA_UNIDAD_LABELS,
-} from '@/lib/compras/constants';
+} from '@/modules/purchases/domain/constants-legacy';
 
 describe('validateRtn', () => {
   it('returns true for an empty RTN (optional field)', () => {

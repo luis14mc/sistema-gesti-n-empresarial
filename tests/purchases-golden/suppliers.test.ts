@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Prisma } from '@prisma/client';
-import { validateRtn } from '@/lib/compras/validation';
-import { createProveedorSchema, updateProveedorSchema } from '@/lib/compras/schemas';
+import { validateRtn } from '@/modules/purchases/domain/rtn-validation';
+import { createProveedorSchema, updateProveedorSchema } from '@/modules/purchases/presentation/legacy-schemas';
 import fixture from './__fixtures__/suppliers.json';
 
 describe('purchases golden — proveedores', () => {

@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { runDisposalRoute } from '@/modules/equipment-disposal/presentation/http';
 import { requireOrganizationPermission } from '@/platform/security/authorization/effective-permissions';
 import { EquipmentDisposalError } from '@/modules/equipment-disposal/application/errors';
-import { readStoredDocument, buildInlineContentDisposition } from '@/lib/compras/orden/document-access';
+import { readStoredDocument, buildInlineContentDisposition } from '@/modules/purchases/infrastructure/purchase-order-document-access';
 import { disposalDocumentScope } from '@/modules/equipment-disposal/infrastructure/tenant-scope';
 
 async function handler(request: AuthenticatedRequest, { params }: { params: Promise<{ id: string; documentId: string }> }) {

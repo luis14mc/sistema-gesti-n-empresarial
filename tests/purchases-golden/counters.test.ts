@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { ORDER_PENDING_STATUSES } from '@/lib/compras/orden/constants';
-import { purchaseOrderScope } from '@/lib/compras/orden/tenant';
+import { ORDER_PENDING_STATUSES } from '@/modules/purchases/domain/purchase-order-constants';
+import { purchaseOrderScope } from '@/modules/purchases/infrastructure/purchase-order-tenant';
 import fixture from './__fixtures__/counters.json';
 
 describe('purchases golden — contadores bandeja / borradores', () => {

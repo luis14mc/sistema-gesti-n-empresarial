@@ -6,8 +6,8 @@ import { useActivePurchaseOrderTemplate } from '@/hooks/useCompraOrden';
 import {
   buildPreviewDataFromInput,
   buildPreviewDataFromSerializedOrder,
-} from '@/lib/compras/orden/preview-data';
-import type { CreatePurchaseOrderInput, DraftPurchaseOrderInput } from '@/lib/compras/orden/schemas';
+} from '@/modules/purchases/presentation/purchase-order-preview-data';
+import type { CreatePurchaseOrderInput, DraftPurchaseOrderInput } from '@/modules/purchases/presentation/purchase-order-schemas';
 import type { CompraOrden } from '@/types/compra-orden';
 
 interface PurchaseOrderPreviewProps {

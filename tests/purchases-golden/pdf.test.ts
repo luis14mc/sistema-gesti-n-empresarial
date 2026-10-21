@@ -1,12 +1,12 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { Prisma } from '@prisma/client';
-import { buildPurchaseOrderHtml } from '@/lib/compras/orden/pdf';
+import { buildPurchaseOrderHtml } from '@/modules/purchases/infrastructure/purchase-order-pdf-html';
 
 vi.mock('@/platform/integrations/application/ssrf-guard', () => ({
   assertUrlIsSafe: vi.fn(),
 }));
 
-vi.mock('@/lib/compras/institution', () => ({
+vi.mock('@/modules/purchases/infrastructure/institution', () => ({
   resolveInstitutionLogoDataUri: vi.fn(async (path?: string) => path ?? 'data:image/png;base64,AAAA'),
 }));
 

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { allocateOrderNumber } from '../src/lib/compras/orden/numbering';
-import { purchaseOrderChildScope, purchaseOrderScope } from '../src/lib/compras/orden/tenant';
+import { allocateOrderNumber } from '../src/modules/purchases/infrastructure/purchase-order-numbering';
+import { purchaseOrderChildScope, purchaseOrderScope } from '../src/modules/purchases/infrastructure/purchase-order-tenant';
 
 describe('CompraOrden tenant scope', () => {
   it('scopes roots directly and children through their parent order', () => {

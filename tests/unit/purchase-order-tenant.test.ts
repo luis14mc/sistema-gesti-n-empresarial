@@ -1,6 +1,6 @@
 // Phase 10B — domain unit tests for the purchase order tenant scope.
 import { describe, expect, it } from 'vitest';
-import { purchaseOrderChildScope, purchaseOrderScope } from '@/lib/compras/orden/tenant';
+import { purchaseOrderChildScope, purchaseOrderScope } from '@/modules/purchases/infrastructure/purchase-order-tenant';
 
 describe('purchaseOrderScope', () => {
   it('isolates purchase orders by organizationId', () => {

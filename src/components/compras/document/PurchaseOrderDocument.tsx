@@ -1,7 +1,7 @@
 import { Fragment, type CSSProperties } from 'react';
-import { UNIT_LABELS } from '@/lib/compras/orden/constants';
-import { formatSignatureAttribution, type PurchaseOrderPreviewData } from '@/lib/compras/orden/preview-data';
-import type { PurchaseOrderTemplateConfig } from '@/lib/compras/orden/template-config';
+import { UNIT_LABELS } from '@/modules/purchases/domain/purchase-order-constants';
+import { formatSignatureAttribution, type PurchaseOrderPreviewData } from '@/modules/purchases/presentation/purchase-order-preview-data';
+import type { PurchaseOrderTemplateConfig } from '@/modules/purchases/infrastructure/purchase-order-template-config';
 
 export type PurchaseOrderDocumentProps = {
   order: PurchaseOrderPreviewData;

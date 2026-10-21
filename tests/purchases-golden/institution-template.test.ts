@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { sanitizeLogoCandidate } from '@/lib/compras/institution';
-import { DEFAULT_INSTITUTION_SETTINGS, getInstitutionSettings } from '@/lib/compras/institution-store';
+import { sanitizeLogoCandidate } from '@/modules/purchases/infrastructure/institution';
+import { DEFAULT_INSTITUTION_SETTINGS, getInstitutionSettings } from '@/modules/purchases/infrastructure/institution-store';
 import fixture from './__fixtures__/institution-template.json';
 
 vi.mock('@/platform/integrations/application/ssrf-guard', () => ({

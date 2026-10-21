@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Swal from '@/lib/compras/orden/swal';
+import Swal from '@/components/compras/purchase-order-swal';
 import MainLayout from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import {
@@ -12,7 +12,7 @@ import {
 import { useCompraOrdenes } from '@/hooks/useCompraOrden';
 import { useProveedores } from '@/hooks/useCompras';
 import { useAuth } from '@/hooks/useAuth';
-import type { DraftPurchaseOrderInput } from '@/lib/compras/orden/schemas';
+import type { DraftPurchaseOrderInput } from '@/modules/purchases/presentation/purchase-order-schemas';
 import type { PendingPurchaseDocument } from '@/types/compra-orden-documents';
 import { getPurchaseOrderApiErrorMessage } from '@/lib/api-error';
 

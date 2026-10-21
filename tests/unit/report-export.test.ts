@@ -13,7 +13,7 @@ import {
 import {
   buildPurchaseOrderExportDataset,
   PurchaseExportTooLargeError,
-} from '@/lib/compras/reportes/purchase-order-export';
+} from '@/modules/purchases/infrastructure/purchase-order-export';
 
 const ROOT = resolve(__dirname, '..', '..');
 const read = (rel: string) => readFileSync(resolve(ROOT, rel), 'utf8');

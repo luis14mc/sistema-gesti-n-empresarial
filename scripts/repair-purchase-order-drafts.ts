@@ -1,5 +1,5 @@
 import { prisma } from '../src/lib/prisma';
-import { allocateOrderNumber } from '../src/lib/compras/orden/numbering';
+import { allocateOrderNumber } from '../src/modules/purchases/infrastructure/purchase-order-numbering';
 
 async function main() {
   const drafts = await prisma.compraOrden.findMany({

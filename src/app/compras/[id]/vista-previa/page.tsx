@@ -1,8 +1,8 @@
 import { notFound } from 'next/navigation';
 import { requireSession } from '@/lib/session';
-import { getCompraOrden } from '@/lib/compras/orden/service';
-import { canOrdenAction } from '@/lib/compras/orden/permissions';
-import { buildPreviewDataFromSerializedOrder } from '@/lib/compras/orden/preview-data';
+import { getCompraOrden } from '@/modules/purchases/application/purchase-order-use-cases';
+import { canOrdenAction } from '@/modules/purchases/domain/purchase-order-permissions';
+import { buildPreviewDataFromSerializedOrder } from '@/modules/purchases/presentation/purchase-order-preview-data';
 import { PurchaseOrderDocument } from '@/components/compras/document/PurchaseOrderDocument';
 import type { Role } from '@/types';
 import { requirePageOrganizationId } from '@/lib/organization-page-context';

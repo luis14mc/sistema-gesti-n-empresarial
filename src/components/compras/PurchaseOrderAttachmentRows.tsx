@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { DOCUMENT_TYPE_LABELS } from '@/lib/compras/orden/constants';
+import { DOCUMENT_TYPE_LABELS } from '@/modules/purchases/domain/purchase-order-constants';
 import { PurchaseDocumentViewerDialog } from './PurchaseDocumentViewerDialog';
 import {
   buildDocumentDownloadUrl,

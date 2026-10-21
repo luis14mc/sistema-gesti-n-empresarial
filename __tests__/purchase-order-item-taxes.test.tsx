@@ -5,9 +5,9 @@ import {
   calculatePurchaseOrder,
   calculatePurchaseOrderItem,
   toDecimal,
-} from '@/lib/compras/orden/calculos';
-import { buildPreviewDataFromInput, buildPreviewDataFromSerializedOrder } from '@/lib/compras/orden/preview-data';
-import type { PurchaseOrderTemplateConfig } from '@/lib/compras/orden/template-config';
+} from '@/modules/purchases/infrastructure/purchase-order-calculos';
+import { buildPreviewDataFromInput, buildPreviewDataFromSerializedOrder } from '@/modules/purchases/presentation/purchase-order-preview-data';
+import type { PurchaseOrderTemplateConfig } from '@/modules/purchases/infrastructure/purchase-order-template-config';
 
 const format: PurchaseOrderTemplateConfig = {
   id: 'tpl-1',

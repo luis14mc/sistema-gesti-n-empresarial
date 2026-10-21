@@ -5,7 +5,7 @@ import { useForm, useWatch, type UseFormRegister, type FieldError } from 'react-
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import Swal from '@/lib/compras/orden/swal';
+import Swal from '@/components/compras/purchase-order-swal';
 import MainLayout from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +17,7 @@ import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/hooks/useAuth';
 import { compraOrdenService } from '@/services/compra-orden.service';
 import { ordenKeys } from '@/hooks/useCompraOrden';
-import { purchaseOrderTemplateSchema, type PurchaseOrderTemplateInput } from '@/lib/compras/orden/schemas';
+import { purchaseOrderTemplateSchema, type PurchaseOrderTemplateInput } from '@/modules/purchases/presentation/purchase-order-schemas';
 import { comprasService } from '@/services/compras.service';
 import { cn } from '@/lib/utils';
 

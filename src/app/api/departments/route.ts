@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
-import { handlePrismaRouteError } from '@/lib/compras/orden/prisma-error';
+import { handlePrismaRouteError } from '@/modules/purchases/presentation/http';
 
 async function getHandler(req: AuthenticatedRequest) {
   try {

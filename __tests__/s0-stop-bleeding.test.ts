@@ -3,7 +3,7 @@ import { canAccess } from '../src/lib/permissions';
 import {
   ORDER_STATUS_LABELS,
   ORDER_PENDING_STATUSES,
-} from '../src/lib/compras/orden/constants';
+} from '../src/modules/purchases/domain/purchase-order-constants';
 import { isOficioAttachmentUrlAllowed } from '../src/lib/oficios-attachments';
 import {
   assignmentScope,

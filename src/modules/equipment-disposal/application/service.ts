@@ -8,7 +8,7 @@ import { EquipmentDisposalError } from './errors';
 import type { DisposalEvaluationInput } from '../presentation/schemas/disposal';
 import { findDisposal, listDisposals } from '../infrastructure/repository';
 import { generateAndStoreDisposalPdf } from '../infrastructure/pdf';
-import { removeStoredDocument } from '@/lib/compras/orden/document-access';
+import { removeStoredDocument } from '@/modules/purchases/infrastructure/purchase-order-document-access';
 import { allocateDocumentSequence } from '@/platform/sequences/document-sequence';
 import { requireOrganizationPermission } from '@/platform/security/authorization/effective-permissions';
 import { appendSecurityEvent } from '@/platform/security/audit/security-events';

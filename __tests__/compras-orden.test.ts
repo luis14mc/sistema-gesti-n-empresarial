@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { Prisma } from '@prisma/client';
-import { calculatePurchaseOrder, toDecimal } from '../src/lib/compras/orden/calculos';
-import { formatOrderNumber } from '../src/lib/compras/orden/numbering';
-import { canOrdenAction } from '../src/lib/compras/orden/permissions';
-import { buildPreviewDataFromInput } from '../src/lib/compras/orden/preview-data';
-import type { PurchaseOrderTemplateConfig } from '../src/lib/compras/orden/template-config';
-import { createPurchaseOrderSchema, normalizePurchaseOrderPayload } from '../src/lib/compras/orden/schemas';
+import { calculatePurchaseOrder, toDecimal } from '../src/modules/purchases/infrastructure/purchase-order-calculos';
+import { formatOrderNumber } from '../src/modules/purchases/infrastructure/purchase-order-numbering';
+import { canOrdenAction } from '../src/modules/purchases/domain/purchase-order-permissions';
+import { buildPreviewDataFromInput } from '../src/modules/purchases/presentation/purchase-order-preview-data';
+import type { PurchaseOrderTemplateConfig } from '../src/modules/purchases/infrastructure/purchase-order-template-config';
+import { createPurchaseOrderSchema, normalizePurchaseOrderPayload } from '../src/modules/purchases/presentation/purchase-order-schemas';
 
 const template: PurchaseOrderTemplateConfig = {
   id: 'template-1',

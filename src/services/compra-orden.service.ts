@@ -49,7 +49,7 @@ export const compraOrdenService = {
       body: JSON.stringify(data),
     }),
   getActiveTemplate: () =>
-    apiHelpers.get<{ template: import('@/lib/compras/orden/template-config').PurchaseOrderTemplateConfig }>(
+    apiHelpers.get<{ template: import('@/modules/purchases/infrastructure/purchase-order-template-config').PurchaseOrderTemplateConfig }>(
       '/api/compras/configuracion/plantilla-activa'
     ),
   getDocumentos: (orderId: string) =>

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import { useComprasReportes } from '@/hooks/useCompras';
 import { useAuth } from '@/hooks/useAuth';
-import { COMPRA_ESTADO_LABELS } from '@/lib/compras/constants';
+import { COMPRA_ESTADO_LABELS } from '@/modules/purchases/domain/constants-legacy';
 
 export default function ComprasReportesPage() {
   const { user } = useAuth();

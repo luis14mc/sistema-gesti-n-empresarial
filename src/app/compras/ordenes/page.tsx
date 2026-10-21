@@ -28,12 +28,12 @@ import { CompraStatusBadge } from '@/components/compras/CompraStatusBadge';
 import { CompraOrdenGeneratedRowActions } from '@/components/compras/CompraOrdenGeneratedRowActions';
 import { useCompraOrdenes } from '@/hooks/useCompraOrden';
 import { useAuth } from '@/hooks/useAuth';
-import { canOrdenAction } from '@/lib/compras/orden/permissions';
-import { ORDER_STATUS_LABELS } from '@/lib/compras/orden/constants';
-import type { GeneratedOrdersStatusFilter } from '@/lib/compras/orden/list-status-filter';
+import { canOrdenAction } from '@/modules/purchases/domain/purchase-order-permissions';
+import { ORDER_STATUS_LABELS } from '@/modules/purchases/domain/purchase-order-constants';
+import type { GeneratedOrdersStatusFilter } from '@/modules/purchases/domain/list-status-filter';
 import type { Role } from '@/types';
 import type { PurchaseOrderStatus } from '@/types/compra-orden';
-import { formatPurchaseDateTime, formatPurchaseMoney } from '@/lib/compras/format-list';
+import { formatPurchaseDateTime, formatPurchaseMoney } from '@/components/compras/purchase-order-format-list';
 
 const FILTER_LABELS: Record<GeneratedOrdersStatusFilter, string> = {
   active: 'Activas (generada / emitida)',

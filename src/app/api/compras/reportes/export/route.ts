@@ -1,19 +1,16 @@
 import { NextResponse } from 'next/server';
 import type { PurchaseOrderStatus } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
-import { handlePrismaRouteError } from '@/lib/compras/orden/prisma-error';
+import { handlePurchaseOrderRouteError } from '@/modules/purchases/presentation/http';
 import { createAuditRecord } from '@/lib/audit';
 import {
   isSupportedExportFormat,
   renderExport,
   SUPPORTED_EXPORT_FORMATS,
 } from '@/platform/reporting/export';
-import {
-  buildPurchaseOrderExportDataset,
-  PurchaseExportTooLargeError,
-} from '@/lib/compras/reportes/purchase-order-export';
+import { buildPurchaseOrderExportForYear } from '@/modules/purchases/application/purchase-report-export';
+import { PurchaseExportTooLargeError } from '@/modules/purchases/infrastructure/purchase-order-export';
 
 const VALID_STATUSES: readonly PurchaseOrderStatus[] = ['DRAFT', 'GENERATED', 'ISSUED', 'CANCELLED', 'CLOSED'];
 
@@ -47,15 +44,8 @@ async function getHandler(req: AuthenticatedRequest) {
       return NextResponse.json({ error: 'Estado inválido' }, { status: 400 });
     }
 
-    const organization = await prisma.organization.findUnique({
-      where: { id: organizationId },
-      select: { name: true },
-    });
-
-    const dataset = await buildPurchaseOrderExportDataset({
-      prisma,
+    const dataset = await buildPurchaseOrderExportForYear({
       organizationId,
-      organizationName: organization?.name,
       year,
       status: statusParam ?? undefined,
     });
@@ -89,7 +79,7 @@ async function getHandler(req: AuthenticatedRequest) {
         { status: 413 },
       );
     }
-    return handlePrismaRouteError(error, 'GET /api/compras/reportes/export');
+    return handlePurchaseOrderRouteError(error, 'GET /api/compras/reportes/export');
   }
 }
 

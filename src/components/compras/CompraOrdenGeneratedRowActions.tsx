@@ -15,7 +15,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { printPdf } from '@/lib/compras/print-pdf';
+import { printPdf } from '@/modules/purchases/infrastructure/purchase-order-print-pdf';
 import { compraOrdenService } from '@/services/compra-orden.service';
 import { sileo } from 'sileo';
 import { useState } from 'react';
