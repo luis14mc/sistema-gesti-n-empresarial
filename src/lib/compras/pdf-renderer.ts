@@ -26,7 +26,14 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   });
 }
 
-export async function renderHtmlToPdf(html: string): Promise<Buffer> {
+export interface RenderHtmlToPdfOptions {
+  format?: 'letter' | 'a4';
+  margin?: { top: string; right: string; bottom: string; left: string };
+}
+
+const DEFAULT_PDF_MARGIN = { top: '12mm', right: '12mm', bottom: '14mm', left: '12mm' };
+
+export async function renderHtmlToPdf(html: string, options: RenderHtmlToPdfOptions = {}): Promise<Buffer> {
   let browser: Browser | undefined;
 
   try {
@@ -57,9 +64,9 @@ export async function renderHtmlToPdf(html: string): Promise<Buffer> {
       console.info('[PURCHASE ORDER] Generating PDF');
       const pdf = await withTimeout(
         page.pdf({
-          format: 'letter',
+          format: options.format ?? 'letter',
           printBackground: true,
-          margin: { top: '12mm', right: '12mm', bottom: '14mm', left: '12mm' },
+          margin: options.margin ?? DEFAULT_PDF_MARGIN,
         }),
         PDF_RENDER_TIMEOUT_MS,
         'PAGE_PDF'

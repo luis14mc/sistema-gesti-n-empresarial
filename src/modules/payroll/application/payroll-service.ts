@@ -332,6 +332,7 @@ export async function previewPayslip(
     periodStart: result.payPeriod.start,
     periodEnd: result.payPeriod.end,
     otroConcepto: input.otroConcepto,
+    isProrated: amounts.salarioPeriodo !== input.monthlySalary,
     ...amounts,
   });
   return {
@@ -380,6 +381,7 @@ export async function generatePayslip(
       periodStart: result.payPeriod.start,
       periodEnd: result.payPeriod.end,
       otroConcepto: input.otroConcepto,
+      isProrated: amounts.salarioPeriodo !== input.monthlySalary,
       ...amounts,
     });
   }
@@ -740,6 +742,7 @@ export async function getPayslipPdfBuffer(organizationId: string, payslipId: str
           fullName: true,
           employeeCode: true,
           email: true,
+          monthlySalary: true,
           position: { select: { name: true } },
         },
       },
@@ -774,6 +777,9 @@ export async function getPayslipPdfBuffer(organizationId: string, payslipId: str
     periodStart: payslip.periodStart,
     periodEnd: payslip.periodEnd,
     otroConcepto: payslip.otroConcepto,
+    isProrated:
+      payslip.employee.monthlySalary !== null
+      && amounts.salarioPeriodo !== Number(payslip.employee.monthlySalary.toString()),
     ...amounts,
   });
   await prisma.payslip.update({ where: { id: payslip.id }, data: { pdfStorageKey: key } });

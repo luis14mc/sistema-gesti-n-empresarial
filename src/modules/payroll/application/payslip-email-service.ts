@@ -8,11 +8,15 @@ import { monthLabelFromNumber } from '@/modules/payroll/application/payslip-emai
 import { sendEmailWithRetries } from '@/modules/payroll/application/payslip-email-retry';
 import { truncateDeliveryError } from '@/modules/payroll/application/payslip-delivery-error';
 import { getPayslipPdfBuffer } from '@/modules/payroll/application/payroll-service';
-import { escapeHtml, formatPayrollDateHn } from '@/modules/payroll/infrastructure/payslip-pdf';
+import { buildPayslipEmail } from '@/modules/payroll/infrastructure/payslip-email-html';
 
 const MAX_CONCURRENT = 5;
 const DEFAULT_TIME_BUDGET_MS = 25_000;
 export const STUCK_SENDING_MS = 10 * 60 * 1000;
+
+function decimalToNumber(value: { toString(): string } | null | undefined): number {
+  return value == null ? 0 : Number(value.toString());
+}
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
 
@@ -46,37 +50,6 @@ async function mapWithConcurrency<T, R>(
   }
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, () => run()));
   return results;
-}
-
-async function buildPayslipEmailContent(input: {
-  employeeName: string;
-  month: number;
-  year: number;
-  periodStart: Date;
-  periodEnd: Date;
-  neto: number;
-  replyTo?: string | null;
-}) {
-  const monthName = monthLabelFromNumber(input.month);
-  const subject = `Boleta de pago – ${monthName} ${input.year} – Consejo Nacional de Inversiones`;
-  const periodStartLabel = formatPayrollDateHn(input.periodStart);
-  const periodEndLabel = formatPayrollDateHn(input.periodEnd);
-  const period = `${periodStartLabel} al ${periodEndLabel}`;
-  const netoLabel = input.neto.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const safeName = escapeHtml(input.employeeName);
-  const text = [
-    `Estimado/a ${input.employeeName},`,
-    '',
-    `Adjuntamos su boleta de pago correspondiente a ${monthName} ${input.year}.`,
-    `Periodo: ${period}. Salario neto: L. ${netoLabel}.`,
-    '',
-    input.replyTo ? '' : 'Este es un correo automático; por favor no responda a este mensaje.',
-  ].filter(Boolean).join('\n');
-  const html = `<p>Estimado/a ${safeName},</p>
-<p>Adjuntamos su boleta de pago correspondiente a <strong>${escapeHtml(monthName)} ${input.year}</strong>.</p>
-<p>Periodo: ${escapeHtml(periodStartLabel)} al ${escapeHtml(periodEndLabel)}<br/>Salario neto: <strong>L. ${escapeHtml(netoLabel)}</strong></p>
-${input.replyTo ? '' : '<p><em>Este es un correo automático; por favor no responda a este mensaje.</em></p>'}`;
-  return { subject, text, html, attachmentName: `Boleta_${monthName}_${input.year}.pdf` };
 }
 
 export async function verifySmtpAndSendTestEmail(
@@ -131,7 +104,7 @@ export async function sendPayslipEmails(input: {
       },
       include: {
         employee: {
-          select: { id: true, fullName: true, email: true },
+          select: { id: true, fullName: true, email: true, monthlySalary: true },
         },
       },
       orderBy: { employee: { fullName: 'asc' } },
@@ -235,15 +208,28 @@ export async function sendPayslipEmails(input: {
       if (!payslip) return;
       try {
         const { buffer, filename } = await getPayslipPdfBuffer(input.organizationId, payslip.id);
-        const content = await buildPayslipEmailContent({
+        const salarioPeriodo = decimalToNumber(payslip.salarioPeriodo);
+        const monthlySalary = payslip.employee.monthlySalary == null
+          ? null
+          : decimalToNumber(payslip.employee.monthlySalary);
+        const mail = buildPayslipEmail({
           employeeName: payslip.employee.fullName,
-          month: payslip.month,
-          year: payslip.year,
           periodStart: payslip.periodStart,
           periodEnd: payslip.periodEnd,
-          neto: Number(payslip.neto.toString()),
-          replyTo: smtp.replyTo,
+          salarioPeriodo,
+          isProrated: monthlySalary !== null && salarioPeriodo !== monthlySalary,
+          ihss: decimalToNumber(payslip.ihss),
+          isr: decimalToNumber(payslip.isr),
+          otro: decimalToNumber(payslip.otro),
+          otroConcepto: payslip.otroConcepto,
+          totalDeducciones: decimalToNumber(payslip.totalDeducciones),
+          neto: decimalToNumber(payslip.neto),
+          year: payslip.year,
         });
+        const content = {
+          ...mail,
+          attachmentName: `Boleta_${monthLabelFromNumber(payslip.month)}_${payslip.year}.pdf`,
+        };
         const result = await sendEmailWithRetries(transport, {
           to: item.toEmail,
           subject: content.subject,
