@@ -1,0 +1,68 @@
+[
+  {
+    "file": "src/app/api/compras/bandeja/contador/route.ts",
+    "method": "GET",
+    "permission": "purchase-orders.read",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/borradores/contador/route.ts",
+    "method": "GET",
+    "permission": "purchase-orders.read",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/centros-costo/route.ts",
+    "method": "GET",
+    "permission": "purchase-orders.read",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/proveedores/route.ts",
+    "method": "GET",
+    "permission": "suppliers.read",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/proveedores/route.ts",
+    "method": "POST",
+    "permission": "suppliers.create",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/proveedores/[id]/route.ts",
+    "method": "PATCH",
+    "permission": "suppliers.update",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/proveedores/[id]/route.ts",
+    "method": "DELETE",
+    "permission": "suppliers.update",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/reportes/route.ts",
+    "method": "GET",
+    "permission": "purchase-orders.read",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/reportes/export/route.ts",
+    "method": "GET",
+    "permission": "purchase-orders.download",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/template/route.ts",
+    "method": "GET",
+    "permission": "purchase-orders.read",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/template/route.ts",
+    "method": "PUT",
+    "permission": "purchase-orders.update",
+    "permissionKind": "authorizeOrganization"
+  }
+]

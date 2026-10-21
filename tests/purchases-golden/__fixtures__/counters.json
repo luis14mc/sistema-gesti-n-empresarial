@@ -1,0 +1,15 @@
+{
+  "bandeja": {
+    "permission": "purchase-orders.read",
+    "statusIn": ["DRAFT", "GENERATED"],
+    "requiresOrganizationId": true,
+    "requiresDeletedAtNull": true
+  },
+  "borradores": {
+    "permission": "purchase-orders.read",
+    "status": "DRAFT",
+    "requiresCreatedById": true,
+    "requiresOrganizationId": true,
+    "requiresDeletedAtNull": true
+  }
+}

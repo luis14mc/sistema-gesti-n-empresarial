@@ -1,0 +1,20 @@
+{
+  "defaultSettings": {
+    "name": "Consejo Nacional de Inversiones",
+    "logoPath": "/Logo_CNI.png"
+  },
+  "sanitizeLogo": {
+    "acceptedHttps": "https://cdn.example.com/logo.png",
+    "acceptedDataUri": "data:image/png;base64,iVBORw0KGgo=",
+    "rejectedHttp": "http://internal/logo.png",
+    "rejectedLocalhost": "https://localhost/logo.png",
+    "rejectedSvgData": "data:image/svg+xml;base64,PHN2Zy8+",
+    "rejectedTraversal": "/../etc/passwd",
+    "rejectedPrivatePath": "/etc/shadow"
+  },
+  "logoUpload": {
+    "maxSizeMessage": "El logo no puede superar 2 MB.",
+    "missingFileMessage": "Archivo requerido",
+    "adminOnlyMessage": "Solo administradores pueden editar"
+  }
+}
