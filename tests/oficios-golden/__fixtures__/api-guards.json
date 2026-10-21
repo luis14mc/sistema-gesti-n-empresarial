@@ -1,0 +1,22 @@
+[
+  { "file": "src/app/api/oficios/route.ts", "method": "GET", "permission": "oficios.read", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/oficios/route.ts", "method": "POST", "permission": "oficios.create", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/oficios/search/route.ts", "method": "GET", "permission": "oficios.read", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/oficios/[id]/route.ts", "method": "GET", "permission": "oficios.read", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/oficios/[id]/route.ts", "method": "PATCH", "permission": "oficios.update", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/oficios/[id]/route.ts", "method": "DELETE", "permission": "oficios.deactivate", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/oficios/[id]/status/route.ts", "method": "PATCH", "permission": "oficios.update", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/oficios/[id]/documents/route.ts", "method": "POST", "permission": "oficios.attachments", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/oficios/numbering/route.ts", "method": "GET", "permission": "oficios.configure", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/oficios/numbering/route.ts", "method": "POST", "permission": "oficios.configure", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/oficios/numbering/route.ts", "method": "PUT", "permission": "oficios.configure", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/oficios/numbering/preview/route.ts", "method": "GET", "permission": "oficios.create", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/oficios/import/route.ts", "method": "POST", "permission": "oficios.import", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/oficios/import/template/route.ts", "method": "GET", "permission": "oficios.import", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/oficios/import/batch/route.ts", "method": "POST", "permission": "oficios.import", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/oficios/import/batches/route.ts", "method": "GET", "permission": "oficios.import", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/oficios/import/batches/[id]/documents/route.ts", "method": "POST", "permission": "oficios.import", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/oficios/signers/route.ts", "method": "GET", "permission": "oficios.configure", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/oficios/signers/route.ts", "method": "POST", "permission": "oficios.configure", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/oficios/signers/[id]/route.ts", "method": "PATCH", "permission": "oficios.configure", "permissionKind": "authorizeOrganization" }
+]

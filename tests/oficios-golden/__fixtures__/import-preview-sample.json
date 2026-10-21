@@ -1,0 +1,28 @@
+{
+  "description": "Muestra fija: fila válida, fecha futura, duplicado en BD",
+  "workbookRows": [
+    ["CNI-10-2024", "Entrada", "15/06/2024", "", "", "CNI", "Inst", "", "", "Dest", "", "Asunto válido", "Recibido", "", "", "", ""],
+    ["X-FUT-1", "Entrada", "2099-01-01", "", "", "CNI", "", "", "", "", "Asunto", "", "", "", "", "", ""],
+    ["CNI-9-2024", "Entrada", "2024-01-10", "", "", "CNI", "", "", "", "", "", "Duplicado", "", "", "", "", ""]
+  ],
+  "existingOficios": [
+    {
+      "id": "existing-1",
+      "number": "CNI-9-2024",
+      "type": "INCOMING",
+      "sequenceYear": 2024,
+      "oficioDate": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "expected": {
+    "parsedRowCount": 2,
+    "parseErrorSubstring": "futura",
+    "preview": {
+      "duplicateCount": 1,
+      "rows": [
+        { "row": 2, "status": "ok" },
+        { "row": 4, "status": "duplicate", "number": "CNI-9-2024" }
+      ]
+    }
+  }
+}
