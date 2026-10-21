@@ -1,9 +1,18 @@
-import type { AuthenticatedRequest } from '@/lib/middleware';
-import { NextResponse } from 'next/server';
-import { prisma } from '@/modules/users/infrastructure/user-repository';
-import { resolveSessionRole } from '@/platform/security/authorization/session-role';
-import { verifyToken } from '@/lib/auth';
-import { canonicalOrganizationId } from '@/platform/security/organization-scope';
+import { createAuditRecord } from '@/lib/audit';
+import {
+  InvalidProfileEmailError,
+  InvalidProfileFieldError,
+  UserEmailInUseError,
+  UserNotFoundError,
+} from '@/modules/users/domain/errors';
+import {
+  emailUsedByOtherUser,
+  findMembershipByOrgUser,
+  getProfileSnapshot,
+  getProfileUser,
+  listUserPermissionOverrides,
+  updateProfileUser,
+} from '@/modules/users/infrastructure/user-repository';
 import {
   buildEffectiveModuleMatrix,
   moduleIdsWithRead,
@@ -14,155 +23,103 @@ import {
   loadOrganizationRolePermissionMap,
 } from '@/platform/security/authorization/role-permission-service';
 import { getRoleSettingRow } from '@/platform/security/authorization/role-catalog-service';
+import { resolveSessionRole } from '@/platform/security/authorization/session-role';
+import type { PermissionOverride } from '@/platform/security/authorization/permissions';
 
-export async function getProfile(req: AuthenticatedRequest) {
-  try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.user!.userId },
-      select: {
-        id: true,
-        employeeNumber: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        phone: true,
-        role: true,
-        isActive: true,
-        mustChangePassword: true,
-        departmentId: true,
-        positionId: true,
-        department: { select: { id: true, name: true } },
-        position: { select: { id: true, name: true } },
-        createdAt: true,
-      },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
-    }
-
-    const role = await resolveSessionRole(user.id, user.role);
-    const organizationId = canonicalOrganizationId();
-    const membership = await prisma.organizationMembership.findUnique({
-      where: { organizationId_userId: { organizationId, userId: user.id } },
-      select: { role: true, accessVersion: true },
-    });
-    const orgRole = membership?.role ?? organizationRoleForSessionRole(role);
-    const [overrides, roleMap] = await Promise.all([
-      prisma.userPermissionOverride.findMany({
-        where: { userId: user.id, organizationId },
-        select: { permission: true, effect: true },
-      }),
-      loadOrganizationRolePermissionMap(organizationId),
-    ]);
-    const roleHas = createRolePermissionCheck(orgRole, roleMap);
-    const moduleAccess = buildEffectiveModuleMatrix(
-      orgRole,
-      overrides as import('@/platform/security/authorization/permissions').PermissionOverride[],
-      roleHas,
-    );
-    const accessVersion = membership?.accessVersion ?? 0;
-    const membershipRole = orgRole;
-    let membershipRoleDisplayName: string | null = null;
-    try {
-      const settings = await getRoleSettingRow(organizationId, orgRole);
-      membershipRoleDisplayName = settings.displayName;
-    } catch {
-      membershipRoleDisplayName = null;
-    }
-
-    const cookieToken = req.cookies.get('token')?.value;
-    const claims = cookieToken ? verifyToken(cookieToken) : null;
-    const tokenStale = claims?.accessVersion !== undefined && claims.accessVersion !== accessVersion;
-
-    return NextResponse.json({
-      user: {
-        ...user,
-        role,
-        membershipRole,
-        membershipRoleDisplayName,
-        organizationId,
-        accessVersion,
-        modulesRead: moduleIdsWithRead(moduleAccess),
-        moduleAccess,
-      },
-      tokenStale,
-    });
-  } catch (error) {
-    console.error('Error al obtener perfil:', error);
-    return NextResponse.json({ error: 'Error al obtener perfil' }, { status: 500 });
+export async function getProfile(params: {
+  userId: string;
+  organizationId: string;
+  tokenAccessVersion?: number;
+}) {
+  const user = await getProfileUser(params.userId);
+  if (!user) {
+    throw new UserNotFoundError();
   }
+
+  const role = await resolveSessionRole(user.id, user.role);
+  const membership = await findMembershipByOrgUser(params.organizationId, user.id);
+  const orgRole = membership?.role ?? organizationRoleForSessionRole(role);
+  const [overrides, roleMap] = await Promise.all([
+    listUserPermissionOverrides(params.organizationId, user.id),
+    loadOrganizationRolePermissionMap(params.organizationId),
+  ]);
+  const roleHas = createRolePermissionCheck(orgRole, roleMap);
+  const moduleAccess = buildEffectiveModuleMatrix(
+    orgRole,
+    overrides as PermissionOverride[],
+    roleHas,
+  );
+  const accessVersion = membership?.accessVersion ?? 0;
+  const membershipRole = orgRole;
+  let membershipRoleDisplayName: string | null = null;
+  try {
+    const settings = await getRoleSettingRow(params.organizationId, orgRole);
+    membershipRoleDisplayName = settings.displayName;
+  } catch {
+    membershipRoleDisplayName = null;
+  }
+
+  const tokenStale =
+    params.tokenAccessVersion !== undefined && params.tokenAccessVersion !== accessVersion;
+
+  return {
+    user: {
+      ...user,
+      role,
+      membershipRole,
+      membershipRoleDisplayName,
+      organizationId: params.organizationId,
+      accessVersion,
+      modulesRead: moduleIdsWithRead(moduleAccess),
+      moduleAccess,
+    },
+    tokenStale,
+  };
 }
 
-export async function patchProfile(req: AuthenticatedRequest) {
-  try {
-    const body = await req.json();
-    const { firstName, lastName, phone, email } = body;
+export async function patchProfile(params: {
+  userId: string;
+  body: { firstName?: unknown; lastName?: unknown; phone?: unknown; email?: unknown };
+}) {
+  const { firstName, lastName, phone, email } = params.body;
 
-    if (email !== undefined) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        return NextResponse.json({ error: 'Email inválido' }, { status: 400 });
-      }
-      const existing = await prisma.user.findFirst({
-        where: { email, NOT: { id: req.user!.userId } },
-      });
-      if (existing) {
-        return NextResponse.json({ error: 'Email ya en uso' }, { status: 409 });
-      }
+  if (email !== undefined) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (typeof email !== 'string' || !emailRegex.test(email)) {
+      throw new InvalidProfileEmailError();
     }
-
-    if (firstName !== undefined && typeof firstName !== 'string') {
-      return NextResponse.json({ error: 'Nombre inválido' }, { status: 400 });
+    const existing = await emailUsedByOtherUser(email, params.userId);
+    if (existing) {
+      throw new UserEmailInUseError();
     }
-    if (lastName !== undefined && typeof lastName !== 'string') {
-      return NextResponse.json({ error: 'Apellido inválido' }, { status: 400 });
-    }
-
-    const previous = await prisma.user.findUnique({
-      where: { id: req.user!.userId },
-      select: { firstName: true, lastName: true, phone: true, email: true },
-    });
-
-    const user = await prisma.user.update({
-      where: { id: req.user!.userId },
-      data: {
-        ...(firstName !== undefined && { firstName }),
-        ...(lastName !== undefined && { lastName }),
-        ...(phone !== undefined && { phone }),
-        ...(email !== undefined && { email }),
-      },
-      select: {
-        id: true,
-        employeeNumber: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        phone: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-      },
-    });
-
-    if (previous) {
-      const { createAuditRecord } = await import('@/lib/audit');
-      await createAuditRecord({
-        title: 'Actualización de perfil propio',
-        description: `${user.firstName} ${user.lastName} actualizó su perfil`,
-        module: 'USUARIOS',
-        category: 'UPDATE',
-        userId: req.user!.userId,
-        entityId: user.id,
-        previousData: { email: previous.email, phone: previous.phone },
-        newData: { email: user.email, phone: user.phone },
-      });
-    }
-
-    return NextResponse.json({ user });
-  } catch (error) {
-    console.error('Error al actualizar perfil:', error);
-    return NextResponse.json({ error: 'Error al actualizar perfil' }, { status: 400 });
   }
-}
+  if (firstName !== undefined && typeof firstName !== 'string') {
+    throw new InvalidProfileFieldError('Nombre inválido');
+  }
+  if (lastName !== undefined && typeof lastName !== 'string') {
+    throw new InvalidProfileFieldError('Apellido inválido');
+  }
 
+  const previous = await getProfileSnapshot(params.userId);
+  const user = await updateProfileUser(params.userId, {
+    firstName: firstName as string | undefined,
+    lastName: lastName as string | undefined,
+    phone: phone as string | undefined,
+    email: email as string | undefined,
+  });
+
+  if (previous) {
+    await createAuditRecord({
+      title: 'Actualización de perfil propio',
+      description: `${user.firstName} ${user.lastName} actualizó su perfil`,
+      module: 'USUARIOS',
+      category: 'UPDATE',
+      userId: params.userId,
+      entityId: user.id,
+      previousData: { email: previous.email, phone: previous.phone },
+      newData: { email: user.email, phone: user.phone },
+    });
+  }
+
+  return { user };
+}

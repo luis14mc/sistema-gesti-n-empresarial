@@ -50,3 +50,20 @@ export const PRISMA_IN_PRESENTATION_BASELINE = [
   'src/app/api/reports/[code]/export/route.ts',
   'src/app/dashboard/page.tsx',
 ];
+
+// Excepciones congeladas: application sin Next.js ni Prisma directo (ADR 003 fase 2c).
+// src/modules/users/application debe quedar limpio (sin entrada aquí).
+export const APPLICATION_LAYER_BASELINE = [
+  'src/modules/equipment-disposal/application/service.ts',
+  'src/modules/notifications/application/dispatcher.ts',
+  'src/modules/notifications/application/queries.ts',
+  'src/modules/notifications/application/recipient-resolver.ts',
+  'src/modules/organizations/application/context.ts',
+  'src/modules/organizations/application/lifecycle.ts',
+  'src/modules/organizations/application/platform-context.ts',
+  'src/modules/organizations/application/queries.ts',
+  'src/modules/payroll/application/payroll-service.ts',
+  'src/modules/payroll/application/payroll-smtp-settings-service.ts',
+  'src/modules/payroll/application/payslip-email-service.ts',
+  'src/modules/payroll/application/settings-loader.ts',
+];

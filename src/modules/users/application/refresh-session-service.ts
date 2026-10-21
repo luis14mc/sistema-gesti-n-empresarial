@@ -1,34 +1,13 @@
-import type { AuthenticatedRequest } from '@/lib/middleware';
-import { NextResponse } from 'next/server';
-import { generateSessionToken } from '@/lib/session-token';
+import { InvalidSessionError } from '@/modules/users/domain/errors';
+import { findUserForSession } from '@/modules/users/infrastructure/user-repository';
 import { resolveSessionRole } from '@/platform/security/authorization/session-role';
-import { prisma } from '@/modules/users/infrastructure/user-repository';
 
-export async function postRefreshSession(req: AuthenticatedRequest) {
-  const userId = req.user!.userId;
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { email: true, role: true, isActive: true },
-  });
+export async function refreshSession(params: { userId: string }) {
+  const user = await findUserForSession(params.userId);
   if (!user?.isActive) {
-    return NextResponse.json({ error: 'Sesión inválida' }, { status: 401 });
+    throw new InvalidSessionError();
   }
 
-  const sessionRole = await resolveSessionRole(userId, user.role);
-  const token = await generateSessionToken({
-    userId,
-    email: user.email,
-    role: sessionRole,
-  });
-
-  const res = NextResponse.json({ ok: true });
-  res.cookies.set('token', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 60,
-    path: '/',
-  });
-  return res;
+  const sessionRole = await resolveSessionRole(params.userId, user.role);
+  return { email: user.email, sessionRole };
 }
-

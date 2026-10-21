@@ -1,279 +1,155 @@
-import type { AuthenticatedRequest } from '@/lib/middleware';
-import { NextResponse } from 'next/server';
-import { prisma } from '@/modules/users/infrastructure/user-repository';
 import { createAuditRecord } from '@/lib/audit';
-import { isOrganizationContextError } from '@/modules/organizations/application/context';
-import { authorizeOrganization } from '@/platform/security/authorization/http';
-import { PermissionDeniedError } from '@/platform/domain/errors';
+import {
+  CannotChangeOwnRoleError,
+  CannotDeleteSelfError,
+  InvalidRoleError,
+  RoleNotAssignableError,
+  UserHasHistoryError,
+  UserNotFoundError,
+} from '@/modules/users/domain/errors';
+import { countBlockingUserReferences } from '@/modules/users/infrastructure/user-reference-counts';
+import {
+  deactivateUser,
+  findActiveMembership,
+  findActiveMembershipWithUserDetail,
+  hardDeleteUser,
+  updateUserInOrganization,
+} from '@/modules/users/infrastructure/user-repository';
+import { isOrganizationRoleAssignable } from '@/platform/security/authorization/role-catalog-service';
 import {
   parseOrganizationRole,
   persistUserAccountRoles,
   presentAccountRole,
 } from '@/platform/security/authorization/user-account-roles';
-import { isOrganizationRoleAssignable } from '@/platform/security/authorization/role-catalog-service';
-import { countBlockingUserReferences } from '@/modules/users/application/user-reference-counts';
 
-// ============================================
-// GET /api/users/[id] — Obtener usuario por id (ADMIN, RRHH)
-// Solo retorna el usuario si es miembro activo de la organización actual.
-// ============================================
-
-export async function getUserById(req: AuthenticatedRequest, ctx: { params: Promise<{ id: string }> }) {
-    const requestId = crypto.randomUUID();
-    try {
-        const { id } = await ctx.params;
-        const { organizationId } = await authorizeOrganization(req, requestId, 'users.read');
-
-        const membership = await prisma.organizationMembership.findFirst({
-            where: { userId: id, organizationId, status: 'ACTIVE' },
-            select: {
-                role: true,
-                user: {
-                    select: {
-                        id: true,
-                        employeeNumber: true,
-                        email: true,
-                        firstName: true,
-                        lastName: true,
-                        phone: true,
-                        role: true,
-                        isActive: true,
-                        departmentId: true,
-                        positionId: true,
-                        createdAt: true,
-                        updatedAt: true,
-                        department: { select: { id: true, name: true } },
-                        position:   { select: { id: true, name: true } },
-                    },
-                },
-            },
-        });
-
-        if (!membership) {
-            return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
-        }
-
-        return NextResponse.json({
-            user: {
-                ...membership.user,
-                role: presentAccountRole(membership.role, membership.user.role),
-            },
-        });
-    } catch (error) {
-        console.error('Error al obtener usuario:', error);
-        if (error instanceof PermissionDeniedError) {
-            return NextResponse.json({ error: error.message }, { status: 403 });
-        }
-        if (isOrganizationContextError(error)) {
-            return NextResponse.json({ error: error.message }, { status: error.status });
-        }
-        return NextResponse.json({ error: 'Error al obtener usuario' }, { status: 500 });
-    }
+export async function getUserByIdUseCase(organizationId: string, userId: string) {
+  const membership = await findActiveMembershipWithUserDetail(organizationId, userId);
+  if (!membership) {
+    throw new UserNotFoundError();
+  }
+  return {
+    user: {
+      ...membership.user,
+      role: presentAccountRole(membership.role, membership.user.role),
+    },
+  };
 }
 
-// ============================================
-// PATCH /api/users/[id] — Actualizar usuario (ADMIN)
-// Solo puede modificar usuarios miembros activos de la organización actual.
-// ============================================
+export async function patchUserByIdUseCase(params: {
+  organizationId: string;
+  actorUserId: string;
+  targetUserId: string;
+  body: Record<string, unknown>;
+}) {
+  const { organizationId, actorUserId, targetUserId, body } = params;
 
-export async function patchUserById(req: AuthenticatedRequest, ctx: { params: Promise<{ id: string }> }) {
-    const requestId = crypto.randomUUID();
-    try {
-        const { id } = await ctx.params;
-        const { organizationId } = await authorizeOrganization(req, requestId, 'users.update');
-        const body = await req.json();
+  const membership = await findActiveMembership(organizationId, targetUserId);
+  if (!membership) {
+    throw new UserNotFoundError();
+  }
+  const existing = membership.user;
 
-        const membership = await prisma.organizationMembership.findFirst({
-            where: { userId: id, organizationId, status: 'ACTIVE' },
-            select: {
-                id: true,
-                role: true,
-                user: {
-                    select: { role: true, isActive: true, firstName: true, lastName: true, email: true },
-                },
-            },
-        });
-        if (!membership) {
-            return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
-        }
-        const existing = membership.user;
+  const presentedExistingRole = presentAccountRole(membership.role, existing.role);
+  if (targetUserId === actorUserId && body.role && body.role !== presentedExistingRole) {
+    throw new CannotChangeOwnRoleError();
+  }
 
-        const presentedExistingRole = presentAccountRole(membership.role, existing.role);
-        if (id === req.user!.userId && body.role && body.role !== presentedExistingRole) {
-            return NextResponse.json(
-                { error: 'No puedes cambiar tu propio rol' },
-                { status: 403 }
-            );
-        }
-
-        let nextRoles: ReturnType<typeof persistUserAccountRoles> | null = null;
-        if (body.role) {
-            const parsedRole = parseOrganizationRole(body.role);
-            if (!parsedRole) {
-                return NextResponse.json({ error: 'Rol no válido' }, { status: 400 });
-            }
-            const roleUnchanged = parsedRole === membership.role;
-            if (!roleUnchanged && !(await isOrganizationRoleAssignable(organizationId, parsedRole))) {
-                return NextResponse.json(
-                    { error: 'Este rol no está disponible para asignación' },
-                    { status: 400 },
-                );
-            }
-            if (!roleUnchanged) {
-                await authorizeOrganization(req, requestId, 'memberships.manage');
-                nextRoles = persistUserAccountRoles(parsedRole);
-            }
-        }
-
-        const user = await prisma.$transaction(async (tx) => {
-            if (nextRoles) {
-                await tx.organizationMembership.update({
-                    where: { id: membership.id },
-                    data: { role: nextRoles.membershipRole, accessVersion: { increment: 1 } },
-                });
-            }
-            return tx.user.update({
-            where: { id },
-            data: {
-                ...(body.firstName && { firstName: body.firstName }),
-                ...(body.lastName && { lastName: body.lastName }),
-                ...(body.email && { email: body.email }),
-                ...(body.phone !== undefined && { phone: body.phone }),
-                ...(nextRoles ? { role: nextRoles.prismaUserRole } : {}),
-                ...(body.isActive !== undefined && { isActive: body.isActive }),
-                ...(body.departmentId !== undefined && { departmentId: body.departmentId }),
-                ...(body.positionId !== undefined && { positionId: body.positionId }),
-            },
-            select: {
-                id: true,
-                employeeNumber: true,
-                email: true,
-                firstName: true,
-                lastName: true,
-                phone: true,
-                role: true,
-                isActive: true,
-                departmentId: true,
-                positionId: true,
-                createdAt: true,
-                updatedAt: true,
-            },
-            });
-        });
-
-        const presentedRole = presentAccountRole(nextRoles?.membershipRole ?? membership.role, user.role);
-
-        await createAuditRecord({
-            title: 'Actualización de usuario',
-            description: `Se actualizó usuario: ${user.firstName} ${user.lastName}`,
-            module: 'USUARIOS',
-            category: 'UPDATE',
-            userId: req.user!.userId,
-            entityId: user.id,
-            organizationId,
-            previousData: { role: existing.role, isActive: existing.isActive },
-            newData: { role: presentedRole, isActive: user.isActive },
-        });
-
-        return NextResponse.json({ user: { ...user, role: presentedRole } });
-    } catch (error) {
-        console.error('Error al actualizar usuario:', error);
-        if (error instanceof PermissionDeniedError) {
-            return NextResponse.json({ error: error.message }, { status: 403 });
-        }
-        if (isOrganizationContextError(error)) {
-            return NextResponse.json({ error: error.message }, { status: error.status });
-        }
-        return NextResponse.json({ error: 'Error al actualizar usuario' }, { status: 500 });
+  let nextRoles: ReturnType<typeof persistUserAccountRoles> | null = null;
+  if (body.role) {
+    const parsedRole = parseOrganizationRole(String(body.role));
+    if (!parsedRole) {
+      throw new InvalidRoleError();
     }
+    const roleUnchanged = parsedRole === membership.role;
+    if (!roleUnchanged && !(await isOrganizationRoleAssignable(organizationId, parsedRole))) {
+      throw new RoleNotAssignableError();
+    }
+    if (!roleUnchanged) {
+      nextRoles = persistUserAccountRoles(parsedRole);
+    }
+  }
+
+  const user = await updateUserInOrganization({
+    userId: targetUserId,
+    membershipId: membership.id,
+    membershipRole: nextRoles?.membershipRole,
+    userPatch: {
+      ...(typeof body.firstName === 'string' && body.firstName ? { firstName: body.firstName } : {}),
+      ...(typeof body.lastName === 'string' && body.lastName ? { lastName: body.lastName } : {}),
+      ...(typeof body.email === 'string' && body.email ? { email: body.email } : {}),
+      ...(body.phone !== undefined ? { phone: body.phone as string | null } : {}),
+      ...(nextRoles ? { role: nextRoles.prismaUserRole } : {}),
+      ...(body.isActive !== undefined ? { isActive: Boolean(body.isActive) } : {}),
+      ...(body.departmentId !== undefined ? { departmentId: body.departmentId as string | null } : {}),
+      ...(body.positionId !== undefined ? { positionId: body.positionId as string | null } : {}),
+    },
+  });
+
+  const presentedRole = presentAccountRole(nextRoles?.membershipRole ?? membership.role, user.role);
+
+  await createAuditRecord({
+    title: 'Actualización de usuario',
+    description: `Se actualizó usuario: ${user.firstName} ${user.lastName}`,
+    module: 'USUARIOS',
+    category: 'UPDATE',
+    userId: actorUserId,
+    entityId: user.id,
+    organizationId,
+    previousData: { role: existing.role, isActive: existing.isActive },
+    newData: { role: presentedRole, isActive: user.isActive },
+  });
+
+  return { user: { ...user, role: presentedRole } };
 }
 
-// ============================================
-// DELETE /api/users/[id] — Soft delete (ADMIN)
-// Solo puede desactivar usuarios miembros activos de la organización actual.
-// ============================================
+export async function deleteUserByIdUseCase(params: {
+  organizationId: string;
+  actorUserId: string;
+  targetUserId: string;
+  hard: boolean;
+}) {
+  const { organizationId, actorUserId, targetUserId, hard } = params;
 
-export async function deleteUserById(req: AuthenticatedRequest, ctx: { params: Promise<{ id: string }> }) {
-    const requestId = crypto.randomUUID();
-    try {
-        const { id } = await ctx.params;
-        const { searchParams } = new URL(req.url);
-        const hard = searchParams.get('hard') === 'true';
-        const { organizationId } = await authorizeOrganization(req, requestId, 'users.deactivate');
+  if (targetUserId === actorUserId) {
+    throw new CannotDeleteSelfError();
+  }
 
-        if (id === req.user!.userId) {
-            return NextResponse.json(
-                { error: 'No puedes eliminar tu propia cuenta' },
-                { status: 403 }
-            );
-        }
+  const membership = await findActiveMembership(organizationId, targetUserId);
+  if (!membership) {
+    throw new UserNotFoundError();
+  }
+  const existing = membership.user;
 
-        const membership = await prisma.organizationMembership.findFirst({
-            where: { userId: id, organizationId, status: 'ACTIVE' },
-            select: {
-                id: true,
-                user: {
-                    select: { firstName: true, lastName: true, email: true, isActive: true },
-                },
-            },
-        });
-        if (!membership) {
-            return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
-        }
-        const existing = membership.user;
-
-        if (hard) {
-            const references = await countBlockingUserReferences(id);
-            if (references > 0) {
-                return NextResponse.json(
-                    { error: 'Tiene historial; desactívelo en su lugar' },
-                    { status: 409 },
-                );
-            }
-            await prisma.$transaction([
-                prisma.organizationMembership.deleteMany({ where: { userId: id, organizationId } }),
-                prisma.user.delete({ where: { id } }),
-            ]);
-            await createAuditRecord({
-                title: 'Eliminación definitiva de usuario',
-                description: `Se eliminó usuario: ${existing.firstName} ${existing.lastName} (${existing.email})`,
-                module: 'USUARIOS',
-                category: 'DELETE',
-                userId: req.user!.userId,
-                entityId: id,
-                organizationId,
-            });
-            return NextResponse.json({ deleted: true });
-        }
-
-        const user = await prisma.user.update({
-            where: { id },
-            data: { isActive: false },
-            select: { id: true, firstName: true, lastName: true, email: true, isActive: true },
-        });
-
-        await createAuditRecord({
-            title: 'Desactivación de usuario',
-            description: `Se desactivó usuario: ${user.firstName} ${user.lastName} (${user.email})`,
-            module: 'USUARIOS',
-            category: 'DELETE',
-            userId: req.user!.userId,
-            entityId: user.id,
-            organizationId,
-            previousData: { isActive: existing.isActive },
-            newData: { isActive: false },
-        });
-
-        return NextResponse.json({ user });
-    } catch (error) {
-        console.error('Error al eliminar usuario:', error);
-        if (error instanceof PermissionDeniedError) {
-            return NextResponse.json({ error: error.message }, { status: 403 });
-        }
-        if (isOrganizationContextError(error)) {
-            return NextResponse.json({ error: error.message }, { status: error.status });
-        }
-        return NextResponse.json({ error: 'Error al eliminar usuario' }, { status: 500 });
+  if (hard) {
+    const references = await countBlockingUserReferences(targetUserId);
+    if (references > 0) {
+      throw new UserHasHistoryError();
     }
-}
+    await hardDeleteUser(organizationId, targetUserId);
+    await createAuditRecord({
+      title: 'Eliminación definitiva de usuario',
+      description: `Se eliminó usuario: ${existing.firstName} ${existing.lastName} (${existing.email})`,
+      module: 'USUARIOS',
+      category: 'DELETE',
+      userId: actorUserId,
+      entityId: targetUserId,
+      organizationId,
+    });
+    return { deleted: true as const };
+  }
 
+  const user = await deactivateUser(targetUserId);
+  await createAuditRecord({
+    title: 'Desactivación de usuario',
+    description: `Se desactivó usuario: ${user.firstName} ${user.lastName} (${user.email})`,
+    module: 'USUARIOS',
+    category: 'DELETE',
+    userId: actorUserId,
+    entityId: user.id,
+    organizationId,
+    previousData: { isActive: existing.isActive },
+    newData: { isActive: false },
+  });
+
+  return { user };
+}
