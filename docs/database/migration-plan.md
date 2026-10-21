@@ -107,7 +107,7 @@ Also run tenant-isolation tests and production smoke tests. The repository's `sc
 Prefer application rollback over destructive schema rollback because the foundation migration is additive and compatible with the prior application while nullable columns remain in place.
 
 1. Stop or disable tenant-aware traffic if authorization behavior is suspect.
-2. Redeploy the previous known-good image as described in `docs/runbook-aws.md`.
+2. Redeploy the previous known-good image as described in `docs/archive/legacy-notes/runbook-aws.md`.
 3. Leave additive tables, columns, enum values, and backfilled ownership in place unless a separately reviewed rollback is required.
 4. Restore from the verified backup if the migration caused data corruption that cannot be corrected forward.
 
@@ -137,5 +137,5 @@ The runtime Docker image includes the Prisma schema and migrations, but its comm
 - `prisma/schema.prisma`
 - `prisma.config.ts`
 - `Dockerfile`
-- `docs/runbook-aws.md`
+- `docs/archive/legacy-notes/runbook-aws.md`
 - `docs/security/rbac.md`

@@ -65,7 +65,7 @@
 |---|---|
 | Plan de entrega | `docs/00-plan-entrega-1-mes.md` |
 | Manual de usuario | `docs/MANUAL-USUARIO.md` |
-| Runbook AWS | `docs/runbook-aws.md` |
+| Runbook AWS | `docs/archive/legacy-notes/runbook-aws.md` |
 | Changelog | `CHANGELOG.md` |
 | Security policy | `docs/security_policy.md` |
 | Database backups | `docs/database_backups.md` |
@@ -95,7 +95,7 @@ npx prisma migrate deploy
 ./scripts/smoke-test.sh https://$(terraform output -raw alb_dns_name)
 ```
 
-Referencia completa: `docs/runbook-aws.md`.
+Referencia completa: `docs/archive/legacy-notes/runbook-aws.md`.
 
 ### 4.2. Rollback
 

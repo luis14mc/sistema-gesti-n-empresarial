@@ -25,3 +25,14 @@ Cada **merge a `main`** despliega a **producción** y ejecuta `prisma migrate de
 - Detalle: [docs/deployment/railway.md](docs/deployment/railway.md).
 
 Verificación local habitual: `pnpm prisma validate`, `pnpm prisma generate`, `scripts/db/check-drift.sh` (con `SHADOW_DATABASE_URL` cuando aplique).
+
+## Regla de arquitectura (ADR 003)
+
+Arquitectura oficial: **monolito modular por capas** — [docs/adr/003-arquitectura-monolito-modular.md](docs/adr/003-arquitectura-monolito-modular.md). Módulo de referencia: `src/modules/payroll`.
+
+- Código nuevo de negocio va en `src/modules/<módulo>/{domain,application,infrastructure,presentation}`; lo transversal en `src/platform/`.
+- **`src/lib` está congelado:** no crear archivos nuevos ahí.
+- `route.ts` es un controlador delgado: `withAuth` → `authorizeOrganization` → zod → caso de uso de `application`. **Sin Prisma** en `src/app`, `src/components`, `src/hooks`, `src/services`.
+- `domain` es puro: sin Next, React ni Prisma (solo `import type`).
+- `eslint.architecture-baseline.mjs` solo puede **reducirse**: al tocar un archivo de la lista, migrarlo y quitarlo.
+- Front: una sola forma de llamar a la API — `services/<módulo>.service.ts` + `hooks/use<Módulo>.ts`.

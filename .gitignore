@@ -5,6 +5,7 @@ node_modules/
 
 # Testing
 coverage/
+reports/
 
 # Next.js
 .next/
@@ -49,4 +50,3 @@ public/uploads/institution/**
 
 # Uploads locales con almacenamiento segmentado por entorno (runtime)
 public/uploads/development/**
-

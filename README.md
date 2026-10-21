@@ -227,7 +227,6 @@ Claves bajo `compras/ordenes/{orderId}/documentos/` y `.../pdf/`. El endpoint `/
 /
 ├── .github/              # Plantillas de incidencias y CI/CD (GitHub Actions)
 ├── docs/                 # Documentación formal del Ciclo de Vida (ISO 12207)
-├── mockups/              # Referencias visuales de diseño
 ├── prisma/               # Esquema de base de datos, migraciones y seed
 ├── src/
 │   ├── app/
@@ -361,7 +360,7 @@ Toda la documentación arquitectónica, técnica y operativa se encuentra en el 
 - **Guías de Despliegue:** [`/docs/06-implementacion/`](./docs/06-implementacion/)
 - **Gestión de Calidad:** [`/docs/checklist-calidad-software.md`](./docs/checklist-calidad-software.md)
 - **ADRs (Registros de Decisión):** [`/docs/adr/`](./docs/adr/)
-- **Plan de Refactorización UI:** [`implementation_plan.md`](./implementation_plan.md)
+- **Arquitectura oficial (ADR 003):** [`docs/adr/003-arquitectura-monolito-modular.md`](./docs/adr/003-arquitectura-monolito-modular.md)
 
 ## Control de Versiones y Contribución
 

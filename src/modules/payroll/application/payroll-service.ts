@@ -847,4 +847,10 @@ function serializePayslip(
   };
 }
 
+export async function countActivePayrollEmployees(organizationId: string): Promise<number> {
+  return prisma.employee.count({
+    where: { organizationId, isActive: true, payrollEnabled: true },
+  });
+}
+
 export { periodFromPayMonth };
