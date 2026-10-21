@@ -36,7 +36,7 @@ describe('active-assignment partial unique index', () => {
   });
 
   it('index name constant matches the migration', () => {
-    const helper = read('src/modules/equipment/assignment-errors.ts');
+    const helper = read('src/modules/equipment/domain/assignment-errors.ts');
     expect(helper).toContain('equipment_assignments_one_active_per_equipment');
     const sql = read(MIGRATION);
     expect(sql).toContain('equipment_assignments_one_active_per_equipment');

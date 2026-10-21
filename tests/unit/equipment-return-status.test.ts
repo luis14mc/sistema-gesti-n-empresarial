@@ -1,6 +1,6 @@
 // Phase 10B — domain unit tests for the equipment return-condition mapper.
 import { describe, expect, it } from 'vitest';
-import { mapReturnConditionToStatus } from '@/lib/equipment-history';
+import { mapReturnConditionToStatus } from '@/modules/equipment/domain/return-condition';
 
 describe('mapReturnConditionToStatus', () => {
   it('maps MANTENIMIENTO/IN_MAINTENANCE to IN_MAINTENANCE', () => {

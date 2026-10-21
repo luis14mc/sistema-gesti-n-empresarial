@@ -1,6 +1,6 @@
 import type { Equipment, EquipmentAssignment, EquipmentHistory } from '@prisma/client';
-import { CATEGORY_LABELS } from '@/lib/equipment-asset-code';
-import { toEquipmentDocumentHref, withStableEquipmentDocumentUrls } from '@/lib/equipment-document-access';
+import { CATEGORY_LABELS } from '@/modules/equipment/domain/equipment-asset-code';
+import { toEquipmentDocumentHref, withStableEquipmentDocumentUrls } from '@/modules/equipment/infrastructure/equipment-document-access';
 
 type EquipmentWithRelations = Equipment & {
   assignments?: (EquipmentAssignment & {

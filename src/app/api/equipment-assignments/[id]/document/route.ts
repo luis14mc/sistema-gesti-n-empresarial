@@ -1,82 +1,40 @@
 import { NextResponse } from 'next/server';
-import { isEquipmentDocumentUrlAllowed } from '@/lib/equipment-attachments';
-import { toEquipmentDocumentHref } from '@/lib/equipment-document-access';
-import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
-import { logEquipmentHistory } from '@/lib/equipment-history';
-import { mapAssignmentResponse } from '@/lib/equipment-mapper';
-import { assignmentScope, equipmentApiFailure } from '@/modules/equipment/tenant';
+import { attachAssignmentDocument } from '@/modules/equipment/application/assignment-service';
+import { equipmentApiFailure } from '@/modules/equipment/application/http';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 
 async function patchHandler(
   req: AuthenticatedRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const requestId = crypto.randomUUID();
   try {
     const { organizationId } = await authorizeOrganization(req, requestId, 'equipment.assign');
     const { id } = await params;
     const { documentType, documentUrl } = await req.json();
+    const result = await attachAssignmentDocument({
+      organizationId,
+      assignmentId: id,
+      performedById: req.user!.userId,
+      documentType,
+      documentUrl,
+    });
 
-    if (!documentType || !documentUrl) {
-      return NextResponse.json({ error: 'Tipo y URL del documento son requeridos' }, { status: 400 });
+    if (result.kind === 'validation') {
+      return NextResponse.json({ error: result.error }, { status: 400 });
     }
-
-    if (documentType !== 'delivery' && documentType !== 'return') {
-      return NextResponse.json({ error: 'Tipo de documento inválido' }, { status: 400 });
-    }
-
-    if (!isEquipmentDocumentUrlAllowed(documentUrl, organizationId)) {
+    if (result.kind === 'invalid_url') {
       return NextResponse.json(
         { error: 'La URL del documento no pertenece al almacenamiento de la organización' },
         { status: 400 },
       );
     }
-
-    // Nunca persistir una URL firmada (vence): guardar la ruta estable.
-    const storedUrl = toEquipmentDocumentHref(documentUrl) ?? documentUrl;
-
-    const assignment = await prisma.equipmentAssignment.findFirst({
-      where: { id, ...assignmentScope(organizationId) },
-      include: { equipment: true },
-    });
-
-    if (!assignment) {
+    if (result.kind === 'not_found') {
       return NextResponse.json({ error: 'Asignación no encontrada' }, { status: 404 });
     }
 
-    const updateData =
-      documentType === 'return'
-        ? { returnDocumentUrl: storedUrl }
-        : { deliveryDocumentUrl: storedUrl, urlNotaPdf: storedUrl };
-
-    const updated = await prisma.equipmentAssignment.update({
-      where: { id, equipment: { organizationId } },
-      data: updateData,
-      include: {
-        equipment: true,
-        user: { select: { id: true, firstName: true, lastName: true, email: true } },
-        employee: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
-            department: { select: { name: true } },
-          },
-        },
-      },
-    });
-
-    await logEquipmentHistory({
-      equipmentId: assignment.equipmentId,
-      action: 'UPDATED',
-      title: documentType === 'return' ? 'Formato de devolución adjunto' : 'Formato de asignación adjunto',
-      description: `Documento firmado registrado para asignación ${id.slice(-8).toUpperCase()}.`,
-      newData: { documentType, documentUrl: storedUrl },
-      performedById: req.user!.userId,
-    });
-
-    return NextResponse.json({ assignment: mapAssignmentResponse(updated) });
+    return NextResponse.json({ assignment: result.assignment });
   } catch (error) {
     console.error('Error al adjuntar documento:', error);
     return equipmentApiFailure(error, requestId, { code: 'ASSIGNMENT_DOCUMENT_FAILED', message: 'Error al adjuntar documento', stage: 'UPDATE_ASSIGNMENT_DOCUMENT' });

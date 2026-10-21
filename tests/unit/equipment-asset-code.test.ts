@@ -4,7 +4,8 @@ import {
   CATEGORY_CODE_PREFIX,
   CATEGORY_LABELS,
   resolveEquipmentCategory,
-} from '@/lib/equipment-asset-code';
+} from '@/modules/equipment/domain/equipment-asset-code';
+import { generateAssetCode } from '@/modules/equipment/infrastructure/generate-asset-code';
 
 describe('CATEGORY_CODE_PREFIX catalogue', () => {
   it('maps every documented category to a non-empty prefix', () => {

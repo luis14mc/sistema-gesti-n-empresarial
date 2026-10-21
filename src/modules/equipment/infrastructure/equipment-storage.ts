@@ -3,14 +3,14 @@
  * Usa StorageAdapter (Local en dev, S3 en prod).
  */
 
-import { sanitizeOriginalName, validateEquipmentUploadFile } from '@/lib/equipment-attachments';
+import { sanitizeOriginalName, validateEquipmentUploadFile } from '@/modules/equipment/infrastructure/equipment-attachments';
 import {
   equipmentDocumentStoragePrefix,
   resolveEquipmentDocumentType,
   type EquipmentDocumentType,
-} from '@/lib/equipment-document-types';
+} from '@/modules/equipment/domain/equipment-document-types';
 import { getStorage } from '@/lib/storage';
-import { equipmentDocumentFileUrl } from '@/lib/equipment-document-access';
+import { equipmentDocumentFileUrl } from '@/modules/equipment/infrastructure/equipment-document-access';
 
 export interface EquipmentDocumentMeta {
   tipoDocumento: EquipmentDocumentType;

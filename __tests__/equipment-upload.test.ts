@@ -6,8 +6,8 @@ import {
   EQUIPMENT_DOCUMENT_TYPES,
   equipmentDocumentStoragePrefix,
   resolveEquipmentDocumentType,
-} from '../src/lib/equipment-document-types';
-import { saveEquipmentDocument } from '../src/lib/equipment-storage';
+} from '../src/modules/equipment/domain/equipment-document-types';
+import { saveEquipmentDocument } from '../src/modules/equipment/infrastructure/equipment-storage';
 import { LocalStorageAdapter } from '../src/lib/storage/local';
 import { resetStorageForTests, setStorageForTests } from '../src/lib/storage';
 

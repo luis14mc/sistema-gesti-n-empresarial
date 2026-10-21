@@ -8,7 +8,7 @@ import { sileo } from 'sileo';
 import {
   EQUIPMENT_DOCUMENT_TYPE_LABELS,
   type EquipmentDocumentType,
-} from '@/lib/equipment-document-types';
+} from '@/modules/equipment/domain/equipment-document-types';
 
 interface EquipmentFileUploadProps {
   tipoDocumento: EquipmentDocumentType;

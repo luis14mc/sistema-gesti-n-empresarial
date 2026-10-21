@@ -2,7 +2,7 @@ import {
   EQUIPMENT_DOCUMENT_FILE_ROUTE,
   equipmentDocumentKeyFromUrl,
   isEquipmentDocumentKeyForOrganization,
-} from '@/lib/equipment-document-access';
+} from '@/modules/equipment/infrastructure/equipment-document-access';
 
 export const EQUIPMENT_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
 

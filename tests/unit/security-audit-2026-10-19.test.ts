@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { sanitizeLogoCandidate } from '@/lib/compras/institution';
-import { isEquipmentDocumentUrlAllowed } from '@/lib/equipment-attachments';
+import { isEquipmentDocumentUrlAllowed } from '@/modules/equipment/infrastructure/equipment-attachments';
 
 describe('F-2: logo URL uses the platform SSRF policy', () => {
   it.each([
