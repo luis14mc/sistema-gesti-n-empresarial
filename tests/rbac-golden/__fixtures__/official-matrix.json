@@ -1,0 +1,5678 @@
+[
+  {
+    "role": "ADMIN",
+    "permission": "audit.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "dashboard.executive",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "dashboard.view",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "employees.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "employees.deactivate",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "employees.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "employees.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "equipment-disposal.approve",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "equipment-disposal.cancel",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "equipment-disposal.configure",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "equipment-disposal.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "equipment-disposal.download",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "equipment-disposal.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "equipment-disposal.reject",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "equipment-disposal.submit",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "equipment-disposal.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "equipment.assign",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "equipment.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "equipment.dispose",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "equipment.maintain",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "equipment.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "equipment.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "integrations.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "integrations.disable",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "integrations.enable",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "integrations.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "integrations.retry",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "integrations.rotate-credentials",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "integrations.test",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "integrations.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "integrations.view-history",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "memberships.manage",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "notifications.manage-organization-settings",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "notifications.manage-own-preferences",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "notifications.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "notifications.retry-failed",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "notifications.view-deliveries",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "offices.cancel",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "offices.complete",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "offices.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "offices.download",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "offices.import",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "offices.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "offices.receive",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "offices.send",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "offices.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "oficios.attachments",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "oficios.configure",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "oficios.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "oficios.deactivate",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "oficios.export",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "oficios.import",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "oficios.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "oficios.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "organizations.manage",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "payroll.configure",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "payroll.generate",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "payroll.view",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "purchase-orders.approve",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "purchase-orders.cancel",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "purchase-orders.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "purchase-orders.download",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "purchase-orders.generate",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "purchase-orders.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "purchase-orders.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "reports.audit",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "reports.export",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "reports.financial",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "reports.financial.equipment",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "reports.financial.purchases",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "reports.view",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "roles.manage",
+    "officialGranted": true,
+    "locked": true
+  },
+  {
+    "role": "ADMIN",
+    "permission": "software-licenses.assign",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "software-licenses.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "software-licenses.export",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "software-licenses.manage",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "software-licenses.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "software-licenses.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "suppliers.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "suppliers.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "suppliers.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMIN",
+    "permission": "users.create",
+    "officialGranted": true,
+    "locked": true
+  },
+  {
+    "role": "ADMIN",
+    "permission": "users.deactivate",
+    "officialGranted": true,
+    "locked": true
+  },
+  {
+    "role": "ADMIN",
+    "permission": "users.read",
+    "officialGranted": true,
+    "locked": true
+  },
+  {
+    "role": "ADMIN",
+    "permission": "users.update",
+    "officialGranted": true,
+    "locked": true
+  },
+  {
+    "role": "ADMIN",
+    "permission": "webhooks.manage",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "audit.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "dashboard.executive",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "dashboard.view",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "employees.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "employees.deactivate",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "employees.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "employees.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "equipment-disposal.approve",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "equipment-disposal.cancel",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "equipment-disposal.configure",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "equipment-disposal.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "equipment-disposal.download",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "equipment-disposal.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "equipment-disposal.reject",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "equipment-disposal.submit",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "equipment-disposal.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "equipment.assign",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "equipment.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "equipment.dispose",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "equipment.maintain",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "equipment.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "equipment.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "integrations.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "integrations.disable",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "integrations.enable",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "integrations.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "integrations.retry",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "integrations.rotate-credentials",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "integrations.test",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "integrations.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "integrations.view-history",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "memberships.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "notifications.manage-organization-settings",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "notifications.manage-own-preferences",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "notifications.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "notifications.retry-failed",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "notifications.view-deliveries",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "offices.cancel",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "offices.complete",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "offices.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "offices.download",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "offices.import",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "offices.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "offices.receive",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "offices.send",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "offices.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "oficios.attachments",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "oficios.configure",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "oficios.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "oficios.deactivate",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "oficios.export",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "oficios.import",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "oficios.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "oficios.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "organizations.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "payroll.configure",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "payroll.generate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "payroll.view",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "purchase-orders.approve",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "purchase-orders.cancel",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "purchase-orders.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "purchase-orders.download",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "purchase-orders.generate",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "purchase-orders.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "purchase-orders.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "reports.audit",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "reports.export",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "reports.financial",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "reports.financial.equipment",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "reports.financial.purchases",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "reports.view",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "roles.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "software-licenses.assign",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "software-licenses.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "software-licenses.export",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "software-licenses.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "software-licenses.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "software-licenses.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "suppliers.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "suppliers.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "suppliers.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "users.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "users.deactivate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "users.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "users.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "ADMINISTRACION",
+    "permission": "webhooks.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "audit.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "dashboard.executive",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "dashboard.view",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "employees.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "employees.deactivate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "employees.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "employees.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "equipment-disposal.approve",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "equipment-disposal.cancel",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "equipment-disposal.configure",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "equipment-disposal.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "equipment-disposal.download",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "equipment-disposal.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "equipment-disposal.reject",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "equipment-disposal.submit",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "equipment-disposal.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "equipment.assign",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "equipment.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "equipment.dispose",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "equipment.maintain",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "equipment.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "equipment.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "integrations.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "integrations.disable",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "integrations.enable",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "integrations.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "integrations.retry",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "integrations.rotate-credentials",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "integrations.test",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "integrations.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "integrations.view-history",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "memberships.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "notifications.manage-organization-settings",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "notifications.manage-own-preferences",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "notifications.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "notifications.retry-failed",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "notifications.view-deliveries",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "offices.cancel",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "offices.complete",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "offices.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "offices.download",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "offices.import",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "offices.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "offices.receive",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "offices.send",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "offices.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "oficios.attachments",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "oficios.configure",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "oficios.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "oficios.deactivate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "oficios.export",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "oficios.import",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "oficios.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "oficios.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "organizations.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "payroll.configure",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "payroll.generate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "payroll.view",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "purchase-orders.approve",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "purchase-orders.cancel",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "purchase-orders.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "purchase-orders.download",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "purchase-orders.generate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "purchase-orders.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "purchase-orders.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "reports.audit",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "reports.export",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "reports.financial",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "reports.financial.equipment",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "reports.financial.purchases",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "reports.view",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "roles.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "software-licenses.assign",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "software-licenses.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "software-licenses.export",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "software-licenses.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "software-licenses.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "software-licenses.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "suppliers.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "suppliers.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "suppliers.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "users.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "users.deactivate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "users.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "users.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "AUDITOR",
+    "permission": "webhooks.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "audit.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "dashboard.executive",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "dashboard.view",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "employees.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "employees.deactivate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "employees.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "employees.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "equipment-disposal.approve",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "equipment-disposal.cancel",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "equipment-disposal.configure",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "equipment-disposal.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "equipment-disposal.download",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "equipment-disposal.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "equipment-disposal.reject",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "equipment-disposal.submit",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "equipment-disposal.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "equipment.assign",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "equipment.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "equipment.dispose",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "equipment.maintain",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "equipment.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "equipment.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "integrations.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "integrations.disable",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "integrations.enable",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "integrations.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "integrations.retry",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "integrations.rotate-credentials",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "integrations.test",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "integrations.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "integrations.view-history",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "memberships.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "notifications.manage-organization-settings",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "notifications.manage-own-preferences",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "notifications.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "notifications.retry-failed",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "notifications.view-deliveries",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "offices.cancel",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "offices.complete",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "offices.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "offices.download",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "offices.import",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "offices.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "offices.receive",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "offices.send",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "offices.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "oficios.attachments",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "oficios.configure",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "oficios.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "oficios.deactivate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "oficios.export",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "oficios.import",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "oficios.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "oficios.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "organizations.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "payroll.configure",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "payroll.generate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "payroll.view",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "purchase-orders.approve",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "purchase-orders.cancel",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "purchase-orders.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "purchase-orders.download",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "purchase-orders.generate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "purchase-orders.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "purchase-orders.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "reports.audit",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "reports.export",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "reports.financial",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "reports.financial.equipment",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "reports.financial.purchases",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "reports.view",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "roles.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "software-licenses.assign",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "software-licenses.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "software-licenses.export",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "software-licenses.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "software-licenses.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "software-licenses.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "suppliers.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "suppliers.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "suppliers.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "users.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "users.deactivate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "users.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "users.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "DIRECTOR",
+    "permission": "webhooks.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "audit.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "dashboard.executive",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "dashboard.view",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "employees.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "employees.deactivate",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "employees.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "employees.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "equipment-disposal.approve",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "equipment-disposal.cancel",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "equipment-disposal.configure",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "equipment-disposal.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "equipment-disposal.download",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "equipment-disposal.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "equipment-disposal.reject",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "equipment-disposal.submit",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "equipment-disposal.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "equipment.assign",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "equipment.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "equipment.dispose",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "equipment.maintain",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "equipment.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "equipment.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "integrations.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "integrations.disable",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "integrations.enable",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "integrations.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "integrations.retry",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "integrations.rotate-credentials",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "integrations.test",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "integrations.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "integrations.view-history",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "memberships.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "notifications.manage-organization-settings",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "notifications.manage-own-preferences",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "notifications.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "notifications.retry-failed",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "notifications.view-deliveries",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "offices.cancel",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "offices.complete",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "offices.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "offices.download",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "offices.import",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "offices.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "offices.receive",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "offices.send",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "offices.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "oficios.attachments",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "oficios.configure",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "oficios.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "oficios.deactivate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "oficios.export",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "oficios.import",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "oficios.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "oficios.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "organizations.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "payroll.configure",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "payroll.generate",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "payroll.view",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "purchase-orders.approve",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "purchase-orders.cancel",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "purchase-orders.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "purchase-orders.download",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "purchase-orders.generate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "purchase-orders.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "purchase-orders.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "reports.audit",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "reports.export",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "reports.financial",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "reports.financial.equipment",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "reports.financial.purchases",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "reports.view",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "roles.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "software-licenses.assign",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "software-licenses.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "software-licenses.export",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "software-licenses.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "software-licenses.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "software-licenses.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "suppliers.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "suppliers.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "suppliers.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "users.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "users.deactivate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "users.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "users.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "HR",
+    "permission": "webhooks.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "audit.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "dashboard.executive",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "dashboard.view",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "employees.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "employees.deactivate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "employees.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "employees.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "equipment-disposal.approve",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "equipment-disposal.cancel",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "equipment-disposal.configure",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "equipment-disposal.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "equipment-disposal.download",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "equipment-disposal.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "equipment-disposal.reject",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "equipment-disposal.submit",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "equipment-disposal.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "equipment.assign",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "equipment.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "equipment.dispose",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "equipment.maintain",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "equipment.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "equipment.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "integrations.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "integrations.disable",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "integrations.enable",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "integrations.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "integrations.retry",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "integrations.rotate-credentials",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "integrations.test",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "integrations.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "integrations.view-history",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "memberships.manage",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "notifications.manage-organization-settings",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "notifications.manage-own-preferences",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "notifications.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "notifications.retry-failed",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "notifications.view-deliveries",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "offices.cancel",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "offices.complete",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "offices.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "offices.download",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "offices.import",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "offices.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "offices.receive",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "offices.send",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "offices.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "oficios.attachments",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "oficios.configure",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "oficios.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "oficios.deactivate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "oficios.export",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "oficios.import",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "oficios.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "oficios.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "organizations.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "payroll.configure",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "payroll.generate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "payroll.view",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "purchase-orders.approve",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "purchase-orders.cancel",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "purchase-orders.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "purchase-orders.download",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "purchase-orders.generate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "purchase-orders.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "purchase-orders.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "reports.audit",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "reports.export",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "reports.financial",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "reports.financial.equipment",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "reports.financial.purchases",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "reports.view",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "roles.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "software-licenses.assign",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "software-licenses.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "software-licenses.export",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "software-licenses.manage",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "software-licenses.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "software-licenses.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "suppliers.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "suppliers.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "suppliers.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "users.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "users.deactivate",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "users.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "users.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_MANAGER",
+    "permission": "webhooks.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "audit.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "dashboard.executive",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "dashboard.view",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "employees.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "employees.deactivate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "employees.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "employees.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "equipment-disposal.approve",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "equipment-disposal.cancel",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "equipment-disposal.configure",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "equipment-disposal.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "equipment-disposal.download",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "equipment-disposal.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "equipment-disposal.reject",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "equipment-disposal.submit",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "equipment-disposal.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "equipment.assign",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "equipment.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "equipment.dispose",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "equipment.maintain",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "equipment.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "equipment.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "integrations.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "integrations.disable",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "integrations.enable",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "integrations.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "integrations.retry",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "integrations.rotate-credentials",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "integrations.test",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "integrations.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "integrations.view-history",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "memberships.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "notifications.manage-organization-settings",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "notifications.manage-own-preferences",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "notifications.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "notifications.retry-failed",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "notifications.view-deliveries",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "offices.cancel",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "offices.complete",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "offices.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "offices.download",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "offices.import",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "offices.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "offices.receive",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "offices.send",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "offices.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "oficios.attachments",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "oficios.configure",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "oficios.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "oficios.deactivate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "oficios.export",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "oficios.import",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "oficios.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "oficios.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "organizations.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "payroll.configure",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "payroll.generate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "payroll.view",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "purchase-orders.approve",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "purchase-orders.cancel",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "purchase-orders.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "purchase-orders.download",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "purchase-orders.generate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "purchase-orders.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "purchase-orders.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "reports.audit",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "reports.export",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "reports.financial",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "reports.financial.equipment",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "reports.financial.purchases",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "reports.view",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "roles.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "software-licenses.assign",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "software-licenses.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "software-licenses.export",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "software-licenses.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "software-licenses.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "software-licenses.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "suppliers.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "suppliers.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "suppliers.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "users.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "users.deactivate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "users.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "users.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "IT_TECHNICIAN",
+    "permission": "webhooks.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "audit.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "dashboard.executive",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "dashboard.view",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "employees.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "employees.deactivate",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "employees.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "employees.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "equipment-disposal.approve",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "equipment-disposal.cancel",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "equipment-disposal.configure",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "equipment-disposal.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "equipment-disposal.download",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "equipment-disposal.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "equipment-disposal.reject",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "equipment-disposal.submit",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "equipment-disposal.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "equipment.assign",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "equipment.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "equipment.dispose",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "equipment.maintain",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "equipment.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "equipment.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "integrations.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "integrations.disable",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "integrations.enable",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "integrations.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "integrations.retry",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "integrations.rotate-credentials",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "integrations.test",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "integrations.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "integrations.view-history",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "memberships.manage",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "notifications.manage-organization-settings",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "notifications.manage-own-preferences",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "notifications.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "notifications.retry-failed",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "notifications.view-deliveries",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "offices.cancel",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "offices.complete",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "offices.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "offices.download",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "offices.import",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "offices.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "offices.receive",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "offices.send",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "offices.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "oficios.attachments",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "oficios.configure",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "oficios.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "oficios.deactivate",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "oficios.export",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "oficios.import",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "oficios.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "oficios.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "organizations.manage",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "payroll.configure",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "payroll.generate",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "payroll.view",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "purchase-orders.approve",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "purchase-orders.cancel",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "purchase-orders.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "purchase-orders.download",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "purchase-orders.generate",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "purchase-orders.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "purchase-orders.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "reports.audit",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "reports.export",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "reports.financial",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "reports.financial.equipment",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "reports.financial.purchases",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "reports.view",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "roles.manage",
+    "officialGranted": true,
+    "locked": true
+  },
+  {
+    "role": "OWNER",
+    "permission": "software-licenses.assign",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "software-licenses.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "software-licenses.export",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "software-licenses.manage",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "software-licenses.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "software-licenses.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "suppliers.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "suppliers.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "suppliers.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "OWNER",
+    "permission": "users.create",
+    "officialGranted": true,
+    "locked": true
+  },
+  {
+    "role": "OWNER",
+    "permission": "users.deactivate",
+    "officialGranted": true,
+    "locked": true
+  },
+  {
+    "role": "OWNER",
+    "permission": "users.read",
+    "officialGranted": true,
+    "locked": true
+  },
+  {
+    "role": "OWNER",
+    "permission": "users.update",
+    "officialGranted": true,
+    "locked": true
+  },
+  {
+    "role": "OWNER",
+    "permission": "webhooks.manage",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "audit.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "dashboard.executive",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "dashboard.view",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "employees.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "employees.deactivate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "employees.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "employees.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "equipment-disposal.approve",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "equipment-disposal.cancel",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "equipment-disposal.configure",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "equipment-disposal.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "equipment-disposal.download",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "equipment-disposal.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "equipment-disposal.reject",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "equipment-disposal.submit",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "equipment-disposal.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "equipment.assign",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "equipment.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "equipment.dispose",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "equipment.maintain",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "equipment.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "equipment.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "integrations.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "integrations.disable",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "integrations.enable",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "integrations.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "integrations.retry",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "integrations.rotate-credentials",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "integrations.test",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "integrations.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "integrations.view-history",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "memberships.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "notifications.manage-organization-settings",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "notifications.manage-own-preferences",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "notifications.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "notifications.retry-failed",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "notifications.view-deliveries",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "offices.cancel",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "offices.complete",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "offices.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "offices.download",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "offices.import",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "offices.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "offices.receive",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "offices.send",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "offices.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "oficios.attachments",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "oficios.configure",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "oficios.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "oficios.deactivate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "oficios.export",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "oficios.import",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "oficios.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "oficios.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "organizations.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "payroll.configure",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "payroll.generate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "payroll.view",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "purchase-orders.approve",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "purchase-orders.cancel",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "purchase-orders.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "purchase-orders.download",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "purchase-orders.generate",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "purchase-orders.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "purchase-orders.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "reports.audit",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "reports.export",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "reports.financial",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "reports.financial.equipment",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "reports.financial.purchases",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "reports.view",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "roles.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "software-licenses.assign",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "software-licenses.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "software-licenses.export",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "software-licenses.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "software-licenses.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "software-licenses.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "suppliers.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "suppliers.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "suppliers.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "users.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "users.deactivate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "users.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "users.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "PROCUREMENT",
+    "permission": "webhooks.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "audit.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "dashboard.executive",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "dashboard.view",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "employees.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "employees.deactivate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "employees.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "employees.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "equipment-disposal.approve",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "equipment-disposal.cancel",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "equipment-disposal.configure",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "equipment-disposal.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "equipment-disposal.download",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "equipment-disposal.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "equipment-disposal.reject",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "equipment-disposal.submit",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "equipment-disposal.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "equipment.assign",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "equipment.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "equipment.dispose",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "equipment.maintain",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "equipment.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "equipment.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "integrations.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "integrations.disable",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "integrations.enable",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "integrations.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "integrations.retry",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "integrations.rotate-credentials",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "integrations.test",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "integrations.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "integrations.view-history",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "memberships.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "notifications.manage-organization-settings",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "notifications.manage-own-preferences",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "notifications.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "notifications.retry-failed",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "notifications.view-deliveries",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "offices.cancel",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "offices.complete",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "offices.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "offices.download",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "offices.import",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "offices.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "offices.receive",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "offices.send",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "offices.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "oficios.attachments",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "oficios.configure",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "oficios.create",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "oficios.deactivate",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "oficios.export",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "oficios.import",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "oficios.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "oficios.update",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "organizations.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "payroll.configure",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "payroll.generate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "payroll.view",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "purchase-orders.approve",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "purchase-orders.cancel",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "purchase-orders.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "purchase-orders.download",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "purchase-orders.generate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "purchase-orders.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "purchase-orders.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "reports.audit",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "reports.export",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "reports.financial",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "reports.financial.equipment",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "reports.financial.purchases",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "reports.view",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "roles.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "software-licenses.assign",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "software-licenses.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "software-licenses.export",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "software-licenses.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "software-licenses.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "software-licenses.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "suppliers.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "suppliers.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "suppliers.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "users.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "users.deactivate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "users.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "users.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "SECRETARIA",
+    "permission": "webhooks.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "audit.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "dashboard.executive",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "dashboard.view",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "employees.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "employees.deactivate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "employees.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "employees.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "equipment-disposal.approve",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "equipment-disposal.cancel",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "equipment-disposal.configure",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "equipment-disposal.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "equipment-disposal.download",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "equipment-disposal.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "equipment-disposal.reject",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "equipment-disposal.submit",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "equipment-disposal.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "equipment.assign",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "equipment.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "equipment.dispose",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "equipment.maintain",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "equipment.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "equipment.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "integrations.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "integrations.disable",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "integrations.enable",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "integrations.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "integrations.retry",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "integrations.rotate-credentials",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "integrations.test",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "integrations.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "integrations.view-history",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "memberships.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "notifications.manage-organization-settings",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "notifications.manage-own-preferences",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "notifications.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "notifications.retry-failed",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "notifications.view-deliveries",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "offices.cancel",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "offices.complete",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "offices.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "offices.download",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "offices.import",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "offices.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "offices.receive",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "offices.send",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "offices.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "oficios.attachments",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "oficios.configure",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "oficios.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "oficios.deactivate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "oficios.export",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "oficios.import",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "oficios.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "oficios.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "organizations.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "payroll.configure",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "payroll.generate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "payroll.view",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "purchase-orders.approve",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "purchase-orders.cancel",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "purchase-orders.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "purchase-orders.download",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "purchase-orders.generate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "purchase-orders.read",
+    "officialGranted": true,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "purchase-orders.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "reports.audit",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "reports.export",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "reports.financial",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "reports.financial.equipment",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "reports.financial.purchases",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "reports.view",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "roles.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "software-licenses.assign",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "software-licenses.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "software-licenses.export",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "software-licenses.manage",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "software-licenses.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "software-licenses.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "suppliers.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "suppliers.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "suppliers.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "users.create",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "users.deactivate",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "users.read",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "users.update",
+    "officialGranted": false,
+    "locked": false
+  },
+  {
+    "role": "USER",
+    "permission": "webhooks.manage",
+    "officialGranted": false,
+    "locked": false
+  }
+]
