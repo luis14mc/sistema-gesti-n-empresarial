@@ -303,7 +303,10 @@ export async function swapAssignmentInTransaction(params: {
   returnReason?: string;
   returnCondition?: string;
   deliveryReason?: string;
-  assignmentNotes?: string;
+  /** Notas en la asignación cerrada (solo `assignmentNotes` del body, sin accesorios). */
+  closedReturnNotes?: string;
+  /** Notas en la asignación nueva (notas + línea de accesorios si aplica). */
+  newAssignmentNotes?: string;
 }) {
   return prisma.$transaction(async (tx) => {
     const newEquipment = await tx.equipment.findFirst({
@@ -329,7 +332,7 @@ export async function swapAssignmentInTransaction(params: {
         returnedById: params.returnedById,
         returnReason: params.returnReason || 'Cambio de equipo',
         returnCondition: params.returnCondition,
-        returnNotes: params.assignmentNotes,
+        returnNotes: params.closedReturnNotes,
       },
       include: { equipment: true },
     });
@@ -352,7 +355,7 @@ export async function swapAssignmentInTransaction(params: {
         employeeEmailAtTime: params.snapshot.employeeEmailAtTime,
         employeeNameAtTime: params.snapshot.employeeNameAtTime,
         deliveryReason: params.deliveryReason || 'Cambio de equipo',
-        assignmentNotes: params.assignmentNotes || undefined,
+        assignmentNotes: params.newAssignmentNotes || undefined,
       },
       include: {
         equipment: true,

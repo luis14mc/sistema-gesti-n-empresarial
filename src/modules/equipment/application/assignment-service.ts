@@ -323,7 +323,8 @@ export async function swapEquipmentAssignment(params: {
       returnReason,
       returnCondition,
       deliveryReason,
-      assignmentNotes: notesCombined,
+      closedReturnNotes: assignmentNotes || undefined,
+      newAssignmentNotes: notesCombined,
     });
 
     await logEquipmentHistory({
@@ -364,6 +365,7 @@ export async function swapEquipmentAssignment(params: {
     };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : '';
+    if (message === 'OLD_NOT_ACTIVE') return { kind: 'old_inactive' as const };
     if (message === 'NEW_NOT_FOUND') return { kind: 'new_not_found' as const };
     if (message === 'NEW_NOT_AVAILABLE') return { kind: 'new_not_available' as const };
     throw error;
