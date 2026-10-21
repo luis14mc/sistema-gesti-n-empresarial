@@ -250,6 +250,17 @@ export async function middleware(request: NextRequest) {
       return res;
     }
 
+    // Cambio de contraseña obligatorio ANTES de evaluar módulos: la pantalla
+    // /settings/cambiar-contrasena pertenece al módulo dashboard y un rol sin
+    // dashboard.view (p. ej. SECRETARIA) terminaba en /forbidden sin poder
+    // cambiarla. Cualquier otra ruta redirige al cambio de contraseña.
+    const onForcedPasswordPage = Boolean(payload.mustChangePassword) && isMustChangePasswordExemptPath(pathname);
+    if (payload.mustChangePassword && !onForcedPasswordPage) {
+      const res = NextResponse.redirect(buildRequestRedirectUrl(request, MUST_CHANGE_PASSWORD_PATH));
+      applySecurityHeaders(res, nonce);
+      return res;
+    }
+
     const modules = decodeModulesFromJwt(payload.mod);
     const allowedByJwt = modules.has(access.module);
     const legacyRoles = ROUTE_ACCESS_BY_MODULE[access.module];
@@ -258,7 +269,7 @@ export async function middleware(request: NextRequest) {
         ? sessionRoleMatchesAllowlist(payload.role, legacyRoles)
         : false;
 
-    if (!allowedByJwt && !allowedByRole) {
+    if (!onForcedPasswordPage && !allowedByJwt && !allowedByRole) {
       logAuthorizationDecision({
         requestedPath: pathname,
         resolvedModule: access.module,
@@ -274,7 +285,7 @@ export async function middleware(request: NextRequest) {
       return res;
     }
 
-    if (access.requiredSpecial) {
+    if (!onForcedPasswordPage && access.requiredSpecial) {
       const specials = decodeRouteSpecialsFromJwt(payload.spe);
       let allowedBySpecial = specials.has(access.requiredSpecial);
       if (!allowedBySpecial && !payload.mod) {
@@ -296,12 +307,6 @@ export async function middleware(request: NextRequest) {
         applySecurityHeaders(res, nonce);
         return res;
       }
-    }
-
-    if (payload.mustChangePassword && !isMustChangePasswordExemptPath(pathname)) {
-      const res = NextResponse.redirect(buildRequestRedirectUrl(request, MUST_CHANGE_PASSWORD_PATH));
-      applySecurityHeaders(res, nonce);
-      return res;
     }
 
     logAuthorizationDecision({
