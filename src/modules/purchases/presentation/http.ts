@@ -42,3 +42,25 @@ export function supplierRouteErrorResponse(error: unknown): NextResponse | null 
   }
   return null;
 }
+
+export type SupplierFallbackContext = 'list' | 'create' | 'update' | 'delete';
+
+const SUPPLIER_FALLBACK_LOG: Record<SupplierFallbackContext, string> = {
+  list: 'Error listing proveedores:',
+  create: 'Error creating proveedor:',
+  update: 'Error updating proveedor:',
+  delete: 'Error deleting proveedor:',
+};
+
+const SUPPLIER_FALLBACK_MESSAGE: Record<SupplierFallbackContext, string> = {
+  list: 'Error al listar proveedores',
+  create: 'Error al crear proveedor',
+  update: 'Error al actualizar proveedor',
+  delete: 'Error al eliminar proveedor',
+};
+
+/** Generic 500 for proveedores routes — matches pre–phase-4b main (no Prisma/message leak). */
+export function supplierFallbackError(context: SupplierFallbackContext, error: unknown): NextResponse {
+  console.error(SUPPLIER_FALLBACK_LOG[context], error);
+  return NextResponse.json({ error: SUPPLIER_FALLBACK_MESSAGE[context] }, { status: 500 });
+}

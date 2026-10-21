@@ -4,10 +4,7 @@ import { createProveedorSchema } from '@/modules/purchases/presentation/supplier
 import { createProveedor, listSuppliers } from '@/modules/purchases/application/suppliers';
 import { validateRtn } from '@/modules/purchases/domain/rtn-validation';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
-import {
-  handlePurchaseOrderRouteError,
-  supplierRouteErrorResponse,
-} from '@/modules/purchases/presentation/http';
+import { supplierFallbackError, supplierRouteErrorResponse } from '@/modules/purchases/presentation/http';
 
 async function getHandler(req: AuthenticatedRequest) {
   try {
@@ -32,7 +29,7 @@ async function getHandler(req: AuthenticatedRequest) {
   } catch (error) {
     const supplier = supplierRouteErrorResponse(error);
     if (supplier) return supplier;
-    return handlePurchaseOrderRouteError(error, 'GET /api/compras/proveedores');
+    return supplierFallbackError('list', error);
   }
 }
 
@@ -56,7 +53,7 @@ async function postHandler(req: AuthenticatedRequest) {
   } catch (error) {
     const supplier = supplierRouteErrorResponse(error);
     if (supplier) return supplier;
-    return handlePurchaseOrderRouteError(error, 'POST /api/compras/proveedores');
+    return supplierFallbackError('create', error);
   }
 }
 

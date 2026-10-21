@@ -4,10 +4,7 @@ import { updateProveedorSchema } from '@/modules/purchases/presentation/supplier
 import { deleteProveedor, updateProveedor } from '@/modules/purchases/application/suppliers';
 import { validateRtn } from '@/modules/purchases/domain/rtn-validation';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
-import {
-  handlePurchaseOrderRouteError,
-  supplierRouteErrorResponse,
-} from '@/modules/purchases/presentation/http';
+import { supplierFallbackError, supplierRouteErrorResponse } from '@/modules/purchases/presentation/http';
 
 async function patchHandler(
   req: AuthenticatedRequest,
@@ -36,7 +33,7 @@ async function patchHandler(
   } catch (error) {
     const supplier = supplierRouteErrorResponse(error);
     if (supplier) return supplier;
-    return handlePurchaseOrderRouteError(error, 'PATCH /api/compras/proveedores/[id]');
+    return supplierFallbackError('update', error);
   }
 }
 
@@ -54,7 +51,7 @@ async function deleteHandler(
   } catch (error) {
     const supplier = supplierRouteErrorResponse(error);
     if (supplier) return supplier;
-    return handlePurchaseOrderRouteError(error, 'DELETE /api/compras/proveedores/[id]');
+    return supplierFallbackError('delete', error);
   }
 }
 
