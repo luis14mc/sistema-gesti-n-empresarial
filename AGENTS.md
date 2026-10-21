@@ -34,5 +34,5 @@ Arquitectura oficial: **monolito modular por capas** — [docs/adr/003-arquitect
 - **`src/lib` está congelado:** no crear archivos nuevos ahí.
 - `route.ts` es un controlador delgado: `withAuth` → `authorizeOrganization` → zod → caso de uso de `application`. **Sin Prisma** en `src/app`, `src/components`, `src/hooks`, `src/services`.
 - `domain` es puro: sin Next, React ni Prisma (solo `import type`).
-- `eslint.architecture-baseline.mjs` solo puede **reducirse**: al tocar un archivo de la lista, migrarlo y quitarlo.
+- `@/lib/prisma` solo se importa desde `src/modules/*/infrastructure/**` y `src/platform/**`. Sin excepciones por archivo.
 - Front: una sola forma de llamar a la API — `services/<módulo>.service.ts` + `hooks/use<Módulo>.ts`.
