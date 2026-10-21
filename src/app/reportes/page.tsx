@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useReportsCatalog } from '@/hooks/useReportsCatalog';
-import { hasModuleAccess } from '@/lib/permissions';
+import { hasModuleAccess } from '@/platform/security/session-module-access';
 import {
   groupReportsByUiSection,
   REPORT_UI_GROUPS,

@@ -8,12 +8,8 @@ describe('RBAC golden — mapeo ruta → módulo y acceso (lib vs platform)', ()
     expect(map).toEqual(routeMapFixture);
   });
 
-  it('documenta INCONSISTENCIAS libModule !== platformModule', () => {
+  it('lib y platform comparten el mismo ROUTE_PATH_TO_MODULE (0 mismatches)', () => {
     const mismatches = buildRouteMap().filter((r) => r.mismatch);
-    expect(mismatches.length).toBeGreaterThan(0);
-    const paths = mismatches.map((m) => m.pathname).sort();
-    // INCONSISTENCIA: platform define rutas que lib/permissions.ts no incluye en ROUTE_PATH_TO_MODULE.
-    expect(paths).toContain('/settings/cambiar-contrasena');
-    expect(paths).toContain('/settings/permisos');
+    expect(mismatches).toEqual([]);
   });
 });

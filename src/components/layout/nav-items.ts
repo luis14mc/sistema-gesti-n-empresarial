@@ -8,7 +8,7 @@ import {
   ClipboardCheck,
   Wallet,
 } from 'lucide-react';
-import type { Module } from '@/lib/permissions';
+import type { Module } from '@/platform/security/session-module-access';
 import type { Permission } from '@/platform/security/authorization/permissions';
 
 // ── NAV MODEL ─────────────────────────────────────────────────

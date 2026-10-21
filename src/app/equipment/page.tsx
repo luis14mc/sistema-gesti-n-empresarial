@@ -43,7 +43,7 @@ import { ReturnNoteContent } from '@/components/equipment/ReturnNoteContent';
 import { EquipmentFileUpload } from '@/components/equipment/EquipmentFileUpload';
 import { EquipmentExcelActions } from '@/components/equipment/EquipmentExcelActions';
 import { equipmentAssignmentsService } from '@/services/equipment-assignments.service';
-import { canAccess } from '@/lib/permissions';
+import { canAccess } from '@/platform/security/session-module-access';
 import { sileo } from 'sileo';
 import { swalConfirm } from '@/lib/swal';
 import { formatRelativeDate } from '@/utils/helpers';

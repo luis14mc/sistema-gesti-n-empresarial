@@ -16,7 +16,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { logoutAction } from '@/actions/auth';
-import { hasModuleAccess } from '@/lib/permissions';
+import { hasModuleAccess } from '@/platform/security/session-module-access';
 import type { ModuleId } from '@/platform/security/modules';
 import { useBandejaContador } from '@/hooks/useBandejaContador';
 import { cn } from '@/lib/utils';

@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { useAuditDetail } from '@/hooks/useAudits';
 import { useAuth } from '@/hooks/useAuth';
-import { canAccess } from '@/lib/permissions';
+import { canAccess } from '@/platform/security/session-module-access';
 import { sileo } from 'sileo';
 import { swalConfirm } from '@/lib/swal';
 import { format } from 'date-fns';

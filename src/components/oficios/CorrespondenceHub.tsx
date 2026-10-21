@@ -23,7 +23,7 @@ import {
 import { useOficios } from '@/hooks/useOficios';
 import { useAuth } from '@/hooks/useAuth';
 import { useDebounce } from '@/hooks/useDebounce';
-import { canAccess } from '@/lib/permissions';
+import { canAccess } from '@/platform/security/session-module-access';
 import {
   OFICIO_DEPENDENCY_LABELS,
   OFICIO_DOCUMENT_KIND_LABELS,
