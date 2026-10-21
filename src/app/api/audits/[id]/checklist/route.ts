@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/platform/api/with-auth';
-import { createAuditRecord } from '@/platform/security/audit/audit-record';
 import { requireOrganizationContext } from '@/modules/organizations/application/context';
-import { auditChildScope } from '@/modules/audits/infrastructure/tenant-scope';
-import { findAudit } from '@/modules/audits/infrastructure/repository';
+import { addChecklistItem, evaluateChecklistItem } from '@/modules/audits/application/audits-service';
 
 // POST /api/audits/[id]/checklist - Agregar item al checklist
 async function postHandler(
@@ -22,34 +19,17 @@ async function postHandler(
       );
     }
 
-    const audit = await findAudit(organization.organizationId, params.id);
-    if (!audit) {
+    const item = await addChecklistItem(
+      { organizationId: organization.organizationId, userId: req.user!.userId },
+      params.id,
+      { requirement, clause, sortOrder },
+    );
+    if (!item) {
       return NextResponse.json(
         { error: 'Auditoría no encontrada' },
         { status: 404 }
       );
     }
-
-    const item = await prisma.auditChecklistItem.create({
-      data: {
-        auditId: params.id,
-        requirement,
-        clause,
-        sortOrder: sortOrder ?? 0,
-        completed: false,
-      },
-    });
-
-    await createAuditRecord({
-      title: 'Item de checklist agregado',
-      description: `Se agregó item al checklist de auditoría ${audit.code}`,
-      module: 'MANUAL',
-      category: 'CREATE',
-      userId: req.user!.userId,
-      entityId: item.id,
-      organizationId: organization.organizationId,
-      newData: { requirement, clause, auditId: audit.id },
-    });
 
     return NextResponse.json({ item }, { status: 201 });
   } catch (error) {
@@ -77,41 +57,18 @@ async function patchHandler(
       );
     }
 
-    const existing = await prisma.auditChecklistItem.findFirst({
-      where: auditChildScope(organization.organizationId, params.id, itemId),
-    });
+    const item = await evaluateChecklistItem(
+      { organizationId: organization.organizationId, userId: req.user!.userId },
+      params.id,
+      { itemId, result, notes, evidence, completed },
+    );
 
-    if (!existing) {
+    if (!item) {
       return NextResponse.json(
         { error: 'Item de checklist no encontrado' },
         { status: 404 }
       );
     }
-
-    await prisma.auditChecklistItem.updateMany({
-      where: auditChildScope(organization.organizationId, params.id, itemId),
-      data: {
-        result: result ?? existing.result,
-        notes: notes !== undefined ? notes : existing.notes,
-        evidence: evidence !== undefined ? evidence : existing.evidence,
-        completed: completed !== undefined ? completed : existing.completed,
-      },
-    });
-    const item = await prisma.auditChecklistItem.findFirstOrThrow({
-      where: auditChildScope(organization.organizationId, params.id, itemId),
-    });
-
-    await createAuditRecord({
-      title: 'Evaluación de checklist actualizada',
-      description: `Se actualizó resultado del item ${itemId}`,
-      module: 'MANUAL',
-      category: 'UPDATE',
-      userId: req.user!.userId,
-      entityId: item.id,
-      organizationId: organization.organizationId,
-      previousData: { result: existing.result, completed: existing.completed },
-      newData: { result: item.result, completed: item.completed },
-    });
 
     return NextResponse.json({ item });
   } catch (error) {

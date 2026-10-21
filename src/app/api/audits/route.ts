@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Prisma } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/platform/api/with-auth';
-import { createAuditRecord } from '@/platform/security/audit/audit-record';
 import { requireOrganizationContext } from '@/modules/organizations/application/context';
-import { auditWhere } from '@/modules/audits/infrastructure/repository';
+import { createAudit, listAuditsPage } from '@/modules/audits/application/audits-service';
 
 // GET /api/audits - Listar auditorías
 async function getHandler(req: AuthenticatedRequest) {
@@ -18,36 +15,7 @@ async function getHandler(req: AuthenticatedRequest) {
     const pageSize = parseInt(searchParams.get('pageSize') || '10');
     const skip = (page - 1) * pageSize;
 
-    const where: Prisma.AuditWhereInput = auditWhere(organization.organizationId);
-
-    if (status) where.status = status as Prisma.EnumAuditStatusFilter;
-    if (type) where.type = type as Prisma.EnumAuditTypeFilter;
-
-    if (search) {
-      where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { code: { contains: search, mode: 'insensitive' } },
-        { standard: { contains: search, mode: 'insensitive' } },
-      ];
-    }
-
-    const [audits, total] = await Promise.all([
-      prisma.audit.findMany({
-        where,
-        skip,
-        take: pageSize,
-        include: {
-          leadAuditor: {
-            select: { id: true, firstName: true, lastName: true, email: true },
-          },
-          createdBy: {
-            select: { id: true, firstName: true, lastName: true, email: true },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.audit.count({ where }),
-    ]);
+    const [audits, total] = await listAuditsPage(organization.organizationId, { status, type, search }, skip, pageSize);
 
     return NextResponse.json({
       audits,
@@ -69,79 +37,16 @@ async function getHandler(req: AuthenticatedRequest) {
 async function postHandler(req: AuthenticatedRequest) {
   try {
     const organization = await requireOrganizationContext(req);
-    const {
-      title,
-      description,
-      type,
-      standard,
-      scope,
-      objectives,
-      criteria,
-      department,
-      leadAuditorId,
-      plannedDate,
-    } = await req.json();
+    const input = await req.json();
 
-    if (!title) {
+    if (!input.title) {
       return NextResponse.json(
         { error: 'El título es requerido' },
         { status: 400 }
       );
     }
 
-    // Generar código correlativo con transacción para evitar race conditions
-    const audit = await prisma.$transaction(async (tx) => {
-      const year = new Date().getFullYear();
-      const lastAudit = await tx.audit.findFirst({
-        where: auditWhere(organization.organizationId, { code: { startsWith: 'AUD-' } }),
-        orderBy: { code: 'desc' },
-      });
-
-      let nextNumber = 1;
-      if (lastAudit) {
-        const parts = lastAudit.code.split('-');
-        const lastNum = parseInt(parts[1]);
-        if (!isNaN(lastNum)) nextNumber = lastNum + 1;
-      }
-      const code = `AUD-${nextNumber.toString().padStart(3, '0')}-${year}`;
-
-      return tx.audit.create({
-        data: {
-          organizationId: organization.organizationId,
-          code,
-          title,
-          description,
-          type: type || 'INTERNAL',
-          standard,
-          scope,
-          objectives,
-          criteria,
-          department,
-          leadAuditorId: leadAuditorId || null,
-          plannedDate: plannedDate ? new Date(plannedDate) : null,
-          createdById: req.user!.userId,
-        } as Prisma.AuditUncheckedCreateInput,
-        include: {
-          leadAuditor: {
-            select: { id: true, firstName: true, lastName: true, email: true },
-          },
-          createdBy: {
-            select: { id: true, firstName: true, lastName: true, email: true },
-          },
-        },
-      });
-    });
-
-    await createAuditRecord({
-      title: 'Creación de auditoría',
-      description: `Se creó auditoría: ${audit.title}`,
-      module: 'MANUAL',
-      category: 'CREATE',
-      userId: req.user!.userId,
-      entityId: audit.id,
-      organizationId: organization.organizationId,
-      newData: { code: audit.code, title, type },
-    });
+    const audit = await createAudit({ organizationId: organization.organizationId, userId: req.user!.userId }, input);
 
     return NextResponse.json({ audit }, { status: 201 });
   } catch (error) {

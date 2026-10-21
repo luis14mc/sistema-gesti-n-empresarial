@@ -4,12 +4,6 @@
 // nueva o si una entrada apunta a un archivo que ya no existe.
 // Generada el 2026-10-21; reducida en fase 1 equipos (56 archivos).
 export const PRISMA_IN_PRESENTATION_BASELINE = [
-  'src/app/api/audits/[id]/checklist/route.ts',
-  'src/app/api/audits/[id]/findings/route.ts',
-  'src/app/api/audits/[id]/route.ts',
-  'src/app/api/audits/route.ts',
-  'src/app/api/corrective-actions/[id]/route.ts',
-  'src/app/api/corrective-actions/route.ts',
   'src/app/api/equipment-disposal/[id]/documents/[documentId]/route.ts',
   'src/app/api/equipment-disposal/[id]/documents/[documentId]/view/route.ts',
   'src/app/api/equipment-disposal/[id]/documents/route.ts',
