@@ -1,7 +1,8 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { createAuditRecord } from '@/lib/audit';
-import { generateAssetCode, resolveEquipmentCategory, CATEGORY_LABELS } from '@/lib/equipment-asset-code';
+import { resolveEquipmentCategory, CATEGORY_LABELS } from '@/modules/equipment/domain/equipment-asset-code';
+import { generateAssetCode } from '@/modules/equipment/infrastructure/generate-asset-code';
 import { equipmentInputSchema, type EquipmentInput } from './schemas';
 
 type DatabaseClient = typeof prisma;

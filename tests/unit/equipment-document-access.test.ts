@@ -5,9 +5,9 @@ import {
   isEquipmentDocumentKeyForOrganization,
   toEquipmentDocumentHref,
   withStableEquipmentDocumentUrls,
-} from '@/lib/equipment-document-access';
-import { isEquipmentDocumentUrlAllowed } from '@/lib/equipment-attachments';
-import { mapAssignmentResponse } from '@/lib/equipment-mapper';
+} from '@/modules/equipment/infrastructure/equipment-document-access';
+import { isEquipmentDocumentUrlAllowed } from '@/modules/equipment/infrastructure/equipment-attachments';
+import { mapAssignmentResponse } from '@/modules/equipment/presentation/equipment-mapper';
 
 const ORG = 'org_123';
 const KEY = `organizations/${ORG}/equipment/actas-asignacion/2026/10/acta.pdf`;

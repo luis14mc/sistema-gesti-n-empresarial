@@ -1,49 +1,24 @@
 import { NextResponse } from 'next/server';
-import { Prisma } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
-import { createAuditRecord } from '@/lib/audit';
-import { logEquipmentHistory } from '@/lib/equipment-history';
-import { mapEquipmentResponse } from '@/lib/equipment-mapper';
-import { equipmentApiFailure } from '@/modules/equipment/tenant';
+import { getEquipment, updateEquipment } from '@/modules/equipment/application/equipment-service';
+import { equipmentApiFailure } from '@/modules/equipment/application/http';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 
 async function getHandler(
   req: AuthenticatedRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const requestId = crypto.randomUUID();
   try {
     const { id } = await params;
     const organization = await authorizeOrganization(req, requestId, 'equipment.read');
-    const equipment = await prisma.equipment.findFirst({
-      where: { id, organizationId: organization.organizationId },
-      include: {
-        assignments: {
-          include: {
-            user: { select: { id: true, firstName: true, lastName: true, email: true } },
-            employee: {
-              select: {
-                id: true,
-                fullName: true,
-                email: true,
-                department: { select: { name: true } },
-                position: { select: { name: true } },
-              },
-            },
-          },
-          orderBy: { assignedDate: 'desc' },
-        },
-        maintenances: { orderBy: { createdAt: 'desc' } },
-        history: { orderBy: { createdAt: 'desc' }, take: 50 },
-      },
-    });
+    const equipment = await getEquipment(id, organization.organizationId);
 
     if (!equipment) {
       return NextResponse.json({ error: 'Equipo no encontrado' }, { status: 404 });
     }
 
-    return NextResponse.json({ equipment: mapEquipmentResponse(equipment) });
+    return NextResponse.json({ equipment });
   } catch (error) {
     console.error('Error al obtener equipo:', error);
     return equipmentApiFailure(error, requestId, { code: 'EQUIPMENT_GET_FAILED', message: 'Error al obtener equipo', stage: 'GET_EQUIPMENT' });
@@ -52,70 +27,31 @@ async function getHandler(
 
 async function patchHandler(
   req: AuthenticatedRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const requestId = crypto.randomUUID();
   try {
     const { id } = await params;
     const organization = await authorizeOrganization(req, requestId, 'equipment.update');
     const data = await req.json();
-    const current = await prisma.equipment.findFirst({ where: { id, organizationId: organization.organizationId } });
+    const result = await updateEquipment({
+      id,
+      organizationId: organization.organizationId,
+      userId: req.user!.userId,
+      data,
+    });
 
-    if (!current) {
+    if (result.kind === 'not_found') {
       return NextResponse.json({ error: 'Equipo no encontrado' }, { status: 404 });
     }
-    if (data.status === 'RETIRED' || data.status === 'DISPOSED') {
+    if (result.kind === 'use_disposal_flow') {
       return NextResponse.json(
         { error: 'Use el flujo de dictamen técnico para dar de baja el equipo.' },
         { status: 409 },
       );
     }
 
-    const allowedFields = [
-      'type', 'category', 'brand', 'model', 'serialNumber', 'status',
-      'ram', 'processor', 'storage', 'os', 'includedAccessories', 'installedSoftware', 'purchaseDate', 'purchaseOrder',
-      'supplier', 'warrantyDate', 'cost', 'ipAddress', 'macAddress',
-      'location', 'notes', 'retirementReason',
-    ];
-    const updateData: Record<string, unknown> = {};
-    allowedFields.forEach((field) => {
-      if (data[field] !== undefined) updateData[field] = data[field];
-    });
-    if (updateData.cost != null && typeof updateData.cost === 'number') {
-      updateData.cost = new Prisma.Decimal(updateData.cost);
-    }
-
-    const equipment = await prisma.equipment.update({
-      where: { id, organizationId: organization.organizationId },
-      data: updateData,
-    });
-
-    const action = data.status && data.status !== current.status ? 'STATUS_CHANGED' : 'UPDATED';
-    await logEquipmentHistory({
-      equipmentId: equipment.id,
-      action,
-      title: action === 'STATUS_CHANGED' ? 'Estado actualizado' : 'Equipo actualizado',
-      description: `Equipo ${equipment.inventoryCode} actualizado.`,
-      previousData: { status: current.status },
-      newData: { status: equipment.status, ...updateData },
-      performedById: req.user!.userId,
-    });
-
-    await createAuditRecord({
-      title: 'Actualización de equipo',
-      description: `Se actualizó equipo: ${equipment.inventoryCode}`,
-      module: 'EQUIPOS',
-      category: 'UPDATE',
-      userId: req.user!.userId,
-      entityId: equipment.id,
-      entityType: 'Equipment',
-      organizationId: organization.organizationId,
-      action: 'EQUIPMENT_UPDATED',
-      previousData: { status: current.status },
-      newData: { status: equipment.status },
-    });
-
-    return NextResponse.json({ equipment: mapEquipmentResponse(equipment) });
+    return NextResponse.json({ equipment: result.equipment });
   } catch (error) {
     console.error('Error al actualizar equipo:', error);
     return equipmentApiFailure(error, requestId, { code: 'EQUIPMENT_UPDATE_FAILED', message: 'Error al actualizar equipo', stage: 'UPDATE_EQUIPMENT' });
@@ -124,7 +60,7 @@ async function patchHandler(
 
 async function deleteHandler(
   req: AuthenticatedRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const requestId = crypto.randomUUID();
   try {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EQUIPMENT_DOCUMENT_TYPES } from '@/lib/equipment-document-types';
+import { EQUIPMENT_DOCUMENT_TYPES } from '@/modules/equipment/domain/equipment-document-types';
 import { assertTenantStoragePrefix } from '@/lib/storage/s3';
 
 describe('File security — magic bytes (Phase 10A security regression)', () => {

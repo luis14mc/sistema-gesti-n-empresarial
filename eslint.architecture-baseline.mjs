@@ -2,7 +2,7 @@
 // Solo puede REDUCIRSE: al migrar un archivo a su módulo, quítalo de aquí.
 // tests/architecture/architecture-rules.test.ts falla si se agrega una entrada
 // nueva o si una entrada apunta a un archivo que ya no existe.
-// Generada el 2026-10-21 (66 archivos).
+// Generada el 2026-10-21; reducida en fase 1 equipos (56 archivos).
 export const PRISMA_IN_PRESENTATION_BASELINE = [
   'src/actions/auth.ts',
   'src/app/api/audits/[id]/checklist/route.ts',
@@ -27,20 +27,10 @@ export const PRISMA_IN_PRESENTATION_BASELINE = [
   'src/app/api/departments/route.ts',
   'src/app/api/employees/[id]/route.ts',
   'src/app/api/employees/route.ts',
-  'src/app/api/equipment-assignments/[id]/document/route.ts',
-  'src/app/api/equipment-assignments/[id]/return/route.ts',
-  'src/app/api/equipment-assignments/route.ts',
-  'src/app/api/equipment-assignments/swap/route.ts',
   'src/app/api/equipment-disposal/[id]/documents/[documentId]/route.ts',
   'src/app/api/equipment-disposal/[id]/documents/[documentId]/view/route.ts',
   'src/app/api/equipment-disposal/[id]/documents/route.ts',
   'src/app/api/equipment-disposal/[id]/pdf/route.ts',
-  'src/app/api/equipment/[id]/route.ts',
-  'src/app/api/equipment/export/route.ts',
-  'src/app/api/equipment/route.ts',
-  'src/app/api/equipment/stats/route.ts',
-  'src/app/api/maintenance/[id]/route.ts',
-  'src/app/api/maintenance/route.ts',
   'src/app/api/oficios/[id]/documents/route.ts',
   'src/app/api/oficios/[id]/route.ts',
   'src/app/api/oficios/[id]/status/route.ts',

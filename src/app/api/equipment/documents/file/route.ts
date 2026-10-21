@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
 import { getStorage } from '@/lib/storage';
-import { isEquipmentDocumentKeyForOrganization } from '@/lib/equipment-document-access';
-import { equipmentApiFailure } from '@/modules/equipment/tenant';
+import { isEquipmentDocumentKeyForOrganization } from '@/modules/equipment/infrastructure/equipment-document-access';
+import { equipmentApiFailure } from '@/modules/equipment/application/http';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 
 const MIME_BY_EXTENSION: Record<string, string> = {
@@ -39,13 +39,10 @@ async function getHandler(req: AuthenticatedRequest) {
     return new NextResponse(new Uint8Array(object.buffer), {
       status: 200,
       headers: {
-        // Solo PDF/PNG/JPEG: se fuerza el MIME por extensión, nunca el del storage.
         'Content-Type': mimeHint,
         'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(filename)}`,
         'Cache-Control': 'private, no-store',
         'X-Content-Type-Options': 'nosniff',
-        // Sin CSP `sandbox`: deja en blanco el visor PDF de Chrome. El MIME ya se
-        // fuerza a PDF/PNG/JPEG por extensión y va con nosniff.
       },
     });
   } catch (error) {

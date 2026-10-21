@@ -1,34 +1,7 @@
-import type { EquipmentHistoryAction, Prisma } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
-
-interface LogEquipmentHistoryParams {
-  equipmentId: string;
-  action: EquipmentHistoryAction;
-  title: string;
-  description?: string;
-  previousData?: Prisma.InputJsonValue;
-  newData?: Prisma.InputJsonValue;
-  performedById?: string;
-}
-
-export async function logEquipmentHistory(params: LogEquipmentHistoryParams) {
-  return prisma.equipmentHistory.create({
-    data: {
-      equipmentId: params.equipmentId,
-      action: params.action,
-      title: params.title,
-      description: params.description,
-      previousData: params.previousData,
-      newData: params.newData,
-      performedById: params.performedById,
-    },
-  });
-}
-
 /** Mapea condición de devolución al estado del equipo */
 export function mapReturnConditionToStatus(
   returnCondition?: string,
-  equipmentStatusAfter?: string
+  equipmentStatusAfter?: string,
 ): 'AVAILABLE' | 'IN_MAINTENANCE' | 'DAMAGED' | 'RETIRED' | 'LOST' {
   if (equipmentStatusAfter) {
     const allowed = ['AVAILABLE', 'IN_MAINTENANCE', 'DAMAGED', 'RETIRED', 'LOST'];

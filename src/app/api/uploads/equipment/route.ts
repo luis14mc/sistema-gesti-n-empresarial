@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
-import { EQUIPMENT_DOCUMENT_TYPES } from '@/lib/equipment-document-types';
-import { saveEquipmentDocument } from '@/lib/equipment-storage';
+import { EQUIPMENT_DOCUMENT_TYPES } from '@/modules/equipment/domain/equipment-document-types';
+import { saveEquipmentDocument } from '@/modules/equipment/infrastructure/equipment-storage';
 import { isOrganizationContextError } from '@/modules/organizations/application/context';
-import { equipmentApiFailure } from '@/modules/equipment/tenant';
+import { equipmentApiFailure } from '@/modules/equipment/application/http';
 import { apiFailure } from '@/platform/api/response';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 

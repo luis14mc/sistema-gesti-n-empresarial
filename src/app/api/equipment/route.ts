@@ -1,23 +1,12 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
-import { Prisma } from '@prisma/client';
-import { mapEquipmentResponse } from '@/lib/equipment-mapper';
 import { isOrganizationContextError } from '@/modules/organizations/application/context';
-import { createEquipmentRecord } from '@/modules/equipment/import-export/equipment-create';
+import { createEquipment, listEquipment } from '@/modules/equipment/application/equipment-service';
+import { mapEquipmentResponse } from '@/modules/equipment/presentation/equipment-mapper';
 import { authorizeOrganization, authorizationFailure } from '@/platform/security/authorization/http';
 import { equipmentInputSchema } from '@/modules/equipment/import-export/schemas';
 import { apiFailure, apiSuccess } from '@/platform/api/response';
 import { z } from 'zod';
-
-const equipmentListQuerySchema = z.object({
-  status: z.string().optional(),
-  type: z.string().optional(),
-  category: z.string().optional(),
-  search: z.string().trim().optional(),
-  page: z.coerce.number().int().positive().default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(10),
-});
 
 function organizationFailure(error: unknown, requestId: string) {
   if (!isOrganizationContextError(error)) return null;
@@ -33,80 +22,13 @@ async function getHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   try {
     const organization = await authorizeOrganization(req, requestId, 'equipment.read');
-    const { status, type, category, search, page, pageSize } = equipmentListQuerySchema.parse(
-      Object.fromEntries(req.nextUrl.searchParams),
-    );
-    const skip = (page - 1) * pageSize;
-
-    const where: Prisma.EquipmentWhereInput = { organizationId: organization.organizationId };
-    const andConditions: Prisma.EquipmentWhereInput[] = [];
-
-    if (req.user!.role === 'USER') {
-      const employee = await prisma.employee.findFirst({
-        where: { userId: req.user!.userId },
-      });
-      andConditions.push({
-        assignments: {
-          some: {
-            status: 'ACTIVE',
-            OR: [
-              { userId: req.user!.userId },
-              ...(employee ? [{ employeeId: employee.id }] : []),
-            ],
-          },
-        },
-      });
-    } else {
-      if (status) where.status = status as Prisma.EnumEquipmentStatusFilter['equals'];
-      if (category) where.category = category as Prisma.EnumEquipmentCategoryFilter['equals'];
-      if (type) where.type = type;
-    }
-
-    if (search) {
-      andConditions.push({
-        OR: [
-          { inventoryCode: { contains: search, mode: 'insensitive' } },
-          { brand: { contains: search, mode: 'insensitive' } },
-          { model: { contains: search, mode: 'insensitive' } },
-          { serialNumber: { contains: search, mode: 'insensitive' } },
-        ],
-      });
-    }
-
-    if (andConditions.length > 0) where.AND = andConditions;
-
-    const [rows, total] = await Promise.all([
-      prisma.equipment.findMany({
-        where,
-        skip,
-        take: pageSize,
-        include: {
-          assignments: {
-            where: { status: 'ACTIVE' },
-            include: {
-              user: { select: { id: true, firstName: true, lastName: true, email: true } },
-              employee: {
-                select: {
-                  id: true,
-                  fullName: true,
-                  email: true,
-                  department: { select: { name: true } },
-                },
-              },
-            },
-          },
-        },
-        orderBy: { inventoryCode: 'asc' },
-      }),
-      prisma.equipment.count({ where }),
-    ]);
-
-    const equipment = rows.map(mapEquipmentResponse);
-
-    return apiSuccess({
-      items: equipment,
-      meta: { total, page, pageSize, totalPages: Math.ceil(total / pageSize) },
-    }, { requestId });
+    const result = await listEquipment({
+      organizationId: organization.organizationId,
+      role: req.user!.role,
+      userId: req.user!.userId,
+      query: Object.fromEntries(req.nextUrl.searchParams),
+    });
+    return apiSuccess(result, { requestId });
   } catch (error) {
     const denied = authorizationFailure(error, requestId);
     if (denied) return denied;
@@ -129,25 +51,27 @@ async function postHandler(req: AuthenticatedRequest) {
     if (!parsed.success) {
       return NextResponse.json(
         { error: 'Datos inválidos', issues: parsed.error.flatten() },
-        { status: 400 }
+        { status: 400 },
       );
     }
-    const equipment = await createEquipmentRecord(parsed.data, {
+    const created = await createEquipment({
       organizationId: organization.organizationId,
       userId: req.user!.userId,
       requestId,
+      body: parsed.data,
     });
 
-    return NextResponse.json({ equipment: mapEquipmentResponse(equipment) }, { status: 201 });
+    if (created.kind === 'duplicate') {
+      return NextResponse.json({ error: 'Código de activo o número de serie duplicado' }, { status: 409 });
+    }
+
+    return NextResponse.json({ equipment: mapEquipmentResponse(created.equipment) }, { status: 201 });
   } catch (error) {
     const denied = authorizationFailure(error, requestId);
     if (denied) return denied;
     const failure = organizationFailure(error, requestId);
     if (failure) return failure;
     console.error('Error al crear equipo:', error);
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-      return NextResponse.json({ error: 'Código de activo o número de serie duplicado' }, { status: 409 });
-    }
     return apiFailure('EQUIPMENT_CREATE_FAILED', 'No se pudo crear el equipo.', { requestId, status: 500, details: [], stage: 'CREATE_EQUIPMENT' });
   }
 }

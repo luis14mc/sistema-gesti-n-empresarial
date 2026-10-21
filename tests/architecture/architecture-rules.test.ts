@@ -17,13 +17,6 @@ const LIB_FROZEN_ENTRIES = [
   'deprecated-api.ts',
   'deprecated-frontend-paths.ts',
   'employees.ts',
-  'equipment-asset-code.ts',
-  'equipment-attachments.ts',
-  'equipment-document-access.ts',
-  'equipment-document-types.ts',
-  'equipment-history.ts',
-  'equipment-mapper.ts',
-  'equipment-storage.ts',
   'form-errors.ts',
   'idor.ts',
   'jwt-config.ts',
@@ -49,7 +42,7 @@ const LIB_FROZEN_ENTRIES = [
   'zod-schemas.ts',
 ];
 
-const BASELINE_MAX = 66;
+const BASELINE_MAX = 56;
 
 describe('ADR 003 · src/lib congelado', () => {
   it('no se agregan archivos ni carpetas nuevas en src/lib', () => {

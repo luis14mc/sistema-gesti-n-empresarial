@@ -5,7 +5,7 @@ import {
   equipmentDocumentStoragePrefix,
   isEquipmentDocumentType,
   resolveEquipmentDocumentType,
-} from '@/lib/equipment-document-types';
+} from '@/modules/equipment/domain/equipment-document-types';
 
 describe('EQUIPMENT_DOCUMENT_TYPES catalogue', () => {
   it('exposes the documented document types', () => {

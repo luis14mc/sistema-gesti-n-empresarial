@@ -1,8 +1,8 @@
 import { extractApiErrorMessage } from '@/lib/api-error-message';
 import { getToken } from '@/utils/api';
 import type { OficioAttachment } from '@/types';
-import type { EquipmentDocumentMeta } from '@/lib/equipment-storage';
-import type { EquipmentDocumentType } from '@/lib/equipment-document-types';
+import type { EquipmentDocumentMeta } from '@/modules/equipment/infrastructure/equipment-storage';
+import type { EquipmentDocumentType } from '@/modules/equipment/domain/equipment-document-types';
 
 const OFICIOS_UPLOAD_URL = '/api/uploads/oficios';
 const EQUIPMENT_UPLOAD_URL = '/api/uploads/equipment';
