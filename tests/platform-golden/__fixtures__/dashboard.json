@@ -1,0 +1,105 @@
+{
+  "kpis": {
+    "layoutUser": {
+      "id": "user-sec",
+      "role": "SECRETARIA"
+    },
+    "stats": {
+      "totalOficios": 120,
+      "inProcessOficios": 17,
+      "totalEquipment": 250,
+      "availableEquipment": 64,
+      "activeAssignments": 171,
+      "pendingPurchases": 9,
+      "activeUsers": 58
+    },
+    "userName": "Sara",
+    "role": "SECRETARIA",
+    "recentOficios": [
+      {
+        "id": "of-1",
+        "number": "CNI-OF-001-2026",
+        "subject": "Asunto 1",
+        "status": "SENT",
+        "type": "OUTGOING",
+        "createdAt": "2026-10-01T10:00:00.000Z"
+      },
+      {
+        "id": "of-2",
+        "number": "CNI-IN-002-2026",
+        "subject": "Asunto 2",
+        "status": "RECEIVED",
+        "type": "INCOMING",
+        "createdAt": "2026-09-30T10:00:00.000Z"
+      }
+    ],
+    "queries": {
+      "oficio.count": [
+        null,
+        {
+          "where": {
+            "status": {
+              "in": [
+                "DRAFT",
+                "SENT",
+                "RECEIVED",
+                "IN_PROCESS"
+              ]
+            }
+          }
+        }
+      ],
+      "equipment.count": [
+        null,
+        {
+          "where": {
+            "status": "AVAILABLE"
+          }
+        }
+      ],
+      "equipmentAssignment.count": [
+        {
+          "where": {
+            "status": "ACTIVE"
+          }
+        }
+      ],
+      "compraOrden.count": [
+        {
+          "where": {
+            "status": {
+              "in": [
+                "DRAFT",
+                "GENERATED"
+              ]
+            },
+            "deletedAt": null
+          }
+        }
+      ],
+      "user.count": [
+        {
+          "where": {
+            "isActive": true
+          }
+        }
+      ],
+      "oficio.findMany": [
+        {
+          "take": 5,
+          "orderBy": {
+            "createdAt": "desc"
+          },
+          "select": {
+            "id": true,
+            "number": true,
+            "subject": true,
+            "status": true,
+            "type": true,
+            "createdAt": true
+          }
+        }
+      ]
+    }
+  }
+}

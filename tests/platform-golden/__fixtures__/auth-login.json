@@ -1,0 +1,302 @@
+{
+  "valid": {
+    "status": 200,
+    "rateLimit": {
+      "limit": "5",
+      "remaining": "4"
+    },
+    "retryAfterPresent": false,
+    "body": {
+      "user": {
+        "id": "user-golden",
+        "email": "golden@cni.hn",
+        "firstName": "Gold",
+        "lastName": "En",
+        "role": "ADMIN",
+        "isActive": true,
+        "employeeNumber": "CNI-G-1",
+        "phone": null,
+        "departmentId": null,
+        "positionId": null,
+        "mustChangePassword": false,
+        "passwordChangedAt": null
+      },
+      "token": "<jwt>"
+    }
+  },
+  "wrongPassword": {
+    "response": {
+      "status": 401,
+      "rateLimit": {
+        "limit": "5",
+        "remaining": "4"
+      },
+      "retryAfterPresent": false,
+      "body": {
+        "error": "Credenciales inválidas"
+      }
+    },
+    "audit": [
+      {
+        "title": "Intento de login fallido",
+        "description": "Password incorrecto para golden@cni.hn desde 10.99.0.1",
+        "module": "USUARIOS",
+        "category": "LOGIN",
+        "organizationId": "org_cni_default"
+      }
+    ]
+  },
+  "unknownUser": {
+    "status": 401,
+    "rateLimit": {
+      "limit": "5",
+      "remaining": "4"
+    },
+    "retryAfterPresent": false,
+    "body": {
+      "error": "Credenciales inválidas"
+    }
+  },
+  "inactive": {
+    "status": 403,
+    "rateLimit": {
+      "limit": "5",
+      "remaining": "4"
+    },
+    "retryAfterPresent": false,
+    "body": {
+      "error": "Usuario inactivo"
+    }
+  },
+  "invalidPayload": {
+    "status": 400,
+    "rateLimit": {
+      "limit": "5",
+      "remaining": "4"
+    },
+    "retryAfterPresent": false,
+    "body": {
+      "error": "Datos de acceso inválidos"
+    }
+  },
+  "ipRateLimit": {
+    "statuses": [
+      500,
+      500,
+      500,
+      500,
+      500,
+      429
+    ],
+    "last": {
+      "status": 429,
+      "rateLimit": {
+        "limit": "5",
+        "remaining": "0"
+      },
+      "retryAfterPresent": true,
+      "body": {
+        "error": "Demasiados intentos. Intenta más tarde.",
+        "retryAfterMs": "<ms>"
+      }
+    },
+    "auditCreateCalls": 0
+  },
+  "accountRateLimit": {
+    "statuses": [
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      429
+    ],
+    "last": {
+      "status": 429,
+      "rateLimit": {
+        "limit": "10",
+        "remaining": "0"
+      },
+      "retryAfterPresent": true,
+      "body": {
+        "error": "Demasiados intentos para esta cuenta. Intenta más tarde.",
+        "retryAfterMs": "<ms>"
+      }
+    }
+  },
+  "jwtClaimsByRole": {
+    "OWNER": {
+      "status": 200,
+      "sessionRole": "OWNER",
+      "claims": {
+        "userId": "user-owner",
+        "email": "owner@cni.hn",
+        "role": "OWNER",
+        "orgId": "org_cni_default",
+        "accessVersion": 3,
+        "pwdChangedAtMs": 1788264000000,
+        "mustChangePassword": false,
+        "mod": "dashboard,oficios,equipment,assignments,employees,users,purchases,audits,audit-records,reports,settings,software-licenses,payroll",
+        "spe": "roles.manage,payroll.configure",
+        "aud": "sge-web",
+        "iss": "sge"
+      }
+    },
+    "ADMIN": {
+      "status": 200,
+      "sessionRole": "ADMIN",
+      "claims": {
+        "userId": "user-admin",
+        "email": "admin@cni.hn",
+        "role": "ADMIN",
+        "orgId": "org_cni_default",
+        "accessVersion": 3,
+        "pwdChangedAtMs": 1788264000000,
+        "mustChangePassword": false,
+        "mod": "dashboard,oficios,equipment,assignments,employees,users,purchases,audits,audit-records,reports,settings,software-licenses,payroll",
+        "spe": "roles.manage,payroll.configure",
+        "aud": "sge-web",
+        "iss": "sge"
+      }
+    },
+    "SECRETARIA": {
+      "status": 200,
+      "sessionRole": "SECRETARIA",
+      "claims": {
+        "userId": "user-secretaria",
+        "email": "secretaria@cni.hn",
+        "role": "SECRETARIA",
+        "orgId": "org_cni_default",
+        "accessVersion": 3,
+        "pwdChangedAtMs": 1788264000000,
+        "mustChangePassword": false,
+        "mod": "oficios",
+        "spe": "",
+        "aud": "sge-web",
+        "iss": "sge"
+      }
+    },
+    "IT_MANAGER": {
+      "status": 200,
+      "sessionRole": "IT_MANAGER",
+      "claims": {
+        "userId": "user-it_manager",
+        "email": "it_manager@cni.hn",
+        "role": "IT_MANAGER",
+        "orgId": "org_cni_default",
+        "accessVersion": 3,
+        "pwdChangedAtMs": 1788264000000,
+        "mustChangePassword": false,
+        "mod": "dashboard,equipment,assignments,employees,users,audits,audit-records,reports,settings,software-licenses",
+        "spe": "",
+        "aud": "sge-web",
+        "iss": "sge"
+      }
+    },
+    "PROCUREMENT": {
+      "status": 200,
+      "sessionRole": "PROCUREMENT",
+      "claims": {
+        "userId": "user-procurement",
+        "email": "procurement@cni.hn",
+        "role": "PROCUREMENT",
+        "orgId": "org_cni_default",
+        "accessVersion": 3,
+        "pwdChangedAtMs": 1788264000000,
+        "mustChangePassword": false,
+        "mod": "dashboard,equipment,assignments,users,purchases,reports",
+        "spe": "",
+        "aud": "sge-web",
+        "iss": "sge"
+      }
+    },
+    "HR": {
+      "status": 200,
+      "sessionRole": "HR",
+      "claims": {
+        "userId": "user-hr",
+        "email": "hr@cni.hn",
+        "role": "HR",
+        "orgId": "org_cni_default",
+        "accessVersion": 3,
+        "pwdChangedAtMs": 1788264000000,
+        "mustChangePassword": false,
+        "mod": "dashboard,employees,users,reports,payroll",
+        "spe": "payroll.configure",
+        "aud": "sge-web",
+        "iss": "sge"
+      }
+    },
+    "AUDITOR": {
+      "status": 200,
+      "sessionRole": "AUDITOR",
+      "claims": {
+        "userId": "user-auditor",
+        "email": "auditor@cni.hn",
+        "role": "AUDITOR",
+        "orgId": "org_cni_default",
+        "accessVersion": 3,
+        "pwdChangedAtMs": 1788264000000,
+        "mustChangePassword": false,
+        "mod": "dashboard,equipment,assignments,users,purchases,audits,audit-records,reports,settings",
+        "spe": "",
+        "aud": "sge-web",
+        "iss": "sge"
+      }
+    },
+    "USER": {
+      "status": 200,
+      "sessionRole": "USER",
+      "claims": {
+        "userId": "user-user",
+        "email": "user@cni.hn",
+        "role": "USER",
+        "orgId": "org_cni_default",
+        "accessVersion": 3,
+        "pwdChangedAtMs": 1788264000000,
+        "mustChangePassword": true,
+        "mod": "dashboard,oficios,equipment,assignments,purchases,reports",
+        "spe": "",
+        "aud": "sge-web",
+        "iss": "sge"
+      }
+    }
+  },
+  "landing": {
+    "OWNER": {
+      "client": "/dashboard",
+      "clientMustChange": "/settings/cambiar-contrasena",
+      "edge": "/dashboard",
+      "edgeMustChange": "/settings/cambiar-contrasena"
+    },
+    "ADMIN": {
+      "client": "/dashboard",
+      "clientMustChange": "/settings/cambiar-contrasena",
+      "edge": "/dashboard",
+      "edgeMustChange": "/settings/cambiar-contrasena"
+    },
+    "SECRETARIA": {
+      "client": "/oficios/todos",
+      "clientMustChange": "/settings/cambiar-contrasena",
+      "edge": "/oficios/todos",
+      "edgeMustChange": "/settings/cambiar-contrasena"
+    },
+    "USER": {
+      "client": "/dashboard",
+      "clientMustChange": "/settings/cambiar-contrasena",
+      "edge": "/dashboard",
+      "edgeMustChange": "/settings/cambiar-contrasena"
+    },
+    "AUDITOR": {
+      "client": "/dashboard",
+      "clientMustChange": "/settings/cambiar-contrasena",
+      "edge": "/dashboard",
+      "edgeMustChange": "/settings/cambiar-contrasena"
+    }
+  }
+}

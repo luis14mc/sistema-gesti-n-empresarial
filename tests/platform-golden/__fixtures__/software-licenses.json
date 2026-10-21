@@ -1,0 +1,550 @@
+{
+  "billing": {
+    "cycles": [
+      "MONTHLY",
+      "ANNUAL",
+      "QUARTERLY",
+      "OTHER"
+    ],
+    "currencies": [
+      "USD",
+      "HNL"
+    ],
+    "roundMoney": [
+      1.01,
+      2.68,
+      10,
+      0.3
+    ],
+    "equivalents": {
+      "MONTHLY": [
+        {
+          "monthlyCost": 0,
+          "annualCost": 0
+        },
+        {
+          "monthlyCost": 9.99,
+          "annualCost": 119.88
+        },
+        {
+          "monthlyCost": 20,
+          "annualCost": 240
+        },
+        {
+          "monthlyCost": 100,
+          "annualCost": 1200
+        },
+        {
+          "monthlyCost": 1234.57,
+          "annualCost": 14814.84
+        }
+      ],
+      "ANNUAL": [
+        {
+          "monthlyCost": 0,
+          "annualCost": 0
+        },
+        {
+          "monthlyCost": 0.83,
+          "annualCost": 9.99
+        },
+        {
+          "monthlyCost": 1.67,
+          "annualCost": 20
+        },
+        {
+          "monthlyCost": 8.33,
+          "annualCost": 100
+        },
+        {
+          "monthlyCost": 102.88,
+          "annualCost": 1234.57
+        }
+      ],
+      "QUARTERLY": [
+        {
+          "monthlyCost": 0,
+          "annualCost": 0
+        },
+        {
+          "monthlyCost": 3.33,
+          "annualCost": 39.96
+        },
+        {
+          "monthlyCost": 6.67,
+          "annualCost": 80
+        },
+        {
+          "monthlyCost": 33.33,
+          "annualCost": 400
+        },
+        {
+          "monthlyCost": 411.52,
+          "annualCost": 4938.28
+        }
+      ],
+      "OTHER": [
+        {
+          "monthlyCost": 0,
+          "annualCost": 0
+        },
+        {
+          "monthlyCost": 9.99,
+          "annualCost": 119.88
+        },
+        {
+          "monthlyCost": 20,
+          "annualCost": 240
+        },
+        {
+          "monthlyCost": 100,
+          "annualCost": 1200
+        },
+        {
+          "monthlyCost": 1234.57,
+          "annualCost": 14814.84
+        }
+      ]
+    },
+    "schedules": [
+      "5 de cada mes",
+      "15 de cada trimestre",
+      "1 de cada año",
+      "31/12/2026",
+      "28/02/2027",
+      "Sin fecha de pago",
+      "Sin fecha de pago"
+    ],
+    "parsed": [
+      {
+        "billingCycle": "MONTHLY",
+        "paymentDay": 5,
+        "renewalDate": null
+      },
+      {
+        "billingCycle": "MONTHLY",
+        "paymentDay": 31,
+        "renewalDate": null
+      },
+      {
+        "billingCycle": "OTHER",
+        "paymentDay": null,
+        "renewalDate": null
+      },
+      {
+        "billingCycle": "ANNUAL",
+        "paymentDay": null,
+        "renewalDate": "2026-12-31"
+      },
+      {
+        "billingCycle": "OTHER",
+        "paymentDay": null,
+        "renewalDate": null
+      },
+      {
+        "billingCycle": "OTHER",
+        "paymentDay": null,
+        "renewalDate": null
+      },
+      {
+        "billingCycle": "OTHER",
+        "paymentDay": null,
+        "renewalDate": null
+      }
+    ]
+  },
+  "seats": {
+    "types": [
+      "INDIVIDUAL",
+      "SHARED"
+    ],
+    "statuses": [
+      "AVAILABLE",
+      "ASSIGNED",
+      "SUSPENDED",
+      "CANCELLED"
+    ],
+    "perSeat": [
+      {
+        "effective": "AVAILABLE",
+        "occupied": false,
+        "available": true,
+        "shared": false,
+        "canAssign": true,
+        "canConvertToIndividual": false
+      },
+      {
+        "effective": "ASSIGNED",
+        "occupied": true,
+        "available": false,
+        "shared": false,
+        "canAssign": false,
+        "canConvertToIndividual": false
+      },
+      {
+        "effective": "ASSIGNED",
+        "occupied": true,
+        "available": false,
+        "shared": true,
+        "canAssign": true,
+        "canConvertToIndividual": false
+      },
+      {
+        "effective": "ASSIGNED",
+        "occupied": true,
+        "available": false,
+        "shared": true,
+        "canAssign": true,
+        "canConvertToIndividual": true
+      },
+      {
+        "effective": "SUSPENDED",
+        "occupied": false,
+        "available": false,
+        "shared": false,
+        "canAssign": false,
+        "canConvertToIndividual": false
+      },
+      {
+        "effective": "CANCELLED",
+        "occupied": false,
+        "available": false,
+        "shared": false,
+        "canAssign": false,
+        "canConvertToIndividual": false
+      },
+      {
+        "effective": "AVAILABLE",
+        "occupied": false,
+        "available": true,
+        "shared": false,
+        "canAssign": true,
+        "canConvertToIndividual": true
+      }
+    ],
+    "summary": {
+      "contractedSeats": 10,
+      "occupiedSeats": 3,
+      "availableSeats": 2,
+      "assignedUsers": 7,
+      "sharedAccounts": 2,
+      "unusedSeats": 7
+    },
+    "summaryOverbooked": {
+      "contractedSeats": 1,
+      "occupiedSeats": 3,
+      "availableSeats": 2,
+      "assignedUsers": 7,
+      "sharedAccounts": 2,
+      "unusedSeats": 0
+    },
+    "crossOrg": "CROSS_ORGANIZATION_ASSIGNMENT"
+  },
+  "renewals": {
+    "defaultDays": 30,
+    "daysUntil": [
+      -10,
+      -1,
+      0,
+      1,
+      7,
+      8,
+      15,
+      16,
+      30,
+      31,
+      365
+    ],
+    "table": [
+      {
+        "status": "ACTIVE",
+        "alerts": [
+          null,
+          "EXPIRED",
+          "EXPIRED",
+          "IN_7_DAYS",
+          "IN_7_DAYS",
+          "IN_7_DAYS",
+          "IN_15_DAYS",
+          "IN_15_DAYS",
+          "IN_30_DAYS",
+          "IN_30_DAYS",
+          null,
+          null
+        ],
+        "display": [
+          "ACTIVE",
+          "EXPIRED",
+          "EXPIRED",
+          "EXPIRING_SOON",
+          "EXPIRING_SOON",
+          "EXPIRING_SOON",
+          "EXPIRING_SOON",
+          "EXPIRING_SOON",
+          "EXPIRING_SOON",
+          "EXPIRING_SOON",
+          "ACTIVE",
+          "ACTIVE"
+        ],
+        "display7": [
+          "ACTIVE",
+          "EXPIRED",
+          "EXPIRED",
+          "EXPIRING_SOON",
+          "EXPIRING_SOON",
+          "EXPIRING_SOON",
+          "ACTIVE",
+          "ACTIVE",
+          "ACTIVE",
+          "ACTIVE",
+          "ACTIVE",
+          "ACTIVE"
+        ]
+      },
+      {
+        "status": "SUSPENDED",
+        "alerts": [
+          null,
+          "EXPIRED",
+          "EXPIRED",
+          "IN_7_DAYS",
+          "IN_7_DAYS",
+          "IN_7_DAYS",
+          "IN_15_DAYS",
+          "IN_15_DAYS",
+          "IN_30_DAYS",
+          "IN_30_DAYS",
+          null,
+          null
+        ],
+        "display": [
+          "SUSPENDED",
+          "SUSPENDED",
+          "SUSPENDED",
+          "SUSPENDED",
+          "SUSPENDED",
+          "SUSPENDED",
+          "SUSPENDED",
+          "SUSPENDED",
+          "SUSPENDED",
+          "SUSPENDED",
+          "SUSPENDED",
+          "SUSPENDED"
+        ],
+        "display7": [
+          "SUSPENDED",
+          "SUSPENDED",
+          "SUSPENDED",
+          "SUSPENDED",
+          "SUSPENDED",
+          "SUSPENDED",
+          "SUSPENDED",
+          "SUSPENDED",
+          "SUSPENDED",
+          "SUSPENDED",
+          "SUSPENDED",
+          "SUSPENDED"
+        ]
+      },
+      {
+        "status": "CANCELLED",
+        "alerts": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "display": [
+          "CANCELLED",
+          "CANCELLED",
+          "CANCELLED",
+          "CANCELLED",
+          "CANCELLED",
+          "CANCELLED",
+          "CANCELLED",
+          "CANCELLED",
+          "CANCELLED",
+          "CANCELLED",
+          "CANCELLED",
+          "CANCELLED"
+        ],
+        "display7": [
+          "CANCELLED",
+          "CANCELLED",
+          "CANCELLED",
+          "CANCELLED",
+          "CANCELLED",
+          "CANCELLED",
+          "CANCELLED",
+          "CANCELLED",
+          "CANCELLED",
+          "CANCELLED",
+          "CANCELLED",
+          "CANCELLED"
+        ]
+      }
+    ]
+  },
+  "importPlan": {
+    "products": [
+      {
+        "software": "Microsoft 365",
+        "paymentDay": 5,
+        "billingCycle": "MONTHLY",
+        "renewalDate": null,
+        "seats": [
+          {
+            "accountEmail": "ana@cni.hn",
+            "seatType": "INDIVIDUAL",
+            "status": "ASSIGNED",
+            "assignments": [
+              {
+                "rowNumber": 2,
+                "employeeName": "Ana López"
+              }
+            ]
+          },
+          {
+            "accountEmail": "compartida@cni.hn",
+            "seatType": "SHARED",
+            "status": "ASSIGNED",
+            "assignments": [
+              {
+                "rowNumber": 3,
+                "employeeName": "Luis Pérez"
+              },
+              {
+                "rowNumber": 4,
+                "employeeName": "María Díaz"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "software": "Adobe CC",
+        "paymentDay": null,
+        "billingCycle": "ANNUAL",
+        "renewalDate": "2026-12-31",
+        "seats": [
+          {
+            "accountEmail": "adobe@cni.hn",
+            "seatType": "INDIVIDUAL",
+            "status": "AVAILABLE",
+            "assignments": []
+          },
+          {
+            "accountEmail": "adobe2@cni.hn",
+            "seatType": "INDIVIDUAL",
+            "status": "CANCELLED",
+            "assignments": []
+          },
+          {
+            "accountEmail": "adobe3@cni.hn",
+            "seatType": "INDIVIDUAL",
+            "status": "SUSPENDED",
+            "assignments": [
+              {
+                "rowNumber": 9,
+                "employeeName": "Pedro"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "software": "Zoom",
+        "paymentDay": null,
+        "billingCycle": "OTHER",
+        "renewalDate": null,
+        "seats": [
+          {
+            "accountEmail": null,
+            "seatType": "INDIVIDUAL",
+            "status": "ASSIGNED",
+            "assignments": [
+              {
+                "rowNumber": 10,
+                "employeeName": "Ana López"
+              }
+            ]
+          },
+          {
+            "accountEmail": null,
+            "seatType": "INDIVIDUAL",
+            "status": "ASSIGNED",
+            "assignments": [
+              {
+                "rowNumber": 11,
+                "employeeName": "Luis Pérez"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "software": "Slack",
+        "paymentDay": null,
+        "billingCycle": "OTHER",
+        "renewalDate": null,
+        "seats": [
+          {
+            "accountEmail": "slack@cni.hn",
+            "seatType": "SHARED",
+            "status": "ASSIGNED",
+            "assignments": [
+              {
+                "rowNumber": 12,
+                "employeeName": "Ana López"
+              },
+              {
+                "rowNumber": 13,
+                "employeeName": "Luis Pérez"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "warnings": [
+      {
+        "rowNumber": 2,
+        "code": "MISSING_COST",
+        "message": "Microsoft 365 se importa sin costo. El monto se captura en la suscripción."
+      },
+      {
+        "rowNumber": 5,
+        "code": "DUPLICATE_ASSIGNMENT",
+        "message": "María Díaz ya está en Microsoft 365 / compartida@cni.hn."
+      },
+      {
+        "rowNumber": 6,
+        "code": "MISSING_SOFTWARE",
+        "message": "La fila no tiene software."
+      },
+      {
+        "rowNumber": 7,
+        "code": "MISSING_COST",
+        "message": "Adobe CC se importa sin costo. El monto se captura en la suscripción."
+      },
+      {
+        "rowNumber": 10,
+        "code": "MISSING_COST",
+        "message": "Zoom se importa sin costo. El monto se captura en la suscripción."
+      },
+      {
+        "rowNumber": 12,
+        "code": "MISSING_COST",
+        "message": "Slack se importa sin costo. El monto se captura en la suscripción."
+      }
+    ]
+  }
+}

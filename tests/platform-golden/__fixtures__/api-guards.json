@@ -1,0 +1,586 @@
+{
+  "routes": {
+    "src/actions/auth.ts": {
+      "methods": [
+        "loginAction",
+        "logoutAction",
+        "registerAction"
+      ],
+      "withAuthRoles": [],
+      "permissions": [],
+      "markers": [
+        "requireRole("
+      ]
+    },
+    "src/app/api/audits/[id]/checklist/route.ts": {
+      "methods": [
+        "PATCH",
+        "POST"
+      ],
+      "withAuthRoles": [
+        [
+          "ADMIN",
+          "RRHH",
+          "IT"
+        ],
+        [
+          "ADMIN",
+          "RRHH",
+          "IT"
+        ]
+      ],
+      "permissions": [],
+      "markers": [
+        "withAuth("
+      ]
+    },
+    "src/app/api/audits/[id]/findings/route.ts": {
+      "methods": [
+        "POST"
+      ],
+      "withAuthRoles": [
+        [
+          "ADMIN",
+          "RRHH",
+          "IT"
+        ]
+      ],
+      "permissions": [],
+      "markers": [
+        "withAuth("
+      ]
+    },
+    "src/app/api/audits/[id]/route.ts": {
+      "methods": [
+        "DELETE",
+        "GET",
+        "PATCH"
+      ],
+      "withAuthRoles": [
+        [
+          "ADMIN",
+          "RRHH",
+          "IT"
+        ],
+        [
+          "ADMIN"
+        ]
+      ],
+      "permissions": [],
+      "markers": [
+        "withAuth("
+      ]
+    },
+    "src/app/api/audits/route.ts": {
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "withAuthRoles": [
+        [
+          "ADMIN",
+          "RRHH",
+          "IT"
+        ]
+      ],
+      "permissions": [],
+      "markers": [
+        "withAuth("
+      ]
+    },
+    "src/app/api/auth/login/route.ts": {
+      "methods": [
+        "POST"
+      ],
+      "withAuthRoles": [],
+      "permissions": [],
+      "markers": []
+    },
+    "src/app/api/auth/register/route.ts": {
+      "methods": [
+        "POST"
+      ],
+      "withAuthRoles": [
+        [
+          "ADMIN",
+          "RRHH"
+        ]
+      ],
+      "permissions": [],
+      "markers": [
+        "withAuth("
+      ]
+    },
+    "src/app/api/corrective-actions/[id]/route.ts": {
+      "methods": [
+        "DELETE",
+        "GET",
+        "PATCH"
+      ],
+      "withAuthRoles": [
+        [
+          "ADMIN",
+          "RRHH",
+          "IT"
+        ],
+        [
+          "ADMIN"
+        ]
+      ],
+      "permissions": [],
+      "markers": [
+        "withAuth("
+      ]
+    },
+    "src/app/api/corrective-actions/route.ts": {
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "withAuthRoles": [
+        [
+          "ADMIN",
+          "RRHH",
+          "IT"
+        ]
+      ],
+      "permissions": [],
+      "markers": [
+        "withAuth("
+      ]
+    },
+    "src/app/api/departments/route.ts": {
+      "methods": [
+        "GET"
+      ],
+      "withAuthRoles": [],
+      "permissions": [
+        "employees.read"
+      ],
+      "markers": [
+        "withAuth(",
+        "authorizeOrganization("
+      ]
+    },
+    "src/app/api/employees/[id]/route.ts": {
+      "methods": [
+        "GET",
+        "PATCH"
+      ],
+      "withAuthRoles": [],
+      "permissions": [
+        "employees.deactivate",
+        "employees.read",
+        "employees.update"
+      ],
+      "markers": [
+        "withAuth(",
+        "authorizeOrganization("
+      ]
+    },
+    "src/app/api/employees/route.ts": {
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "withAuthRoles": [],
+      "permissions": [
+        "employees.create",
+        "employees.read"
+      ],
+      "markers": [
+        "withAuth(",
+        "authorizeOrganization("
+      ]
+    },
+    "src/app/api/equipment-disposal/route.ts": {
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "withAuthRoles": [],
+      "permissions": [],
+      "markers": [
+        "withAuth("
+      ]
+    },
+    "src/app/api/equipment-disposal/[id]/route.ts": {
+      "methods": [
+        "GET",
+        "PATCH"
+      ],
+      "withAuthRoles": [],
+      "permissions": [],
+      "markers": [
+        "withAuth("
+      ]
+    },
+    "src/app/api/equipment-disposal/[id]/approve/route.ts": {
+      "methods": [
+        "POST"
+      ],
+      "withAuthRoles": [],
+      "permissions": [],
+      "markers": [
+        "withAuth("
+      ]
+    },
+    "src/app/api/equipment-disposal/[id]/cancel/route.ts": {
+      "methods": [
+        "POST"
+      ],
+      "withAuthRoles": [],
+      "permissions": [],
+      "markers": [
+        "withAuth("
+      ]
+    },
+    "src/app/api/equipment-disposal/[id]/reject/route.ts": {
+      "methods": [
+        "POST"
+      ],
+      "withAuthRoles": [],
+      "permissions": [],
+      "markers": [
+        "withAuth("
+      ]
+    },
+    "src/app/api/equipment-disposal/[id]/submit/route.ts": {
+      "methods": [
+        "POST"
+      ],
+      "withAuthRoles": [],
+      "permissions": [],
+      "markers": [
+        "withAuth("
+      ]
+    },
+    "src/app/api/equipment-disposal/[id]/documents/[documentId]/route.ts": {
+      "methods": [
+        "DELETE"
+      ],
+      "withAuthRoles": [],
+      "permissions": [
+        "documents.delete",
+        "equipment-disposal.update"
+      ],
+      "markers": [
+        "withAuth(",
+        "requireOrganizationPermission("
+      ]
+    },
+    "src/app/api/equipment-disposal/[id]/documents/[documentId]/view/route.ts": {
+      "methods": [
+        "GET"
+      ],
+      "withAuthRoles": [],
+      "permissions": [
+        "documents.view",
+        "equipment-disposal.read"
+      ],
+      "markers": [
+        "withAuth(",
+        "requireOrganizationPermission("
+      ]
+    },
+    "src/app/api/equipment-disposal/[id]/documents/route.ts": {
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "withAuthRoles": [],
+      "permissions": [
+        "documents.list",
+        "documents.upload",
+        "equipment-disposal.read",
+        "equipment-disposal.update"
+      ],
+      "markers": [
+        "withAuth(",
+        "requireOrganizationPermission("
+      ]
+    },
+    "src/app/api/equipment-disposal/[id]/pdf/route.ts": {
+      "methods": [
+        "GET"
+      ],
+      "withAuthRoles": [],
+      "permissions": [
+        "equipment-disposal.download",
+        "pdf.download"
+      ],
+      "markers": [
+        "withAuth(",
+        "requireOrganizationPermission("
+      ]
+    },
+    "src/app/api/organizations/current/route.ts": {
+      "methods": [
+        "GET"
+      ],
+      "withAuthRoles": [],
+      "permissions": [],
+      "markers": [
+        "withAuth("
+      ]
+    },
+    "src/app/api/organizations/current/integrations/route.ts": {
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "withAuthRoles": [],
+      "permissions": [
+        "integrations.create",
+        "integrations.read"
+      ],
+      "markers": [
+        "withAuth("
+      ]
+    },
+    "src/app/api/organizations/current/integrations/[id]/route.ts": {
+      "methods": [
+        "GET",
+        "PATCH"
+      ],
+      "withAuthRoles": [],
+      "permissions": [
+        "integrations.read",
+        "integrations.update"
+      ],
+      "markers": [
+        "withAuth("
+      ]
+    },
+    "src/app/api/organizations/current/integrations/[id]/disable/route.ts": {
+      "methods": [
+        "POST"
+      ],
+      "withAuthRoles": [],
+      "permissions": [
+        "integrations.disable"
+      ],
+      "markers": [
+        "withAuth("
+      ]
+    },
+    "src/app/api/organizations/current/integrations/[id]/enable/route.ts": {
+      "methods": [
+        "POST"
+      ],
+      "withAuthRoles": [],
+      "permissions": [
+        "integrations.enable"
+      ],
+      "markers": [
+        "withAuth("
+      ]
+    },
+    "src/app/api/organizations/current/integrations/[id]/executions/route.ts": {
+      "methods": [
+        "GET"
+      ],
+      "withAuthRoles": [],
+      "permissions": [
+        "integrations.view-history"
+      ],
+      "markers": [
+        "withAuth("
+      ]
+    },
+    "src/app/api/organizations/current/integrations/[id]/rotate-credentials/route.ts": {
+      "methods": [
+        "POST"
+      ],
+      "withAuthRoles": [],
+      "permissions": [
+        "integrations.rotate-credentials"
+      ],
+      "markers": [
+        "withAuth("
+      ]
+    },
+    "src/app/api/organizations/current/integrations/[id]/test/route.ts": {
+      "methods": [
+        "POST"
+      ],
+      "withAuthRoles": [],
+      "permissions": [
+        "integrations.test"
+      ],
+      "markers": [
+        "withAuth("
+      ]
+    },
+    "src/app/api/planilla/configuracion/smtp/probar/route.ts": {
+      "methods": [
+        "POST"
+      ],
+      "withAuthRoles": [],
+      "permissions": [
+        "payroll.configure"
+      ],
+      "markers": [
+        "withAuth(",
+        "authorizeOrganization("
+      ]
+    },
+    "src/app/api/reports/catalog/route.ts": {
+      "methods": [
+        "GET"
+      ],
+      "withAuthRoles": [],
+      "permissions": [
+        "catalog.list"
+      ],
+      "markers": [
+        "withAuth("
+      ]
+    },
+    "src/app/api/reports/[code]/export/route.ts": {
+      "methods": [
+        "GET"
+      ],
+      "withAuthRoles": [],
+      "permissions": [
+        "reports.export"
+      ],
+      "markers": [
+        "withAuth(",
+        "authorizeOrganization(",
+        "requireOrganizationPermission("
+      ]
+    },
+    "src/app/api/software-licenses/route.ts": {
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "withAuthRoles": [],
+      "permissions": [
+        "software-licenses.create",
+        "software-licenses.read"
+      ],
+      "markers": [
+        "withAuth(",
+        "authorizeOrganization("
+      ]
+    },
+    "src/app/api/software-licenses/[id]/route.ts": {
+      "methods": [
+        "GET",
+        "PATCH"
+      ],
+      "withAuthRoles": [],
+      "permissions": [
+        "software-licenses.read",
+        "software-licenses.update"
+      ],
+      "markers": [
+        "withAuth(",
+        "authorizeOrganization("
+      ]
+    },
+    "src/app/api/software-licenses/[id]/seats/route.ts": {
+      "methods": [
+        "POST"
+      ],
+      "withAuthRoles": [],
+      "permissions": [
+        "software-licenses.manage"
+      ],
+      "markers": [
+        "withAuth(",
+        "authorizeOrganization("
+      ]
+    },
+    "src/app/api/software-licenses/assignments/[assignmentId]/unassign/route.ts": {
+      "methods": [
+        "POST"
+      ],
+      "withAuthRoles": [],
+      "permissions": [
+        "software-licenses.assign"
+      ],
+      "markers": [
+        "withAuth(",
+        "authorizeOrganization("
+      ]
+    },
+    "src/app/api/software-licenses/dashboard/route.ts": {
+      "methods": [
+        "GET"
+      ],
+      "withAuthRoles": [],
+      "permissions": [
+        "software-licenses.read"
+      ],
+      "markers": [
+        "withAuth(",
+        "authorizeOrganization("
+      ]
+    },
+    "src/app/api/software-licenses/export/route.ts": {
+      "methods": [
+        "GET"
+      ],
+      "withAuthRoles": [],
+      "permissions": [
+        "software-licenses.export"
+      ],
+      "markers": [
+        "withAuth(",
+        "authorizeOrganization("
+      ]
+    },
+    "src/app/api/software-licenses/import/route.ts": {
+      "methods": [
+        "POST"
+      ],
+      "withAuthRoles": [],
+      "permissions": [
+        "software-licenses.manage"
+      ],
+      "markers": [
+        "withAuth(",
+        "authorizeOrganization("
+      ]
+    },
+    "src/app/api/software-licenses/seats/[seatId]/route.ts": {
+      "methods": [
+        "PATCH"
+      ],
+      "withAuthRoles": [],
+      "permissions": [
+        "software-licenses.manage"
+      ],
+      "markers": [
+        "withAuth(",
+        "authorizeOrganization("
+      ]
+    },
+    "src/app/api/software-licenses/seats/[seatId]/assignments/route.ts": {
+      "methods": [
+        "POST"
+      ],
+      "withAuthRoles": [],
+      "permissions": [
+        "software-licenses.assign"
+      ],
+      "markers": [
+        "withAuth(",
+        "authorizeOrganization("
+      ]
+    },
+    "src/app/dashboard/page.tsx": {
+      "methods": [
+        "default"
+      ],
+      "withAuthRoles": [],
+      "permissions": [],
+      "markers": [
+        "requireSession("
+      ]
+    }
+  }
+}
