@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { getCompraOrden, readPurchaseOrderDocumentFile } from '@/lib/compras/orden/service';
-import { buildAttachmentContentDisposition } from '@/lib/compras/orden/document-access';
-import { canOrdenAction } from '@/lib/compras/orden/permissions';
+import { getCompraOrden, readPurchaseOrderDocumentFile } from '@/modules/purchases/application/purchase-order-use-cases';
+import { buildAttachmentContentDisposition } from '@/modules/purchases/infrastructure/purchase-order-document-access';
+import { canOrdenAction } from '@/modules/purchases/domain/purchase-order-permissions';
 import type { Role } from '@/types';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 

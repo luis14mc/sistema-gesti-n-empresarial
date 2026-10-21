@@ -3,11 +3,14 @@ import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
 import {
   createCompraOrden,
   listCompraOrdenes,
-} from '@/lib/compras/orden/service';
-import { createCompraOrdenSchema, normalizePurchaseOrderPayload } from '@/lib/compras/orden/schemas';
-import { canOrdenAction } from '@/lib/compras/orden/permissions';
-import { handlePrismaRouteError } from '@/lib/compras/orden/prisma-error';
-import { parsePurchaseOrderListStatus } from '@/lib/compras/orden/list-status-filter';
+} from '@/modules/purchases/application/purchase-order-use-cases';
+import {
+  createCompraOrdenSchema,
+  normalizePurchaseOrderPayload,
+} from '@/modules/purchases/presentation/purchase-order-schemas';
+import { canOrdenAction } from '@/modules/purchases/domain/purchase-order-permissions';
+import { handlePrismaRouteError } from '@/modules/purchases/presentation/http';
+import { parsePurchaseOrderListStatus } from '@/modules/purchases/domain/list-status-filter';
 import type { Role } from '@/types';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 
