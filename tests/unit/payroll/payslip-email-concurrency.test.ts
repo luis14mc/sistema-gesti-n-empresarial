@@ -35,9 +35,20 @@ const prismaMock = {
         month: 9,
         periodStart: new Date('2026-08-20'),
         periodEnd: new Date('2026-09-20'),
+        salarioPeriodo: { toString: () => '27900' },
+        ihss: { toString: () => '595.16' },
+        isr: { toString: () => '786.31' },
+        otro: { toString: () => '0' },
+        otroConcepto: null,
+        totalDeducciones: { toString: () => '1381.47' },
         neto: { toString: () => '25937.06' },
         emailStatus: 'NONE',
-        employee: { id: 'emp-1', fullName: 'Ana', email: ' ana@cni.hn ' },
+        employee: {
+          id: 'emp-1',
+          fullName: 'Ana',
+          email: ' ana@cni.hn ',
+          monthlySalary: { toString: () => '27900' },
+        },
       },
     ]),
     update: vi.fn(async () => ({})),
@@ -63,14 +74,38 @@ const prismaMock = {
   $transaction: vi.fn(async (ops: unknown[]) => {
     for (const op of ops) await op;
   }),
+  payrollSmtpSettings: {
+    findUnique: vi.fn(async () => null),
+  },
 };
 
 vi.mock('@/lib/prisma', () => ({ prisma: prismaMock }));
 vi.mock('@/lib/audit', () => ({ createAuditRecord }));
 vi.mock('@/modules/payroll/application/payroll-service', () => ({ getPayslipPdfBuffer }));
 vi.mock('@/platform/email/smtp-config', () => ({
-  getSmtpRuntimeConfig: vi.fn(),
-  getPublicSmtpStatus: vi.fn(() => ({ replyTo: null })),
+  getSmtpRuntimeConfig: vi.fn(() => ({
+    EMAIL_TRANSPORT: 'smtp',
+    SMTP_HOST: 'smtp.test',
+    SMTP_PORT: 587,
+    SMTP_SECURE: false,
+    SMTP_USER: 'user@test',
+    SMTP_PASSWORD: 'pass',
+    SMTP_FROM: 'Test <test@test>',
+  })),
+  getPublicSmtpStatus: vi.fn(() => ({
+    replyTo: null,
+    passwordConfigured: true,
+    from: 'Test <test@test>',
+    configured: true,
+    host: 'smtp.test',
+    port: 587,
+    secure: false,
+    user: 'user@test',
+    transport: 'smtp',
+  })),
+}));
+vi.mock('@/platform/email/factory', () => ({
+  createEmailTransportForOrganization: vi.fn(),
 }));
 
 class CountingTransport implements EmailTransport {

@@ -55,12 +55,15 @@ export type PayslipListItem = {
 };
 
 export type PublicSmtpStatus = {
-  transport: 'smtp' | 'graph';
+  source: 'database' | 'environment';
+  secretsKeyConfigured: boolean;
   configured: boolean;
-  host: string | null;
+  host: string;
   port: number;
   secure: boolean;
-  user: string | null;
+  username: string;
+  senderName: string;
+  fromAddress: string;
   from: string;
   replyTo: string | null;
   passwordConfigured: boolean;
@@ -104,11 +107,15 @@ export type IsrBracketRecord = {
   toAnnual: number;
 };
 
+export type PayslipBatchDeliveryMode = 'pdf' | 'email' | 'both';
+
 export type BatchGenerateResult = {
   payMonth: string;
+  deliveryMode?: PayslipBatchDeliveryMode;
   succeeded: number;
   failed: number;
   results: Array<{ employeeId: string; ok: boolean; error?: string; payslipId?: string }>;
+  emailSummary?: PayslipEmailBatchSummary;
 };
 
 export function defaultIsrBracketsForYear(year: number = PAYROLL_YEAR) {
@@ -164,11 +171,29 @@ export const payrollService = {
     payMonth: string;
     employeeIds?: string[];
     employeeAdjustments?: Array<{ employeeId: string; otro?: number; otroConcepto?: string | null }>;
+    deliveryMode?: PayslipBatchDeliveryMode;
   }) => apiHelpers.post<ApiSuccess<BatchGenerateResult>>(`${BASE}/payslips/batch`, data),
   getSmtpStatus: () =>
     apiHelpers.get<ApiSuccess<PublicSmtpStatus>>('/api/planilla/configuracion/smtp'),
+  putSmtpSettings: (data: {
+    host: string;
+    port: number;
+    username: string;
+    password?: string;
+    senderName: string;
+    fromAddress: string;
+    replyTo?: string | null;
+  }) => apiHelpers.put<ApiSuccess<PublicSmtpStatus>>('/api/planilla/configuracion/smtp', data),
   testSmtp: () =>
     apiHelpers.post<ApiSuccess<{ ok: boolean; sentTo: string }>>('/api/planilla/configuracion/smtp/probar'),
+  previewIsrCalc: (data: { monthlySalary: number; hireDate?: string; payMonth?: string }) =>
+    apiHelpers.post<ApiSuccess<PayslipPreview>>(`${BASE}/isr/preview`, data),
+  recalculateAllDeductions: () =>
+    apiHelpers.post<ApiSuccess<{ employeeCount: number; message: string }>>(
+      `${BASE}/deductions/recalculate-all`,
+    ),
+  getNextEmployeeCode: () =>
+    apiHelpers.get<ApiSuccess<{ nextCode: string }>>(`${BASE}/employees/next-code`),
   sendPayslipEmails: (data: {
     year: number;
     month: number;

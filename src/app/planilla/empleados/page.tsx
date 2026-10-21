@@ -60,23 +60,23 @@ export default function PlanillaEmpleadosPage() {
 
   const columns: PayrollTableColumn<PayrollEmployeeListItem>[] = [
     {
-      id: 'name',
-      header: 'Empleado',
-      cell: (e) => (
-        <div>
-          <p className="font-medium">{e.fullName}</p>
-          {e.employeeCode ? <p className="text-xs text-muted-foreground">{e.employeeCode}</p> : null}
-        </div>
-      ),
+      id: 'code',
+      header: 'Código',
+      cell: (e) => e.employeeCode ?? '—',
     },
     {
-      id: 'dept',
-      header: 'Área',
-      cell: (e) => e.department?.name ?? e.position?.name ?? '—',
+      id: 'name',
+      header: 'Nombre',
+      cell: (e) => <span className="font-medium">{e.fullName}</span>,
+    },
+    {
+      id: 'cargo',
+      header: 'Cargo',
+      cell: (e) => e.position?.name ?? '—',
     },
     {
       id: 'salary',
-      header: 'Salario mensual',
+      header: 'Salario',
       align: 'right',
       money: true,
       cell: (e) => e.monthlySalary,
@@ -90,10 +90,22 @@ export default function PlanillaEmpleadosPage() {
     },
     {
       id: 'isr',
-      header: 'ISR (prev.)',
+      header: 'ISR*',
       align: 'right',
       money: true,
       cell: (e) => e.previewIsr ?? null,
+    },
+    {
+      id: 'otro',
+      header: 'Otro',
+      align: 'right',
+      money: true,
+      cell: (e) => e.otherDeduction,
+    },
+    {
+      id: 'email',
+      header: 'Correo',
+      cell: (e) => <span className="break-all text-xs">{e.email}</span>,
     },
     {
       id: 'status',
@@ -132,9 +144,9 @@ export default function PlanillaEmpleadosPage() {
         <PayrollChrome>
           <PayrollStatGrid
             items={[
-              { label: 'Empleados', value: stats.total },
+              { label: 'Total empleados', value: stats.total },
               {
-                label: 'Planilla mensual total',
+                label: 'Planilla mensual',
                 value: <MoneyLabel amount={stats.totalPayroll} />,
                 hint: 'Suma de salarios mensuales registrados',
               },
@@ -151,7 +163,7 @@ export default function PlanillaEmpleadosPage() {
               <div className="relative w-full max-w-sm">
                 <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar nombre, código o correo…"
+                  placeholder="Buscar nombre, código o cargo…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-9"
@@ -284,7 +296,7 @@ function EmployeePayrollDialog({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="otherDeductionNote">Nota de deducción</Label>
+                <Label htmlFor="otherDeductionNote">Observación (detalle otro descuento)</Label>
                 <Textarea
                   id="otherDeductionNote"
                   rows={2}

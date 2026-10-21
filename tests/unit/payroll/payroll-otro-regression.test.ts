@@ -67,6 +67,19 @@ describe('payroll otro overrides', () => {
     } as never);
   });
 
+  it('uses employee otherDeductionNote when no payslip override exists', async () => {
+    vi.mocked(prisma.employee.findFirst).mockResolvedValue({
+      ...mockEmployee,
+      otherDeduction: { toString: () => '100' },
+      otherDeductionNote: 'Cooperativa empleado',
+    } as never);
+
+    await generatePayslip('org-1', 'emp-1', '2026-09', 'user-1', { skipPdf: true });
+
+    const lastUpsert = vi.mocked(prisma.payslip.upsert).mock.calls.at(-1)?.[0];
+    expect(lastUpsert?.create?.otroConcepto).toBe('Cooperativa empleado');
+  });
+
   it('preserves stored otro and otroConcepto when regenerating without override', async () => {
     vi.mocked(prisma.payslip.findUnique).mockResolvedValue(existingOtro as never);
 

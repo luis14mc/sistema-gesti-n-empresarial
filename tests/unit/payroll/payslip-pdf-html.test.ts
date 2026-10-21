@@ -1,8 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
-
-vi.mock('@/lib/compras/institution', () => ({
-  resolveInstitutionLogoDataUri: vi.fn(async () => 'data:image/png;base64,abc'),
-}));
+import { describe, expect, it } from 'vitest';
 
 import { buildPayslipHtml, escapeHtml, otroDeductionLabel } from '@/modules/payroll/infrastructure/payslip-pdf';
 
@@ -47,6 +43,21 @@ describe('payslip PDF HTML', () => {
     const html = await buildPayslipHtml({ ...baseInput, otro: 0, otroConcepto: 'X' });
     expect(html).not.toContain('Otro (X)');
     expect(otroDeductionLabel(0, 'X')).toBeNull();
+  });
+
+  it('matches the CNI v2.2.0 layout: palette, A4 full-bleed header and original logo (not inverted)', async () => {
+    const html = await buildPayslipHtml(baseInput);
+    expect(html).toContain('size: A4 portrait; margin: 0');
+    for (const color of ['#233981', '#2aaad6', '#1bae64', '#b42828']) expect(html).toContain(color);
+    expect(html).not.toMatch(/invert\(/);
+    expect(html).toContain('data:image/png;base64,');
+    expect(html).toContain('Código:');
+    expect(html).toContain('Salario Mensual');
+  });
+
+  it('labels prorated first-month salary like the original', async () => {
+    const html = await buildPayslipHtml({ ...baseInput, isProrated: true });
+    expect(html).toContain('Salario (prorrateado por días trabajados)');
   });
 
   it('escapes HTML in employee fields', () => {

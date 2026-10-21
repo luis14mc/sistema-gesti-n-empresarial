@@ -7,6 +7,6 @@ describe('payslip otro concept label', () => {
   });
 
   it('shows plain Otro when there is amount but no concept', () => {
-    expect(otroDeductionLabel(50, null)).toBe('Otro');
+    expect(otroDeductionLabel(50, null)).toBe('Otra Deducción');
   });
 });

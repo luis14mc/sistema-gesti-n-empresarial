@@ -50,6 +50,7 @@ model Organization {
   integrations           OrganizationIntegration[]
   employees              Employee[]
   payrollSettings        PayrollSettings?
+  payrollSmtpSettings    PayrollSmtpSettings?
   payrollIsrBrackets     PayrollIsrBracket[]
   payslips               Payslip[]
   payslipEmailDeliveries PayslipEmailDelivery[]

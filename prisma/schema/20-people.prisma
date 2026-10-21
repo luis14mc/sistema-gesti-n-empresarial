@@ -114,6 +114,7 @@ model User {
   payslipsGenerated            Payslip[]                    @relation("PayslipGeneratedBy")
   payslipEmailDeliveriesCreated PayslipEmailDelivery[]      @relation("PayslipEmailDeliveryCreatedBy")
   payrollSettingsUpdated       PayrollSettings[]            @relation("PayrollSettingsUpdatedBy")
+  payrollSmtpSettingsUpdated   PayrollSmtpSettings[]        @relation("PayrollSmtpSettingsUpdatedBy")
   equipmentHistoryPerformed    EquipmentHistory[]           @relation("EquipmentHistoryPerformer")
   equipmentMaintenancePerformed EquipmentMaintenance[]      @relation("EquipmentMaintenancePerformer")
   softwareSubscriptionsCreated SoftwareSubscription[]       @relation("SoftwareSubscriptionCreator")

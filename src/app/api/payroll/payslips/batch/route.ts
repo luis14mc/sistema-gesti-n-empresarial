@@ -17,6 +17,7 @@ async function postHandler(req: AuthenticatedRequest) {
       body.employeeIds,
       userId,
       body.employeeAdjustments,
+      { deliveryMode: body.deliveryMode, requestId },
     );
     await createAuditRecord({
       title: 'Generación masiva de planilla',

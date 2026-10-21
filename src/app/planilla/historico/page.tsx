@@ -59,7 +59,22 @@ export default function PlanillaHistoricoPage() {
     [summary, total],
   );
 
+  function formatGeneratedAt(value: string | undefined) {
+    if (!value) return '—';
+    return new Date(value).toLocaleString('es-HN', { dateStyle: 'short', timeStyle: 'short' });
+  }
+
   const columns: PayrollTableColumn<PayslipListItem>[] = [
+    {
+      id: 'date',
+      header: 'Fecha',
+      cell: (p) => formatGeneratedAt(p.generatedAt),
+    },
+    {
+      id: 'code',
+      header: 'Código',
+      cell: (p) => p.employee?.employeeCode ?? '—',
+    },
     {
       id: 'employee',
       header: 'Empleado',
@@ -73,13 +88,13 @@ export default function PlanillaHistoricoPage() {
       ),
     },
     {
-      id: 'period',
-      header: 'Periodo',
-      cell: (p) => `${p.month}/${p.year}`,
+      id: 'cargo',
+      header: 'Cargo',
+      cell: (p) => p.employee?.positionName ?? '—',
     },
     {
       id: 'delivery',
-      header: 'Entrega',
+      header: 'Tipo',
       cell: (p) => (
         <Badge variant="outline" className="font-normal">
           {deliveryLabel(p.deliveryType)}
@@ -178,7 +193,7 @@ export default function PlanillaHistoricoPage() {
             <CardHeader>
               <CardTitle className="text-base">Filtros</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-3">
+            <CardContent className="grid gap-4 md:grid-cols-4">
               <div className="space-y-2 md:col-span-1">
                 <Label htmlFor="search">Buscar</Label>
                 <div className="relative">
@@ -219,6 +234,23 @@ export default function PlanillaHistoricoPage() {
                   }}
                 />
               </div>
+              <div className="flex items-end gap-2 md:col-span-4">
+                <Button type="button" variant="secondary" onClick={() => setPage(1)}>
+                  Buscar
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setSearch('');
+                    setDateFrom('');
+                    setDateTo('');
+                    setPage(1);
+                  }}
+                >
+                  Limpiar
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
@@ -234,9 +266,18 @@ export default function PlanillaHistoricoPage() {
               />
               <div className="mt-4 flex items-center justify-between gap-2">
                 <p className="text-sm text-muted-foreground">
-                  Página {page} de {totalPages} · {total} registros
+                  Mostrando {payslips.length} de {total} · Página {page} de {totalPages || 1}
                 </p>
                 <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={page <= 1 || isLoading}
+                    onClick={() => setPage(1)}
+                  >
+                    Primera
+                  </Button>
                   <Button
                     type="button"
                     variant="outline"
@@ -255,6 +296,15 @@ export default function PlanillaHistoricoPage() {
                   >
                     Siguiente
                   </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={page >= totalPages || isLoading || totalPages === 0}
+                    onClick={() => setPage(totalPages)}
+                  >
+                    Última
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -265,7 +315,7 @@ export default function PlanillaHistoricoPage() {
       <Dialog open={detail != null} onOpenChange={(open) => !open && setDetail(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Detalle del recibo</DialogTitle>
+            <DialogTitle>Detalle de boleta</DialogTitle>
           </DialogHeader>
           {detail ? (
             <dl className="grid gap-2 text-sm">
