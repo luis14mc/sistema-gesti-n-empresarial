@@ -1,5 +1,11 @@
+import {
+  ensureDefaultNumberingConfigs,
+  listNumberingConfigs,
+  upsertNumberingConfig,
+  type NumberingConfigInput,
+} from '@/modules/oficios/application/numbering-config';
 import { previewOficioNumber } from '@/modules/oficios/infrastructure/numbering';
-import { oficiosDb } from '@/modules/oficios/infrastructure/prisma-client';
+import { prisma } from '@/lib/prisma';
 import type { OficioDependency } from '@/modules/oficios/domain/oficios-numbering';
 
 export async function previewOficioNumberForOrganization(params: {
@@ -7,7 +13,7 @@ export async function previewOficioNumberForOrganization(params: {
   dependency: OficioDependency;
   year: number;
 }) {
-  return previewOficioNumber(oficiosDb, params);
+  return previewOficioNumber(prisma, params);
 }
 
 export async function findNumberingConfigByKey(params: {
@@ -15,7 +21,7 @@ export async function findNumberingConfigByKey(params: {
   dependency: string;
   year: number;
 }) {
-  return oficiosDb.oficioNumberingConfig.findUnique({
+  return prisma.oficioNumberingConfig.findUnique({
     where: {
       organizationId_dependency_year: {
         organizationId: params.organizationId,
@@ -27,10 +33,29 @@ export async function findNumberingConfigByKey(params: {
 }
 
 export async function listActiveNumberingDependencies(organizationId: string) {
-  return oficiosDb.oficioNumberingConfig.findMany({
+  return prisma.oficioNumberingConfig.findMany({
     where: { organizationId, isActive: true },
     select: { dependency: true },
     distinct: ['dependency'],
   });
+}
+
+export async function ensureDefaultNumberingConfigsForOrg(
+  organizationId: string,
+  actorUserId: string,
+) {
+  await ensureDefaultNumberingConfigs(prisma, organizationId, actorUserId);
+}
+
+export async function listNumberingConfigsForOrg(organizationId: string) {
+  return listNumberingConfigs(prisma, organizationId);
+}
+
+export async function upsertNumberingConfigForOrg(
+  organizationId: string,
+  actorUserId: string,
+  input: NumberingConfigInput,
+) {
+  return upsertNumberingConfig(prisma, organizationId, actorUserId, input);
 }
 

@@ -1,23 +1,22 @@
 import { createAuditRecord } from '@/lib/audit';
-import {
-  ensureDefaultNumberingConfigs,
-  listNumberingConfigs,
-  serializeNumberingConfig,
-  upsertNumberingConfig,
-} from '@/modules/oficios/application/numbering-config';
+import { serializeNumberingConfig } from '@/modules/oficios/application/numbering-config';
 import {
   previewNextNumber,
   validateNomenclaturePattern,
 } from '@/modules/oficios/domain/oficios-numbering';
-import { findNumberingConfigByKey } from '@/modules/oficios/infrastructure/numbering-queries';
-import { oficiosDb } from '@/modules/oficios/infrastructure/prisma-client';
+import {
+  ensureDefaultNumberingConfigsForOrg,
+  findNumberingConfigByKey,
+  listNumberingConfigsForOrg,
+  upsertNumberingConfigForOrg,
+} from '@/modules/oficios/infrastructure/numbering-queries';
 
 export async function listNumberingConfigsUseCase(params: {
   organizationId: string;
   actorUserId: string;
 }) {
-  await ensureDefaultNumberingConfigs(oficiosDb, params.organizationId, params.actorUserId);
-  const configs = await listNumberingConfigs(oficiosDb, params.organizationId);
+  await ensureDefaultNumberingConfigsForOrg(params.organizationId, params.actorUserId);
+  const configs = await listNumberingConfigsForOrg(params.organizationId);
   return { configs: configs.map(serializeNumberingConfig) };
 }
 
@@ -56,7 +55,7 @@ export async function upsertNumberingConfigUseCase(params: {
     };
   }
 
-  const config = await upsertNumberingConfig(oficiosDb, params.organizationId, params.actorUserId, {
+  const config = await upsertNumberingConfigForOrg(params.organizationId, params.actorUserId, {
     dependency: String(body.dependency ?? ''),
     year: Number(body.year),
     nomenclaturePattern: String(body.nomenclaturePattern ?? ''),

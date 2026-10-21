@@ -22,7 +22,7 @@ describe('oficios golden — transiciones de estado', () => {
   it('matriz completa: solo transiciones declaradas son válidas', () => {
     for (const from of ALL_STATUSES) {
       for (const to of ALL_STATUSES) {
-        const allowed = fixture.transitions[from as keyof typeof fixture.transitions]?.includes(to);
+        const allowed = (fixture.transitions as Record<string, string[]>)[from]?.includes(to);
         expect(isValidOficioStatusTransition(from, to)).toBe(Boolean(allowed));
       }
     }

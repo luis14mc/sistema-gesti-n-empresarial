@@ -1,4 +1,4 @@
-import { oficiosDb } from '@/modules/oficios/infrastructure/prisma-client';
+import { prisma } from '@/lib/prisma';
 import { normalizeOficioDependency } from '@/modules/oficios/domain/oficios-numbering';
 
 export function parseSignerDependency(value: unknown): string | null {
@@ -12,7 +12,7 @@ export async function listOficioSigners(params: {
   activeOnly: boolean;
 }) {
   const { organizationId, dependency, activeOnly } = params;
-  return oficiosDb.oficioSigner.findMany({
+  return prisma.oficioSigner.findMany({
     where: {
       organizationId,
       ...(activeOnly ? { isActive: true } : {}),
@@ -37,7 +37,7 @@ export async function createOficioSigner(params: {
   dependency: string | null;
   isActive: boolean;
 }) {
-  return oficiosDb.oficioSigner.create({
+  return prisma.oficioSigner.create({
     data: {
       organizationId: params.organizationId,
       name: params.name,
@@ -50,7 +50,7 @@ export async function createOficioSigner(params: {
 }
 
 export async function findOficioSignerById(organizationId: string, id: string) {
-  return oficiosDb.oficioSigner.findFirst({
+  return prisma.oficioSigner.findFirst({
     where: { id, organizationId },
   });
 }
@@ -59,7 +59,7 @@ export async function updateOficioSigner(
   id: string,
   data: { name: string; positionTitle: string; dependency: string | null; isActive: boolean },
 ) {
-  return oficiosDb.oficioSigner.update({
+  return prisma.oficioSigner.update({
     where: { id },
     data,
   });

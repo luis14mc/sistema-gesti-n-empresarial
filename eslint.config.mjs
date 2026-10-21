@@ -58,6 +58,17 @@ const eslintConfig = defineConfig([
       }],
     },
   },
+  {
+    files: ['src/modules/*/presentation/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': ['error', {
+        paths: [
+          { name: '@/lib/prisma', message: PRISMA_PRESENTATION_MESSAGE },
+          { name: '@prisma/client', message: PRISMA_PRESENTATION_MESSAGE, allowTypeImports: true },
+        ],
+      }],
+    },
+  },
   // Baseline legacy violators (ADR 003 phase 0): exact paths so dynamic segments are not glob classes.
   {
     files: PRISMA_PRESENTATION_BASELINE_FILES,
