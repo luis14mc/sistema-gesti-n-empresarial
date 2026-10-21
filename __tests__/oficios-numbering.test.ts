@@ -10,7 +10,7 @@ import {
   OFICIO_SCOPE_PATHS,
   validateNomenclaturePattern,
   applyNomenclaturePattern,
-} from '../src/lib/oficios-numbering';
+} from '@/modules/oficios/domain/oficios-numbering';
 
 describe('Oficios numbering', () => {
   it('allocates the next number atomically from OficioNumberingConfig', async () => {

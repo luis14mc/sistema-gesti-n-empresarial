@@ -6,7 +6,7 @@ import {
   OFICIO_EDITABLE_STATUSES,
   isValidOficioStatusTransition,
   getNextOficioStatuses,
-} from '../src/lib/oficios-status-transitions';
+} from '@/modules/oficios/domain/oficios-status-transitions';
 
 describe('S4 Oficios — regresión de fixes críticos y altos', () => {
   describe('C-7 storageKey usar stored.key (no filename)', () => {

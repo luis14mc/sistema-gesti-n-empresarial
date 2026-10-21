@@ -14,7 +14,7 @@ import {
 } from '@/modules/equipment/infrastructure/equipment-repository';
 import { mapEquipmentResponse } from '@/modules/equipment/presentation/equipment-mapper';
 import { equipmentListQuerySchema } from '@/modules/equipment/presentation/schemas/equipment-queries';
-import { createEquipmentRecord } from '@/modules/equipment/import-export/equipment-create';
+import { createEquipmentRecord } from '@/modules/equipment/infrastructure/equipment-create';
 import { buildEquipmentExport } from '@/modules/equipment/import-export/equipment-export';
 import type { EquipmentInput } from '@/modules/equipment/import-export/schemas';
 import type { EquipmentStatus } from '@prisma/client';

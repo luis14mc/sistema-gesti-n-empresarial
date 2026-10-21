@@ -11,7 +11,8 @@ import {
   summarizeSeats,
 } from '@/modules/software-licenses/domain/seats';
 import { can, organizationRole } from '@/platform/security/authorization/permissions';
-import { canAccessRoute, hasModuleAccess } from '@/lib/permissions';
+import { hasModuleAccess } from '@/platform/security/session-module-access';
+import { canAccessRoute } from '@/platform/security/session-route-navigation';
 
 const today = new Date('2026-10-01T00:00:00.000Z');
 

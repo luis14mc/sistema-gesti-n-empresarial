@@ -1,5 +1,19 @@
 import { Prisma } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
+import {
+  employeeAggregate,
+  employeeCount,
+  employeeFindFirst,
+  employeeFindMany,
+  employeeUpdate,
+  payslipAggregate,
+  payslipCount,
+  payslipFindFirst,
+  payslipFindMany,
+  payslipFindUnique,
+  payslipUpdate,
+  payslipUpdateMany,
+  payslipUpsert,
+} from '@/modules/payroll/infrastructure/payroll-records';
 import { calculatePayslip, periodFromPayMonth } from '@/modules/payroll/domain';
 import { PayrollDomainError } from '@/modules/payroll/domain/errors';
 import { loadPayrollSettings } from '@/modules/payroll/application/settings-loader';
@@ -80,7 +94,7 @@ async function loadExistingPayslipOtro(
   year: number,
   month: number,
 ): Promise<ExistingPayslipOtro | null> {
-  const row = await prisma.payslip.findUnique({
+  const row = await payslipFindUnique({
     where: { organizationId_employeeId_year_month: { organizationId, employeeId, year, month } },
     select: { otro: true, otroConcepto: true },
   });
@@ -116,7 +130,7 @@ function toPayslipCalcInput(input: ReturnType<typeof employeeToInput>) {
 }
 
 async function getPayrollEmployee(organizationId: string, employeeId: string): Promise<PayrollEmployeeRow> {
-  const employee = await prisma.employee.findFirst({
+  const employee = await employeeFindFirst({
     where: { id: employeeId, organizationId },
     select: {
       id: true,
@@ -195,7 +209,7 @@ export async function listPayrollEmployees(
   }
 
   const [employees, total, statsAgg] = await Promise.all([
-    prisma.employee.findMany({
+    employeeFindMany({
       where,
       skip,
       take: pageSize,
@@ -215,8 +229,8 @@ export async function listPayrollEmployees(
         position: { select: { id: true, name: true } },
       },
     }),
-    prisma.employee.count({ where }),
-    prisma.employee.aggregate({
+    employeeCount({ where }),
+    employeeAggregate({
       where: statsWhere,
       _count: { _all: true },
       _sum: { monthlySalary: true },
@@ -275,7 +289,7 @@ export async function patchPayrollEmployee(
   },
 ) {
   await getPayrollEmployee(organizationId, employeeId);
-  const updated = await prisma.employee.update({
+  const updated = await employeeUpdate({
     where: { id: employeeId },
     data: {
       ...(data.monthlySalary !== undefined
@@ -386,7 +400,7 @@ export async function generatePayslip(
     });
   }
 
-  const payslip = await prisma.payslip.upsert({
+  const payslip = await payslipUpsert({
     where: {
       organizationId_employeeId_year_month: { organizationId, employeeId, year, month },
     },
@@ -437,7 +451,7 @@ export async function resolveBatchEmployeeIds(
   employeeIds?: string[],
 ): Promise<string[]> {
   if (employeeIds?.length) return employeeIds;
-  const rows = await prisma.employee.findMany({
+  const rows = await employeeFindMany({
     where: { organizationId, isActive: true, payrollEnabled: true },
     select: { id: true },
     orderBy: { fullName: 'asc' },
@@ -498,7 +512,7 @@ export async function batchGeneratePayslips(
         employeeIds: succeededIds,
         requestId: options?.requestId,
       });
-      const failedPayslips = await prisma.payslip.findMany({
+      const failedPayslips = await payslipFindMany({
         where: {
           organizationId,
           year,
@@ -518,7 +532,7 @@ export async function batchGeneratePayslips(
         }
       }
       if (deliveryMode === 'email') {
-        await prisma.payslip.updateMany({
+        await payslipUpdateMany({
           where: {
             organizationId,
             year,
@@ -543,7 +557,7 @@ export async function batchGeneratePayslips(
 }
 
 export async function getNextPayrollEmployeeCode(organizationId: string): Promise<string> {
-  const row = await prisma.employee.findFirst({
+  const row = await employeeFindFirst({
     where: { organizationId, employeeCode: { startsWith: 'CNI', mode: 'insensitive' } },
     orderBy: { employeeCode: 'desc' },
     select: { employeeCode: true },
@@ -637,7 +651,7 @@ export async function listPayslips(
   const where = buildPayslipListWhere(organizationId, filters);
 
   const [items, total, aggregate] = await Promise.all([
-    prisma.payslip.findMany({
+    payslipFindMany({
       where,
       skip,
       take: pageSize,
@@ -653,8 +667,8 @@ export async function listPayslips(
         },
       },
     }),
-    prisma.payslip.count({ where }),
-    prisma.payslip.aggregate({
+    payslipCount({ where }),
+    payslipAggregate({
       where,
       _sum: { neto: true, totalDeducciones: true },
     }),
@@ -681,7 +695,7 @@ export async function exportPayslipsAuditPdf(
   filters: { search?: string; dateFrom?: string; dateTo?: string },
 ) {
   const where = buildPayslipListWhere(organizationId, filters);
-  const items = await prisma.payslip.findMany({
+  const items = await payslipFindMany({
     where,
     orderBy: [{ generatedAt: 'desc' }],
     take: 5000,
@@ -734,7 +748,7 @@ export async function exportPayslipsAuditPdf(
 }
 
 export async function getPayslipPdfBuffer(organizationId: string, payslipId: string) {
-  const payslip = await prisma.payslip.findFirst({
+  const payslip = await payslipFindFirst({
     where: { id: payslipId, organizationId },
     include: {
       employee: {
@@ -782,7 +796,7 @@ export async function getPayslipPdfBuffer(organizationId: string, payslipId: str
       && amounts.salarioPeriodo !== Number(payslip.employee.monthlySalary.toString()),
     ...amounts,
   });
-  await prisma.payslip.update({ where: { id: payslip.id }, data: { pdfStorageKey: key } });
+  await payslipUpdate({ where: { id: payslip.id }, data: { pdfStorageKey: key } });
   const object = await getStorage().get(key);
   if (!object) throw new Error('PAYSLIP_NOT_FOUND');
   return { buffer: object.buffer, filename: `${payslip.employee.fullName}-planilla.pdf` };
@@ -848,7 +862,7 @@ function serializePayslip(
 }
 
 export async function countActivePayrollEmployees(organizationId: string): Promise<number> {
-  return prisma.employee.count({
+  return employeeCount({
     where: { organizationId, isActive: true, payrollEnabled: true },
   });
 }

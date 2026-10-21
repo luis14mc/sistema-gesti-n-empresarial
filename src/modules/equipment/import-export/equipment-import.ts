@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
-import { createEquipmentRecord } from './equipment-create';
+import { findEquipmentCodeConflicts } from '@/modules/equipment/infrastructure/equipment-repository';
+import { createEquipmentRecord } from '@/modules/equipment/infrastructure/equipment-create';
 import { parseEquipmentWorkbook } from './equipment-excel';
 import type { EquipmentImportError, EquipmentImportResult } from './types';
 
@@ -14,16 +14,7 @@ export async function importEquipmentWorkbook(input: {
   const errors: EquipmentImportError[] = [...parsed.errors];
   const codes = parsed.rows.flatMap((row) => row.inventoryCode ? [row.inventoryCode] : []);
   const serials = parsed.rows.flatMap((row) => row.serialNumber ? [row.serialNumber] : []);
-  const existing = codes.length || serials.length ? await prisma.equipment.findMany({
-    where: {
-      organizationId: input.organizationId,
-      OR: [
-        ...(codes.length ? [{ inventoryCode: { in: codes, mode: 'insensitive' as const } }] : []),
-        ...(serials.length ? [{ serialNumber: { in: serials, mode: 'insensitive' as const } }] : []),
-      ],
-    },
-    select: { inventoryCode: true, serialNumber: true },
-  }) : [];
+  const existing = codes.length || serials.length ? await findEquipmentCodeConflicts(input.organizationId, codes, serials) : [];
   const existingCodes = new Set(existing.map((item) => item.inventoryCode.toUpperCase()));
   const existingSerials = new Set(existing.flatMap((item) => item.serialNumber ? [item.serialNumber.toUpperCase()] : []));
 

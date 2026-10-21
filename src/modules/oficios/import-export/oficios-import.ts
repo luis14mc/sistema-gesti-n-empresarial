@@ -1,4 +1,3 @@
-import type { Prisma, PrismaClient } from '@prisma/client';
 import {
   applyNomenclaturePattern,
   numberingDependencyYearKey,
@@ -7,9 +6,22 @@ import {
   type OficioDependency,
 } from '@/modules/oficios/domain/oficios-numbering';
 import { oficioImportRowSchema } from './schemas';
-import { prisma } from '@/lib/prisma';
 import { defaultConfigSeed } from '@/modules/oficios/infrastructure/numbering';
-import { oficioTenantScope } from '@/modules/oficios/infrastructure/tenant-scope';
+import {
+  createImportBatch,
+  createImportBatchItem,
+  createNumberingConfig,
+  findActiveEmployeesByRefs,
+  findLiveOficiosByNumbers,
+  findOficioModifiedAfter,
+  findUndoableBatch,
+  finishImportBatch,
+  loadNumberingConfigs,
+  runImportChunk,
+  runUndoImportTransaction,
+  updateNumberingConfigSequence,
+  type ImportNumberingConfig,
+} from '@/modules/oficios/infrastructure/import-store';
 import { parseOficioImportWorkbook } from './oficios-excel';
 import type {
   OficioImportDuplicatePolicy,
@@ -19,19 +31,13 @@ import type {
   OficioImportRowPreview,
 } from './types';
 import { OFICIO_IMPORT_CHUNK_SIZE } from './types';
-import {
-  employeeBelongsToOrganization,
-  isLikelyRecordId,
-} from '@/platform/import/organization-fk';
-
-type Db = PrismaClient | Prisma.TransactionClient;
+import { isLikelyRecordId } from '@/platform/import/organization-fk';
 
 function yearFromOficio(row: Pick<OficioImportParsedRow, 'sequenceYear'>): number {
   return row.sequenceYear;
 }
 
 async function resolveResponsibleEmployees(
-  db: Db,
   organizationId: string,
   refs: string[],
 ): Promise<Map<string, string>> {
@@ -41,22 +47,7 @@ async function resolveResponsibleEmployees(
   const idRefs = unique.filter(isLikelyRecordId);
   const lookupRefs = unique.filter((ref) => !isLikelyRecordId(ref));
 
-  const employees = await db.employee.findMany({
-    where: {
-      organizationId,
-      isActive: true,
-      OR: [
-        ...(lookupRefs.length > 0
-          ? [
-              { email: { in: lookupRefs, mode: 'insensitive' as const } },
-              { employeeCode: { in: lookupRefs, mode: 'insensitive' as const } },
-            ]
-          : []),
-        ...(idRefs.length > 0 ? [{ id: { in: idRefs } }] : []),
-      ],
-    },
-    select: { id: true, email: true, employeeCode: true },
-  });
+  const employees = await findActiveEmployeesByRefs(organizationId, lookupRefs, idRefs);
 
   const map = new Map<string, string>();
   for (const employee of employees) {
@@ -70,7 +61,6 @@ async function resolveResponsibleEmployees(
 }
 
 async function findExistingDuplicates(
-  db: Db,
   organizationId: string,
   rows: OficioImportParsedRow[],
 ): Promise<Map<number, { id: string; number: string }>> {
@@ -85,14 +75,7 @@ async function findExistingDuplicates(
   const numbers = [...new Set(rows.map((row) => row.number.trim()))];
   if (numbers.length === 0) return new Map();
 
-  const existing = await db.oficio.findMany({
-    where: {
-      ...oficioTenantScope(organizationId),
-      archivedAt: null,
-      number: { in: numbers, mode: 'insensitive' },
-    },
-    select: { id: true, number: true, type: true, sequenceYear: true, oficioDate: true },
-  });
+  const existing = await findLiveOficiosByNumbers(organizationId, numbers);
 
   const duplicateByRow = new Map<number, { id: string; number: string }>();
   for (const row of rows) {
@@ -108,15 +91,9 @@ async function findExistingDuplicates(
   return duplicateByRow;
 }
 
-async function loadNumberingConfigs(db: Db, organizationId: string) {
-  return db.oficioNumberingConfig.findMany({
-    where: { organizationId, isActive: true },
-  });
-}
-
 function buildNumberingSummaries(
   rows: OficioImportParsedRow[],
-  configs: Awaited<ReturnType<typeof loadNumberingConfigs>>,
+  configs: ImportNumberingConfig[],
 ): OficioImportNumberingSummary[] {
   const grouped = new Map<string, { dependency: OficioDependency; year: number; sequences: number[]; warnings: string[] }>();
 
@@ -205,9 +182,9 @@ export async function previewOficioImportWorkbook(input: {
   const responsibleRefs = parsed.rows
     .map((row) => row.responsibleRef?.trim())
     .filter((value): value is string => Boolean(value));
-  const employeeMap = await resolveResponsibleEmployees(prisma, input.organizationId, responsibleRefs);
-  const duplicates = await findExistingDuplicates(prisma, input.organizationId, parsed.rows);
-  const configs = await loadNumberingConfigs(prisma, input.organizationId);
+  const employeeMap = await resolveResponsibleEmployees(input.organizationId, responsibleRefs);
+  const duplicates = await findExistingDuplicates(input.organizationId, parsed.rows);
+  const configs = await loadNumberingConfigs(input.organizationId);
 
   const validRows: OficioImportParsedRow[] = [];
   const previews: OficioImportRowPreview[] = [];
@@ -315,7 +292,7 @@ export async function commitOficioImportWorkbook(input: {
     }
   }
 
-  const configs = await loadNumberingConfigs(prisma, input.organizationId);
+  const configs = await loadNumberingConfigs(input.organizationId);
   const sequenceSnapshot: Record<string, { lastGeneratedSequence: number; configId?: string }> = {};
   for (const summary of preview.numbering) {
     const config = configs.find((item) => item.dependency === summary.dependency && item.year === summary.year);
@@ -326,8 +303,7 @@ export async function commitOficioImportWorkbook(input: {
   }
 
   const configsCreated: string[] = [];
-  const batch = await prisma.oficioImportBatch.create({
-    data: {
+  const batch = await createImportBatch({
       organizationId: input.organizationId,
       source: 'HISTORICAL_IMPORT',
       status: 'PROCESSING',
@@ -336,7 +312,6 @@ export async function commitOficioImportWorkbook(input: {
       notes: input.notes,
       sequenceSnapshot,
       performedById: input.userId,
-    },
   });
 
   let imported = 0;
@@ -347,14 +322,12 @@ export async function commitOficioImportWorkbook(input: {
     for (const previewRow of preview.rows) {
       if (previewRow.status !== 'duplicate') continue;
       skipped += 1;
-      await prisma.oficioImportBatchItem.create({
-        data: {
+      await createImportBatchItem({
           batchId: batch.id,
           rowIndex: previewRow.row,
           status: 'SKIPPED',
           number: previewRow.number ?? null,
           errorMessage: 'Duplicado omitido.',
-        },
       });
     }
   }
@@ -370,8 +343,7 @@ export async function commitOficioImportWorkbook(input: {
     const validationError = validateParsedRowForCommit(candidate);
     if (validationError) {
       errors += 1;
-      await prisma.oficioImportBatchItem.create({
-        data: {
+      await createImportBatchItem({
           batchId: batch.id,
           rowIndex: candidate.row,
           status: 'ERROR',
@@ -379,7 +351,6 @@ export async function commitOficioImportWorkbook(input: {
           institution: candidate.institution ?? null,
           oficioDate: candidate.oficioDate,
           errorMessage: validationError,
-        },
       });
       continue;
     }
@@ -388,14 +359,13 @@ export async function commitOficioImportWorkbook(input: {
 
   for (let offset = 0; offset < importableParsed.length; offset += OFICIO_IMPORT_CHUNK_SIZE) {
     const chunk = importableParsed.slice(offset, offset + OFICIO_IMPORT_CHUNK_SIZE);
-    await prisma.$transaction(async (tx) => {
+    await runImportChunk(async (store) => {
       for (const row of chunk) {
         const sp = savepointName(row.row);
-        await tx.$executeRawUnsafe(`SAVEPOINT ${sp}`);
+        await store.savepoint(sp);
         try {
           if (row.responsibleEmployeeId) {
-            const inOrg = await employeeBelongsToOrganization(
-              tx,
+            const inOrg = await store.employeeBelongsToOrganization(
               row.responsibleEmployeeId,
               input.organizationId,
             );
@@ -403,8 +373,7 @@ export async function commitOficioImportWorkbook(input: {
               throw new Error('EMPLOYEE_OUT_OF_ORGANIZATION');
             }
           }
-          const oficio = await tx.oficio.create({
-            data: {
+          const oficio = await store.createOficio({
               organizationId: input.organizationId,
               number: row.number.trim(),
               type: row.type,
@@ -437,11 +406,9 @@ export async function commitOficioImportWorkbook(input: {
                   performedById: input.userId,
                 },
               },
-            },
           });
 
-          await tx.oficioImportBatchItem.create({
-            data: {
+          await store.createBatchItem({
               batchId: batch.id,
               rowIndex: row.row,
               status: 'IMPORTED',
@@ -449,20 +416,18 @@ export async function commitOficioImportWorkbook(input: {
               institution: row.institution ?? null,
               oficioDate: row.oficioDate,
               oficioId: oficio.id,
-            },
           });
-          await tx.$executeRawUnsafe(`RELEASE SAVEPOINT ${sp}`);
+          await store.releaseSavepoint(sp);
           imported += 1;
         } catch (error) {
-          await tx.$executeRawUnsafe(`ROLLBACK TO SAVEPOINT ${sp}`);
+          await store.rollbackToSavepoint(sp);
           errors += 1;
           const message = error instanceof Error && error.message === 'EMPLOYEE_OUT_OF_ORGANIZATION'
             ? 'El responsable no pertenece a esta organización.'
             : error instanceof Error
               ? error.message.slice(0, 500)
               : 'No se pudo crear el oficio.';
-          await tx.oficioImportBatchItem.create({
-            data: {
+          await store.createBatchItem({
               batchId: batch.id,
               rowIndex: row.row,
               status: 'ERROR',
@@ -470,11 +435,10 @@ export async function commitOficioImportWorkbook(input: {
               institution: row.institution ?? null,
               oficioDate: row.oficioDate,
               errorMessage: message,
-            },
           });
         }
       }
-    }, { timeout: 120_000 });
+    });
   }
 
   const numberingApplied: OficioImportNumberingSummary[] = [];
@@ -483,8 +447,7 @@ export async function commitOficioImportWorkbook(input: {
     let config = configs.find((item) => item.dependency === summary.dependency && item.year === summary.year);
     if (!config) {
       const seed = defaultConfigSeed(summary.dependency as OficioDependency, summary.year);
-      config = await prisma.oficioNumberingConfig.create({
-        data: {
+      config = await createNumberingConfig({
           organizationId: input.organizationId,
           dependency: seed.dependency,
           year: seed.year,
@@ -495,14 +458,10 @@ export async function commitOficioImportWorkbook(input: {
           isActive: true,
           createdById: input.userId,
           notes: 'Creada automáticamente durante importación histórica.',
-        },
       });
       configsCreated.push(`${summary.dependency}-${summary.year}`);
     } else {
-      await prisma.oficioNumberingConfig.update({
-        where: { id: config.id },
-        data: { lastGeneratedSequence: confirmed, updatedById: input.userId },
-      });
+      await updateNumberingConfigSequence(config.id, confirmed, input.userId);
     }
     numberingApplied.push({
       ...summary,
@@ -519,15 +478,12 @@ export async function commitOficioImportWorkbook(input: {
     });
   }
 
-  await prisma.oficioImportBatch.update({
-    where: { id: batch.id },
-    data: {
+  await finishImportBatch(batch.id, {
       status: imported > 0 ? 'COMPLETED' : 'FAILED',
       imported,
       skipped,
       errors,
       finishedAt: new Date(),
-    },
   });
 
   return {
@@ -545,57 +501,34 @@ export async function undoOficioImportBatch(input: {
   batchId: string;
   userId: string;
 }): Promise<{ archivedOficios: number }> {
-  const batch = await prisma.oficioImportBatch.findFirst({
-    where: { id: input.batchId, organizationId: input.organizationId, archivedAt: null },
-    include: {
-      items: { where: { status: 'IMPORTED', oficioId: { not: null } }, select: { oficioId: true } },
-    },
-  });
+  const batch = await findUndoableBatch(input.organizationId, input.batchId);
   if (!batch) throw new Error('BATCH_NOT_FOUND');
   if (!batch.finishedAt) throw new Error('BATCH_NOT_FINISHED');
 
   const oficioIds = batch.items.map((item) => item.oficioId!).filter(Boolean);
   if (oficioIds.length === 0) throw new Error('BATCH_EMPTY');
 
-  const modified = await prisma.oficio.findFirst({
-    where: {
-      id: { in: oficioIds },
-      updatedAt: { gt: batch.finishedAt },
-    },
-    select: { id: true },
-  });
+  const modified = await findOficioModifiedAfter(oficioIds, batch.finishedAt);
   if (modified) throw new Error('BATCH_MODIFIED');
 
   const snapshot = (batch.sequenceSnapshot ?? {}) as Record<string, { lastGeneratedSequence: number; configId?: string }>;
 
-  await prisma.$transaction(async (tx) => {
-    await tx.oficio.updateMany({
-      where: { id: { in: oficioIds }, organizationId: input.organizationId },
-      data: { archivedAt: new Date(), updatedById: input.userId },
-    });
+  await runUndoImportTransaction(async (store) => {
+    await store.archiveOficios(oficioIds, input.organizationId, input.userId);
 
     for (const [key, value] of Object.entries(snapshot)) {
       if (value.configId) {
-        await tx.oficioNumberingConfig.update({
-          where: { id: value.configId },
-          data: { lastGeneratedSequence: value.lastGeneratedSequence, updatedById: input.userId },
-        });
+        await store.restoreConfigSequence(value.configId, value.lastGeneratedSequence, input.userId);
       } else {
         const lastDash = key.lastIndexOf('-');
         const dependency = key.slice(0, lastDash);
         const year = Number.parseInt(key.slice(lastDash + 1), 10);
         if (!dependency || Number.isNaN(year)) continue;
-        await tx.oficioNumberingConfig.updateMany({
-          where: { organizationId: input.organizationId, dependency, year },
-          data: { lastGeneratedSequence: value.lastGeneratedSequence, updatedById: input.userId },
-        });
+        await store.restoreConfigSequenceByKey(input.organizationId, dependency, year, value.lastGeneratedSequence, input.userId);
       }
     }
 
-    await tx.oficioImportBatch.update({
-      where: { id: batch.id },
-      data: { archivedAt: new Date(), status: 'FAILED', notes: 'Lote deshecho por el usuario.' },
-    });
+    await store.archiveBatch(batch.id);
   });
 
   return { archivedOficios: oficioIds.length };

@@ -14,7 +14,7 @@ import {
   postLoginPath,
   sessionRoleMatchesAllowlist,
 } from '@/platform/security/authorization/roles';
-import { hasModuleAccess } from '@/lib/permissions';
+import { hasModuleAccess } from '@/platform/security/session-module-access';
 
 const ADMIN_SAMPLES: Permission[] = [
   'equipment.create',

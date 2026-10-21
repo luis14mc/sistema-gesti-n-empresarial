@@ -1,4 +1,13 @@
-import { prisma } from '@/lib/prisma';
+import {
+  countIsrBrackets,
+  createIsrBrackets,
+  createPayrollSettings,
+  findPayrollSettings,
+  findPayrollSettingsOrThrow,
+  listIsrBrackets,
+  replaceIsrBrackets,
+  updatePayrollSettings,
+} from '@/modules/payroll/infrastructure/payroll-settings-repository';
 import {
   DEFAULT_IHSS_SETTINGS,
   DEFAULT_ISR_SETTINGS,
@@ -82,11 +91,8 @@ export async function loadPayrollSettings(
   year: number = PAYROLL_YEAR,
 ): Promise<PayrollSettings> {
   const [settingsRow, bracketRows] = await Promise.all([
-    prisma.payrollSettings.findUnique({ where: { organizationId } }),
-    prisma.payrollIsrBracket.findMany({
-      where: { organizationId, year },
-      orderBy: { order: 'asc' },
-    }),
+    findPayrollSettings(organizationId),
+    listIsrBrackets(organizationId, year),
   ]);
 
   return payrollSettingsFromDatabase(settingsRow, bracketRows);
@@ -94,7 +100,7 @@ export async function loadPayrollSettings(
 
 export async function getPayrollSettingsRecord(organizationId: string) {
   await ensureDefaultPayrollSettings(organizationId);
-  const row = await prisma.payrollSettings.findUniqueOrThrow({ where: { organizationId } });
+  const row = await findPayrollSettingsOrThrow(organizationId);
   return {
     medicalExpensesAnnual: Number(row.medicalExpensesAnnual.toString()),
     ivmDeductibleMonthly: Number(row.ivmDeductibleMonthly.toString()),
@@ -117,12 +123,9 @@ export async function updatePayrollSettingsRecord(
   updatedById?: string,
 ) {
   await ensureDefaultPayrollSettings(organizationId, updatedById);
-  const row = await prisma.payrollSettings.update({
-    where: { organizationId },
-    data: {
-      ...data,
-      updatedById,
-    },
+  const row = await updatePayrollSettings(organizationId, {
+    ...data,
+    updatedById,
   });
   return {
     medicalExpensesAnnual: Number(row.medicalExpensesAnnual.toString()),
@@ -136,10 +139,7 @@ export async function updatePayrollSettingsRecord(
 
 export async function listIsrBracketRecords(organizationId: string, year: number) {
   await ensureDefaultPayrollSettings(organizationId);
-  const rows = await prisma.payrollIsrBracket.findMany({
-    where: { organizationId, year },
-    orderBy: { order: 'asc' },
-  });
+  const rows = await listIsrBrackets(organizationId, year);
   if (rows.length === 0) {
     return DEFAULT_ISR_SETTINGS.brackets.map((b, index) => ({
       order: index + 1,
@@ -161,27 +161,25 @@ export async function replaceIsrBracketRecords(
   brackets: Array<{ order: number; rate: number; toAnnual: number }>,
 ) {
   assertIsrRatesArePercentUnits(brackets.map((b) => b.rate));
-  await prisma.$transaction([
-    prisma.payrollIsrBracket.deleteMany({ where: { organizationId, year } }),
-    prisma.payrollIsrBracket.createMany({
-      data: brackets.map((b) => ({
-        organizationId,
-        year,
-        order: b.order,
-        rate: b.rate,
-        toAnnual: b.toAnnual,
-      })),
-    }),
-  ]);
+  await replaceIsrBrackets(
+    organizationId,
+    year,
+    brackets.map((b) => ({
+      organizationId,
+      year,
+      order: b.order,
+      rate: b.rate,
+      toAnnual: b.toAnnual,
+    })),
+  );
   return listIsrBracketRecords(organizationId, year);
 }
 
 export async function ensureDefaultPayrollSettings(organizationId: string, updatedById?: string): Promise<void> {
-  const existing = await prisma.payrollSettings.findUnique({ where: { organizationId } });
+  const existing = await findPayrollSettings(organizationId);
   if (existing) return;
 
-  await prisma.payrollSettings.create({
-    data: {
+  await createPayrollSettings({
       organizationId,
       medicalExpensesAnnual: DEFAULT_MEDICAL_EXPENSES_ANNUAL,
       ivmDeductibleMonthly: DEFAULT_IVM_DEDUCTIBLE_MONTHLY,
@@ -189,21 +187,18 @@ export async function ensureDefaultPayrollSettings(organizationId: string, updat
       ihssIvmRate: DEFAULT_IHSS_SETTINGS.ivmRate,
       ihssCeilingMonthly: DEFAULT_IHSS_SETTINGS.ceilingMonthly,
       updatedById,
-    },
   });
 
-  const bracketCount = await prisma.payrollIsrBracket.count({
-    where: { organizationId, year: PAYROLL_YEAR },
-  });
+  const bracketCount = await countIsrBrackets(organizationId, PAYROLL_YEAR);
   if (bracketCount > 0) return;
 
-  await prisma.payrollIsrBracket.createMany({
-    data: DEFAULT_ISR_SETTINGS.brackets.map((b, index) => ({
+  await createIsrBrackets(
+    DEFAULT_ISR_SETTINGS.brackets.map((b, index) => ({
       organizationId,
       year: PAYROLL_YEAR,
       order: index + 1,
       rate: b.rate,
       toAnnual: Number.isFinite(b.to) ? b.to : 999_999_999_999,
     })),
-  });
+  );
 }

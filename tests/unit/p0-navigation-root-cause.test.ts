@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canAccess } from '@/lib/permissions';
+import { canAccess } from '@/platform/security/session-module-access';
 
 describe('P0 shared authorization invariants', () => {
   it('keeps the legacy ADMIN functional baseline allowed', () => {

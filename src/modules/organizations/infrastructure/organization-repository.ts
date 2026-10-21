@@ -127,3 +127,16 @@ export function runOrganizationLifecycleTransaction<T>(work: (store: Organizatio
     appendEvent: (event) => appendSecurityEvent(tx, event),
   }));
 }
+
+export async function findPageOrganizationMemberships(userId: string, selectedOrganizationId: string | undefined) {
+  return prisma.organizationMembership.findMany({
+    where: {
+      userId,
+      status: 'ACTIVE',
+      organization: { status: 'ACTIVE' },
+      ...(selectedOrganizationId ? { organizationId: selectedOrganizationId } : {}),
+    },
+    select: { organizationId: true },
+    take: selectedOrganizationId ? 1 : 2,
+  });
+}

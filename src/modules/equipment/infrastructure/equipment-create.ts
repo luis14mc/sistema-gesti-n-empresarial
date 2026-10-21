@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { createAuditRecord } from '@/platform/security/audit/audit-record';
 import { resolveEquipmentCategory, CATEGORY_LABELS } from '@/modules/equipment/domain/equipment-asset-code';
 import { generateAssetCode } from '@/modules/equipment/infrastructure/generate-asset-code';
-import { equipmentInputSchema, type EquipmentInput } from './schemas';
+import { equipmentInputSchema, type EquipmentInput } from '@/modules/equipment/import-export/schemas';
 
 type DatabaseClient = typeof prisma;
 

@@ -44,7 +44,7 @@ describe('equipment Excel route security contracts', () => {
 
   it('uses canonical creation and canonical code generation for blank codes', () => {
     const importer = read('src/modules/equipment/import-export/equipment-import.ts');
-    const creator = read('src/modules/equipment/import-export/equipment-create.ts');
+    const creator = read('src/modules/equipment/infrastructure/equipment-create.ts');
     expect(importer).toMatch(/createEquipmentRecord/);
     expect(creator).toMatch(/data\.inventoryCode \|\| data\.assetCode \|\| await generateAssetCode/);
     expect(creator).toMatch(/generateAssetCode\(context\.organizationId, category, tx\)/);

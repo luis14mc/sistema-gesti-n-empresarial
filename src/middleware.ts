@@ -22,7 +22,7 @@ import {
 
 // ============================================
 // NEXT.JS MIDDLEWARE — Protección de rutas + RBAC + CSP nonce
-// Sprint 3: la matriz de permisos vive en lib/permissions.ts (única fuente
+// Sprint 3: la matriz de permisos vive en platform/security/session-module-access.ts (única fuente
 // de verdad). Este middleware orquesta JWT + redirecciones + CSP nonce.
 // S2: validación JWT estricta en Edge (alg=HS256, exp, iss, aud, claims).
 // ============================================
