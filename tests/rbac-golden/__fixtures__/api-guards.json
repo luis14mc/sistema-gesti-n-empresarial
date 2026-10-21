@@ -1,0 +1,23 @@
+[
+  { "file": "src/app/api/auth/me/route.ts", "method": "GET", "permission": null, "permissionKind": "withAuth" },
+  { "file": "src/app/api/auth/me/route.ts", "method": "PATCH", "permission": null, "permissionKind": "withAuth" },
+  { "file": "src/app/api/auth/password/route.ts", "method": "POST", "permission": null, "permissionKind": "withAuth" },
+  { "file": "src/app/api/auth/refresh-session/route.ts", "method": "POST", "permission": null, "permissionKind": "withAuth" },
+  { "file": "src/app/api/users/route.ts", "method": "GET", "permission": "users.read", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/users/route.ts", "method": "POST", "permission": "users.create", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/users/route.ts", "method": "PATCH", "permission": "users.update", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/users/[id]/route.ts", "method": "GET", "permission": "users.read", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/users/[id]/route.ts", "method": "PATCH", "permission": "users.update", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/users/[id]/route.ts", "method": "DELETE", "permission": "users.deactivate", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/users/[id]/delete-eligibility/route.ts", "method": "GET", "permission": "users.read", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/users/[id]/password/route.ts", "method": "POST", "permission": "users.update", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/users/[id]/permissions/route.ts", "method": "GET", "permission": "users.read", "permissionKind": "requireOrganizationPermission" },
+  { "file": "src/app/api/users/[id]/permissions/route.ts", "method": "PUT", "permission": "users.update", "permissionKind": "requireOrganizationPermission" },
+  { "file": "src/app/api/users/[id]/permissions/route.ts", "method": "DELETE", "permission": "users.update", "permissionKind": "requireOrganizationPermission" },
+  { "file": "src/app/api/roles/route.ts", "method": "GET", "permission": "roles.manage", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/roles/[role]/permissions/route.ts", "method": "GET", "permission": "roles.manage", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/roles/[role]/permissions/route.ts", "method": "PUT", "permission": "roles.manage", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/roles/[role]/settings/route.ts", "method": "GET", "permission": "roles.manage", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/roles/[role]/settings/route.ts", "method": "PUT", "permission": "roles.manage", "permissionKind": "authorizeOrganization" },
+  { "file": "src/app/api/roles/[role]/reset/route.ts", "method": "POST", "permission": "roles.manage", "permissionKind": "authorizeOrganization" }
+]
