@@ -38,16 +38,16 @@ vi.mock('@/lib/prisma', () => ({
   },
 }));
 
-vi.mock('@/lib/compras/pdf-renderer', () => ({ renderHtmlToPdf }));
-vi.mock('@/lib/compras/orden/documents', () => ({
+vi.mock('@/platform/pdf/html-to-pdf', () => ({ renderHtmlToPdf }));
+vi.mock('@/modules/purchases/infrastructure/purchase-order-documents', () => ({
   saveOrdenPdf,
   saveOrdenDocument: vi.fn(),
 }));
-vi.mock('@/lib/compras/orden/document-access', () => ({
+vi.mock('@/modules/purchases/infrastructure/purchase-order-document-access', () => ({
   removeStoredDocument,
   readStoredDocument: vi.fn(),
 }));
-vi.mock('@/lib/compras/orden/historial', () => ({
+vi.mock('@/modules/purchases/infrastructure/purchase-order-history', () => ({
   recordOrdenHistorial,
   recordOrdenAudit,
 }));

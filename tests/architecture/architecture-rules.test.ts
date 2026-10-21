@@ -144,9 +144,16 @@ describe('ADR 003 · Prisma solo en infrastructure (módulos)', () => {
     expect(missing, 'Quita entradas del baseline al migrar').toEqual([]);
   });
 
-  it('infrastructure no reexporta prisma-client ni oficiosDb', () => {
+  it('infrastructure no reexporta el cliente Prisma', () => {
     const modulesRoot = join(ROOT, 'src/modules');
     const violations: string[] = [];
+    const prismaReexportPatterns = [
+      /export\s*\{\s*prisma\b/,
+      /export\s+\*\s+from\s+['"]@\/lib\/prisma['"]/,
+      /export\s+const\s+\w+\s*=\s*prisma\b/,
+      /export\s+default\s+prisma\b/,
+      /export\s+(const|function)\s+oficiosDb\b/,
+    ];
 
     for (const moduleName of readdirSync(modulesRoot)) {
       const infraDir = join(modulesRoot, moduleName, 'infrastructure');
@@ -155,8 +162,11 @@ describe('ADR 003 · Prisma solo en infrastructure (módulos)', () => {
       for (const file of files) {
         const rel = file.replace(`${ROOT}/`, '');
         const content = readFileSync(file, 'utf8');
-        if (/export\s+(const|function)\s+oficiosDb\b/.test(content)) {
-          violations.push(rel);
+        for (const pattern of prismaReexportPatterns) {
+          if (pattern.test(content)) {
+            violations.push(`${rel} (${pattern})`);
+            break;
+          }
         }
         if (/prisma-client/.test(content) && !rel.endsWith('prisma-client.ts')) {
           violations.push(`${rel} (imports prisma-client re-export)`);

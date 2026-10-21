@@ -1,4 +1,4 @@
-import { renderHtmlToPdf } from '@/lib/compras/pdf-renderer';
+import { renderHtmlToPdf } from '@/platform/pdf/html-to-pdf';
 import { getStorage } from '@/lib/storage';
 import { formatLempiras } from '@/modules/payroll/application/mappers';
 import { CNI_PAYSLIP_LOGO_DATA_URI } from './cni-logo';

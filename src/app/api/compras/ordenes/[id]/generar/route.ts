@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { generarCompraOrden, getCompraOrden } from '@/lib/compras/orden/service';
-import { canOrdenAction } from '@/lib/compras/orden/permissions';
+import { generarCompraOrden, getCompraOrden } from '@/modules/purchases/application/purchase-order-use-cases';
+import { canOrdenAction } from '@/modules/purchases/domain/purchase-order-permissions';
 import type { Role } from '@/types';
-import { isMissingBrowserError } from '@/lib/compras/pdf-renderer';
-import { InvalidPurchaseOrderError } from '@/lib/compras/orden/generation-validation';
+import { isMissingBrowserError } from '@/platform/pdf/html-to-pdf';
+import { InvalidPurchaseOrderError } from '@/modules/purchases/domain/generation-validation';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 
 async function postHandler(

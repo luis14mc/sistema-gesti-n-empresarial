@@ -1,0 +1,28 @@
+{
+  "validErrors": [],
+  "invalidErrors": [
+    {
+      "field": "numero",
+      "message": "La orden no tiene correlativo."
+    },
+    {
+      "field": "fechaRequerida",
+      "message": "La fecha requerida no puede ser anterior a la fecha de la orden."
+    },
+    {
+      "field": "proveedorRtn",
+      "message": "El RTN debe tener 14 dígitos."
+    },
+    {
+      "field": "justificacion",
+      "message": "La justificación debe tener al menos 10 caracteres."
+    },
+    {
+      "field": "items",
+      "message": "Debe incluir al menos un ítem."
+    }
+  ],
+  "documentValid": null,
+  "documentInvalidExe": "Extensión de archivo no permitida",
+  "documentEmptyMessage": "El archivo está vacío"
+}

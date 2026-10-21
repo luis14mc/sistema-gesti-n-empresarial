@@ -62,7 +62,7 @@ vi.mock('@/modules/organizations/application/context', async (importOriginal) =>
   };
 });
 
-vi.mock('@/lib/compras/orden/service', () => ({
+vi.mock('@/modules/purchases/application/purchase-order-use-cases', () => ({
   listCompraOrdenes: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 }),
   createCompraOrden: vi.fn(),
 }));

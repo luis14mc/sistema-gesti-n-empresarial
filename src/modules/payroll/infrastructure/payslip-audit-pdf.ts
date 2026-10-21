@@ -1,4 +1,4 @@
-import { renderHtmlToPdf } from '@/lib/compras/pdf-renderer';
+import { renderHtmlToPdf } from '@/platform/pdf/html-to-pdf';
 import { formatLempiras } from '@/modules/payroll/application/mappers';
 
 export type PayslipAuditRow = {

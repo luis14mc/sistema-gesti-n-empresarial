@@ -1,7 +1,2 @@
-export function purchaseOrderScope(organizationId: string) {
-  return { organizationId } as const;
-}
-
-export function purchaseOrderChildScope(organizationId: string) {
-  return { orden: { organizationId } } as const;
-}
+/** @deprecated use @/modules/purchases/infrastructure/purchase-order-tenant */
+export * from '@/modules/purchases/infrastructure/purchase-order-tenant';

@@ -1,0 +1,92 @@
+{
+  "legacyCases": [
+    {
+      "id": "simple",
+      "items": [
+        {
+          "cantidad": 2,
+          "precioUnitario": 10.5
+        }
+      ],
+      "descuento": 0,
+      "expected": {
+        "lineTotals": [
+          21
+        ],
+        "subtotal": 21,
+        "descuento": 0,
+        "impuesto": 3.15,
+        "total": 24.15
+      }
+    },
+    {
+      "id": "decimals",
+      "items": [
+        {
+          "cantidad": 3,
+          "precioUnitario": 7.335
+        }
+      ],
+      "descuento": 1.25,
+      "impuestoTasa": 0.15,
+      "expected": {
+        "lineTotals": [
+          22.01
+        ],
+        "subtotal": 22.01,
+        "descuento": 1.25,
+        "impuesto": 3.11,
+        "total": 23.87
+      }
+    },
+    {
+      "id": "exempt",
+      "items": [
+        {
+          "cantidad": 1,
+          "precioUnitario": 100
+        }
+      ],
+      "descuento": 0,
+      "impuestoTasa": 0,
+      "expected": {
+        "lineTotals": [
+          100
+        ],
+        "subtotal": 100,
+        "descuento": 0,
+        "impuesto": 0,
+        "total": 100
+      }
+    }
+  ],
+  "orderInput": {
+    "items": [
+      {
+        "quantity": "2.5",
+        "unitPrice": "40.00",
+        "taxProfile": "GENERAL_15"
+      },
+      {
+        "quantity": 1,
+        "unitPrice": 100,
+        "taxProfile": "EXEMPT"
+      }
+    ],
+    "discountType": "PORCENTAJE",
+    "discountValue": 10,
+    "taxRate": 15
+  },
+  "orderExpected": {
+    "subtotal": 200,
+    "discount": 20,
+    "taxableBase": 180,
+    "tax": 13.5,
+    "total": 193.5,
+    "exemptBase": 90,
+    "itemTotals": [
+      103.5,
+      90
+    ]
+  }
+}

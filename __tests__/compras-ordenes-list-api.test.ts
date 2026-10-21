@@ -4,7 +4,7 @@ import type { AuthenticatedRequest } from '@/lib/middleware';
 
 const listMock = vi.fn();
 
-vi.mock('@/lib/compras/orden/service', () => ({
+vi.mock('@/modules/purchases/application/purchase-order-use-cases', () => ({
   listCompraOrdenes: (...args: unknown[]) => listMock(...args),
   createCompraOrden: vi.fn(),
 }));
