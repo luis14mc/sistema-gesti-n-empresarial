@@ -1,42 +1,35 @@
 import { describe, expect, it } from 'vitest';
 import {
-  ORGANIZATION_ROLES,
   canWithOverrides,
   organizationRole,
   type OrganizationRole,
   type Permission,
 } from '@/platform/security/authorization/permissions';
 import { buildEffectiveModuleMatrix } from '@/platform/security/module-effective';
+import officialMatrix from './__fixtures__/official-matrix.json';
+
+type OfficialMatrixRow = {
+  role: OrganizationRole;
+  permission: Permission;
+  officialGranted: boolean;
+  locked: boolean;
+};
+
+const matrixRows = officialMatrix as OfficialMatrixRow[];
 
 describe('RBAC golden — permisos efectivos (rol + overrides + role_permissions)', () => {
-  for (const role of ORGANIZATION_ROLES) {
-    it(`${role}: sin overrides coincide con plantilla oficial (muestra equipment.read)`, () => {
-      const perm: Permission = 'equipment.read';
+  it('canWithOverrides alineado con cada fila de official-matrix.json', () => {
+    for (const { role, permission, officialGranted, locked } of matrixRows) {
       const scoped = organizationRole(role);
-      expect(canWithOverrides(scoped, perm, [])).toBe(canWithOverrides(scoped, perm, [], undefined));
-    });
-  }
 
-  it('ALLOW otorga un permiso que el rol no tiene en plantilla (USER + payroll.view)', () => {
-    const scoped = organizationRole('USER');
-    expect(canWithOverrides(scoped, 'payroll.view', [])).toBe(false);
-    expect(
-      canWithOverrides(scoped, 'payroll.view', [{ permission: 'payroll.view', effect: 'ALLOW' }]),
-    ).toBe(true);
-  });
+      expect(canWithOverrides(scoped, permission, [])).toBe(officialGranted);
 
-  it('DENY quita un permiso que el rol sí tiene (IT_MANAGER + equipment.read)', () => {
-    const scoped = organizationRole('IT_MANAGER');
-    expect(canWithOverrides(scoped, 'equipment.read', [])).toBe(true);
-    expect(
-      canWithOverrides(scoped, 'equipment.read', [{ permission: 'equipment.read', effect: 'DENY' }]),
-    ).toBe(false);
-  });
+      const withDeny = canWithOverrides(scoped, permission, [{ permission, effect: 'DENY' }]);
+      expect(withDeny).toBe(locked ? true : false);
 
-  it('DENY sobre permiso BLOQUEADO (OWNER users.read / roles.manage) sigue concedido', () => {
-    const scoped = organizationRole('OWNER');
-    for (const permission of ['users.read', 'roles.manage'] as Permission[]) {
-      expect(canWithOverrides(scoped, permission, [{ permission, effect: 'DENY' }])).toBe(true);
+      expect(
+        canWithOverrides(scoped, permission, [{ permission, effect: 'ALLOW' }]),
+      ).toBe(true);
     }
   });
 
