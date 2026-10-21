@@ -17,44 +17,56 @@ function statusFromPrismaCode(code: string): number {
   }
 }
 
-export function handlePurchaseOrderRouteError(error: unknown, context: string) {
+const INTERNAL_ERROR_MESSAGE = 'Error interno del servidor';
+
+function statusFromError(error: unknown): number {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) return statusFromPrismaCode(error.code);
+  if (error instanceof Prisma.PrismaClientValidationError) return 400;
+  return 500;
+}
+
+export function handlePurchaseOrderRouteError(
+  error: unknown,
+  context: string,
+  requestId: string = crypto.randomUUID(),
+) {
   if (error instanceof PermissionDeniedError) {
     return NextResponse.json({ error: error.message }, { status: 403 });
   }
   if (isOrganizationContextError(error)) {
     return NextResponse.json({ error: error.message }, { status: error.status });
   }
-  console.error(`[${context}]`, error);
+  console.error(`[${context}]`, { requestId, error });
+
+  if (process.env.NODE_ENV !== 'development') {
+    return NextResponse.json(
+      { error: INTERNAL_ERROR_MESSAGE, requestId },
+      { status: statusFromError(error) },
+    );
+  }
 
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
-    const payload = {
-      error: error.message,
-      code: error.code,
-      meta: error.meta ?? null,
-      context,
-    };
     return NextResponse.json(
-      process.env.NODE_ENV === 'development'
-        ? payload
-        : { error: error.message, code: error.code },
+      {
+        error: error.message,
+        code: error.code,
+        meta: error.meta ?? null,
+        context,
+      },
       { status: statusFromPrismaCode(error.code) }
     );
   }
 
   if (error instanceof Prisma.PrismaClientValidationError) {
     return NextResponse.json(
-      process.env.NODE_ENV === 'development'
-        ? { error: error.message, code: 'P_VALIDATION', context }
-        : { error: 'Error de validación en consulta Prisma' },
+      { error: error.message, code: 'P_VALIDATION', context },
       { status: 400 }
     );
   }
 
   const message = error instanceof Error ? error.message : 'Error interno';
   return NextResponse.json(
-    process.env.NODE_ENV === 'development'
-      ? { error: message, context, stack: error instanceof Error ? error.stack : undefined }
-      : { error: message },
+    { error: message, context, stack: error instanceof Error ? error.stack : undefined },
     { status: 500 }
   );
 }
