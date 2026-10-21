@@ -1,0 +1,221 @@
+{
+  "serialized": {
+    "id": "ord-golden-1",
+    "orderNumber": "COM-CNI-2026-00042",
+    "sequenceNumber": 42,
+    "sequenceYear": 2026,
+    "purchaseReference": "REF-2026-001",
+    "requestDate": "2026-03-01T12:00:00.000Z",
+    "requiredDate": "2026-03-15T00:00:00.000Z",
+    "requestedByName": "María Golden",
+    "requesterJobTitle": "Compras",
+    "requesterEmployeeId": null,
+    "createdById": "user-1",
+    "supplierId": null,
+    "supplierName": "Proveedor Golden SA",
+    "supplierRtn": "08019999999999",
+    "supplierPhone": "9999-9999",
+    "purchaseJustification": "Compra de insumos para golden test",
+    "subtotal": 200,
+    "discountType": "PORCENTAJE",
+    "discountValue": 10,
+    "discount": 20,
+    "taxRate": 15,
+    "tax": 13.5,
+    "total": 193.5,
+    "status": "GENERATED",
+    "templateId": null,
+    "templateVersion": 1,
+    "pdfUrl": "/files/orden.pdf",
+    "pdfVersion": 1,
+    "generatedById": "user-1",
+    "generatedAt": "2026-03-01T12:00:00.000Z",
+    "generatedBy": {
+      "id": "user-1",
+      "firstName": "María",
+      "lastName": "Golden"
+    },
+    "generatedByName": "María Golden",
+    "issuedById": null,
+    "issuedAt": null,
+    "issuedBy": null,
+    "issuedByName": null,
+    "createdAt": "2026-03-01T12:00:00.000Z",
+    "updatedAt": "2026-03-01T12:00:00.000Z",
+    "createdBy": {
+      "id": "user-1",
+      "firstName": "María",
+      "lastName": "Golden"
+    },
+    "supplier": null,
+    "items": [
+      {
+        "id": "item-1",
+        "orderId": "ord-golden-1",
+        "itemNumber": 1,
+        "description": "Tóner",
+        "unit": "UNIT",
+        "quantity": 2,
+        "unitPrice": 100,
+        "total": 200,
+        "taxProfile": "GENERAL_15",
+        "taxableBase": 180,
+        "taxAmount": 13.5,
+        "itemTotal": 193.5,
+        "taxLabel": "ISV 15%",
+        "taxes": [
+          {
+            "id": "tax-1",
+            "code": "ISV_15",
+            "name": "ISV 15%",
+            "rate": 15,
+            "taxableBase": 180,
+            "amount": 13.5,
+            "sortOrder": 0
+          }
+        ]
+      }
+    ],
+    "taxSummary": [
+      {
+        "code": "ISV_15",
+        "name": "ISV 15%",
+        "rate": 15,
+        "taxableBase": 180,
+        "amount": 13.5
+      }
+    ],
+    "exemptBase": 0,
+    "usesItemTaxes": true,
+    "documents": [
+      {
+        "id": "doc-1",
+        "orderId": "ord-golden-1",
+        "type": "ORDER_PDF",
+        "name": "pdf",
+        "originalName": "orden.pdf",
+        "mimeType": "application/pdf",
+        "size": 1000,
+        "storageKey": "k",
+        "url": "/files/orden.pdf",
+        "version": 1,
+        "isActive": true,
+        "uploadedAt": "2026-03-01T12:00:00.000Z",
+        "uploadedBy": {
+          "id": "user-1",
+          "firstName": "María",
+          "lastName": "Golden"
+        }
+      }
+    ],
+    "documentos": [
+      {
+        "id": "doc-1",
+        "orderId": "ord-golden-1",
+        "type": "ORDER_PDF",
+        "name": "pdf",
+        "originalName": "orden.pdf",
+        "mimeType": "application/pdf",
+        "size": 1000,
+        "storageKey": "k",
+        "url": "/files/orden.pdf",
+        "version": 1,
+        "isActive": true,
+        "uploadedAt": "2026-03-01T12:00:00.000Z",
+        "uploadedBy": {
+          "id": "user-1",
+          "firstName": "María",
+          "lastName": "Golden"
+        }
+      }
+    ],
+    "numeroOrden": "COM-CNI-2026-00042",
+    "referenciaCompra": "REF-2026-001",
+    "fechaSolicitud": "2026-03-01T12:00:00.000Z",
+    "fechaRequerida": "2026-03-15T00:00:00.000Z",
+    "solicitadoPorNombre": "María Golden",
+    "cargoSolicitante": "Compras",
+    "solicitadoPorId": "user-1",
+    "proveedorId": null,
+    "proveedorNombre": "Proveedor Golden SA",
+    "proveedorRtn": "08019999999999",
+    "proveedorTelefono": "9999-9999",
+    "justificacionCompra": "Compra de insumos para golden test",
+    "tasaImpuesto": 15,
+    "impuesto": 13.5,
+    "descuento": 20,
+    "estado": "GENERATED"
+  },
+  "preview": {
+    "orderNumber": null,
+    "purchaseReference": "REF-PREVIEW",
+    "requestDate": "2026-03-01",
+    "requiredDate": "2026-03-15",
+    "requestedByName": "María Golden",
+    "requesterJobTitle": "Compras",
+    "supplierName": "Proveedor Golden SA",
+    "supplierRtn": "08019999999999",
+    "supplierPhone": "9999-9999",
+    "purchaseJustification": "Preview golden",
+    "subtotal": 100,
+    "discountType": "NINGUNO",
+    "discountValue": 0,
+    "discount": 0,
+    "taxableBase": 100,
+    "taxRate": 15,
+    "tax": 15,
+    "total": 115,
+    "taxSummary": [
+      {
+        "code": "ISV_15",
+        "name": "ISV 15%",
+        "rate": 15,
+        "taxableBase": 100,
+        "amount": 15
+      }
+    ],
+    "exemptBase": 0,
+    "usesItemTaxes": true,
+    "items": [
+      {
+        "itemNumber": 1,
+        "description": "Item A",
+        "unit": "UNIT",
+        "quantity": 2,
+        "unitPrice": 50,
+        "total": 100,
+        "taxableBase": 100,
+        "taxAmount": 15,
+        "itemTotal": 115,
+        "taxLabel": "ISV 15%",
+        "taxProfile": "GENERAL_15",
+        "taxes": [
+          {
+            "code": "ISV_15",
+            "name": "ISV 15%",
+            "rate": 15,
+            "taxableBase": 100,
+            "amount": 15
+          }
+        ]
+      }
+    ],
+    "template": {
+      "name": "Plantilla golden",
+      "institutionName": "CNI",
+      "institutionAddress": "Tegucigalpa",
+      "institutionPhone": "0000",
+      "institutionWebsite": "https://example.com",
+      "logoUrl": "/Logo_CNI.png",
+      "footerNote": "Nota",
+      "signatureBlocks": []
+    },
+    "isDraft": true,
+    "status": "DRAFT",
+    "statusLabel": "Borrador",
+    "generatedByName": null,
+    "generatedAt": null,
+    "issuedByName": null,
+    "issuedAt": null
+  }
+}

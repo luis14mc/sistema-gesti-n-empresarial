@@ -1,0 +1,314 @@
+[
+  {
+    "file": "src/app/api/compras/bandeja/contador/route.ts",
+    "method": "GET",
+    "permission": "purchase-orders.read",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/institucion/logo/route.ts",
+    "method": "POST",
+    "permission": "purchase-orders.update",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/institucion/route.ts",
+    "method": "GET",
+    "permission": "purchase-orders.read",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/institucion/route.ts",
+    "method": "PUT",
+    "permission": "purchase-orders.update",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/centros-costo/route.ts",
+    "method": "GET",
+    "permission": "purchase-orders.read",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/template/route.ts",
+    "method": "GET",
+    "permission": "purchase-orders.read",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/template/route.ts",
+    "method": "PUT",
+    "permission": "purchase-orders.read",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/ordenes/[id]/regenerar-pdf/route.ts",
+    "method": "POST",
+    "permission": "purchase-orders.update",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/ordenes/[id]/emitir/route.ts",
+    "method": "POST",
+    "permission": "purchase-orders.approve",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/ordenes/[id]/anular/route.ts",
+    "method": "POST",
+    "permission": "purchase-orders.cancel",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/ordenes/[id]/documentos/[documentId]/view/route.ts",
+    "method": "GET",
+    "permission": "purchase-orders.download",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/ordenes/[id]/documentos/[documentId]/download/route.ts",
+    "method": "GET",
+    "permission": "purchase-orders.download",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/ordenes/[id]/documentos/[documentId]/route.ts",
+    "method": "DELETE",
+    "permission": "purchase-orders.update",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/ordenes/[id]/documentos/route.ts",
+    "method": "GET",
+    "permission": "purchase-orders.read",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/ordenes/[id]/documentos/route.ts",
+    "method": "POST",
+    "permission": "purchase-orders.read",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/ordenes/[id]/pdf/route.ts",
+    "method": "GET",
+    "permission": "purchase-orders.download",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/ordenes/[id]/route.ts",
+    "method": "GET",
+    "permission": "purchase-orders.read",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/ordenes/[id]/route.ts",
+    "method": "PATCH",
+    "permission": "purchase-orders.update",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/ordenes/[id]/route.ts",
+    "method": "DELETE",
+    "permission": "purchase-orders.update",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/ordenes/[id]/cerrar/route.ts",
+    "method": "POST",
+    "permission": "purchase-orders.update",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/ordenes/[id]/generar/route.ts",
+    "method": "POST",
+    "permission": "purchase-orders.generate",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/ordenes/[id]/historial/route.ts",
+    "method": "GET",
+    "permission": "purchase-orders.read",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/ordenes/route.ts",
+    "method": "GET",
+    "permission": "purchase-orders.read",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/ordenes/route.ts",
+    "method": "POST",
+    "permission": "purchase-orders.create",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/ordenes/preview/route.ts",
+    "method": "POST",
+    "permission": "purchase-orders.read",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/solicitudes/[id]/regenerar-pdf/route.ts",
+    "method": "POST",
+    "permission": null,
+    "permissionKind": "none"
+  },
+  {
+    "file": "src/app/api/compras/solicitudes/[id]/emitir/route.ts",
+    "method": "POST",
+    "permission": null,
+    "permissionKind": "none"
+  },
+  {
+    "file": "src/app/api/compras/solicitudes/[id]/anular/route.ts",
+    "method": "POST",
+    "permission": null,
+    "permissionKind": "none"
+  },
+  {
+    "file": "src/app/api/compras/solicitudes/[id]/generar-orden/route.ts",
+    "method": "POST",
+    "permission": null,
+    "permissionKind": "none"
+  },
+  {
+    "file": "src/app/api/compras/solicitudes/[id]/imprimir/route.ts",
+    "method": "GET",
+    "permission": "N/A",
+    "permissionKind": "deprecated"
+  },
+  {
+    "file": "src/app/api/compras/solicitudes/[id]/route.ts",
+    "method": "GET",
+    "permission": "N/A",
+    "permissionKind": "deprecated"
+  },
+  {
+    "file": "src/app/api/compras/solicitudes/[id]/route.ts",
+    "method": "PATCH",
+    "permission": "N/A",
+    "permissionKind": "deprecated"
+  },
+  {
+    "file": "src/app/api/compras/solicitudes/[id]/route.ts",
+    "method": "DELETE",
+    "permission": "N/A",
+    "permissionKind": "deprecated"
+  },
+  {
+    "file": "src/app/api/compras/solicitudes/[id]/vista-previa/route.ts",
+    "method": "GET",
+    "permission": "N/A",
+    "permissionKind": "deprecated"
+  },
+  {
+    "file": "src/app/api/compras/solicitudes/[id]/cerrar/route.ts",
+    "method": "POST",
+    "permission": null,
+    "permissionKind": "none"
+  },
+  {
+    "file": "src/app/api/compras/solicitudes/[id]/adjuntos/route.ts",
+    "method": "POST",
+    "permission": "N/A",
+    "permissionKind": "deprecated"
+  },
+  {
+    "file": "src/app/api/compras/solicitudes/route.ts",
+    "method": "GET",
+    "permission": "N/A",
+    "permissionKind": "deprecated"
+  },
+  {
+    "file": "src/app/api/compras/solicitudes/route.ts",
+    "method": "POST",
+    "permission": "N/A",
+    "permissionKind": "deprecated"
+  },
+  {
+    "file": "src/app/api/compras/configuracion/plantilla-activa/route.ts",
+    "method": "GET",
+    "permission": "purchase-orders.read",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/reportes/export/route.ts",
+    "method": "GET",
+    "permission": "purchase-orders.download",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/reportes/route.ts",
+    "method": "GET",
+    "permission": "purchase-orders.read",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/proveedores/[id]/route.ts",
+    "method": "PATCH",
+    "permission": "suppliers.update",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/proveedores/[id]/route.ts",
+    "method": "DELETE",
+    "permission": "suppliers.update",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/proveedores/route.ts",
+    "method": "GET",
+    "permission": "suppliers.read",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/proveedores/route.ts",
+    "method": "POST",
+    "permission": "suppliers.create",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/compras/borradores/contador/route.ts",
+    "method": "GET",
+    "permission": "purchase-orders.read",
+    "permissionKind": "authorizeOrganization"
+  },
+  {
+    "file": "src/app/api/purchases/[id]/items/route.ts",
+    "method": "POST",
+    "permission": "N/A",
+    "permissionKind": "deprecated"
+  },
+  {
+    "file": "src/app/api/purchases/[id]/route.ts",
+    "method": "GET",
+    "permission": "N/A",
+    "permissionKind": "deprecated"
+  },
+  {
+    "file": "src/app/api/purchases/[id]/route.ts",
+    "method": "PATCH",
+    "permission": "N/A",
+    "permissionKind": "deprecated"
+  },
+  {
+    "file": "src/app/api/purchases/[id]/route.ts",
+    "method": "DELETE",
+    "permission": "N/A",
+    "permissionKind": "deprecated"
+  },
+  {
+    "file": "src/app/api/purchases/route.ts",
+    "method": "GET",
+    "permission": "N/A",
+    "permissionKind": "deprecated"
+  },
+  {
+    "file": "src/app/api/purchases/route.ts",
+    "method": "POST",
+    "permission": "N/A",
+    "permissionKind": "deprecated"
+  }
+]
