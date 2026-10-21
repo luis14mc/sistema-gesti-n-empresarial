@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { api } from '@/utils/api';
 import { moneyLabel, STATUS_LABEL } from '@/components/software-licenses/labels';
-import { formatPaymentSchedule } from '@/lib/software-licenses/billing';
+import { formatPaymentSchedule } from '@/modules/software-licenses/domain/billing';
 
 type Assignment = { id: string; unassignedAt: string | null; employee: { id: string; fullName: string; isActive: boolean } };
 type Seat = {

@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { SOFTWARE_BILLING_CYCLES, SOFTWARE_CURRENCIES } from './billing';
-import { SEAT_STATUSES, SEAT_TYPES } from './seats';
+import { SOFTWARE_BILLING_CYCLES, SOFTWARE_CURRENCIES } from '@/modules/software-licenses/domain/billing';
+import { SEAT_STATUSES, SEAT_TYPES } from '@/modules/software-licenses/domain/seats';
 
 const money = z.coerce.number().min(0).max(1_000_000_000);
 const day = z.coerce.number().int().min(1).max(31);

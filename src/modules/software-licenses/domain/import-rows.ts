@@ -1,4 +1,4 @@
-import { parsePaymentText } from './billing';
+import { parsePaymentText } from '@/modules/software-licenses/domain/billing';
 
 export type LicenseImportRow = {
   rowNumber: number;

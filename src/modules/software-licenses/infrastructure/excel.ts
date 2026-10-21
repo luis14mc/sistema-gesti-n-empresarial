@@ -1,8 +1,8 @@
 import ExcelJS from 'exceljs';
 import { loadXlsxWorkbook } from '@/platform/excel/load-xlsx';
 import { toXlsx } from '@/platform/reporting/export/xlsx';
-import type { LicenseImportRow } from './import-rows';
-import { formatPaymentSchedule } from './billing';
+import type { LicenseImportRow } from '@/modules/software-licenses/domain/import-rows';
+import { formatPaymentSchedule } from '@/modules/software-licenses/domain/billing';
 
 const HEADERS = ['Software', 'Usuario', 'Correo', '¿Compartida?', 'Estado', 'Fecha de Pago'] as const;
 

@@ -136,7 +136,7 @@ describe('canonical purchase-order export builder', () => {
   };
 
   it('4 & purchase-source. reads CompraOrden (never CompraSolicitud) — source contract', () => {
-    const src = read('src/lib/reportes/purchase-order-summary-export.ts');
+    const src = read('src/modules/reporting/infrastructure/exports/purchase-order-summary-export.ts');
     expect(src).toMatch(/prisma\.compraOrden\.(count|findMany)/);
     expect(src).not.toMatch(/compraSolicitud/);
   });

@@ -1,10 +1,10 @@
 import type { Prisma, PrismaClient, PurchaseOrderStatus } from '@prisma/client';
 import type { ExportColumn, ExportDataset } from '@/platform/reporting/export';
 import { SYNC_EXPORT_ROW_LIMIT } from '@/platform/reporting/export';
-import { civilDateInclusiveFilter } from './date-range';
-import { ReportExportTooLargeError } from './errors';
-import { toDecimalNumber } from './prisma-helpers';
-import type { ReportExportBuildParams } from './types';
+import { civilDateInclusiveFilter } from '@/modules/reporting/domain/date-range';
+import { ReportExportTooLargeError } from '@/modules/reporting/domain/export-errors';
+import { toDecimalNumber } from '@/modules/reporting/infrastructure/exports/prisma-helpers';
+import type { ReportExportBuildParams } from '@/modules/reporting/application/exports/types';
 
 const STATUS_LABEL: Record<PurchaseOrderStatus, string> = {
   DRAFT: 'Borrador',

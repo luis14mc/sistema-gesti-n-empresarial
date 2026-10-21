@@ -8,8 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { createSubscriptionSchema } from '@/lib/software-licenses/schemas';
-import { billingEquivalents, formatPaymentSchedule } from '@/lib/software-licenses/billing';
+import { createSubscriptionSchema } from '@/modules/software-licenses/presentation/schemas';
+import { billingEquivalents, formatPaymentSchedule } from '@/modules/software-licenses/domain/billing';
 import { moneyLabel, STATUS_LABEL } from '@/components/software-licenses/labels';
 import { cn } from '@/lib/utils';
 

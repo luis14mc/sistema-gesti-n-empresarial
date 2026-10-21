@@ -1,9 +1,9 @@
 import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { apiSuccess } from '@/platform/api/response';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
-import { createSeatSchema } from '@/lib/software-licenses/schemas';
-import { createSeat } from '@/lib/software-licenses/service';
-import { licenseFailure } from '@/lib/software-licenses/http';
+import { createSeatSchema } from '@/modules/software-licenses/presentation/schemas';
+import { createSeat } from '@/modules/software-licenses/application/service';
+import { licenseFailure } from '@/modules/software-licenses/presentation/http';
 
 async function postHandler(req: AuthenticatedRequest, { params }: { params: Promise<{ id: string }> }) {
   const requestId = crypto.randomUUID();

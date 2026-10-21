@@ -49,7 +49,7 @@ vi.mock('@/modules/organizations/application/context', async (importOriginal) =>
   };
 });
 
-vi.mock('@/lib/reportes/registry', () => ({
+vi.mock('@/modules/reporting/infrastructure/exports/registry', () => ({
   isExportableReportCode: (code: string) => code === 'PURCHASE_ORDER_SUMMARY',
   REPORT_DATASET_BUILDERS: {
     PURCHASE_ORDER_SUMMARY: vi.fn(async () => ({

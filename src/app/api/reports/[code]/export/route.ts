@@ -1,17 +1,13 @@
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
-import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
-import { createAuditRecord } from '@/platform/security/audit/audit-record';
-import { ReportExportTooLargeError } from '@/lib/reportes/errors';
-import { parseReportExportSearchParams } from '@/lib/reportes/export-query-schema';
-import { isExportableReportCode, REPORT_DATASET_BUILDERS } from '@/lib/reportes/registry';
+import { ReportExportTooLargeError } from '@/modules/reporting/domain/export-errors';
+import { parseReportExportSearchParams } from '@/modules/reporting/presentation/schemas/export-query';
+import { exportReport, isExportableReportCode } from '@/modules/reporting/application/exports/export-report';
 import { getAvailableReportDefinition } from '@/modules/reporting/application/services/report-catalog';
 import type { ReportCode } from '@/modules/reporting/domain/report-types';
-import { reportExecutionRepository } from '@/modules/reporting/infrastructure/repositories/report-execution-repository';
 import {
   isSupportedExportFormat,
-  renderExport,
   SUPPORTED_EXPORT_FORMATS,
 } from '@/platform/reporting/export';
 import { authorizeOrganization, authorizationFailure } from '@/platform/security/authorization/http';
@@ -59,90 +55,27 @@ async function getHandler(req: AuthenticatedRequest, context: RouteContext) {
       );
     }
 
-    const organization = await prisma.organization.findUnique({
-      where: { id: orgContext.organizationId },
-      select: { name: true },
-    });
-
-    const execution = await reportExecutionRepository.create({
+    const artifact = await exportReport({
+      reportCode,
+      reportName: definition.name,
       organizationId: orgContext.organizationId,
       userId: orgContext.userId,
-      reportCode: reportCode as ReportCode,
-      format: query.format.toUpperCase() as 'CSV' | 'XLSX',
-      filters: {
-        from: query.from,
-        to: query.to,
-        timezone: orgContext.timezone,
-        status: query.status ?? null,
-        category: query.category ?? null,
-        type: query.type ?? null,
-      },
+      timezone: orgContext.timezone,
       requestId,
+      startedAt,
+      query,
     });
 
-    try {
-      const builder = REPORT_DATASET_BUILDERS[reportCode];
-      const dataset = await builder({
-        prisma,
-        organizationId: orgContext.organizationId,
-        organizationName: organization?.name,
-        from: query.from,
-        to: query.to,
-        filters: {
-          status: query.status,
-          category: query.category,
-          type: query.type,
-        },
-      });
-
-      const artifact = await renderExport(query.format, dataset);
-      const durationMs = Math.round(performance.now() - startedAt);
-
-      await reportExecutionRepository.complete({
-        id: execution.id,
-        organizationId: orgContext.organizationId,
-        status: 'COMPLETED',
-        rowCount: dataset.rows.length,
-        durationMs,
-      });
-
-      await createAuditRecord({
-        title: `Exportación de reporte ${definition.name}`,
-        description: `Exportó ${dataset.rows.length} filas (${query.format.toUpperCase()}, ${query.from}–${query.to})`,
-        module: 'AUDITORIA',
-        category: 'EXPORT',
-        userId: orgContext.userId,
-        organizationId: orgContext.organizationId,
-        requestId,
-        newData: {
-          reportCode,
-          format: query.format,
-          from: query.from,
-          to: query.to,
-          rows: dataset.rows.length,
-          executionId: execution.id,
-        },
-      });
-
-      return new NextResponse(artifact.body as unknown as BodyInit, {
-        status: 200,
-        headers: {
-          'Content-Type': artifact.contentType,
-          'Content-Disposition': `attachment; filename="${artifact.filename}"`,
-          'Content-Length': String(artifact.body.byteLength),
-          'Cache-Control': 'no-store',
-          'x-request-id': requestId,
-        },
-      });
-    } catch (error) {
-      await reportExecutionRepository.complete({
-        id: execution.id,
-        organizationId: orgContext.organizationId,
-        status: 'FAILED',
-        durationMs: Math.round(performance.now() - startedAt),
-      });
-      throw error;
-    }
+    return new NextResponse(artifact.body as unknown as BodyInit, {
+      status: 200,
+      headers: {
+        'Content-Type': artifact.contentType,
+        'Content-Disposition': `attachment; filename="${artifact.filename}"`,
+        'Content-Length': String(artifact.body.byteLength),
+        'Cache-Control': 'no-store',
+        'x-request-id': requestId,
+      },
+    });
   } catch (error) {
     const denied = authorizationFailure(error, requestId);
     if (denied) return denied;

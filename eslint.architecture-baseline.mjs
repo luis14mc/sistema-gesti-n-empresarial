@@ -4,8 +4,6 @@
 // nueva o si una entrada apunta a un archivo que ya no existe.
 // Generada el 2026-10-21; reducida en fase 1 equipos (56 archivos).
 export const PRISMA_IN_PRESENTATION_BASELINE = [
-  'src/app/api/reports/[code]/export/route.ts',
-  'src/app/dashboard/page.tsx',
 ];
 
 // Excepciones congeladas: application sin Next.js ni Prisma directo (ADR 003 fase 2c).

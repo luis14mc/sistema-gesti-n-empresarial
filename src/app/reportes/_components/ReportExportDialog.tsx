@@ -32,7 +32,7 @@ import {
   reportFilterOptions,
   resolveDatePreset,
   type ReportDatePreset,
-} from '@/lib/reportes/report-ui';
+} from '@/modules/reporting/presentation/report-ui';
 import { downloadReportExport, triggerBrowserDownload } from '@/services/reports.service';
 
 const exportFormSchema = z

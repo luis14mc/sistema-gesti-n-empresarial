@@ -1,7 +1,7 @@
 // Phase HU-02 — report export API + institutional reports UI.
 import { test, expect } from './helpers/fixtures';
 import { login, logout, selectOrganization } from './helpers/auth';
-import { resolveDatePreset } from '@/lib/reportes/report-ui';
+import { resolveDatePreset } from '@/modules/reporting/presentation/report-ui';
 
 test.describe('Reports export API', () => {
   test('procurement can download PURCHASE_ORDER_SUMMARY as CSV', async ({ procurementContext, page }) => {

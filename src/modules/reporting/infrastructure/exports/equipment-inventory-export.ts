@@ -2,8 +2,8 @@ import type { EquipmentCategory, EquipmentStatus, Prisma } from '@prisma/client'
 import type { ExportColumn, ExportDataset } from '@/platform/reporting/export';
 import { SYNC_EXPORT_ROW_LIMIT } from '@/platform/reporting/export';
 import { EQUIPMENT_STATUS_LABELS, type EquipmentStatus as UiEquipmentStatus } from '@/types';
-import { ReportExportTooLargeError } from './errors';
-import type { ReportExportBuildParams } from './types';
+import { ReportExportTooLargeError } from '@/modules/reporting/domain/export-errors';
+import type { ReportExportBuildParams } from '@/modules/reporting/application/exports/types';
 
 const CATEGORY_LABEL: Record<EquipmentCategory, string> = {
   DESKTOP_PC: 'PC de escritorio',

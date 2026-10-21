@@ -22,7 +22,7 @@ const read = (rel: string) => readFileSync(resolve(ROOT, rel), 'utf8');
 
 describe('C-1 · purchasing metrics read the canonical purchase-order aggregate', () => {
   it('dashboard purchasing KPI reads CompraOrden, not CompraSolicitud', () => {
-    const src = read('src/app/dashboard/page.tsx');
+    const src = read('src/modules/dashboard/infrastructure/dashboard-kpi-queries.ts');
     expect(src).toMatch(/prisma\.compraOrden\.count/);
     expect(src).not.toMatch(/prisma\.compraSolicitud/);
   });

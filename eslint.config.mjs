@@ -14,12 +14,12 @@ function escapePresentationBaselinePath(path) {
   return path.replace(/\[/g, '\\[').replace(/\]/g, '\\]');
 }
 
-const APPLICATION_LAYER_MESSAGE =
-  'ADR 003: application no importa Next.js ni Prisma; usa infrastructure y presentation para HTTP.';
-
 const PRISMA_PRESENTATION_BASELINE_FILES = PRISMA_IN_PRESENTATION_BASELINE.map(
   escapePresentationBaselinePath,
 );
+
+const APPLICATION_LAYER_MESSAGE =
+  'ADR 003: application no importa Next.js ni Prisma; usa infrastructure y presentation para HTTP.';
 
 const PRESENTATION_LAYERS = [
   'src/app/**/*.{ts,tsx}',
@@ -69,13 +69,9 @@ const eslintConfig = defineConfig([
       }],
     },
   },
-  // Baseline legacy violators (ADR 003 phase 0): exact paths so dynamic segments are not glob classes.
-  {
-    files: PRISMA_PRESENTATION_BASELINE_FILES,
-    rules: {
-      '@typescript-eslint/no-restricted-imports': 'off',
-    },
-  },
+  ...(PRISMA_PRESENTATION_BASELINE_FILES.length > 0
+    ? [{ files: PRISMA_PRESENTATION_BASELINE_FILES, rules: { '@typescript-eslint/no-restricted-imports': 'off' } }]
+    : []),
   {
     files: ['src/modules/*/application/**/*.ts'],
     ignores: [

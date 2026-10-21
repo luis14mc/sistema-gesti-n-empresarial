@@ -2,9 +2,9 @@ import type { OficioStatus, OficioType, Prisma } from '@prisma/client';
 import type { ExportColumn, ExportDataset } from '@/platform/reporting/export';
 import { SYNC_EXPORT_ROW_LIMIT } from '@/platform/reporting/export';
 import { OFICIO_STATUS_LABELS, OFICIO_TYPE_LABELS, type OficioStatus as UiOficioStatus, type OficioType as UiOficioType } from '@/types';
-import { civilDateInclusiveFilter } from './date-range';
-import { ReportExportTooLargeError } from './errors';
-import type { ReportExportBuildParams } from './types';
+import { civilDateInclusiveFilter } from '@/modules/reporting/domain/date-range';
+import { ReportExportTooLargeError } from '@/modules/reporting/domain/export-errors';
+import type { ReportExportBuildParams } from '@/modules/reporting/application/exports/types';
 
 const COLUMNS: readonly ExportColumn[] = [
   { key: 'number', header: 'Número', type: 'text', width: 16 },
