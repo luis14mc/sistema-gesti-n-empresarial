@@ -1,8 +1,8 @@
-import { Prisma } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { apiSuccess } from '@/platform/api/response';
 import { runIntegrationRoute } from '@/platform/integrations/presentation/http';
-import { prisma } from '@/lib/prisma';
+import { integrationQueries } from '@/platform/integrations/application/integration-queries';
 import { updateIntegrationSchema } from '@/platform/integrations/presentation/schemas';
 import { integrationConnectionService } from '@/platform/integrations/application/connection-service';
 import { integrationExecutionService } from '@/platform/integrations/application/execution-service';
@@ -14,9 +14,7 @@ async function getHandler(request: AuthenticatedRequest, routeContext?: { params
     if (!id) {
       throw new IntegrationNotFoundError('', context.organizationId);
     }
-    const integration = await prisma.organizationIntegration.findFirst({
-      where: { id, organizationId: context.organizationId },
-    });
+    const integration = await integrationQueries.find(context.organizationId, id);
     if (!integration) throw new IntegrationNotFoundError(id, context.organizationId);
     const health = await integrationExecutionService.computeIntegrationHealth(integration);
     return apiSuccess({

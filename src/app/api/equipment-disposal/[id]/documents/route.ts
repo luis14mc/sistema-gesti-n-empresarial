@@ -1,19 +1,14 @@
 import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
-import { prisma } from '@/lib/prisma';
 import { apiSuccess } from '@/platform/api/response';
 import { runDisposalRoute } from '@/modules/equipment-disposal/presentation/http';
 import { requireOrganizationPermission } from '@/platform/security/authorization/effective-permissions';
-import { EquipmentDisposalError } from '@/modules/equipment-disposal/application/errors';
-import { storeDisposalDocument } from '@/modules/equipment-disposal/infrastructure/documents';
-import { removeStoredDocument } from '@/modules/purchases/infrastructure/purchase-order-document-access';
+import { disposalDocumentsService } from '@/modules/equipment-disposal/application/documents-service';
 
 async function getHandler(request: AuthenticatedRequest, { params }: { params: Promise<{ id: string }> }) {
   return runDisposalRoute(request, 'documents.list', async ({ context, requestId }) => {
     await requireOrganizationPermission(context.userId, context.organizationId, context.role, 'equipment-disposal.read');
     const { id } = await params;
-    const disposal = await prisma.equipmentDisposal.findFirst({ where: { id, organizationId: context.organizationId }, select: { id: true } });
-    if (!disposal) throw new EquipmentDisposalError('DISPOSAL_NOT_FOUND', 404);
-    const documents = await prisma.disposalDocument.findMany({ where: { disposalId: id, organizationId: context.organizationId }, orderBy: { createdAt: 'desc' } });
+    const documents = await disposalDocumentsService.list(context, id);
     return apiSuccess(documents, { requestId });
   });
 }
@@ -22,24 +17,10 @@ async function postHandler(request: AuthenticatedRequest, { params }: { params: 
   return runDisposalRoute(request, 'documents.upload', async ({ context, requestId }) => {
     await requireOrganizationPermission(context.userId, context.organizationId, context.role, 'equipment-disposal.update');
     const { id } = await params;
-    const disposal = await prisma.equipmentDisposal.findFirst({ where: { id, organizationId: context.organizationId, status: { in: ['DRAFT', 'PENDING_APPROVAL'] } }, select: { id: true } });
-    if (!disposal) throw new EquipmentDisposalError('DISPOSAL_NOT_EDITABLE', 409);
+    await disposalDocumentsService.assertUploadAllowed(context, id);
     const file = (await request.formData()).get('file');
-    if (!(file instanceof File)) throw new EquipmentDisposalError('INVALID_DISPOSAL_DOCUMENT', 400);
-    const { stored, hash, originalSizeBytes, storedSizeBytes, optimized, signedPdf } = await storeDisposalDocument({ organizationId: context.organizationId, disposalId: id, file });
-    try {
-      const document = await prisma.$transaction(async (tx) => {
-        const duplicate = await tx.disposalDocument.findFirst({ where: { organizationId: context.organizationId, disposalId: id, fileHash: hash } });
-        if (duplicate) throw new EquipmentDisposalError('DUPLICATE_DISPOSAL_DOCUMENT', 409);
-        const created = await tx.disposalDocument.create({ data: { organizationId: context.organizationId, disposalId: id, storageKey: stored.key, fileName: stored.filename, originalName: file.name, mimeType: file.type, fileSize: stored.size, originalSizeBytes: originalSizeBytes ?? null, storedSizeBytes: storedSizeBytes ?? stored.size, optimized: optimized ?? false, signedPdf: signedPdf ?? false, fileHash: hash, uploadedById: context.userId } });
-        await tx.equipmentDisposalHistory.create({ data: { organizationId: context.organizationId, disposalId: id, action: 'DISPOSAL_DOCUMENT_UPLOADED', performedById: context.userId, requestId, newValues: { documentId: created.id, fileName: created.fileName } } });
-        return created;
-      });
-      return apiSuccess(document, { requestId, status: 201 });
-    } catch (error) {
-      await removeStoredDocument(stored.key).catch(() => undefined);
-      throw error;
-    }
+    const document = await disposalDocumentsService.upload(context, id, file, requestId);
+    return apiSuccess(document, { requestId, status: 201 });
   });
 }
 export const GET = withAuth(getHandler);

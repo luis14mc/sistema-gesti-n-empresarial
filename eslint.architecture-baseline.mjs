@@ -4,15 +4,6 @@
 // nueva o si una entrada apunta a un archivo que ya no existe.
 // Generada el 2026-10-21; reducida en fase 1 equipos (56 archivos).
 export const PRISMA_IN_PRESENTATION_BASELINE = [
-  'src/app/api/equipment-disposal/[id]/documents/[documentId]/route.ts',
-  'src/app/api/equipment-disposal/[id]/documents/[documentId]/view/route.ts',
-  'src/app/api/equipment-disposal/[id]/documents/route.ts',
-  'src/app/api/equipment-disposal/[id]/pdf/route.ts',
-  'src/app/api/organizations/current/integrations/[id]/executions/route.ts',
-  'src/app/api/organizations/current/integrations/[id]/route.ts',
-  'src/app/api/organizations/current/integrations/route.ts',
-  'src/app/api/organizations/current/route.ts',
-  'src/app/api/planilla/configuracion/smtp/probar/route.ts',
   'src/app/api/reports/[code]/export/route.ts',
   'src/app/dashboard/page.tsx',
 ];
@@ -24,15 +15,7 @@ export const PRISMA_OUTSIDE_INFRASTRUCTURE_BASELINE = [
   'src/modules/equipment/import-export/equipment-create.ts',
   'src/modules/equipment/import-export/equipment-export.ts',
   'src/modules/equipment/import-export/equipment-import.ts',
-  'src/modules/equipment-disposal/application/service.ts',
-  'src/modules/notifications/application/dispatcher.ts',
-  'src/modules/notifications/application/queries.ts',
-  'src/modules/notifications/application/recipient-resolver.ts',
   'src/modules/oficios/import-export/oficios-import.ts',
-  'src/modules/organizations/application/context.ts',
-  'src/modules/organizations/application/lifecycle.ts',
-  'src/modules/organizations/application/platform-context.ts',
-  'src/modules/organizations/application/queries.ts',
   'src/modules/payroll/application/payroll-service.ts',
   'src/modules/payroll/application/payroll-smtp-settings-service.ts',
   'src/modules/payroll/application/payslip-email-service.ts',
@@ -40,14 +23,6 @@ export const PRISMA_OUTSIDE_INFRASTRUCTURE_BASELINE = [
 ];
 
 export const APPLICATION_LAYER_BASELINE = [
-  'src/modules/equipment-disposal/application/service.ts',
-  'src/modules/notifications/application/dispatcher.ts',
-  'src/modules/notifications/application/queries.ts',
-  'src/modules/notifications/application/recipient-resolver.ts',
-  'src/modules/organizations/application/context.ts',
-  'src/modules/organizations/application/lifecycle.ts',
-  'src/modules/organizations/application/platform-context.ts',
-  'src/modules/organizations/application/queries.ts',
   'src/modules/payroll/application/payroll-service.ts',
   'src/modules/payroll/application/payroll-smtp-settings-service.ts',
   'src/modules/payroll/application/payslip-email-service.ts',

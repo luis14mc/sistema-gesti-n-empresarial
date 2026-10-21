@@ -1,5 +1,5 @@
 import type { Prisma } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
+import { findActiveMembershipRecipients } from '../infrastructure/notification-repository';
 import type { NotificationRecipient } from '../domain/rules';
 
 export type ResolvedRecipient = Readonly<{
@@ -22,7 +22,6 @@ export async function resolveRecipients(
   recipients: readonly NotificationRecipient[],
   options: { excludeUserIds?: ReadonlySet<string>; tx?: Prisma.TransactionClient } = {},
 ): Promise<ResolvedRecipient[]> {
-  const tx = options.tx ?? prisma;
   const includeOwners = recipients.some((recipient) => isRecipientRole(recipient, 'OWNER'));
   const includeAdmins = recipients.some((recipient) => isRecipientRole(recipient, 'ADMIN'));
   const includeSpecific = recipients.filter((r) => r.kind === 'specific-users' && r.userIds?.length);
@@ -40,13 +39,7 @@ export async function resolveRecipients(
   if (roles.length > 0) where.role = { in: roles };
   if (specificUserIds.length > 0) where.userId = { in: specificUserIds };
 
-  const memberships = await tx.organizationMembership.findMany({
-    where,
-    select: {
-      userId: true,
-      user: { select: { email: true, isActive: true } },
-    },
-  });
+  const memberships = await findActiveMembershipRecipients(options.tx, where);
 
   const seen = new Set<string>();
   const results: ResolvedRecipient[] = [];
