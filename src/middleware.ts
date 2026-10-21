@@ -5,7 +5,7 @@ import { decodeRouteSpecialsFromJwt } from '@/platform/security/jwt-route-specia
 import { officialPermissionSetForRole } from '@/platform/security/authorization/official-role-permissions';
 import { organizationRoleForSessionRole } from '@/platform/security/module-effective';
 import type { SessionRole } from '@/lib/session-roles';
-import { ROUTE_ACCESS_BY_MODULE } from '@/lib/permissions';
+import { ROUTE_ACCESS_BY_MODULE } from '@/platform/security/session-module-access';
 
 function sessionRoleMatchesAllowlist(sessionRole: string, allowedRoles: readonly string[]): boolean {
   if (allowedRoles.includes(sessionRole)) return true;

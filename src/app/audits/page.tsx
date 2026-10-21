@@ -39,7 +39,7 @@ import { useAudits } from '@/hooks/useAudits';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Pagination } from '@/components/shared/Pagination';
 import { useUsers } from '@/hooks/useUsers';
-import { canAccess } from '@/lib/permissions';
+import { canAccess } from '@/platform/security/session-module-access';
 import { useAuth } from '@/hooks/useAuth';
 import { sileo } from 'sileo';
 import { format } from 'date-fns';

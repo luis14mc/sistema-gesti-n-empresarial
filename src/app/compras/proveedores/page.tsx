@@ -25,7 +25,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import {
   useCreateProveedor, useDeleteProveedor, useProveedores, useUpdateProveedor,
 } from '@/hooks/useCompras';
-import { canAccess } from '@/lib/permissions';
+import { canAccess } from '@/platform/security/session-module-access';
 import type { Role } from '@/types';
 import type { Proveedor } from '@/types/compras';
 

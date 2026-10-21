@@ -13,6 +13,28 @@ function readRouteSource(relativePath: string): string {
   return readFileSync(join(REPO, relativePath), 'utf-8');
 }
 
+/** Fase 2b: rutas delgadas; permisos viven en application del módulo users. */
+const ROUTE_GUARD_IMPLEMENTATION: Record<string, string> = {
+  'src/app/api/auth/me/route.ts': 'src/modules/users/application/profile-service.ts',
+  'src/app/api/auth/password/route.ts': 'src/modules/users/application/change-password-service.ts',
+  'src/app/api/auth/refresh-session/route.ts': 'src/modules/users/application/refresh-session-service.ts',
+  'src/app/api/users/route.ts': 'src/modules/users/application/users-collection-service.ts',
+  'src/app/api/users/[id]/route.ts': 'src/modules/users/application/user-detail-service.ts',
+  'src/app/api/users/[id]/delete-eligibility/route.ts':
+    'src/modules/users/application/user-delete-eligibility-service.ts',
+  'src/app/api/users/[id]/password/route.ts': 'src/modules/users/application/user-password-admin-service.ts',
+  'src/app/api/users/[id]/permissions/route.ts':
+    'src/modules/users/application/user-permission-overrides-service.ts',
+  'src/app/api/roles/[role]/permissions/route.ts': 'src/modules/users/application/role-permissions-service.ts',
+  'src/app/api/roles/[role]/settings/route.ts': 'src/modules/users/application/role-settings-service.ts',
+  'src/app/api/roles/[role]/reset/route.ts': 'src/modules/users/application/role-reset-service.ts',
+};
+
+function readGuardSource(routePath: string): string {
+  const impl = ROUTE_GUARD_IMPLEMENTATION[routePath];
+  return impl ? `${readRouteSource(routePath)}\n${readRouteSource(impl)}` : readRouteSource(routePath);
+}
+
 function extractAuthorizePermissions(source: string): string[] {
   const re = /authorizeOrganization\s*\(\s*[^,]+,\s*[^,]+,\s*(?:[^,]+,\s*)?'([^']+)'/g;
   const perms: string[] = [];
@@ -37,7 +59,7 @@ describe('RBAC golden — guardas API users / roles / auth/me', () => {
       permission: string | null;
       permissionKind: string;
     }[]) {
-      const source = readRouteSource(entry.file);
+      const source = readGuardSource(entry.file);
       if (entry.permission === null) {
         expect(source).toContain('withAuth');
         continue;

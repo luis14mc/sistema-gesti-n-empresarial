@@ -25,7 +25,7 @@ import { useEmployees } from '@/hooks/useEmployees';
 import { AvailableEquipmentCombobox } from '@/components/equipment/AvailableEquipmentCombobox';
 import { EquipmentSelectedSummary } from '@/components/equipment/EquipmentSelectedSummary';
 import { useAuth } from '@/hooks/useAuth';
-import { canAccess } from '@/lib/permissions';
+import { canAccess } from '@/platform/security/session-module-access';
 import { sileo } from 'sileo';
 import { formatDate } from '@/utils/helpers';
 import { ReturnNoteContent } from '@/components/equipment/ReturnNoteContent';

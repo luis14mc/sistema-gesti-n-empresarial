@@ -23,7 +23,7 @@ import { Plus, Search, UserCheck, UserX, Edit3 } from 'lucide-react';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useDepartments } from '@/hooks/useDepartments';
 import { useAuth } from '@/hooks/useAuth';
-import { canAccess } from '@/lib/permissions';
+import { canAccess } from '@/platform/security/session-module-access';
 import { sileo } from 'sileo';
 import type { Role, Employee } from '@/types';
 

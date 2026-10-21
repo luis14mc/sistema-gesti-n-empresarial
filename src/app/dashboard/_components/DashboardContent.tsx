@@ -19,7 +19,7 @@ import {
   ArrowRight,
   Plus,
 } from 'lucide-react';
-import { hasModuleAccess, type Module } from '@/lib/permissions';
+import { hasModuleAccess, type Module } from '@/platform/security/session-module-access';
 import { formatRelativeDate } from '@/utils/helpers';
 import type { DashboardStats, DashboardRecentOficio, Role } from '@/types';
 

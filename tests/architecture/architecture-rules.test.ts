@@ -42,7 +42,7 @@ const LIB_FROZEN_ENTRIES = [
   'zod-schemas.ts',
 ];
 
-const BASELINE_MAX = 56;
+const BASELINE_MAX = 45;
 
 describe('ADR 003 · src/lib congelado', () => {
   it('no se agregan archivos ni carpetas nuevas en src/lib', () => {
