@@ -10,7 +10,7 @@ import {
   OFICIO_UPLOAD_MAX_BYTES,
   formatFileSize,
   getFileExtension,
-} from '@/lib/oficios-attachments';
+} from '@/modules/oficios/infrastructure/oficios-attachments';
 import { cn } from '@/lib/utils';
 
 const ACCEPT = '.pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png';

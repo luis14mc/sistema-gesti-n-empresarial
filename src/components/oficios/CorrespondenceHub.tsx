@@ -28,7 +28,7 @@ import {
   OFICIO_DEPENDENCY_LABELS,
   OFICIO_DOCUMENT_KIND_LABELS,
   type OficioScope,
-} from '@/lib/oficios-numbering';
+} from '@/modules/oficios/domain/oficios-numbering';
 import { OFICIO_RECORD_SOURCE_LABELS, OFICIO_STATUS_LABELS, type OficioStatus, type Role } from '@/types';
 import { CorrespondenceRegisterDialog } from '@/components/oficios/CorrespondenceRegisterDialog';
 

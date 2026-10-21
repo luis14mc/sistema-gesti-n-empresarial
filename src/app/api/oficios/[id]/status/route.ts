@@ -1,13 +1,8 @@
 import { NextResponse } from 'next/server';
-import { Prisma } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { createAuditRecord } from '@/lib/audit';
-import type { OficioStatus } from '@/types';
-import { oficioOrganizationFailure } from '@/modules/oficios/presentation/http';
+import { changeOficioStatusUseCase } from '@/modules/oficios/application/change-oficio-status';
+import { handleOficiosApiError } from '@/modules/oficios/presentation/http';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
-import { oficioScope } from '@/modules/oficios/infrastructure/tenant-scope';
-import { isValidOficioStatusTransition } from '@/lib/oficios-status-transitions';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,110 +10,23 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
-const ALLOWED: OficioStatus[] = [
-  'DRAFT',
-  'SENT',
-  'RECEIVED',
-  'IN_PROCESS',
-  'COMPLETED',
-  'ARCHIVED',
-  'ASSIGNED',
-  'PENDING_SIGNATURE',
-  'SIGNED',
-  'ACKNOWLEDGED',
-  'RESPONDED',
-];
-
 async function patchHandler(req: AuthenticatedRequest, context: RouteContext) {
   const requestId = crypto.randomUUID();
   try {
     const organization = await authorizeOrganization(req, requestId, 'oficios.update');
     const { id } = await context.params;
-
     const body = await req.json();
-    const next = body?.status as OficioStatus | undefined;
-    if (!next || !ALLOWED.includes(next)) {
-      return NextResponse.json({ error: 'Estado no válido' }, { status: 400 });
-    }
-
-    const current = await prisma.oficio.findFirst({
-      where: oficioScope(organization.organizationId, id),
-      select: { id: true, status: true, number: true, createdById: true },
-    });
-    if (!current) {
-      return NextResponse.json({ error: 'Oficio no encontrado' }, { status: 404 });
-    }
-
-    if (req.user!.role === 'USER' && current.createdById !== req.user!.userId) {
-      return NextResponse.json({ error: 'Oficio no encontrado' }, { status: 404 });
-    }
-
-    if (!isValidOficioStatusTransition(current.status as OficioStatus, next)) {
-      return NextResponse.json(
-        { error: `Transición no permitida: ${current.status} → ${next}` },
-        { status: 400 },
-      );
-    }
-
-    const data: Prisma.OficioUpdateInput = {
-      status: next,
-      updatedBy: { connect: { id: req.user!.userId } },
-    };
-    if (next === 'SENT' || next === 'SIGNED') data.sentDate = new Date();
-    if (next === 'RECEIVED') data.receivedDate = new Date();
-    if (next === 'ARCHIVED') data.archivedAt = new Date();
-
-    const updated = await prisma.$transaction(async (tx) => {
-      await tx.oficio.updateMany({
-        where: oficioScope(organization.organizationId, id),
-        data: {
-          status: next,
-          updatedById: req.user!.userId,
-          ...(next === 'SENT' || next === 'SIGNED' ? { sentDate: new Date() } : {}),
-          ...(next === 'RECEIVED' ? { receivedDate: new Date() } : {}),
-          ...(next === 'ARCHIVED' ? { archivedAt: new Date() } : {}),
-        },
-      });
-      await tx.oficioTracking.create({
-        data: {
-          oficioId: id,
-          action: 'STATUS_CHANGED',
-          title: `Estado: ${current.status} → ${next}`,
-          previousData: { status: current.status },
-          newData: { status: next },
-          performedById: req.user!.userId,
-        },
-      });
-      return tx.oficio.findFirstOrThrow({
-        where: oficioScope(organization.organizationId, id),
-        include: {
-          tracking: {
-            orderBy: { createdAt: 'desc' },
-            take: 1,
-            include: { performedBy: { select: { id: true, firstName: true, lastName: true } } },
-          },
-        },
-      });
-    });
-
-    await createAuditRecord({
-      title: 'Cambio de estado de oficio',
-      description: `Oficio ${current.number}: ${current.status} → ${next}`,
-      module: 'OFICIOS',
-      category: 'UPDATE',
-      userId: req.user!.userId,
-      entityId: id,
+    const result = await changeOficioStatusUseCase({
       organizationId: organization.organizationId,
-      previousData: { status: current.status },
-      newData: { status: next },
+      actorUserId: req.user!.userId,
+      actorRole: req.user!.role,
+      oficioId: id,
+      nextStatus: body?.status,
     });
-
-    return NextResponse.json({ oficio: updated });
+    return NextResponse.json(result);
   } catch (error) {
-    const organizationResponse = oficioOrganizationFailure(error, requestId);
-    if (organizationResponse) return organizationResponse;
     console.error('Error en PATCH /api/oficios/[id]/status:', error);
-    return NextResponse.json({ error: 'Error al cambiar estado' }, { status: 500 });
+    return handleOficiosApiError(error, requestId, 'Error al cambiar estado');
   }
 }
 

@@ -12,7 +12,7 @@ import { oficiosService } from '@/services/oficios.service';
 import {
   OFICIO_DEPENDENCY_LABELS,
   type OficioScope,
-} from '@/lib/oficios-numbering';
+} from '@/modules/oficios/domain/oficios-numbering';
 import type { Oficio } from '@/types';
 
 export type RelatedCorrespondenceSelection = {

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   APPLICATION_LAYER_BASELINE,
   PRISMA_IN_PRESENTATION_BASELINE,
+  PRISMA_OUTSIDE_INFRASTRUCTURE_BASELINE,
 } from '../../eslint.architecture-baseline.mjs';
 
 // ADR 003 — docs/adr/003-arquitectura-monolito-modular.md
@@ -45,7 +46,7 @@ const LIB_FROZEN_ENTRIES = [
   'zod-schemas.ts',
 ];
 
-const BASELINE_MAX = 45;
+const BASELINE_MAX = 31;
 const APPLICATION_BASELINE_MAX = APPLICATION_LAYER_BASELINE.length;
 
 describe('ADR 003 · src/lib congelado', () => {
@@ -80,6 +81,90 @@ describe('ADR 003 · lista de excepciones de application (Next/Prisma)', () => {
   it('la regla está activa en eslint.config.mjs', () => {
     const config = readFileSync(join(ROOT, 'eslint.config.mjs'), 'utf8');
     expect(config).toMatch(/APPLICATION_LAYER_BASELINE/);
+  });
+});
+
+function walkModuleSourceFiles(dir: string, acc: string[] = []): string[] {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name === 'node_modules' || entry.name === '__tests__') continue;
+      walkModuleSourceFiles(full, acc);
+    } else if (entry.isFile() && (entry.name.endsWith('.ts') || entry.name.endsWith('.tsx'))) {
+      acc.push(full);
+    }
+  }
+  return acc;
+}
+
+describe('ADR 003 · Prisma solo en infrastructure (módulos)', () => {
+  const PRISMA_OUTSIDE_INFRA_MAX = PRISMA_OUTSIDE_INFRASTRUCTURE_BASELINE.length;
+
+  it('src/modules/oficios no importa @/lib/prisma fuera de infrastructure', () => {
+    const moduleDir = join(ROOT, 'src/modules/oficios');
+    const allowedOficiosLegacy = new Set(
+      PRISMA_OUTSIDE_INFRASTRUCTURE_BASELINE.filter((file) =>
+        file.startsWith('src/modules/oficios/'),
+      ),
+    );
+    const violations: string[] = [];
+    for (const file of walkModuleSourceFiles(moduleDir)) {
+      const rel = file.replace(`${ROOT}/`, '');
+      if (rel.includes('/infrastructure/')) continue;
+      const content = readFileSync(file, 'utf8');
+      if (/\bfrom ['"]@\/lib\/prisma['"]/.test(content)) {
+        if (!allowedOficiosLegacy.has(rel)) violations.push(rel);
+      }
+    }
+    expect(violations).toEqual([]);
+  });
+
+  it('lista de excepciones Prisma fuera de infrastructure solo puede reducirse', () => {
+    const modulesRoot = join(ROOT, 'src/modules');
+    const current: string[] = [];
+
+    for (const moduleName of readdirSync(modulesRoot)) {
+      const moduleDir = join(modulesRoot, moduleName);
+      for (const file of walkModuleSourceFiles(moduleDir)) {
+        const rel = file.replace(`${ROOT}/`, '');
+        if (rel.includes('/infrastructure/')) continue;
+        const content = readFileSync(file, 'utf8');
+        if (/\bfrom ['"]@\/lib\/prisma['"]/.test(content)) {
+          current.push(rel);
+        }
+      }
+    }
+
+    current.sort();
+    const baseline = [...PRISMA_OUTSIDE_INFRASTRUCTURE_BASELINE].sort();
+    expect(baseline.length).toBeLessThanOrEqual(PRISMA_OUTSIDE_INFRA_MAX);
+    const unexpected = current.filter((file) => !baseline.includes(file));
+    expect(unexpected, 'Nuevo import de Prisma fuera de infrastructure').toEqual([]);
+    const missing = baseline.filter((file) => !existsSync(join(ROOT, file)));
+    expect(missing, 'Quita entradas del baseline al migrar').toEqual([]);
+  });
+
+  it('infrastructure no reexporta prisma-client ni oficiosDb', () => {
+    const modulesRoot = join(ROOT, 'src/modules');
+    const violations: string[] = [];
+
+    for (const moduleName of readdirSync(modulesRoot)) {
+      const infraDir = join(modulesRoot, moduleName, 'infrastructure');
+      if (!existsSync(infraDir)) continue;
+      const files = walkModuleSourceFiles(infraDir);
+      for (const file of files) {
+        const rel = file.replace(`${ROOT}/`, '');
+        const content = readFileSync(file, 'utf8');
+        if (/export\s+(const|function)\s+oficiosDb\b/.test(content)) {
+          violations.push(rel);
+        }
+        if (/prisma-client/.test(content) && !rel.endsWith('prisma-client.ts')) {
+          violations.push(`${rel} (imports prisma-client re-export)`);
+        }
+      }
+    }
+
+    expect(violations).toEqual([]);
   });
 });
 

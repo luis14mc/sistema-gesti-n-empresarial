@@ -1,49 +1,36 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { previewOficioNumberUseCase } from '@/modules/oficios/application/numbering-preview';
+import { handleOficiosApiError } from '@/modules/oficios/presentation/http';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
-import { oficioOrganizationFailure } from '@/modules/oficios/presentation/http';
-import { normalizeOficioDependency } from '@/lib/oficios-numbering';
-import { previewOficioNumber } from '@/modules/oficios/infrastructure/numbering';
 
-/**
- * GET /api/oficios/numbering/preview?dependency=CNI&year=2026
- * Returns the next number without consuming the sequence.
- */
 async function getHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   try {
     const organization = await authorizeOrganization(req, requestId, 'oficios.create');
     const { searchParams } = new URL(req.url);
-    const dependency = normalizeOficioDependency(searchParams.get('dependency') ?? searchParams.get('scope'));
-    const year = Number.parseInt(searchParams.get('year') || String(new Date().getFullYear()), 10);
-
-    const preview = await previewOficioNumber(prisma, {
+    const result = await previewOficioNumberUseCase({
       organizationId: organization.organizationId,
-      dependency,
-      year,
+      dependencyRaw: searchParams.get('dependency'),
+      scopeRaw: searchParams.get('scope'),
+      yearRaw: searchParams.get('year'),
     });
 
-    if (!preview) {
+    if (result.kind === 'missing_config') {
       return NextResponse.json(
         {
-          error: `No hay configuración activa de numeración para ${dependency} / ${year}`,
+          error: `No hay configuración activa de numeración para ${result.dependency} / ${result.year}`,
           code: 'MISSING_CONFIG',
         },
         { status: 404 },
       );
     }
 
-    return NextResponse.json({
-      dependency,
-      year,
-      ...preview,
-    });
+    const { kind: _k, ...payload } = result;
+    return NextResponse.json(payload);
   } catch (error) {
-    const organizationResponse = oficioOrganizationFailure(error, requestId);
-    if (organizationResponse) return organizationResponse;
     console.error('Error previewing oficio number:', error);
-    return NextResponse.json({ error: 'Error al previsualizar número' }, { status: 500 });
+    return handleOficiosApiError(error, requestId, 'Error al previsualizar número');
   }
 }
 

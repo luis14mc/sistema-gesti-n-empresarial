@@ -28,20 +28,6 @@ export const PRISMA_IN_PRESENTATION_BASELINE = [
   'src/app/api/equipment-disposal/[id]/documents/[documentId]/view/route.ts',
   'src/app/api/equipment-disposal/[id]/documents/route.ts',
   'src/app/api/equipment-disposal/[id]/pdf/route.ts',
-  'src/app/api/oficios/[id]/documents/route.ts',
-  'src/app/api/oficios/[id]/route.ts',
-  'src/app/api/oficios/[id]/status/route.ts',
-  'src/app/api/oficios/import/batch/route.ts',
-  'src/app/api/oficios/import/batches/[id]/documents/route.ts',
-  'src/app/api/oficios/import/batches/route.ts',
-  'src/app/api/oficios/import/route.ts',
-  'src/app/api/oficios/import/template/route.ts',
-  'src/app/api/oficios/numbering/preview/route.ts',
-  'src/app/api/oficios/numbering/route.ts',
-  'src/app/api/oficios/route.ts',
-  'src/app/api/oficios/search/route.ts',
-  'src/app/api/oficios/signers/[id]/route.ts',
-  'src/app/api/oficios/signers/route.ts',
   'src/app/api/organizations/current/integrations/[id]/executions/route.ts',
   'src/app/api/organizations/current/integrations/[id]/route.ts',
   'src/app/api/organizations/current/integrations/route.ts',
@@ -53,6 +39,26 @@ export const PRISMA_IN_PRESENTATION_BASELINE = [
 
 // Excepciones congeladas: application sin Next.js ni Prisma directo (ADR 003 fase 2c).
 // src/modules/users/application debe quedar limpio (sin entrada aquí).
+/** Archivos legacy que aún importan @/lib/prisma fuera de infrastructure (solo puede reducirse). */
+export const PRISMA_OUTSIDE_INFRASTRUCTURE_BASELINE = [
+  'src/modules/equipment/import-export/equipment-create.ts',
+  'src/modules/equipment/import-export/equipment-export.ts',
+  'src/modules/equipment/import-export/equipment-import.ts',
+  'src/modules/equipment-disposal/application/service.ts',
+  'src/modules/notifications/application/dispatcher.ts',
+  'src/modules/notifications/application/queries.ts',
+  'src/modules/notifications/application/recipient-resolver.ts',
+  'src/modules/oficios/import-export/oficios-import.ts',
+  'src/modules/organizations/application/context.ts',
+  'src/modules/organizations/application/lifecycle.ts',
+  'src/modules/organizations/application/platform-context.ts',
+  'src/modules/organizations/application/queries.ts',
+  'src/modules/payroll/application/payroll-service.ts',
+  'src/modules/payroll/application/payroll-smtp-settings-service.ts',
+  'src/modules/payroll/application/payslip-email-service.ts',
+  'src/modules/payroll/application/settings-loader.ts',
+];
+
 export const APPLICATION_LAYER_BASELINE = [
   'src/modules/equipment-disposal/application/service.ts',
   'src/modules/notifications/application/dispatcher.ts',
