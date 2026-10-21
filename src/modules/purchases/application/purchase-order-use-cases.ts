@@ -1,0 +1,38 @@
+/**
+ * Casos de uso de órdenes de compra (Fase 4a).
+ * La persistencia vive en infrastructure/purchase-order-repository.ts.
+ */
+export {
+  orderInclude,
+  createPurchaseOrder,
+  updatePurchaseOrder,
+  deletePurchaseOrder,
+  getPurchaseOrder,
+  listPurchaseOrders,
+  generatePurchaseOrder,
+  issuePurchaseOrder,
+  cancelPurchaseOrder,
+  closePurchaseOrder,
+  regeneratePurchaseOrderPdf,
+  uploadPurchaseOrderDocument,
+  deletePurchaseOrderDocument,
+  getPurchaseOrderHistory,
+  getPurchaseOrderDocuments,
+  readPurchaseOrderDocumentFile,
+  getPurchaseOrderHtmlPreview,
+  getPurchaseOrderDraftPreviewHtml,
+  buildPurchaseOrderPreviewHtml,
+  deleteCompraOrden,
+  createCompraOrden,
+  updateCompraOrden,
+  getCompraOrden,
+  listCompraOrdenes,
+  generarCompraOrden,
+  emitirCompraOrden,
+  anularCompraOrden,
+  cerrarCompraOrden,
+  regenerarPdfCompraOrden,
+  uploadCompraOrdenDocumento,
+  getCompraOrdenHistorial,
+  getCompraOrdenHtmlPreview,
+} from '@/modules/purchases/infrastructure/purchase-order-repository';

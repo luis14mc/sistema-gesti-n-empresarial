@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { regenerarPdfCompraOrden, getCompraOrden } from '@/lib/compras/orden/service';
-import { canOrdenAction } from '@/lib/compras/orden/permissions';
+import { regenerarPdfCompraOrden, getCompraOrden } from '@/modules/purchases/application/purchase-order-use-cases';
+import { canOrdenAction } from '@/modules/purchases/domain/purchase-order-permissions';
 import type { Role } from '@/types';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 

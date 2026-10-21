@@ -1,6 +1,6 @@
 import type { EquipmentDisposal, Equipment, Organization } from '@prisma/client';
 import { DisposalDocument, type DisposalDocumentData } from '../presentation/components/DisposalDocument';
-import { renderHtmlToPdf } from '@/lib/compras/pdf-renderer';
+import { renderHtmlToPdf } from '@/platform/pdf/html-to-pdf';
 import { getStorage } from '@/lib/storage';
 import { prisma } from '@/lib/prisma';
 

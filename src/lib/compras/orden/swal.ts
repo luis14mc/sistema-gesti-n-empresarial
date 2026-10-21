@@ -1,7 +1,2 @@
-import Swal from 'sweetalert2';
-
-export default Swal.mixin({
-  customClass: {
-    popup: "font-[Aptos,'Segoe_UI',sans-serif]",
-  },
-});
+/** @deprecated use @/components/compras/purchase-order-swal */
+export { default } from '@/components/compras/purchase-order-swal';

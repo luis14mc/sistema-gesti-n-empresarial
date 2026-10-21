@@ -4,10 +4,10 @@ import {
   getCompraOrden,
   updateCompraOrden,
   deleteCompraOrden,
-} from '@/lib/compras/orden/service';
-import { updateCompraOrdenSchema, normalizePurchaseOrderPayload } from '@/lib/compras/orden/schemas';
-import { canOrdenAction } from '@/lib/compras/orden/permissions';
-import { handlePrismaRouteError } from '@/lib/compras/orden/prisma-error';
+} from '@/modules/purchases/application/purchase-order-use-cases';
+import { updateCompraOrdenSchema, normalizePurchaseOrderPayload } from '@/modules/purchases/presentation/purchase-order-schemas';
+import { canOrdenAction } from '@/modules/purchases/domain/purchase-order-permissions';
+import { handlePrismaRouteError } from '@/modules/purchases/presentation/http';
 import type { Role } from '@/types';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 
