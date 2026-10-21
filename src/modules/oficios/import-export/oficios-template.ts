@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs';
-import { type OficioDependency } from '@/lib/oficios-numbering';
+import { type OficioDependency } from '@/modules/oficios/domain/oficios-numbering';
 import { OFICIO_STATUS_LABELS } from '@/types';
 import {
   OFICIO_EXCEL_TYPES,

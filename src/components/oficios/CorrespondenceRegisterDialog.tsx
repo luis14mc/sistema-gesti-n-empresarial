@@ -26,7 +26,7 @@ import {
   OFICIO_DOCUMENT_KIND_LABELS,
   type OficioDirection,
   type OficioScope,
-} from '@/lib/oficios-numbering';
+} from '@/modules/oficios/domain/oficios-numbering';
 import type { CreateOficioData } from '@/types';
 
 type Step = 'direction' | 'dependency' | 'form';

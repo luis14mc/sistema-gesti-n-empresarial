@@ -29,7 +29,7 @@ import {
 } from '@/types';
 import {
   OFICIO_STATUS_TRANSITIONS,
-} from '@/lib/oficios-status-transitions';
+} from '@/modules/oficios/domain/oficios-status-transitions';
 
 const STATUS_NEXT: Record<OficioStatus, OficioStatus[]> = {
   DRAFT: [...OFICIO_STATUS_TRANSITIONS.DRAFT],

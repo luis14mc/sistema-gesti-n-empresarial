@@ -5,7 +5,7 @@ import {
   parseOficioSequence,
   parseSequenceFromPattern,
   type OficioDependency,
-} from '@/lib/oficios-numbering';
+} from '@/modules/oficios/domain/oficios-numbering';
 import { oficioImportRowSchema } from './schemas';
 import { prisma } from '@/lib/prisma';
 import { defaultConfigSeed } from '@/modules/oficios/infrastructure/numbering';

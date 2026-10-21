@@ -34,7 +34,7 @@ import {
   previewNextNumber,
   validateNomenclaturePattern,
   type OficioDependency,
-} from '@/lib/oficios-numbering';
+} from '@/modules/oficios/domain/oficios-numbering';
 
 const NUMBERING_ROLES = new Set(['ADMIN', 'OWNER', 'IT_MANAGER', 'IT']);
 const ELEVATED_ROLES = new Set(['ADMIN', 'OWNER']);

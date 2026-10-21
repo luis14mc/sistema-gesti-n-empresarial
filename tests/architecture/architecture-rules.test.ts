@@ -45,7 +45,7 @@ const LIB_FROZEN_ENTRIES = [
   'zod-schemas.ts',
 ];
 
-const BASELINE_MAX = 45;
+const BASELINE_MAX = 31;
 const APPLICATION_BASELINE_MAX = APPLICATION_LAYER_BASELINE.length;
 
 describe('ADR 003 · src/lib congelado', () => {

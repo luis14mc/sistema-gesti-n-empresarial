@@ -1,0 +1,278 @@
+import { NextResponse } from 'next/server';
+import { oficiosDb } from '@/modules/oficios/infrastructure/prisma-client';
+import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
+import { createAuditRecord } from '@/lib/audit';
+import { oficioOrganizationFailure } from '@/modules/oficios/presentation/http';
+import { oficioScope } from '@/modules/oficios/infrastructure/tenant-scope';
+import { authorizeOrganization } from '@/platform/security/authorization/http';
+
+type RouteContext = { params: Promise<{ id: string }> };
+
+// GET - Obtener oficio por ID
+async function getHandler(
+  req: AuthenticatedRequest,
+  context: RouteContext
+) {
+  const { id } = await context.params;
+  const requestId = crypto.randomUUID();
+  try {
+    const organization = await authorizeOrganization(req, requestId, 'oficios.read');
+    const oficio = await oficiosDb.oficio.findFirst({
+      where: oficioScope(organization.organizationId, id),
+      include: {
+        createdBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        importedBy: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+        documents: {
+          orderBy: [{ isPrimary: 'desc' }, { uploadedAt: 'desc' }],
+          include: {
+            uploadedBy: { select: { id: true, firstName: true, lastName: true } },
+          },
+        },
+        tracking: {
+          orderBy: { createdAt: 'asc' },
+          include: {
+            performedBy: { select: { id: true, firstName: true, lastName: true } },
+          },
+        },
+        signer: {
+          select: { id: true, name: true, positionTitle: true, dependency: true },
+        },
+        responsibleEmployee: {
+          select: { id: true, fullName: true, email: true },
+        },
+        responseTo: {
+          select: {
+            id: true,
+            number: true,
+            type: true,
+            subject: true,
+            oficioDate: true,
+            scope: true,
+            status: true,
+          },
+        },
+        responses: {
+          select: {
+            id: true,
+            number: true,
+            type: true,
+            subject: true,
+            oficioDate: true,
+            scope: true,
+            status: true,
+          },
+          orderBy: { oficioDate: 'asc' },
+        },
+      },
+    });
+
+    if (!oficio) {
+      return NextResponse.json(
+        { error: 'Oficio no encontrado' },
+        { status: 404 }
+      );
+    }
+
+    // IDOR: USER solo puede ver oficios donde es creador o destinatario por email
+    if (req.user!.role === 'USER') {
+      const isCreator = oficio.createdById === req.user!.userId;
+      const isRecipient =
+        !!oficio.recipient &&
+        oficio.recipient.toLowerCase().includes(req.user!.email.toLowerCase());
+      if (!isCreator && !isRecipient) {
+        return NextResponse.json(
+          { error: 'Oficio no encontrado' },
+          { status: 404 }
+        );
+      }
+    }
+
+    return NextResponse.json({ oficio });
+  } catch (error) {
+    const organizationResponse = oficioOrganizationFailure(error, requestId);
+    if (organizationResponse) return organizationResponse;
+    console.error('Error al obtener oficio:', error);
+    return NextResponse.json(
+      { error: 'Error al obtener oficio' },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH - Actualizar oficio
+async function patchHandler(
+  req: AuthenticatedRequest,
+  context: RouteContext
+) {
+  const { id } = await context.params;
+  const requestId = crypto.randomUUID();
+  try {
+    const organization = await authorizeOrganization(req, requestId, 'oficios.update');
+    const data = await req.json();
+
+    // Obtener estado anterior para auditoría
+    const currentOficio = await oficiosDb.oficio.findFirst({
+      where: oficioScope(organization.organizationId, id),
+    });
+
+    if (!currentOficio) {
+      return NextResponse.json(
+        { error: 'Oficio no encontrado' },
+        { status: 404 }
+      );
+    }
+
+    // IDOR: USER solo edita oficios propios
+    if (req.user!.role === 'USER' && currentOficio.createdById !== req.user!.userId) {
+      return NextResponse.json(
+        { error: 'Oficio no encontrado' },
+        { status: 404 }
+      );
+    }
+
+    const allowedFields = [
+      'subject',
+      'recipient',
+      'institution',
+      'preparedBy',
+      'status',
+      'attachments',
+      'oficioDate',
+      'receivedDate',
+      'sentDate',
+      'comments',
+      'senderName',
+      'senderPosition',
+      'recipientName',
+      'recipientPosition',
+      'cc',
+      'responseToId',
+      'signerId',
+      'responsibleEmployeeId',
+      'documentKind',
+    ];
+
+    const updateData: Record<string, unknown> = { updatedById: req.user!.userId };
+    allowedFields.forEach((field) => {
+      if (data[field] !== undefined) {
+        if (['oficioDate', 'receivedDate', 'sentDate'].includes(field) && data[field]) {
+          updateData[field] = new Date(data[field]);
+        } else {
+          updateData[field] = data[field];
+        }
+      }
+    });
+
+    if (data.status === 'SENT' && !updateData.sentDate) {
+      updateData.sentDate = new Date();
+    }
+
+    await oficiosDb.oficio.updateMany({
+      where: oficioScope(organization.organizationId, id),
+      data: updateData,
+    });
+    const oficio = await oficiosDb.oficio.findFirstOrThrow({
+      where: oficioScope(organization.organizationId, id),
+      include: {
+        createdBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    // Registrar en auditoría
+    await createAuditRecord({
+      title: 'Actualización de oficio',
+      description: `Se actualizó oficio: ${oficio.number} - ${oficio.subject}`,
+      module: 'OFICIOS',
+      category: 'UPDATE',
+      userId: req.user!.userId,
+      entityId: oficio.id,
+      organizationId: organization.organizationId,
+      previousData: { status: currentOficio.status, subject: currentOficio.subject },
+      newData: { status: oficio.status, subject: oficio.subject },
+    });
+
+    return NextResponse.json({ oficio });
+  } catch (error) {
+    const organizationResponse = oficioOrganizationFailure(error, requestId);
+    if (organizationResponse) return organizationResponse;
+    console.error('Error al actualizar oficio:', error);
+    return NextResponse.json(
+      { error: 'Error al actualizar oficio' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE - Eliminar oficio
+async function deleteHandler(
+  req: AuthenticatedRequest,
+  context: RouteContext
+) {
+  const { id } = await context.params;
+  const requestId = crypto.randomUUID();
+  try {
+    const organization = await authorizeOrganization(req, requestId, 'oficios.deactivate');
+    const current = await oficiosDb.oficio.findFirst({ where: oficioScope(organization.organizationId, id) });
+    if (!current) {
+      return NextResponse.json(
+        { error: 'Oficio no encontrado' },
+        { status: 404 }
+      );
+    }
+
+    // IDOR: USER no desactiva oficios ajenos.
+    if (req.user!.role === 'USER' && current.createdById !== req.user!.userId) {
+      return NextResponse.json(
+        { error: 'Oficio no encontrado' },
+        { status: 404 }
+      );
+    }
+
+    await oficiosDb.oficio.updateMany({
+      where: oficioScope(organization.organizationId, id),
+      data: { status: 'ARCHIVED' },
+    });
+
+    await createAuditRecord({
+      title: 'Desactivación de oficio',
+      description: `Se desactivó oficio: ${current.number} - ${current.subject}`,
+      module: 'OFICIOS',
+      category: 'DELETE',
+      userId: req.user!.userId,
+      entityId: id,
+      organizationId: organization.organizationId,
+      previousData: { number: current.number, subject: current.subject, status: current.status },
+      newData: { status: 'ARCHIVED' },
+    });
+
+    return NextResponse.json({ message: 'Oficio desactivado' });
+  } catch (error) {
+    const organizationResponse = oficioOrganizationFailure(error, requestId);
+    if (organizationResponse) return organizationResponse;
+    console.error('Error al eliminar oficio:', error);
+    return NextResponse.json(
+      { error: 'Error al eliminar oficio' },
+      { status: 500 }
+    );
+  }
+}
+
+export const GET = withAuth(getHandler);
+export const PATCH = withAuth(patchHandler);
+export const DELETE = withAuth(deleteHandler);

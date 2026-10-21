@@ -1,4 +1,4 @@
-import type { OficioDependency } from '@/lib/oficios-numbering';
+import type { OficioDependency } from '@/modules/oficios/domain/oficios-numbering';
 
 /**
  * A signer may be used for an oficio when:

@@ -5,7 +5,7 @@ import {
   previewNextNumber,
   validateNomenclaturePattern,
   type OficioDependency,
-} from '@/lib/oficios-numbering';
+} from '@/modules/oficios/domain/oficios-numbering';
 import { OficioNumberingError, defaultConfigSeed } from '@/modules/oficios/infrastructure/numbering';
 
 export type NumberingConfigInput = {

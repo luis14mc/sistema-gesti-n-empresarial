@@ -7,7 +7,7 @@ import {
   shouldGenerateOficioNumber,
   type OficioDependency,
   type OficioDirection,
-} from '@/lib/oficios-numbering';
+} from '@/modules/oficios/domain/oficios-numbering';
 
 export class OficioNumberingError extends Error {
   constructor(

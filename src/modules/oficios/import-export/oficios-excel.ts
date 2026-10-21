@@ -4,7 +4,7 @@ import { loadXlsxWorkbook } from '@/platform/excel/load-xlsx';
 import {
   normalizeOficioDependency,
   normalizeOficioDirection,
-} from '@/lib/oficios-numbering';
+} from '@/modules/oficios/domain/oficios-numbering';
 import { OFICIO_STATUS_LABELS } from '@/types';
 import { oficioImportRowSchema } from './schemas';
 import {

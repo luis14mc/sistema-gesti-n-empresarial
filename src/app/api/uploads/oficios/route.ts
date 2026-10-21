@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
-import { saveOficioDocument } from '@/lib/oficios-storage';
+import { saveOficioDocument } from '@/modules/oficios/infrastructure/oficios-storage';
 import { oficioOrganizationFailure } from '@/modules/oficios/presentation/http';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 
