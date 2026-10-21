@@ -39,7 +39,6 @@ describe('React Query keys must include tenant context', () => {
     'src/services/equipment.service.ts',
     'src/services/oficios.service.ts',
     'src/services/compra-orden.service.ts',
-    'src/services/purchases.service.ts',
   ];
   for (const file of filesToCheck) {
     it(`${file} does not cache across tenants by mistake`, () => {

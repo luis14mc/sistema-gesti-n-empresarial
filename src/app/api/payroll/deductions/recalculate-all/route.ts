@@ -1,17 +1,15 @@
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
 import { createAuditRecord } from '@/lib/audit';
-import { prisma } from '@/lib/prisma';
 import { apiSuccess } from '@/platform/api/response';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 import { payrollFailure } from '@/modules/payroll/application/http';
+import { countActivePayrollEmployees } from '@/modules/payroll/application/payroll-service';
 
 async function postHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   try {
     const { organizationId, userId } = await authorizeOrganization(req, requestId, 'payroll.configure');
-    const employeeCount = await prisma.employee.count({
-      where: { organizationId, isActive: true, payrollEnabled: true },
-    });
+    const employeeCount = await countActivePayrollEmployees(organizationId);
     await createAuditRecord({
       title: 'Recálculo ISR/IHSS solicitado',
       description:
