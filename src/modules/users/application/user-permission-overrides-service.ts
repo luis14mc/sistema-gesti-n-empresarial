@@ -1,102 +1,74 @@
-import type { AuthenticatedRequest } from '@/lib/middleware';
-import { NextResponse } from 'next/server';
-import { z } from 'zod';
-import { prisma } from '@/modules/users/infrastructure/user-repository';
 import { createAuditRecord } from '@/lib/audit';
-import { canonicalOrganizationId } from '@/platform/security/organization-scope';
+import {
+  ActorMembershipMissingError,
+  DenyLockedPermissionError,
+  MembershipNotFoundError,
+} from '@/modules/users/domain/errors';
+import {
+  clearUserPermissionOverrides,
+  findMembershipByOrgUser,
+  listUserPermissionOverrides,
+  replaceUserPermissionOverrides,
+} from '@/modules/users/infrastructure/user-repository';
+import type { UserPermissionOverridesPutInput } from '@/modules/users/presentation/schemas/users';
 import {
   buildEffectiveModuleMatrix,
   normalizeDesiredRow,
   overridesFromDesiredMatrix,
 } from '@/platform/security/module-effective';
-import { MODULE_CATALOG, MODULE_IDS, type ModuleId } from '@/platform/security/modules';
-import { requireOrganizationPermission } from '@/platform/security/authorization/effective-permissions';
+import { MODULE_CATALOG } from '@/platform/security/modules';
 import type { PermissionOverride } from '@/platform/security/authorization/permissions';
 import {
   createRolePermissionCheck,
   loadOrganizationRolePermissionMap,
 } from '@/platform/security/authorization/role-permission-service';
 import { findDenyOverridesOnLockedPermissions } from '@/platform/security/authorization/role-permission-locks';
+import type { OrganizationRole } from '@/platform/security/authorization/permissions';
 
-const rowSchema = z.object({
-  module: z.enum(MODULE_IDS as [ModuleId, ...ModuleId[]]),
-  canRead: z.boolean(),
-  canCreate: z.boolean(),
-  canUpdate: z.boolean(),
-  canDelete: z.boolean(),
-  extras: z.array(z.string()).default([]),
-});
-
-const putSchema = z.object({
-  rows: z.array(rowSchema),
-});
-
-export async function getUserPermissionOverrides(req: AuthenticatedRequest, ctx: { params: Promise<{ id: string }> }) {
-  const { id: targetUserId } = await ctx.params;
-  const organizationId = canonicalOrganizationId();
-  const actorId = req.user!.userId;
-
-  const actorMembership = await prisma.organizationMembership.findUnique({
-    where: { organizationId_userId: { organizationId, userId: actorId } },
-    select: { role: true },
-  });
-  if (!actorMembership) return NextResponse.json({ error: 'Sin membresía' }, { status: 403 });
-  await requireOrganizationPermission(actorId, organizationId, actorMembership.role, 'users.read');
-
-  const targetMembership = await prisma.organizationMembership.findUnique({
-    where: { organizationId_userId: { organizationId, userId: targetUserId } },
-    select: { role: true },
-  });
-  if (!targetMembership) return NextResponse.json({ error: 'Usuario sin membresía' }, { status: 404 });
+export async function getUserPermissionOverridesUseCase(params: {
+  organizationId: string;
+  targetUserId: string;
+}) {
+  const targetMembership = await findMembershipByOrgUser(params.organizationId, params.targetUserId);
+  if (!targetMembership) {
+    throw new MembershipNotFoundError();
+  }
 
   const [overrides, roleMap] = await Promise.all([
-    prisma.userPermissionOverride.findMany({
-      where: { organizationId, userId: targetUserId },
-      select: { permission: true, effect: true },
-    }),
-    loadOrganizationRolePermissionMap(organizationId),
+    listUserPermissionOverrides(params.organizationId, params.targetUserId),
+    loadOrganizationRolePermissionMap(params.organizationId),
   ]);
   const roleHas = createRolePermissionCheck(targetMembership.role, roleMap);
   const typedOverrides = overrides as PermissionOverride[];
 
-  return NextResponse.json({
+  return {
     role: targetMembership.role,
     overrides: typedOverrides,
     roleModuleAccess: buildEffectiveModuleMatrix(targetMembership.role, [], roleHas),
     moduleAccess: buildEffectiveModuleMatrix(targetMembership.role, typedOverrides, roleHas),
-  });
+  };
 }
 
-export async function putUserPermissionOverrides(req: AuthenticatedRequest, ctx: { params: Promise<{ id: string }> }) {
-  const { id: targetUserId } = await ctx.params;
-  const organizationId = canonicalOrganizationId();
-  const actorId = req.user!.userId;
+export async function putUserPermissionOverridesUseCase(params: {
+  organizationId: string;
+  actorUserId: string;
+  targetUserId: string;
+  body: UserPermissionOverridesPutInput;
+}) {
+  const { organizationId, actorUserId, targetUserId, body } = params;
 
-  const actorMembership = await prisma.organizationMembership.findUnique({
-    where: { organizationId_userId: { organizationId, userId: actorId } },
-    select: { role: true },
-  });
-  if (!actorMembership) return NextResponse.json({ error: 'Sin membresía' }, { status: 403 });
-  await requireOrganizationPermission(actorId, organizationId, actorMembership.role, 'users.update');
+  const targetMembership = await findMembershipByOrgUser(organizationId, targetUserId);
+  if (!targetMembership) {
+    throw new MembershipNotFoundError();
+  }
 
-  const parsed = putSchema.parse(await req.json());
-
-  const targetMembership = await prisma.organizationMembership.findUnique({
-    where: { organizationId_userId: { organizationId, userId: targetUserId } },
-    select: { role: true },
-  });
-  if (!targetMembership) return NextResponse.json({ error: 'Usuario sin membresía' }, { status: 404 });
-
-  const beforeOverrides = await prisma.userPermissionOverride.findMany({
-    where: { organizationId, userId: targetUserId },
-    select: { permission: true, effect: true },
-  });
+  const beforeOverrides = await listUserPermissionOverrides(organizationId, targetUserId);
 
   const roleMap = await loadOrganizationRolePermissionMap(organizationId);
   const roleHas = createRolePermissionCheck(targetMembership.role, roleMap);
 
   let nextOverrides: PermissionOverride[] = beforeOverrides as PermissionOverride[];
-  for (const row of parsed.rows) {
+  for (const row of body.rows) {
     const def = MODULE_CATALOG[row.module];
     const allowedExtras = new Set(def.specials.map((s) => s.id));
     const normalized = normalizeDesiredRow({
@@ -108,32 +80,14 @@ export async function putUserPermissionOverrides(req: AuthenticatedRequest, ctx:
 
   const illegalDenies = findDenyOverridesOnLockedPermissions(targetMembership.role, nextOverrides);
   if (illegalDenies.length > 0) {
-    return NextResponse.json(
-      {
-        error: 'No se pueden denegar permisos obligatorios del rol',
-        permissions: illegalDenies,
-      },
-      { status: 400 },
-    );
+    throw new DenyLockedPermissionError(illegalDenies);
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.userPermissionOverride.deleteMany({ where: { organizationId, userId: targetUserId } });
-    if (nextOverrides.length) {
-      await tx.userPermissionOverride.createMany({
-        data: nextOverrides.map((o) => ({
-          organizationId,
-          userId: targetUserId,
-          permission: o.permission,
-          effect: o.effect,
-          createdById: actorId,
-        })),
-      });
-    }
-    await tx.organizationMembership.update({
-      where: { organizationId_userId: { organizationId, userId: targetUserId } },
-      data: { accessVersion: { increment: 1 } },
-    });
+  await replaceUserPermissionOverrides({
+    organizationId,
+    userId: targetUserId,
+    actorUserId,
+    overrides: nextOverrides,
   });
 
   await createAuditRecord({
@@ -141,54 +95,49 @@ export async function putUserPermissionOverrides(req: AuthenticatedRequest, ctx:
     description: `Overrides actualizados para ${targetUserId}`,
     module: 'USUARIOS',
     category: 'UPDATE',
-    userId: actorId,
+    userId: actorUserId,
     entityId: targetUserId,
     previousData: { overrides: beforeOverrides },
     newData: { overrides: nextOverrides },
   });
 
-  return NextResponse.json({
-    ok: true,
+  return {
+    ok: true as const,
     overrides: nextOverrides,
     moduleAccess: buildEffectiveModuleMatrix(targetMembership.role, nextOverrides, roleHas),
-  });
+  };
 }
 
-export async function deleteUserPermissionOverrides(req: AuthenticatedRequest, ctx: { params: Promise<{ id: string }> }) {
-  const { id: targetUserId } = await ctx.params;
-  const organizationId = canonicalOrganizationId();
-  const actorId = req.user!.userId;
+export async function deleteUserPermissionOverridesUseCase(params: {
+  organizationId: string;
+  actorUserId: string;
+  targetUserId: string;
+}) {
+  const { organizationId, actorUserId, targetUserId } = params;
 
-  const actorMembership = await prisma.organizationMembership.findUnique({
-    where: { organizationId_userId: { organizationId, userId: actorId } },
-    select: { role: true },
-  });
-  if (!actorMembership) return NextResponse.json({ error: 'Sin membresía' }, { status: 403 });
-  await requireOrganizationPermission(actorId, organizationId, actorMembership.role, 'users.update');
+  const beforeOverrides = await listUserPermissionOverrides(organizationId, targetUserId);
 
-  const beforeOverrides = await prisma.userPermissionOverride.findMany({
-    where: { organizationId, userId: targetUserId },
-  });
-
-  await prisma.$transaction([
-    prisma.userPermissionOverride.deleteMany({ where: { organizationId, userId: targetUserId } }),
-    prisma.organizationMembership.update({
-      where: { organizationId_userId: { organizationId, userId: targetUserId } },
-      data: { accessVersion: { increment: 1 } },
-    }),
-  ]);
+  await clearUserPermissionOverrides(organizationId, targetUserId);
 
   await createAuditRecord({
     title: 'Excepciones de permisos eliminadas',
     description: `Se restableció el rol base para ${targetUserId}`,
     module: 'USUARIOS',
     category: 'UPDATE',
-    userId: actorId,
+    userId: actorUserId,
     entityId: targetUserId,
     previousData: { overrides: beforeOverrides },
     newData: { overrides: [] },
   });
 
-  return NextResponse.json({ ok: true });
+  return { ok: true as const };
 }
 
+/** Used by routes after requireOrganizationPermission to load actor membership role. */
+export async function findActorMembershipRole(organizationId: string, actorUserId: string): Promise<OrganizationRole> {
+  const actorMembership = await findMembershipByOrgUser(organizationId, actorUserId);
+  if (!actorMembership) {
+    throw new ActorMembershipMissingError();
+  }
+  return actorMembership.role;
+}

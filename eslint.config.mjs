@@ -1,7 +1,10 @@
 import { defineConfig, globalIgnores } from 'eslint/config';
 import nextVitals from 'eslint-config-next/core-web-vitals';
 import nextTs from 'eslint-config-next/typescript';
-import { PRISMA_IN_PRESENTATION_BASELINE } from './eslint.architecture-baseline.mjs';
+import {
+  APPLICATION_LAYER_BASELINE,
+  PRISMA_IN_PRESENTATION_BASELINE,
+} from './eslint.architecture-baseline.mjs';
 
 // ADR 003 — Monolito modular por capas (docs/adr/003-arquitectura-monolito-modular.md)
 const PRISMA_PRESENTATION_MESSAGE =
@@ -10,6 +13,9 @@ const PRISMA_PRESENTATION_MESSAGE =
 function escapePresentationBaselinePath(path) {
   return path.replace(/\[/g, '\\[').replace(/\]/g, '\\]');
 }
+
+const APPLICATION_LAYER_MESSAGE =
+  'ADR 003: application no importa Next.js ni Prisma; usa infrastructure y presentation para HTTP.';
 
 const PRISMA_PRESENTATION_BASELINE_FILES = PRISMA_IN_PRESENTATION_BASELINE.map(
   escapePresentationBaselinePath,
@@ -55,6 +61,30 @@ const eslintConfig = defineConfig([
   // Baseline legacy violators (ADR 003 phase 0): exact paths so dynamic segments are not glob classes.
   {
     files: PRISMA_PRESENTATION_BASELINE_FILES,
+    rules: {
+      '@typescript-eslint/no-restricted-imports': 'off',
+    },
+  },
+  {
+    files: ['src/modules/*/application/**/*.ts'],
+    ignores: [
+      'src/modules/*/application/**/*.test.ts',
+      'src/modules/*/application/**/__tests__/**',
+    ],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': ['error', {
+        paths: [
+          { name: 'next', message: APPLICATION_LAYER_MESSAGE },
+          { name: '@/lib/prisma', message: APPLICATION_LAYER_MESSAGE },
+        ],
+        patterns: [
+          { group: ['next/*'], message: APPLICATION_LAYER_MESSAGE },
+        ],
+      }],
+    },
+  },
+  {
+    files: APPLICATION_LAYER_BASELINE.map(escapePresentationBaselinePath),
     rules: {
       '@typescript-eslint/no-restricted-imports': 'off',
     },
