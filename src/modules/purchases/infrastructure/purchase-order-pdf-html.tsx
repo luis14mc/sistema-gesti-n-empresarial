@@ -3,7 +3,7 @@ import { assertUrlIsSafe } from '@/platform/integrations/application/ssrf-guard'
 import { PurchaseOrderDocument } from '@/components/compras/document/PurchaseOrderDocument';
 import { buildPreviewDataFromOrder } from '@/modules/purchases/presentation/purchase-order-preview-data';
 import type { PurchaseOrderTemplateConfig } from '@/modules/purchases/infrastructure/purchase-order-template-config';
-import { resolveInstitutionLogoDataUri } from '@/lib/compras/institution';
+import { resolveInstitutionLogoDataUri } from '@/modules/purchases/infrastructure/institution';
 
 type OrderPdfData = Pick<
   CompraOrden,

@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { runDisposalRoute } from '@/modules/equipment-disposal/presentation/http';
 import { requireOrganizationPermission } from '@/platform/security/authorization/effective-permissions';
 import { EquipmentDisposalError } from '@/modules/equipment-disposal/application/errors';
-import { readStoredDocument, buildAttachmentContentDisposition } from '@/lib/compras/orden/document-access';
+import { readStoredDocument, buildAttachmentContentDisposition } from '@/modules/purchases/infrastructure/purchase-order-document-access';
 
 async function handler(request: AuthenticatedRequest, { params }: { params: Promise<{ id: string }> }) {
   return runDisposalRoute(request, 'pdf.download', async ({ context, requestId }) => {

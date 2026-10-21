@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeLogoCandidate } from '../src/lib/compras/institution';
+import { sanitizeLogoCandidate } from '../src/modules/purchases/infrastructure/institution';
 import {
   PDF_RENDER_TIMEOUT_MS,
   installPuppeteerShutdownHandlers,
   isMissingBrowserError,
-} from '../src/lib/compras/pdf-renderer';
+} from '../src/platform/pdf/html-to-pdf';
 
 describe('S3 Compras — regresión de fixes críticos', () => {
   describe('C-4 Path traversal en logo institucional', () => {

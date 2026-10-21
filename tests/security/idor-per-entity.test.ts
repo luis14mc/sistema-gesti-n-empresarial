@@ -36,7 +36,7 @@ import {
 import {
   purchaseOrderChildScope,
   purchaseOrderScope,
-} from '@/lib/compras/orden/tenant';
+} from '@/modules/purchases/infrastructure/purchase-order-tenant';
 import { notificationCommandService, notificationQueryService } from '@/modules/notifications/application/queries';
 
 const ORG_A = 'org-a';

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { calcularLineaTotal, calcularTotalesCompra } from '../src/lib/compras/calculos';
-import { getNextEstado, canPerformCompraAction } from '../src/lib/compras/workflow';
+import { calcularLineaTotal, calcularTotalesCompra } from '../src/modules/purchases/domain/calculos-legacy';
+import { getNextEstado, canPerformCompraAction } from '../src/modules/purchases/domain/workflow';
 
 describe('compras calculos', () => {
   it('calcula total de línea', () => {

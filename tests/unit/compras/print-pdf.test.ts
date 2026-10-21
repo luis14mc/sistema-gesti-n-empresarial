@@ -6,7 +6,7 @@ import {
   openPdfFallback,
   printPdf,
   type PrintPdfDeps,
-} from '@/lib/compras/print-pdf';
+} from '@/modules/purchases/infrastructure/purchase-order-print-pdf';
 
 vi.mock('sileo', () => ({
   sileo: { warning: vi.fn() },

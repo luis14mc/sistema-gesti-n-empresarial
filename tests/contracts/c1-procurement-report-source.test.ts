@@ -28,7 +28,10 @@ describe('C-1 · purchasing metrics read the canonical purchase-order aggregate'
   });
 
   it('purchasing report route reads CompraOrden / purchase_orders, not CompraSolicitud', () => {
-    const src = read('src/app/api/compras/reportes/route.ts');
+    const routeSrc = read('src/app/api/compras/reportes/route.ts');
+    expect(routeSrc).toMatch(/getPurchaseReportsSummary/);
+
+    const src = read('src/modules/purchases/infrastructure/purchase-report-queries.ts');
     expect(src).toMatch(/prisma\.compraOrden\.groupBy/);
     expect(src).toMatch(/FROM "purchase_orders"/);
     // Assert on actual query usage, not substrings — the legacy name may
@@ -44,7 +47,7 @@ describe('C-1 · purchasing metrics read the canonical purchase-order aggregate'
   });
 
   it('canonical purchase status maps back to the legacy label vocabulary for the report UI', () => {
-    const src = read('src/app/api/compras/reportes/route.ts');
+    const src = read('src/modules/purchases/infrastructure/purchase-report-queries.ts');
     // The five PurchaseOrderStatus values must each map to an estado label code.
     for (const status of ['DRAFT', 'GENERATED', 'ISSUED', 'CANCELLED', 'CLOSED']) {
       expect(src).toContain(status);

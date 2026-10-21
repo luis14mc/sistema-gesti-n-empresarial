@@ -17,7 +17,6 @@ const LIB_FROZEN_ENTRIES = [
   'audit.ts',
   'auth.ts',
   'brand.ts',
-  'compras',
   'deprecated-api.ts',
   'deprecated-frontend-paths.ts',
   'employees.ts',

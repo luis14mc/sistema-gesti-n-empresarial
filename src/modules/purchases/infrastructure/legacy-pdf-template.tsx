@@ -2,7 +2,7 @@ import type { CompraSolicitud, CompraSolicitudItem, PurchaseOrderStatus, Purchas
 import { PurchaseOrderDocument } from '@/components/compras/document/PurchaseOrderDocument';
 import { getActiveTemplateConfig } from '@/modules/purchases/infrastructure/purchase-order-template';
 import type { PurchaseOrderPreviewData } from '@/modules/purchases/presentation/purchase-order-preview-data';
-import { resolveInstitutionLogoDataUri } from '@/lib/compras/institution';
+import { resolveInstitutionLogoDataUri } from '@/modules/purchases/infrastructure/institution';
 import { ORDER_STATUS_LABELS } from '@/modules/purchases/domain/purchase-order-constants';
 
 type OrdenPdfData = CompraSolicitud & {

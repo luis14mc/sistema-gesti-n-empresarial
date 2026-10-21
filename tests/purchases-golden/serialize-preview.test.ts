@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Prisma } from '@prisma/client';
-import { serializePurchaseOrder } from '@/lib/compras/orden/serialize';
-import { buildPreviewDataFromInput } from '@/lib/compras/orden/preview-data';
+import { serializePurchaseOrder } from '@/modules/purchases/presentation/purchase-order-serialize';
+import { buildPreviewDataFromInput } from '@/modules/purchases/presentation/purchase-order-preview-data';
 import fixture from './__fixtures__/serialize-preview.json';
 
 const template = {

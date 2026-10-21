@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   validatePurchaseOrderForGeneration,
   type PurchaseOrderWithItems,
-} from '@/lib/compras/orden/generation-validation';
+} from '@/modules/purchases/domain/generation-validation';
 
 function validOrder(): PurchaseOrderWithItems {
   return {

@@ -1,7 +1,7 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { COMPRA_ESTADO_LABELS } from '@/lib/compras/constants';
+import { COMPRA_ESTADO_LABELS } from '@/modules/purchases/domain/constants-legacy';
 import type { CompraEstado } from '@/types/compras';
 
 const VARIANTS: Partial<Record<string, 'default' | 'secondary' | 'destructive' | 'outline'>> = {

@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { getInstitutionConfig, saveInstitutionLogo } from '@/lib/compras/institution';
-import { saveInstitutionSettings } from '@/lib/compras/institution-store';
+import {
+  getInstitutionConfig,
+  saveInstitutionLogo,
+  saveInstitutionSettings,
+} from '@/modules/purchases/application/institution';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
-import { handlePrismaRouteError } from '@/lib/compras/orden/prisma-error';
+import { handlePurchaseOrderRouteError } from '@/modules/purchases/presentation/http';
 
 async function postHandler(req: AuthenticatedRequest) {
   try {
@@ -24,7 +27,7 @@ async function postHandler(req: AuthenticatedRequest) {
 
     return NextResponse.json({ settings, logoUrl: config.logoUrl });
   } catch (error) {
-    return handlePrismaRouteError(error, 'POST /api/compras/institucion/logo');
+    return handlePurchaseOrderRouteError(error, 'POST /api/compras/institucion/logo');
   }
 }
 

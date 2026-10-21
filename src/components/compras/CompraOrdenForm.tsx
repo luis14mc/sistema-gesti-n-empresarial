@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useForm, useFieldArray, useWatch, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Trash2 } from 'lucide-react';
-import Swal from '@/lib/compras/orden/swal';
+import Swal from '@/components/compras/purchase-order-swal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,14 +13,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { getFirstErrorField, getFirstFormErrorMessage } from '@/lib/form-errors';
-import { UNIT_LABELS } from '@/lib/compras/orden/constants';
-import { calculatePurchaseOrder, PURCHASE_TAX_PROFILE_OPTIONS, toDecimal } from '@/lib/compras/orden/calculos';
+import { UNIT_LABELS } from '@/modules/purchases/domain/purchase-order-constants';
+import { calculatePurchaseOrder, PURCHASE_TAX_PROFILE_OPTIONS, toDecimal } from '@/modules/purchases/infrastructure/purchase-order-calculos';
 import {
   createPurchaseOrderSchema,
   draftPurchaseOrderSchema,
   type CreatePurchaseOrderInput,
   type DraftPurchaseOrderInput,
-} from '@/lib/compras/orden/schemas';
+} from '@/modules/purchases/presentation/purchase-order-schemas';
 import type { CompraOrden } from '@/types/compra-orden';
 import type { Proveedor } from '@/types/compras';
 import { comprasService } from '@/services/compras.service';

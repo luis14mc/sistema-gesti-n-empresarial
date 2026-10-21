@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { getInstitutionConfig } from '@/lib/compras/institution';
-import { getInstitutionSettings, saveInstitutionSettings } from '@/lib/compras/institution-store';
+import {
+  getInstitutionConfig,
+  getInstitutionSettings,
+  saveInstitutionSettings,
+} from '@/modules/purchases/application/institution';
 import { z } from 'zod';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
-import { handlePrismaRouteError } from '@/lib/compras/orden/prisma-error';
+import { handlePurchaseOrderRouteError } from '@/modules/purchases/presentation/http';
 
 const institutionSchema = z.object({
   name: z.string().min(2).max(200),
@@ -27,7 +30,7 @@ async function getHandler(req: AuthenticatedRequest) {
       logoUrl: config.logoUrl,
     });
   } catch (error) {
-    return handlePrismaRouteError(error, 'GET /api/compras/institucion');
+    return handlePurchaseOrderRouteError(error, 'GET /api/compras/institucion');
   }
 }
 
@@ -49,7 +52,7 @@ async function putHandler(req: AuthenticatedRequest) {
 
     return NextResponse.json({ settings, logoUrl: config.logoUrl });
   } catch (error) {
-    return handlePrismaRouteError(error, 'PUT /api/compras/institucion');
+    return handlePurchaseOrderRouteError(error, 'PUT /api/compras/institucion');
   }
 }
 

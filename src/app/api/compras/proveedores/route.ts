@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { createProveedorSchema } from '@/lib/compras/schemas';
-import { createProveedor } from '@/lib/compras/service';
-import { validateRtn } from '@/lib/compras/validation';
+import { createProveedorSchema } from '@/modules/purchases/presentation/supplier-schemas';
+import { createProveedor, listSuppliers } from '@/modules/purchases/application/suppliers';
+import { validateRtn } from '@/modules/purchases/domain/rtn-validation';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
-import { PermissionDeniedError } from '@/platform/domain/errors';
-import { isOrganizationContextError } from '@/modules/organizations/application/context';
+import { supplierFallbackError, supplierRouteErrorResponse } from '@/modules/purchases/presentation/http';
 
 async function getHandler(req: AuthenticatedRequest) {
   try {
@@ -18,43 +16,20 @@ async function getHandler(req: AuthenticatedRequest) {
     const activo = searchParams.get('activo');
     const page = Math.max(Number.parseInt(searchParams.get('page') ?? '1', 10) || 1, 1);
     const pageSize = Math.min(Math.max(Number.parseInt(searchParams.get('pageSize') ?? '10', 10) || 10, 1), 50);
-    const skip = (page - 1) * pageSize;
-    const digits = search.replace(/\D/g, '');
-    const contains = { contains: search, mode: 'insensitive' as const };
-    const where = {
+
+    const result = await listSuppliers({
       organizationId,
-      deletedAt: null,
-      ...(activo === 'true' ? { activo: true } : {}),
-      ...(search
-        ? {
-            OR: [
-              { nombreRazonSocial: contains },
-              { telefono: contains },
-              { email: contains },
-              { personaContacto: contains },
-              { rtn: contains },
-              ...(digits && digits !== search
-                ? [
-                    { rtn: { contains: digits } },
-                    { telefono: { contains: digits } },
-                  ]
-                : []),
-            ],
-          }
-        : {}),
-    };
+      search,
+      activo: activo === 'true' ? true : undefined,
+      page,
+      pageSize,
+    });
 
-    const [proveedores, total] = await Promise.all([
-      prisma.proveedor.findMany({ where, skip, take: pageSize, orderBy: { nombreRazonSocial: 'asc' } }),
-      prisma.proveedor.count({ where }),
-    ]);
-
-    return NextResponse.json({ proveedores, total, page, pageSize, totalPages: Math.ceil(total / pageSize) });
+    return NextResponse.json(result);
   } catch (error) {
-    if (error instanceof PermissionDeniedError) return NextResponse.json({ error: error.message }, { status: 403 });
-    if (isOrganizationContextError(error)) return NextResponse.json({ error: error.message }, { status: error.status });
-    console.error('Error listing proveedores:', error);
-    return NextResponse.json({ error: 'Error al listar proveedores' }, { status: 500 });
+    const supplier = supplierRouteErrorResponse(error);
+    if (supplier) return supplier;
+    return supplierFallbackError('list', error);
   }
 }
 
@@ -76,10 +51,9 @@ async function postHandler(req: AuthenticatedRequest) {
     const proveedor = await createProveedor(parsed.data, organizationId);
     return NextResponse.json({ proveedor }, { status: 201 });
   } catch (error) {
-    if (error instanceof PermissionDeniedError) return NextResponse.json({ error: error.message }, { status: 403 });
-    if (isOrganizationContextError(error)) return NextResponse.json({ error: error.message }, { status: error.status });
-    console.error('Error creating proveedor:', error);
-    return NextResponse.json({ error: 'Error al crear proveedor' }, { status: 500 });
+    const supplier = supplierRouteErrorResponse(error);
+    if (supplier) return supplier;
+    return supplierFallbackError('create', error);
   }
 }
 

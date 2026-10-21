@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { ensureDefaultTemplate, getActiveTemplateConfig } from '@/lib/compras/orden/template';
-import { canOrdenAction } from '@/lib/compras/orden/permissions';
+import { ensureDefaultTemplate, getActiveTemplateConfig } from '@/modules/purchases/infrastructure/purchase-order-template';
+import { canOrdenAction } from '@/modules/purchases/domain/purchase-order-permissions';
 import type { Role } from '@/types';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 

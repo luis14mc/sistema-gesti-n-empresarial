@@ -1,5 +1,5 @@
 import { permanentRedirect } from 'next/navigation';
-import { resolveComprasSolicitudesRedirect } from '@/lib/compras/orden/list-status-filter';
+import { resolveComprasSolicitudesRedirect } from '@/modules/purchases/domain/list-status-filter';
 
 type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;

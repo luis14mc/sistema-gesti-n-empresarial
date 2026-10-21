@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { fetchPdfBlobUrl } from '@/lib/compras/print-pdf';
+import { fetchPdfBlobUrl } from '@/modules/purchases/infrastructure/purchase-order-print-pdf';
 import { cn } from '@/lib/utils';
 
 type ViewerState =

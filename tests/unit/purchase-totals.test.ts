@@ -1,7 +1,7 @@
 // Phase 10B — domain unit tests for purchase totals.
 import { describe, expect, it } from 'vitest';
-import { calcularLineaTotal, calcularTotalesCompra } from '@/lib/compras/calculos';
-import { COMPRA_IMPUESTO_TASA } from '@/lib/compras/constants';
+import { calcularLineaTotal, calcularTotalesCompra } from '@/modules/purchases/domain/calculos-legacy';
+import { COMPRA_IMPUESTO_TASA } from '@/modules/purchases/domain/constants-legacy';
 
 describe('calcularLineaTotal', () => {
   it('multiplies quantity by unit price and rounds to two decimals', () => {

@@ -1,3 +1,3 @@
-import { createCompraWorkflowRoute } from '@/lib/compras/workflow-route';
+import { createCompraWorkflowRoute } from '@/modules/purchases/presentation/deprecated-compra-solicitudes-route';
 
 export const POST = createCompraWorkflowRoute('generar_orden');

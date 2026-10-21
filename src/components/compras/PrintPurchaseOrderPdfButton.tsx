@@ -3,7 +3,7 @@
 import { useState, type ComponentProps } from 'react';
 import { Loader2, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { printPdf } from '@/lib/compras/print-pdf';
+import { printPdf } from '@/modules/purchases/infrastructure/purchase-order-print-pdf';
 import { compraOrdenService } from '@/services/compra-orden.service';
 import { sileo } from 'sileo';
 

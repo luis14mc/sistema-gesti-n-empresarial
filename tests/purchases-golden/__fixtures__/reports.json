@@ -1,0 +1,35 @@
+{
+  "exportColumns": [
+    { "key": "orderNumber", "header": "N.º de orden", "type": "text", "width": 18 },
+    { "key": "requestDate", "header": "Fecha", "type": "date", "width": 12 },
+    { "key": "status", "header": "Estado", "type": "text", "width": 12 },
+    { "key": "supplierName", "header": "Proveedor", "type": "text", "width": 28 },
+    { "key": "supplierRtn", "header": "RTN", "type": "text", "width": 16 },
+    { "key": "subtotal", "header": "Subtotal", "type": "currency", "width": 14 },
+    { "key": "discount", "header": "Descuento", "type": "currency", "width": 14 },
+    { "key": "taxableBase", "header": "Base gravable", "type": "currency", "width": 14 },
+    { "key": "tax", "header": "ISV", "type": "currency", "width": 14 },
+    { "key": "total", "header": "Total", "type": "currency", "width": 16 }
+  ],
+  "sampleOrderRow": {
+    "orderNumber": "COM-CNI-2026-00042",
+    "statusLabel": "Emitida",
+    "supplierName": "Proveedor Reporte SA",
+    "supplierRtn": "08019999000001",
+    "subtotal": 1000,
+    "discount": 50,
+    "taxableBase": 950,
+    "tax": 142.5,
+    "total": 1092.5
+  },
+  "reportesStatusMap": {
+    "DRAFT": "BORRADOR",
+    "GENERATED": "GENERADA",
+    "ISSUED": "EMITIDA",
+    "CANCELLED": "ANULADA",
+    "CLOSED": "CERRADA"
+  },
+  "reportesQueryParams": {
+    "yearDefaultKey": "year"
+  }
+}

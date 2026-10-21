@@ -6,9 +6,9 @@ import {
   getNextEstado,
   canPerformCompraAction,
   type CompraWorkflowAction,
-} from '@/lib/compras/workflow';
-import { canOrdenAction, type OrderAction } from '@/lib/compras/orden/permissions';
-import { parsePurchaseOrderListStatus } from '@/lib/compras/orden/list-status-filter';
+} from '@/modules/purchases/domain/workflow';
+import { canOrdenAction, type OrderAction } from '@/modules/purchases/domain/purchase-order-permissions';
+import { parsePurchaseOrderListStatus } from '@/modules/purchases/domain/list-status-filter';
 import fixture from './__fixtures__/workflow.json';
 
 const COMPRA_ACTIONS = Object.keys(fixture.compraTransitions) as CompraWorkflowAction[];

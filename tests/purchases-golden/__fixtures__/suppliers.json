@@ -1,0 +1,18 @@
+{
+  "rtnValidation": {
+    "valid": ["08011999123456", "0801-1999-123-456", "", null],
+    "invalid": ["123", "0801199912345678", "00000000000000"]
+  },
+  "schemaMessages": {
+    "missingName": "String must contain at least 2 character(s)",
+    "invalidEmail": "Invalid email"
+  },
+  "httpResponses": {
+    "invalidRtnBody": "RTN inválido (14 dígitos)",
+    "duplicateRtnBody": "Ya existe un proveedor con ese RTN en la organización",
+    "notFoundBody": "Proveedor no encontrado",
+    "hasDependenciesBody": "No se puede eliminar: el proveedor tiene órdenes o solicitudes asociadas",
+    "invalidDataBody": "Datos inválidos"
+  },
+  "duplicateErrorCode": "P2002"
+}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Prisma } from '@prisma/client';
-import { validatePurchaseOrderForGeneration } from '@/lib/compras/orden/generation-validation';
-import { validatePurchaseDocumentFile } from '@/lib/compras/orden/document-validation';
+import { validatePurchaseOrderForGeneration } from '@/modules/purchases/domain/generation-validation';
+import { validatePurchaseDocumentFile } from '@/modules/purchases/domain/document-validation';
 import fixture from './__fixtures__/validation.json';
 
 const baseOrder = {

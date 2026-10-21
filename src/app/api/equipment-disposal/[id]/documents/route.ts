@@ -5,7 +5,7 @@ import { runDisposalRoute } from '@/modules/equipment-disposal/presentation/http
 import { requireOrganizationPermission } from '@/platform/security/authorization/effective-permissions';
 import { EquipmentDisposalError } from '@/modules/equipment-disposal/application/errors';
 import { storeDisposalDocument } from '@/modules/equipment-disposal/infrastructure/documents';
-import { removeStoredDocument } from '@/lib/compras/orden/document-access';
+import { removeStoredDocument } from '@/modules/purchases/infrastructure/purchase-order-document-access';
 
 async function getHandler(request: AuthenticatedRequest, { params }: { params: Promise<{ id: string }> }) {
   return runDisposalRoute(request, 'documents.list', async ({ context, requestId }) => {

@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { prisma } from '@/lib/prisma';
-import { purchaseOrderTemplateSchema } from '@/lib/compras/orden/schemas';
-import { savePurchaseOrderTemplate, ensureDefaultTemplate } from '@/lib/compras/orden/template';
-import { canOrdenAction } from '@/lib/compras/orden/permissions';
+import { purchaseOrderTemplateSchema } from '@/modules/purchases/presentation/purchase-order-schemas';
+import {
+  ensureDefaultTemplate,
+  findActivePurchaseOrderTemplateForOrganization,
+  savePurchaseOrderTemplate,
+} from '@/modules/purchases/application/purchase-order-template';
+import { canOrdenAction } from '@/modules/purchases/domain/purchase-order-permissions';
 import type { Role } from '@/types';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 
@@ -14,10 +17,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
   }
   await ensureDefaultTemplate(organizationId, req.user!.userId);
-  const template = await prisma.compraOrdenTemplate.findFirst({
-    where: { isActive: true, createdBy: { organizationMemberships: { some: { organizationId } } } },
-    orderBy: { version: 'desc' },
-  });
+  const template = await findActivePurchaseOrderTemplateForOrganization(organizationId);
   return NextResponse.json({ template });
 });
 

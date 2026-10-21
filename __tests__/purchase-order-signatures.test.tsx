@@ -5,8 +5,8 @@ import {
   buildPreviewDataFromInput,
   buildPreviewDataFromSerializedOrder,
   formatSignatureAttribution,
-} from '@/lib/compras/orden/preview-data';
-import type { PurchaseOrderTemplateConfig } from '@/lib/compras/orden/template-config';
+} from '@/modules/purchases/presentation/purchase-order-preview-data';
+import type { PurchaseOrderTemplateConfig } from '@/modules/purchases/infrastructure/purchase-order-template-config';
 import { can, organizationRole, PURCHASE_ORDER_APPROVE } from '@/platform/security/authorization/permissions';
 
 const format: PurchaseOrderTemplateConfig = {

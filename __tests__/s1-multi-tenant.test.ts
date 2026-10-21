@@ -139,13 +139,13 @@ describe('S1 Multi-tenant — regresión de fixes críticos', () => {
 
   describe('C-12 CompraSolicitud legacy: routes que usaban createCompraWorkflowRoute', () => {
     it('createCompraWorkflowRoute retorna 410 Gone', async () => {
-      const { createCompraWorkflowRoute } = await import('../src/lib/compras/workflow-route');
+      const { createCompraWorkflowRoute } = await import('../src/modules/purchases/presentation/deprecated-compra-solicitudes-route');
       const handler = createCompraWorkflowRoute('anular');
       expect(handler).toBeTypeOf('function');
     });
 
     it('la helper signature acepta CompraWorkflowAction (anular, emitir, cerrar, etc.)', async () => {
-      const { createCompraWorkflowRoute } = await import('../src/lib/compras/workflow-route');
+      const { createCompraWorkflowRoute } = await import('../src/modules/purchases/presentation/deprecated-compra-solicitudes-route');
       const actions = ['anular', 'emitir', 'cerrar', 'generar_orden', 'regenerar_pdf'] as const;
       for (const action of actions) {
         const handler = createCompraWorkflowRoute(action);
