@@ -1,6 +1,6 @@
 import { ZodError } from 'zod';
 import type { NextResponse } from 'next/server';
-import type { AuthenticatedRequest } from '@/lib/middleware';
+import type { AuthenticatedRequest } from '@/platform/api/with-auth';
 import { apiFailure } from '@/platform/api/response';
 import { createLogger } from '@/platform/observability/logger';
 import { recordSecurityEventBestEffort } from '@/platform/security/audit/security-events';

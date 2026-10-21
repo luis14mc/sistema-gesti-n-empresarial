@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import {
   generateToken,
   verifyToken,
-} from '../src/lib/auth';
+} from '@/platform/security/authentication/auth';
 import {
   JWT_ALGORITHM,
   JWT_AUDIENCE,
@@ -11,7 +11,7 @@ import {
   VALID_ROLES,
   validateTokenClaims,
   type Role,
-} from '../src/lib/jwt-config';
+} from '@/platform/security/authentication/jwt-config';
 
 const TEST_SECRET = 'a'.repeat(48);
 

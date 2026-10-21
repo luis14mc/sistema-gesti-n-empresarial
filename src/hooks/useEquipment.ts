@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { sileo } from 'sileo';
-import { getApiErrorMessage } from '@/lib/api-error';
+import { getApiErrorMessage } from '@/platform/api/api-error';
 
 // ============================================
 // HOOK useEquipment - React Query

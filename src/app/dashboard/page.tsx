@@ -1,4 +1,4 @@
-import { requireSession } from '@/lib/session';
+import { requireSession } from '@/platform/security/authentication/session';
 import { prisma } from '@/lib/prisma';
 import MainLayout from '@/components/layout/MainLayout';
 import type { DashboardStats, DashboardRecentOficio } from '@/types';

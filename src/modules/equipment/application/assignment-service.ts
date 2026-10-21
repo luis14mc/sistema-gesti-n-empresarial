@@ -1,4 +1,4 @@
-import { createAuditRecord } from '@/lib/audit';
+import { createAuditRecord } from '@/platform/security/audit/audit-record';
 import { resolveEmployeeSnapshot } from '@/lib/employees';
 import { logEquipmentHistory, mapReturnConditionToStatus } from '@/modules/equipment/infrastructure/equipment-history';
 import {

@@ -4,7 +4,7 @@ import {
   RATE_LIMIT_RULES,
   getClientIp,
   rateLimitHeaders,
-} from '../src/lib/rate-limit';
+} from '@/platform/security/authentication/rate-limit';
 
 function fakeRequest(headers: Record<string, string>): Request {
   return new Request('https://test.local/login', { headers });

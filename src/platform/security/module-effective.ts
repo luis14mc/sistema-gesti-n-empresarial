@@ -1,4 +1,4 @@
-import type { SessionRole } from '@/lib/session-roles';
+import type { SessionRole } from '@/platform/security/authorization/session-roles';
 import {
   MODULE_CATALOG,
   MODULE_IDS,

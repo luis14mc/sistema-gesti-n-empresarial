@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { apiFailure } from '@/platform/api/response';
 import { authorizeOrganization, authorizationFailure } from '@/platform/security/authorization/http';
 import { buildEquipmentTemplate } from '@/modules/equipment/import-export/equipment-template';

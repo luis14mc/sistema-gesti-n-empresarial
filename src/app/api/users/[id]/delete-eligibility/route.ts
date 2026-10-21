@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { getDeleteEligibility } from '@/modules/users/application/user-delete-eligibility-service';
 import { handleUsersApiError } from '@/modules/users/presentation/http';
 import { authorizeOrganization } from '@/platform/security/authorization/http';

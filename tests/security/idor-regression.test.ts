@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyIdorFilter, checkItemAccess } from '@/lib/idor';
+import { applyIdorFilter, checkItemAccess } from '@/platform/security/authorization/idor';
 import { createTestOrganizationPair, createTestUserPair, createTestMembership } from '../fixtures';
 
 describe('applyIdorFilter (Phase 10A security regression)', () => {

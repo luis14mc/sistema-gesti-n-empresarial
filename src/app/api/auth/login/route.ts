@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { comparePassword } from '@/lib/auth';
-import { generateSessionToken } from '@/lib/session-token';
-import { createAuditRecord } from '@/lib/audit';
+import { comparePassword } from '@/platform/security/authentication/auth';
+import { generateSessionToken } from '@/platform/security/authentication/session-token';
+import { createAuditRecord } from '@/platform/security/audit/audit-record';
 import { resolveSessionRole } from '@/platform/security/authorization/session-role';
 import { loginSchema } from '@/lib/zod-schemas';
 import { createHash } from 'node:crypto';
@@ -11,7 +11,7 @@ import {
   RATE_LIMIT_RULES,
   getClientIp,
   rateLimitHeaders,
-} from '@/lib/rate-limit';
+} from '@/platform/security/authentication/rate-limit';
 
 // Limiter por proceso (Edge-friendly). En producción multi-worker,
 // reemplazar por Upstash Redis o equivalente distribuido.

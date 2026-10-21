@@ -1,4 +1,4 @@
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { prisma } from '@/lib/prisma';
 import { apiSuccess } from '@/platform/api/response';
 import { runDisposalRoute } from '@/modules/equipment-disposal/presentation/http';

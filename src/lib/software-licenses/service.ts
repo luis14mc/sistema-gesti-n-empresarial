@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
-import { createAuditRecord } from '@/lib/audit';
+import { createAuditRecord } from '@/platform/security/audit/audit-record';
 import { billingEquivalents } from './billing';
 import { planLicenseImport, type LicenseImportRow } from './import-rows';
 import { renewalAlert, displaySubscriptionStatus } from './renewals';

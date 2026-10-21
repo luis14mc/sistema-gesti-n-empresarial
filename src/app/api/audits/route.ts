@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
-import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
-import { createAuditRecord } from '@/lib/audit';
+import { withAuth, AuthenticatedRequest } from '@/platform/api/with-auth';
+import { createAuditRecord } from '@/platform/security/audit/audit-record';
 import { requireOrganizationContext } from '@/modules/organizations/application/context';
 import { auditWhere } from '@/modules/audits/infrastructure/repository';
 

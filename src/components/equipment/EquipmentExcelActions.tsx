@@ -9,7 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import type { EquipmentFilters } from '@/types';
 import type { EquipmentImportResponse } from '@/services/equipment.service';
 import { sileo } from 'sileo';
-import { getApiErrorMessage } from '@/lib/api-error';
+import { getApiErrorMessage } from '@/platform/api/api-error';
 
 type ImportResult = EquipmentImportResponse['data'];
 

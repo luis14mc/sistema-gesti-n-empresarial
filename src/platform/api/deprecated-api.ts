@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/middleware';
+import { withAuth } from '@/platform/api/with-auth';
 export {
   DEPRECATED_FRONTEND_PREFIXES,
   isDeprecatedFrontendPath,
-} from '@/lib/deprecated-frontend-paths';
+} from '@/platform/api/deprecated-frontend-paths';
 
 export const DEPRECATED_API_MESSAGES = {
   tickets:

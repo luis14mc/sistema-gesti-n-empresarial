@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
-import { createAuditRecord } from '@/lib/audit';
+import { createAuditRecord } from '@/platform/security/audit/audit-record';
 import { licensesToWorkbook } from '@/lib/software-licenses/excel';
 import { listSoftwareSubscriptions } from '@/lib/software-licenses/service';
 import { licenseFailure } from '@/lib/software-licenses/http';

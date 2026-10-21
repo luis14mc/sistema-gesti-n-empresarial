@@ -11,7 +11,7 @@ vi.mock('@/lib/employees', () => ({
   })),
 }));
 
-vi.mock('@/lib/audit', () => ({
+vi.mock('@/platform/security/audit/audit-record', () => ({
   createAuditRecord: vi.fn(async () => undefined),
 }));
 

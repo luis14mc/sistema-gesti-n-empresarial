@@ -1,4 +1,4 @@
-import { createAuditRecord } from '@/lib/audit';
+import { createAuditRecord } from '@/platform/security/audit/audit-record';
 import {
   CannotResetOwnerPasswordError,
   UseSelfPasswordChangeError,

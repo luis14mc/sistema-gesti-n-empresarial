@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import { getStorage } from '@/lib/storage';
+import { getStorage } from '@/platform/storage';
 import { prepareUploadBuffer } from '@/platform/storage/prepare-upload-buffer';
 
 const ALLOWED_MIME = new Set([

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth';
-import { assertTokenSessionStillValid } from '@/lib/session-validity';
+import { verifyToken } from '@/platform/security/authentication/auth';
+import { assertTokenSessionStillValid } from '@/platform/security/authentication/session-validity';
 import { isOrganizationContextError } from '@/modules/organizations/application/context';
 import { PermissionDeniedError } from '@/platform/domain/errors';
 import { sessionRoleMatchesAllowlist } from '@/platform/security/authorization/roles';

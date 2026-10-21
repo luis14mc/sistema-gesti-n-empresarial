@@ -39,7 +39,7 @@ export default defineConfig({
         'coverage/',
         'tests/e2e/**',
         'tests/accessibility/**',
-        'src/lib/storage/s3.ts',
+        'src/platform/storage/s3.ts',
         'src/**/*.d.ts',
       ],
     },

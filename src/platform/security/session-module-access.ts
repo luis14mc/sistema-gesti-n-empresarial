@@ -1,4 +1,4 @@
-import type { SessionRole } from '@/lib/session-roles';
+import type { SessionRole } from '@/platform/security/authorization/session-roles';
 import type { ModuleId } from '@/platform/security/modules';
 
 /** Legacy UI module id (aligned with {@link ModuleId}). */

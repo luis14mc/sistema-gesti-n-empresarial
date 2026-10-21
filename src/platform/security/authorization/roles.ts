@@ -1,7 +1,7 @@
 import type { OrganizationRole, Role as PrismaUserRole } from '@prisma/client';
-import { VALID_SESSION_ROLES, type SessionRole } from '@/lib/session-roles';
+import { VALID_SESSION_ROLES, type SessionRole } from '@/platform/security/authorization/session-roles';
 
-export { SESSION_ROLES, VALID_SESSION_ROLES } from '@/lib/session-roles';
+export { SESSION_ROLES, VALID_SESSION_ROLES } from '@/platform/security/authorization/session-roles';
 export type { SessionRole };
 
 /**

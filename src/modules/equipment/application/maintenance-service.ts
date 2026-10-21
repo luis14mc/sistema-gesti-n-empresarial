@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { createAuditRecord } from '@/lib/audit';
+import { createAuditRecord } from '@/platform/security/audit/audit-record';
 import { logEquipmentHistory } from '@/modules/equipment/infrastructure/equipment-history';
 import {
   countMaintenances,

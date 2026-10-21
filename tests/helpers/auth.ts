@@ -1,5 +1,5 @@
-import type { AuthenticatedRequest } from '@/lib/middleware';
-import { generateToken } from '@/lib/auth';
+import type { AuthenticatedRequest } from '@/platform/api/with-auth';
+import { generateToken } from '@/platform/security/authentication/auth';
 
 const DEFAULT_JWT_SECRET = 'test-secret-key-for-vitest-only-00000000';
 

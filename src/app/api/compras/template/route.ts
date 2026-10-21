@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { purchaseOrderTemplateSchema } from '@/modules/purchases/presentation/purchase-order-schemas';
 import {
   ensureDefaultTemplate,

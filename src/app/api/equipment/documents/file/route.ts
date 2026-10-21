@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { getStorage } from '@/lib/storage';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
+import { getStorage } from '@/platform/storage';
 import { isEquipmentDocumentKeyForOrganization } from '@/modules/equipment/infrastructure/equipment-document-access';
 import { equipmentApiFailure } from '@/modules/equipment/application/http';
 import { authorizeOrganization } from '@/platform/security/authorization/http';

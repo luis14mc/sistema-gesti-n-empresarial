@@ -1,6 +1,6 @@
 import { createHash } from 'crypto';
 import type { Prisma } from '@prisma/client';
-import { createAuditRecord } from '@/lib/audit';
+import { createAuditRecord } from '@/platform/security/audit/audit-record';
 import { OficioBadRequestError } from '@/modules/oficios/domain/errors';
 import {
   createHistoricalImportOficio,

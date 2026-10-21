@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { prisma } from '@/lib/prisma';
 import { runDisposalRoute } from '@/modules/equipment-disposal/presentation/http';
 import { requireOrganizationPermission } from '@/platform/security/authorization/effective-permissions';

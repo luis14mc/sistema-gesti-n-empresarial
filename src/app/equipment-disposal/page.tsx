@@ -23,7 +23,7 @@ import { disposalEvaluationSchema, type DisposalEvaluationInput } from '@/module
 import { can, organizationRole } from '@/platform/security/authorization/permissions';
 import { swalConfirm, swalError, swalSuccess } from '@/lib/swal';
 import Swal from 'sweetalert2';
-import { getApiErrorData, getApiErrorMessage, getHttpStatus } from '@/lib/api-error';
+import { getApiErrorData, getApiErrorMessage, getHttpStatus } from '@/platform/api/api-error';
 import Link from 'next/link';
 
 const STATUS_LABELS = { DRAFT: 'Borrador', PENDING_APPROVAL: 'Pendiente', APPROVED: 'Aprobado', REJECTED: 'Rechazado', CANCELLED: 'Cancelado' } as const;

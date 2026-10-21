@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { createAuditRecord } from '@/lib/audit';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
+import { createAuditRecord } from '@/platform/security/audit/audit-record';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 import { exportPayslipsAuditPdf } from '@/modules/payroll/application/payroll-service';
 import { payrollFailure } from '@/modules/payroll/application/http';

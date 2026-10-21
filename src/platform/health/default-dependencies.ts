@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { getStorage } from '@/lib/storage';
+import { getStorage } from '@/platform/storage';
 import { getServerEnvironment } from '@/platform/config/env';
 import { checkBrowserAvailability } from '@/platform/pdf/browser';
 import type { ReadinessDependencies } from './health';

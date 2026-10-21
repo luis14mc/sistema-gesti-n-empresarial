@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { hashPassword } from '@/lib/auth';
-import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
+import { hashPassword } from '@/platform/security/authentication/auth';
+import { withAuth, AuthenticatedRequest } from '@/platform/api/with-auth';
 import { registerSchema } from '@/lib/zod-schemas';
-import { createAuditRecord } from '@/lib/audit';
+import { createAuditRecord } from '@/platform/security/audit/audit-record';
 
 async function postHandler(req: AuthenticatedRequest) {
   try {

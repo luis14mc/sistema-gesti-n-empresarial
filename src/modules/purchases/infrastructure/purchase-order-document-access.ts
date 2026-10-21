@@ -1,4 +1,4 @@
-import { getStorage } from '@/lib/storage';
+import { getStorage } from '@/platform/storage';
 
 export async function readStoredDocument(
   storageKey: string,

@@ -2,8 +2,8 @@ import { afterEach, describe, it, expect, beforeEach } from 'vitest';
 import { mkdtempSync, rmSync, existsSync, readFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { LocalStorageAdapter } from '../src/lib/storage/local';
-import { getStorage, resetStorageForTests } from '../src/lib/storage';
+import { LocalStorageAdapter } from '@/platform/storage/local';
+import { getStorage, resetStorageForTests } from '@/platform/storage';
 
 describe('LocalStorageAdapter', () => {
   let tmpDir: string;

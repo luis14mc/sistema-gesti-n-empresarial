@@ -1,4 +1,4 @@
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { apiSuccess } from '@/platform/api/response';
 import { runIntegrationRoute } from '@/platform/integrations/presentation/http';
 import { integrationExecutionService } from '@/platform/integrations/application/execution-service';

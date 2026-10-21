@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import type { AuthenticatedRequest } from '@/lib/middleware';
+import type { AuthenticatedRequest } from '@/platform/api/with-auth';
 import { ORGANIZATION_ROLES } from '@/platform/security/authorization/permissions';
 
 const authorizeOrganization = vi.fn();
@@ -33,7 +33,7 @@ vi.mock('@/lib/prisma', () => ({
   },
 }));
 
-vi.mock('@/lib/middleware', () => ({
+vi.mock('@/platform/api/with-auth', () => ({
   withAuth: (handler: (req: AuthenticatedRequest, ctx: unknown) => Promise<Response>) => handler,
 }));
 

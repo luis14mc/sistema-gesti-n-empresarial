@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AuthenticatedRequest } from '@/lib/middleware';
+import type { AuthenticatedRequest } from '@/platform/api/with-auth';
 import { MODULE_CATALOG, type ModuleId } from '@/platform/security/modules';
 
 // In-memory role_permissions table (only what the handlers use).
@@ -35,8 +35,8 @@ const prismaFake = {
 };
 
 vi.mock('@/lib/prisma', () => ({ prisma: prismaFake }));
-vi.mock('@/lib/audit', () => ({ createAuditRecord: vi.fn(async () => undefined) }));
-vi.mock('@/lib/middleware', () => ({
+vi.mock('@/platform/security/audit/audit-record', () => ({ createAuditRecord: vi.fn(async () => undefined) }));
+vi.mock('@/platform/api/with-auth', () => ({
   withAuth: (handler: (req: AuthenticatedRequest, ctx: unknown) => Promise<Response>) => handler,
 }));
 vi.mock('@/platform/security/authorization/http', () => ({

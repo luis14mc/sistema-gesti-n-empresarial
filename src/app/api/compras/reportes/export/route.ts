@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import type { PurchaseOrderStatus } from '@prisma/client';
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 import { handlePurchaseOrderRouteError } from '@/modules/purchases/presentation/http';
-import { createAuditRecord } from '@/lib/audit';
+import { createAuditRecord } from '@/platform/security/audit/audit-record';
 import {
   isSupportedExportFormat,
   renderExport,

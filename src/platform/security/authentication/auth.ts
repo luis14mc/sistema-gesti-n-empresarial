@@ -7,7 +7,7 @@ import {
   JWT_ISSUER,
   VALID_ROLES,
   type Role,
-} from './jwt-config';
+} from '@/platform/security/authentication/jwt-config';
 
 export interface TokenPayload {
   userId: string;

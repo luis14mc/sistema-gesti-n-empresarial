@@ -96,7 +96,7 @@ describe('PATCH /api/users last Super Admin guard', () => {
       $transaction: vi.fn(),
     };
     vi.doMock('@/lib/prisma', () => ({ prisma: prismaMock }));
-    vi.doMock('@/lib/middleware', () => ({
+    vi.doMock('@/platform/api/with-auth', () => ({
       withAuth: (handler: (...args: unknown[]) => unknown) => handler,
     }));
     vi.doMock('@/platform/security/authorization/http', () => ({
@@ -108,7 +108,7 @@ describe('PATCH /api/users last Super Admin guard', () => {
     vi.doMock('@/platform/security/authorization/role-catalog-service', () => ({
       isOrganizationRoleAssignable: vi.fn(async () => true),
     }));
-    vi.doMock('@/lib/audit', () => ({ createAuditRecord: vi.fn() }));
+    vi.doMock('@/platform/security/audit/audit-record', () => ({ createAuditRecord: vi.fn() }));
 
     const { PATCH } = await import('@/app/api/users/route');
     const res = await PATCH(

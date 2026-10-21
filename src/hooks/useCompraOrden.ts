@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { compraOrdenService } from '@/services/compra-orden.service';
-import { getApiErrorData } from '@/lib/api-error';
+import { getApiErrorData } from '@/platform/api/api-error';
 import type { CompraOrdenFilters, CreateCompraOrdenData, UpdateCompraOrdenData } from '@/types/compra-orden';
 
 async function unwrapOrden<T>(

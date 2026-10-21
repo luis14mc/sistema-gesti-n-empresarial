@@ -1,4 +1,4 @@
-import { prisma } from './prisma';
+import { prisma } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
 
 export type AuditModule =

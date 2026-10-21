@@ -5,7 +5,7 @@
  */
 import { randomUUID } from 'crypto';
 import { validateStorageEnvironment } from '@/platform/config/env';
-import { S3StorageAdapter } from '@/lib/storage/s3';
+import { S3StorageAdapter } from '@/platform/storage/s3';
 
 async function main(): Promise<void> {
   const environment = validateStorageEnvironment(process.env);

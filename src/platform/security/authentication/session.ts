@@ -1,8 +1,8 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { cache } from 'react';
-import { verifyToken } from './auth';
-import { prisma } from './prisma';
+import { verifyToken } from '@/platform/security/authentication/auth';
+import { prisma } from '@/lib/prisma';
 import type { SessionUser } from '@/types';
 import { resolveSessionRole } from '@/platform/security/authorization/session-role';
 

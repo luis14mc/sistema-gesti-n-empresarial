@@ -6,13 +6,13 @@
 // docs/testing/security-regression.md and are exercised end-to-end via
 // the live-database integration tests in tests/integration.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { hashPassword, comparePassword, generateToken, verifyToken } from '@/lib/auth';
-import type { AuthenticatedRequest } from '@/lib/middleware';
+import { hashPassword, comparePassword, generateToken, verifyToken } from '@/platform/security/authentication/auth';
+import type { AuthenticatedRequest } from '@/platform/api/with-auth';
 import type { NextResponse } from 'next/server';
 
 const TEST_SECRET = 'a'.repeat(48);
 
-vi.mock('@/lib/session-validity', () => ({
+vi.mock('@/platform/security/authentication/session-validity', () => ({
   assertTokenSessionStillValid: vi.fn(async () => true),
 }));
 
@@ -118,7 +118,7 @@ describe('middleware behavior — auth envelope', () => {
   });
 
   it('withAuth returns AUTHENTICATION_REQUIRED with the standard envelope when no token', async () => {
-    const { withAuth } = await import('@/lib/middleware');
+    const { withAuth } = await import('@/platform/api/with-auth');
     const handler = withAuth(async () => new Response('ok') as unknown as NextResponse);
     const response = await handler({ headers: new Headers(), cookies: { get: () => undefined }, user: undefined } as never);
     expect(response.status).toBe(401);
@@ -133,7 +133,7 @@ describe('middleware behavior — auth envelope', () => {
   });
 
   it('withAuth validates the role allowlist and returns FORBIDDEN when missing', async () => {
-    const { withAuth } = await import('@/lib/middleware');
+    const { withAuth } = await import('@/platform/api/with-auth');
     const handler = withAuth(async () => new Response('ok') as unknown as NextResponse, ['ADMIN']);
     const token = generateToken({ userId: 'u-1', email: 'u@example.test', role: 'USER' });
     const response = await handler({
@@ -150,7 +150,7 @@ describe('middleware behavior — auth envelope', () => {
   });
 
   it('withAuth accepts a cookie token when the authorization header is absent', async () => {
-    const { withAuth } = await import('@/lib/middleware');
+    const { withAuth } = await import('@/platform/api/with-auth');
     const handler = withAuth(async () => new Response('ok') as unknown as NextResponse);
     const token = generateToken({ userId: 'u-1', email: 'u@example.test', role: 'ADMIN' });
     const response = await handler({
@@ -164,7 +164,7 @@ describe('middleware behavior — auth envelope', () => {
   });
 
   it('withAuth rejects a "Bearer none" token as AUTHENTICATION_REQUIRED', async () => {
-    const { withAuth } = await import('@/lib/middleware');
+    const { withAuth } = await import('@/platform/api/with-auth');
     const handler = withAuth(async () => new Response('ok') as unknown as NextResponse);
     const response = await handler({
       headers: new Headers({ authorization: 'Bearer none' }),
@@ -180,7 +180,7 @@ describe('middleware behavior — auth envelope', () => {
   });
 
   it('withAuth exposes an authenticated user on the request when the token is valid', async () => {
-    const { withAuth } = await import('@/lib/middleware');
+    const { withAuth } = await import('@/platform/api/with-auth');
     let capturedRole: string | undefined;
     const handler = withAuth(async (req: AuthenticatedRequest) => {
       capturedRole = req.user?.role;

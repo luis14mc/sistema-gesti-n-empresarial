@@ -14,7 +14,7 @@ import {
   ROUTE_PATH_TO_MODULE as PLATFORM_ROUTE_PATH_TO_MODULE,
   routeToAccess as platformRouteToAccess,
 } from '@/platform/security/route-access';
-import { SESSION_ROLES, type SessionRole } from '@/lib/session-roles';
+import { SESSION_ROLES, type SessionRole } from '@/platform/security/authorization/session-roles';
 
 export type OfficialMatrixRow = {
   role: OrganizationRole;

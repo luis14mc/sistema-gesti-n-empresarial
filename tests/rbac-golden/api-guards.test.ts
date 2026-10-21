@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import type { AuthenticatedRequest } from '@/lib/middleware';
+import type { AuthenticatedRequest } from '@/platform/api/with-auth';
 import apiGuardsFixture from './__fixtures__/api-guards.json';
 
 const REPO = process.cwd();
@@ -84,7 +84,7 @@ describe('RBAC golden — guardas API users / roles / auth/me', () => {
   });
 });
 
-vi.mock('@/lib/session-validity', () => ({
+vi.mock('@/platform/security/authentication/session-validity', () => ({
   assertTokenSessionStillValid: vi.fn(async () => true),
 }));
 
@@ -130,7 +130,7 @@ describe('RBAC golden — PASSWORD_CHANGE_REQUIRED en APIs', () => {
 
   for (const path of allowedPaths) {
     it(`${path} permitido con mustChangePassword`, async () => {
-      const { withAuth } = await import('@/lib/middleware');
+      const { withAuth } = await import('@/platform/api/with-auth');
       const handler = withAuth(async () => NextResponse.json({ ok: true }));
       const res = await handler(buildRequest(path, signMustChangeToken()));
       expect(res.status).toBe(200);
@@ -138,7 +138,7 @@ describe('RBAC golden — PASSWORD_CHANGE_REQUIRED en APIs', () => {
   }
 
   it('/api/users responde 403 PASSWORD_CHANGE_REQUIRED con mustChangePassword', async () => {
-    const { withAuth } = await import('@/lib/middleware');
+    const { withAuth } = await import('@/platform/api/with-auth');
     const handler = withAuth(async () => NextResponse.json({ ok: true }));
     const res = await handler(buildRequest('/api/users', signMustChangeToken()));
     expect(res.status).toBe(403);

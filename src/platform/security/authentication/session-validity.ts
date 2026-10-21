@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import type { TokenPayload } from '@/lib/auth';
+import type { TokenPayload } from '@/platform/security/authentication/auth';
 import { canonicalOrganizationId } from '@/platform/security/organization-scope';
 
 /** Rejects tokens of inactive users/memberships or issued before password rotation. */

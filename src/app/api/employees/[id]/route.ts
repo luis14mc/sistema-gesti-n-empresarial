@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
-import { createAuditRecord } from '@/lib/audit';
+import { withAuth, AuthenticatedRequest } from '@/platform/api/with-auth';
+import { createAuditRecord } from '@/platform/security/audit/audit-record';
 import { buildFullName, validateHireDate } from '@/lib/employees';
 import { isOrganizationContextError } from '@/modules/organizations/application/context';
 import { authorizeOrganization } from '@/platform/security/authorization/http';

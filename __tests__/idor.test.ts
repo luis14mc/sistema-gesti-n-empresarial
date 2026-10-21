@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applyIdorFilter, checkItemAccess } from '../src/lib/idor';
+import { applyIdorFilter, checkItemAccess } from '@/platform/security/authorization/idor';
 
 describe('IDOR helper — applyIdorFilter', () => {
   it('ADMIN bypasses IDOR (gets the base where)', () => {

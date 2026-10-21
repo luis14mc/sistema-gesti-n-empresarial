@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { prisma } from '@/lib/prisma';
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { createAuditRecord } from '@/lib/audit';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
+import { createAuditRecord } from '@/platform/security/audit/audit-record';
 import { ReportExportTooLargeError } from '@/lib/reportes/errors';
 import { parseReportExportSearchParams } from '@/lib/reportes/export-query-schema';
 import { isExportableReportCode, REPORT_DATASET_BUILDERS } from '@/lib/reportes/registry';

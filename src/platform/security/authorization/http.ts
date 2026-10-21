@@ -1,4 +1,4 @@
-import type { AuthenticatedRequest } from '@/lib/middleware';
+import type { AuthenticatedRequest } from '@/platform/api/with-auth';
 import { requireOrganizationContext, type OrganizationContext } from '@/modules/organizations/application/context';
 import { apiFailure } from '@/platform/api/response';
 import { PermissionDeniedError } from '@/platform/domain/errors';

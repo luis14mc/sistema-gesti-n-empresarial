@@ -2,10 +2,10 @@
 
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
-import { comparePassword, hashPassword } from '@/lib/auth';
-import { generateSessionToken } from '@/lib/session-token';
+import { comparePassword, hashPassword } from '@/platform/security/authentication/auth';
+import { generateSessionToken } from '@/platform/security/authentication/session-token';
 import { loginSchema, registerSchema } from '@/lib/zod-schemas';
-import { createAuditRecord } from '@/lib/audit';
+import { createAuditRecord } from '@/platform/security/audit/audit-record';
 import { resolveSessionRole } from '@/platform/security/authorization/session-role';
 import type { ActionResult, SessionUser } from '@/types';
 
@@ -96,7 +96,7 @@ export async function loginAction(
 
 // ── REGISTER ──────────────────────────────────────────────────
 
-import { requireRole } from '@/lib/session';
+import { requireRole } from '@/platform/security/authentication/session';
 
 export async function registerAction(
   input: {

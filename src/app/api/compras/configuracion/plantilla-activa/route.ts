@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { ensureDefaultTemplate, getActiveTemplateConfig } from '@/modules/purchases/infrastructure/purchase-order-template';
 import { canOrdenAction } from '@/modules/purchases/domain/purchase-order-permissions';
 import type { Role } from '@/types';

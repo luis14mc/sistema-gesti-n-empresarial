@@ -1,4 +1,4 @@
-import type { SessionRole } from '@/lib/session-roles';
+import type { SessionRole } from '@/platform/security/authorization/session-roles';
 import { routeToModule, ROUTE_PATH_TO_MODULE } from '@/platform/security/route-access';
 import { ROUTE_ACCESS_BY_MODULE, type Module } from '@/platform/security/session-module-access';
 

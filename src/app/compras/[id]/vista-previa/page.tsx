@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { requireSession } from '@/lib/session';
+import { requireSession } from '@/platform/security/authentication/session';
 import { getCompraOrden } from '@/modules/purchases/application/purchase-order-use-cases';
 import { canOrdenAction } from '@/modules/purchases/domain/purchase-order-permissions';
 import { buildPreviewDataFromSerializedOrder } from '@/modules/purchases/presentation/purchase-order-preview-data';

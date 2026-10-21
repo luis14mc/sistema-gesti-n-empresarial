@@ -1,4 +1,4 @@
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { prisma } from '@/lib/prisma';
 import { isOrganizationContextError, requireOrganizationContext } from '@/modules/organizations/application/context';
 import { apiSuccess, apiFailure } from '@/platform/api/response';

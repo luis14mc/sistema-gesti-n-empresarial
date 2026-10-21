@@ -1,5 +1,5 @@
 import type { NextResponse } from 'next/server';
-import type { AuthenticatedRequest } from '@/lib/middleware';
+import type { AuthenticatedRequest } from '@/platform/api/with-auth';
 import { isOrganizationContextError, requireOrganizationContext, type OrganizationContext } from '@/modules/organizations/application/context';
 import { apiFailure } from '@/platform/api/response';
 import { domainErrorResponse } from '@/platform/api/domain-error-response';

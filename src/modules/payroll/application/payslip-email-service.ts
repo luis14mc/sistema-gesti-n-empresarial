@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { createAuditRecord } from '@/lib/audit';
+import { createAuditRecord } from '@/platform/security/audit/audit-record';
 import { createEmailTransportForOrganization } from '@/platform/email/factory';
 import { EmailNotConfiguredError } from '@/platform/email/errors';
 import { getOrganizationPublicSmtpStatus } from '@/modules/payroll/application/payroll-smtp-settings-service';

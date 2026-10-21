@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { updateOficioSignerUseCase } from '@/modules/oficios/application/oficio-signers';
 import { handleOficiosApiError } from '@/modules/oficios/presentation/http';
 import { authorizeOrganization } from '@/platform/security/authorization/http';

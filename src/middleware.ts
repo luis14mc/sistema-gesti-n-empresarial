@@ -4,7 +4,7 @@ import { decodeModulesFromJwt } from '@/platform/security/jwt-modules';
 import { decodeRouteSpecialsFromJwt } from '@/platform/security/jwt-route-specials';
 import { officialPermissionSetForRole } from '@/platform/security/authorization/official-role-permissions';
 import { organizationRoleForSessionRole } from '@/platform/security/module-effective';
-import type { SessionRole } from '@/lib/session-roles';
+import type { SessionRole } from '@/platform/security/authorization/session-roles';
 import { ROUTE_ACCESS_BY_MODULE } from '@/platform/security/session-module-access';
 
 function sessionRoleMatchesAllowlist(sessionRole: string, allowedRoles: readonly string[]): boolean {
@@ -13,12 +13,12 @@ function sessionRoleMatchesAllowlist(sessionRole: string, allowedRoles: readonly
   if (sessionRole === 'OWNER' && allowedRoles.includes('ADMIN')) return true;
   return false;
 }
-import { isDeprecatedFrontendPath } from '@/lib/deprecated-frontend-paths';
+import { isDeprecatedFrontendPath } from '@/platform/api/deprecated-frontend-paths';
 import {
   JWT_ALGORITHM,
   validateTokenClaims,
   type TokenClaims,
-} from '@/lib/jwt-config';
+} from '@/platform/security/authentication/jwt-config';
 
 // ============================================
 // NEXT.JS MIDDLEWARE — Protección de rutas + RBAC + CSP nonce

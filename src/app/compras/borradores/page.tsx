@@ -20,7 +20,7 @@ import { Pagination } from '@/components/shared/Pagination';
 import { useCompraOrdenes } from '@/hooks/useCompraOrden';
 import { useAuth } from '@/hooks/useAuth';
 import { canOrdenAction } from '@/modules/purchases/domain/purchase-order-permissions';
-import { getPurchaseOrderApiErrorMessage } from '@/lib/api-error';
+import { getPurchaseOrderApiErrorMessage } from '@/platform/api/api-error';
 import Swal from '@/components/compras/purchase-order-swal';
 import type { Role } from '@/types';
 import type { PurchaseOrderStatus } from '@/types/compra-orden';

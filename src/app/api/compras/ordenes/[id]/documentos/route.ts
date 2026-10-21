@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { PurchaseDocumentType } from '@prisma/client';
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { uploadCompraOrdenDocumento, getCompraOrden, getPurchaseOrderDocuments } from '@/modules/purchases/application/purchase-order-use-cases';
 import { canOrdenAction } from '@/modules/purchases/domain/purchase-order-permissions';
 import type { Role } from '@/types';

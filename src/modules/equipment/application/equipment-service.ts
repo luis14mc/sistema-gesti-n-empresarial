@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { createAuditRecord } from '@/lib/audit';
+import { createAuditRecord } from '@/platform/security/audit/audit-record';
 import { CATEGORY_LABELS } from '@/modules/equipment/domain/equipment-asset-code';
 import { logEquipmentHistory } from '@/modules/equipment/infrastructure/equipment-history';
 import {

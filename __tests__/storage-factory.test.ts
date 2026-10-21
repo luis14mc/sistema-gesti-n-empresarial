@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { getStorage, resetStorageForTests } from '../src/lib/storage';
+import { getStorage, resetStorageForTests } from '@/platform/storage';
 
 describe('Storage factory + S3 driver configuration', () => {
   let tmpDir: string;

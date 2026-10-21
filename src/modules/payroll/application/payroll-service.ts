@@ -719,7 +719,7 @@ export async function exportPayslipsAuditPdf(
   const filterLabel = filterParts.join(', ');
 
   const buffer = await renderPayslipAuditPdf(rows, filterLabel);
-  const { getStorage } = await import('@/lib/storage');
+  const { getStorage } = await import('@/platform/storage');
   const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const stored = await getStorage().put({
     prefix: `organizations/${organizationId}/payroll/audits`,
@@ -759,7 +759,7 @@ export async function getPayslipPdfBuffer(organizationId: string, payslipId: str
     neto: Number(payslip.neto.toString()),
   };
 
-  const { getStorage } = await import('@/lib/storage');
+  const { getStorage } = await import('@/platform/storage');
   if (payslip.pdfStorageKey) {
     const object = await getStorage().get(payslip.pdfStorageKey);
     if (object) return { buffer: object.buffer, filename: `${payslip.employee.fullName}-planilla.pdf` };

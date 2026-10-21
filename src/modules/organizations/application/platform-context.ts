@@ -1,6 +1,6 @@
 import type { PlatformRole } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
-import type { AuthenticatedRequest } from '@/lib/middleware';
+import type { AuthenticatedRequest } from '@/platform/api/with-auth';
 import { recordSecurityEventBestEffort } from '@/platform/security/audit/security-events';
 
 export type PlatformContext = Readonly<{

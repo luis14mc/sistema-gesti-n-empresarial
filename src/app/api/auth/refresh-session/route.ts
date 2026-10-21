@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { refreshSession } from '@/modules/users/application/refresh-session-service';
 import { usersDomainErrorResponse } from '@/modules/users/presentation/http';
-import { generateSessionToken } from '@/lib/session-token';
+import { generateSessionToken } from '@/platform/security/authentication/session-token';
 
 async function postHandler(req: AuthenticatedRequest) {
   try {

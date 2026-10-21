@@ -1,6 +1,6 @@
 import {
   DEPRECATED_API_MESSAGES,
   deprecatedApiHandler,
-} from '@/lib/deprecated-api';
+} from '@/platform/api/deprecated-api';
 
 export const POST = deprecatedApiHandler(DEPRECATED_API_MESSAGES.purchases);

@@ -1,7 +1,7 @@
 import { access, mkdir, readFile, writeFile } from 'fs/promises';
 import { checkUrlForSsrf } from '@/platform/integrations/application/ssrf-guard';
 import path from 'path';
-import { validateRasterLogoUpload } from '@/lib/raster-image-validation';
+import { validateRasterLogoUpload } from '@/platform/security/uploads/raster-image-validation';
 import {
   DEFAULT_INSTITUTION_SETTINGS,
   getInstitutionSettings,

@@ -1,6 +1,6 @@
 import { AxiosError } from 'axios';
 import { describe, expect, it } from 'vitest';
-import { getApiError } from '@/lib/api-error';
+import { getApiError } from '@/platform/api/api-error';
 
 describe('getApiError', () => {
   it('normalizes the standardized API envelope', () => {

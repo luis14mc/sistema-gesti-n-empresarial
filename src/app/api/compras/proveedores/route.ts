@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { createProveedorSchema } from '@/modules/purchases/presentation/supplier-schemas';
 import { createProveedor, listSuppliers } from '@/modules/purchases/application/suppliers';
 import { validateRtn } from '@/modules/purchases/domain/rtn-validation';

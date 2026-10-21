@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { buildS3ClientConfig, isR2Endpoint } from '@/lib/storage/s3';
+import { buildS3ClientConfig, isR2Endpoint } from '@/platform/storage/s3';
 
 const { s3ClientMock } = vi.hoisted(() => ({
   s3ClientMock: vi.fn(),
@@ -52,7 +52,7 @@ describe('S3 client configuration', () => {
 
   it('constructs S3StorageAdapter with R2 client options', async () => {
     s3ClientMock.mockClear();
-    const { S3StorageAdapter } = await import('@/lib/storage/s3');
+    const { S3StorageAdapter } = await import('@/platform/storage/s3');
     new S3StorageAdapter({
       bucket: 'cni-sge-files-staging',
       region: 'auto',

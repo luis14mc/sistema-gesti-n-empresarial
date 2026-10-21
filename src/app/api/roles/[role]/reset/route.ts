@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { resetRolePermissionsUseCase } from '@/modules/users/application/role-reset-service';
 import { roleParamSchema } from '@/modules/users/presentation/schemas/users';
 import { authorizeOrganization, authorizationFailure } from '@/platform/security/authorization/http';

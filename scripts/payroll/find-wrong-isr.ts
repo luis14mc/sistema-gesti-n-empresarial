@@ -6,7 +6,7 @@ const { prisma } = await import('@/lib/prisma');
 const { calculatePayslip } = await import('@/modules/payroll/domain');
 const { assertIsrRatesArePercentUnits } = await import('@/modules/payroll/domain');
 const { generatePayslip } = await import('@/modules/payroll/application/payroll-service');
-const { createAuditRecord } = await import('@/lib/audit');
+const { createAuditRecord } = await import('@/platform/security/audit/audit-record');
 import type { PayrollSettings } from '@/modules/payroll/domain';
 
 const fix = process.argv.includes('--fix');

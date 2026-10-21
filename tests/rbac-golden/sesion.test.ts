@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import jwt from 'jsonwebtoken';
-import type { AuthenticatedRequest } from '@/lib/middleware';
+import type { AuthenticatedRequest } from '@/platform/api/with-auth';
 import { ORGANIZATION_ROLES } from '@/platform/security/authorization/permissions';
 
 const prismaMock = {
@@ -51,11 +51,11 @@ vi.mock('@/platform/security/role-permission-matrix', async (importOriginal) => 
   };
 });
 
-vi.mock('@/lib/middleware', () => ({
+vi.mock('@/platform/api/with-auth', () => ({
   withAuth: (handler: (req: AuthenticatedRequest, ctx?: unknown) => Promise<Response>) => handler,
 }));
 
-vi.mock('@/lib/audit', () => ({ createAuditRecord: vi.fn(async () => undefined) }));
+vi.mock('@/platform/security/audit/audit-record', () => ({ createAuditRecord: vi.fn(async () => undefined) }));
 
 vi.mock('@/platform/security/authorization/session-role', () => ({
   resolveSessionRole: vi.fn(async (_id: string, role: string) => role),
@@ -151,7 +151,7 @@ describe('RBAC golden — validez de sesión (accessVersion vs passwordChangedAt
   });
 
   it('accessVersion viejo en JWT NO revoca la sesión', async () => {
-    const { assertTokenSessionStillValid } = await import('@/lib/session-validity');
+    const { assertTokenSessionStillValid } = await import('@/platform/security/authentication/session-validity');
     const ok = await assertTokenSessionStillValid({
       userId: 'u-1',
       email: 'u@test',
@@ -170,7 +170,7 @@ describe('RBAC golden — validez de sesión (accessVersion vs passwordChangedAt
       passwordChangedAt: changedAt,
     });
 
-    const { assertTokenSessionStillValid } = await import('@/lib/session-validity');
+    const { assertTokenSessionStillValid } = await import('@/platform/security/authentication/session-validity');
 
     const stale = await assertTokenSessionStillValid({
       userId: 'u-1',

@@ -80,7 +80,7 @@ const prismaMock = {
 };
 
 vi.mock('@/lib/prisma', () => ({ prisma: prismaMock }));
-vi.mock('@/lib/audit', () => ({ createAuditRecord }));
+vi.mock('@/platform/security/audit/audit-record', () => ({ createAuditRecord }));
 vi.mock('@/modules/payroll/application/payroll-service', () => ({ getPayslipPdfBuffer }));
 vi.mock('@/platform/email/smtp-config', () => ({
   getSmtpRuntimeConfig: vi.fn(() => ({

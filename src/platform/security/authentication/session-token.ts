@@ -1,4 +1,4 @@
-import { generateToken, type TokenPayload } from '@/lib/auth';
+import { generateToken, type TokenPayload } from '@/platform/security/authentication/auth';
 import { prisma } from '@/lib/prisma';
 import {
   buildEffectiveModuleMatrix,
@@ -29,7 +29,7 @@ export async function generateSessionToken(input: TokenPayload): Promise<string>
       select: { mustChangePassword: true, passwordChangedAt: true },
     }),
   ]);
-  const orgRole = membership?.role ?? organizationRoleForSessionRole(input.role as import('@/lib/session-roles').SessionRole);
+  const orgRole = membership?.role ?? organizationRoleForSessionRole(input.role as import('@/platform/security/authorization/session-roles').SessionRole);
   const [overrides, roleMap] = await Promise.all([
     prisma.userPermissionOverride.findMany({
       where: { userId: input.userId, organizationId },

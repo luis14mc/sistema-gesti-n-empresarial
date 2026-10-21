@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { comparePassword, hashPassword } from '@/lib/auth';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
+import { comparePassword, hashPassword } from '@/platform/security/authentication/auth';
 import { changeOwnPassword } from '@/modules/users/application/change-password-service';
 import { usersDomainErrorResponse } from '@/modules/users/presentation/http';
 import { changePasswordSchema } from '@/modules/users/presentation/schemas/users';
-import { generateSessionToken } from '@/lib/session-token';
+import { generateSessionToken } from '@/platform/security/authentication/session-token';
 import { resolveSessionRole } from '@/platform/security/authorization/session-role';
 import { canonicalOrganizationId } from '@/platform/security/organization-scope';
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { anularCompraOrden, getCompraOrden } from '@/modules/purchases/application/purchase-order-use-cases';
 import { anularOrdenSchema } from '@/modules/purchases/presentation/purchase-order-schemas';
 import { canOrdenAction } from '@/modules/purchases/domain/purchase-order-permissions';

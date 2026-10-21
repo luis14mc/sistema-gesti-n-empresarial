@@ -15,19 +15,19 @@ vi.mock('@/lib/prisma', () => ({
   },
 }));
 
-vi.mock('@/lib/audit', () => ({
+vi.mock('@/platform/security/audit/audit-record', () => ({
   createAuditRecord,
 }));
 
-vi.mock('@/lib/auth', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/lib/auth')>();
+vi.mock('@/platform/security/authentication/auth', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/platform/security/authentication/auth')>();
   return {
     ...actual,
     comparePassword,
   };
 });
 
-vi.mock('@/lib/session-token', () => ({
+vi.mock('@/platform/security/authentication/session-token', () => ({
   generateSessionToken: vi.fn().mockResolvedValue('test-session-token'),
 }));
 

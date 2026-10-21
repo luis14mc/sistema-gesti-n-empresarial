@@ -1,6 +1,6 @@
 import type { PurchaseHistoryAction, Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
-import { createAuditRecord } from '@/lib/audit';
+import { createAuditRecord } from '@/platform/security/audit/audit-record';
 
 export async function recordOrdenHistorial(params: {
   orderId: string;

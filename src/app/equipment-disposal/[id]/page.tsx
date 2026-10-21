@@ -11,7 +11,7 @@ import { useEquipmentDisposal } from '@/hooks/useEquipmentDisposals';
 import { DisposalPreviewClient } from '@/modules/equipment-disposal/presentation/components/DisposalPreviewClient';
 import type { DisposalDocumentData } from '@/modules/equipment-disposal/presentation/components/DisposalDocument';
 import { swalConfirm, swalError, swalSuccess } from '@/lib/swal';
-import { getApiErrorMessage } from '@/lib/api-error';
+import { getApiErrorMessage } from '@/platform/api/api-error';
 
 const money = (value: string) => `L ${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
