@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 import { withAuth, AuthenticatedRequest } from '@/platform/api/with-auth';
-import { createAuditRecord } from '@/platform/security/audit/audit-record';
-import { Prisma } from '@prisma/client';
-import { toEmployeeCreateData, validateHireDate } from '@/lib/employees';
+import {
+  createEmployee,
+  listEmployeesPage,
+  persistenceErrorCode,
+} from '@/modules/people/application/employees-service';
 import { isOrganizationContextError } from '@/modules/organizations/application/context';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 import { PermissionDeniedError } from '@/platform/domain/errors';
@@ -16,15 +18,16 @@ async function getHandler(req: AuthenticatedRequest) {
     const { organizationId } = await authorizeOrganization(req, requestId, 'employees.read');
     const contextMs = performance.now() - contextStartedAt;
     const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const pageSize = Math.min(Math.max(parseInt(searchParams.get('pageSize') || '20', 10) || 20, 1), 100);
+    const skip = (page - 1) * pageSize;
+
     const search = searchParams.get('search');
     const departmentId = searchParams.get('departmentId');
     const isActive = searchParams.get('isActive');
     const positionId = searchParams.get('positionId');
     const hireDateFrom = searchParams.get('hireDateFrom');
     const hireDateTo = searchParams.get('hireDateTo');
-    const page = parseInt(searchParams.get('page') || '1');
-    const pageSize = Math.min(Math.max(parseInt(searchParams.get('pageSize') || '20', 10) || 20, 1), 100);
-    const skip = (page - 1) * pageSize;
 
     const where: Prisma.EmployeeWhereInput = { organizationId };
     if (departmentId) where.departmentId = departmentId;
@@ -41,27 +44,7 @@ async function getHandler(req: AuthenticatedRequest) {
     }
 
     const databaseStartedAt = performance.now();
-    const [employees, total] = await Promise.all([
-      prisma.employee.findMany({
-        where,
-        skip,
-        take: pageSize,
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          fullName: true,
-          email: true,
-          employeeCode: true,
-          hireDate: true,
-          isActive: true,
-          department: { select: { id: true, name: true } },
-          position: { select: { id: true, name: true } },
-        },
-        orderBy: { fullName: 'asc' },
-      }),
-      prisma.employee.count({ where }),
-    ]);
+    const [employees, total] = await listEmployeesPage(where, skip, pageSize);
     const databaseMs = performance.now() - databaseStartedAt;
     if (process.env.NODE_ENV !== 'production') {
       console.info('[employees.list.timing]', { requestId, contextMs, databaseMs, totalMs: performance.now() - startedAt });
@@ -82,8 +65,9 @@ async function getHandler(req: AuthenticatedRequest) {
     if (isOrganizationContextError(error)) {
       return NextResponse.json({ success: false, error: { code: error.code, message: error.message }, requestId }, { status: error.status, headers: { 'x-request-id': requestId } });
     }
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      const status = ['P1001', 'P1002', 'P2024'].includes(error.code) ? 503 : 500;
+    const prismaCode = persistenceErrorCode(error);
+    if (prismaCode) {
+      const status = ['P1001', 'P1002', 'P2024'].includes(prismaCode) ? 503 : 500;
       return NextResponse.json({ success: false, error: { code: 'EMPLOYEES_DATABASE_ERROR', message: status === 503 ? 'La base de datos no está disponible.' : 'No se pudo cargar el personal.' }, requestId }, { status, headers: { 'x-request-id': requestId } });
     }
     return NextResponse.json({ success: false, error: { code: 'EMPLOYEES_LIST_FAILED', message: 'No se pudo cargar el personal.' }, requestId }, { status: 500, headers: { 'x-request-id': requestId } });
@@ -95,50 +79,11 @@ async function postHandler(req: AuthenticatedRequest) {
   try {
     const { organizationId } = await authorizeOrganization(req, requestId, 'employees.create');
     const body = await req.json();
-    const { firstName, lastName, email, employeeCode, hireDate, departmentId, positionId } = body;
-
-    if (!firstName || !lastName || !email || !employeeCode || !hireDate || !departmentId || !positionId) {
-      return NextResponse.json(
-        { error: 'Nombre, apellido y correo son requeridos' },
-        { status: 400 }
-      );
+    const result = await createEmployee(organizationId, body, req.user!.userId);
+    if (result.kind !== 'ok') {
+      return NextResponse.json({ error: result.kind === 'invalid' ? result.error : 'Empleado no encontrado' }, { status: 400 });
     }
-    if (!/^\S+@\S+\.\S+$/.test(String(email))) {
-      return NextResponse.json({ error: 'Correo inválido' }, { status: 400 });
-    }
-
-    let hireDateValue: Date;
-    try {
-      hireDateValue = validateHireDate(hireDate);
-    } catch (error) {
-      return NextResponse.json({ error: error instanceof Error && error.message === 'FECHA_INGRESO_FUTURA' ? 'La fecha de ingreso no puede ser futura' : 'Fecha de ingreso inválida' }, { status: 400 });
-    }
-    const [department, position] = await Promise.all([
-      prisma.department.findFirst({ where: { id: departmentId, organizationId, isActive: true } }),
-      prisma.jobPosition.findFirst({ where: { id: positionId, department: { organizationId }, isActive: true } }),
-    ]);
-    if (!department || !position || position.departmentId !== department.id) {
-      return NextResponse.json({ error: 'Departamento o puesto inválido' }, { status: 400 });
-    }
-
-    const employee = await prisma.employee.create({
-      data: toEmployeeCreateData({ ...body, organizationId, hireDate: hireDateValue.toISOString().slice(0, 10) }),
-      include: {
-        department: { select: { id: true, name: true } },
-        position: { select: { id: true, name: true } },
-      },
-    });
-
-    await createAuditRecord({
-      title: 'Creación de empleado',
-      description: `Se registró empleado: ${employee.fullName}`,
-      module: 'EQUIPOS',
-      category: 'CREATE',
-      userId: req.user!.userId,
-      entityId: employee.id,
-      organizationId,
-      newData: { email: employee.email, fullName: employee.fullName },
-    });
+    const { employee } = result;
 
     return NextResponse.json({ employee }, { status: 201 });
   } catch (error) {
@@ -149,7 +94,7 @@ async function postHandler(req: AuthenticatedRequest) {
     if (isOrganizationContextError(error)) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+    if (persistenceErrorCode(error) === 'P2002') {
       return NextResponse.json({ error: 'Correo o código de empleado ya registrado en esta organización' }, { status: 409 });
     }
     return NextResponse.json({ error: 'Error al crear empleado' }, { status: 500 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateHireDate } from '@/lib/employees';
+import { validateHireDate } from '@/modules/people/domain/employee';
 
 describe('canonical employee data', () => {
   it('accepts a valid institutional hire date', () => {

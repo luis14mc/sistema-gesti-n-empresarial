@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { withAuth, AuthenticatedRequest } from '@/platform/api/with-auth';
-import { createAuditRecord } from '@/platform/security/audit/audit-record';
-import { buildFullName, validateHireDate } from '@/lib/employees';
+import { getEmployeeDetail, updateEmployeeFields } from '@/modules/people/application/employees-service';
 import { isOrganizationContextError } from '@/modules/organizations/application/context';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 import { PermissionDeniedError } from '@/platform/domain/errors';
@@ -21,17 +19,7 @@ async function getHandler(
   try {
     const { id } = await params;
     const { organizationId } = await authorizeOrganization(req, requestId, 'employees.read');
-    const employee = await prisma.employee.findFirst({
-      where: { id, organizationId },
-      include: {
-        department: true,
-        position: true,
-        assignments: {
-          include: { equipment: true },
-          orderBy: { assignedDate: 'desc' },
-        },
-      },
-    });
+    const employee = await getEmployeeDetail({ where: { id, organizationId } });
 
     if (!employee) {
       return NextResponse.json({ error: 'Empleado no encontrado' }, { status: 404 });
@@ -59,61 +47,10 @@ async function patchHandler(
     const { id } = await params;
     const data = await req.json();
     const { organizationId } = await authorizeOrganization(req, requestId, patchPermission(data));
-    const current = await prisma.employee.findFirst({ where: { id, organizationId } });
-    if (!current) return NextResponse.json({ error: 'Empleado no encontrado' }, { status: 404 });
-
-    const updateData: Record<string, unknown> = {};
-    const fields = [
-      'employeeCode', 'firstName', 'lastName', 'email', 'phone', 'dni',
-      'departmentId', 'positionId', 'hireDate', 'isActive', 'userId',
-    ];
-    fields.forEach((field) => {
-      if (data[field] !== undefined) updateData[field] = data[field];
-    });
-
-    if (data.hireDate !== undefined) updateData.hireDate = validateHireDate(data.hireDate);
-    if (data.email !== undefined && !/^\S+@\S+\.\S+$/.test(String(data.email))) {
-      return NextResponse.json({ error: 'Correo inválido' }, { status: 400 });
-    }
-    for (const field of ['employeeCode', 'departmentId', 'positionId']) {
-      if (data[field] !== undefined && !String(data[field]).trim()) {
-        return NextResponse.json({ error: `${field} es obligatorio` }, { status: 400 });
-      }
-    }
-
-    if (data.firstName || data.lastName) {
-      updateData.fullName = buildFullName(
-        data.firstName ?? current.firstName,
-        data.lastName ?? current.lastName
-      );
-    }
-
-    const result = await prisma.employee.updateMany({
-      where: { id, organizationId },
-      data: updateData,
-    });
-
-    if (result.count === 0) {
-      return NextResponse.json({ error: 'Empleado no encontrado' }, { status: 404 });
-    }
-
-    const employee = await prisma.employee.findFirst({
-      where: { id, organizationId },
-      include: {
-        department: { select: { id: true, name: true } },
-        position: { select: { id: true, name: true } },
-      },
-    });
-
-    await createAuditRecord({
-      title: 'Actualización de empleado',
-      description: `Se actualizó empleado: ${employee?.fullName}`,
-      module: 'EQUIPOS',
-      category: 'UPDATE',
-      userId: req.user!.userId,
-      entityId: id,
-      organizationId,
-    });
+    const result = await updateEmployeeFields(organizationId, id, data, req.user!.userId);
+    if (result.kind === 'not-found') return NextResponse.json({ error: 'Empleado no encontrado' }, { status: 404 });
+    if (result.kind === 'invalid') return NextResponse.json({ error: result.error }, { status: 400 });
+    const { employee } = result;
 
     return NextResponse.json({ employee });
   } catch (error) {
