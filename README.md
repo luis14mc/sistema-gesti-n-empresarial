@@ -364,7 +364,7 @@ Toda la documentación arquitectónica, técnica y operativa se encuentra en el 
 
 ## Control de Versiones y Contribución
 
-Este proyecto utiliza **Git Flow** simplificado. Para contribuir, revise la [Guía de Contribución](CONTRIBUTING.md) y consulte el registro de cambios en [CHANGELOG.md](CHANGELOG.md).
+Este proyecto utiliza **Git Flow** simplificado. Para contribuir, revise la [Guía de Contribución](.github/CONTRIBUTING.md) y consulte el registro de cambios en [docs/CHANGELOG.md](docs/CHANGELOG.md).
 
 - **Ramas principales:** `main` (producción), `develop` (desarrollo integrado).
 

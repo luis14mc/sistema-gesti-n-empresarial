@@ -18,7 +18,7 @@ No modificar pruebas RBAC protegidas ni unificar/redefinir el enum `Organization
 
 ## Regla de despliegue (Railway)
 
-Cada **merge a `main`** despliega a **producción** y ejecuta `prisma migrate deploy` ([railway-predeploy.sh](railway-predeploy.sh)).
+Cada **merge a `main`** despliega a **producción** y ejecuta `prisma migrate deploy` ([deploy/railway/railway-predeploy.sh](deploy/railway/railway-predeploy.sh)).
 
 - Migraciones **aditivas**, **idempotentes** (`IF NOT EXISTS` / `IF EXISTS`) y **sin pérdida de datos**; sin `DROP TABLE` / `DROP COLUMN` salvo fase contraer ya desplegada.
 - **PR con migración:** probar en **PR Environment / staging** de Railway; SQL + plan de reversión en el PR; **backup manual** Postgres (Railway → Backups) antes de aprobar.

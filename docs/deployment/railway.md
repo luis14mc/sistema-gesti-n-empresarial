@@ -4,7 +4,7 @@ Railway ejecuta la aplicación en contenedores sin roles IAM de AWS. El almacena
 
 ## Regla de despliegue (obligatoria)
 
-**Todo merge a `main` se despliega a producción** y el pipeline ejecuta `prisma migrate deploy` contra la base Postgres de producción (ver `railway-predeploy.sh` / `railway-start.sh`).
+**Todo merge a `main` se despliega a producción** y el pipeline ejecuta `prisma migrate deploy` contra la base Postgres de producción (ver [deploy/railway/railway-predeploy.sh](../../deploy/railway/railway-predeploy.sh) / [deploy/railway/railway-start.sh](../../deploy/railway/railway-start.sh)).
 
 ### PRs con migración (`prisma/migrations/*`)
 

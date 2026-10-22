@@ -94,9 +94,9 @@ COPY --from=builder --chown=node:node /app/dist/worker ./dist/worker
 COPY --from=builder --chown=node:node /app/prisma ./prisma
 COPY --from=builder --chown=node:node /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder --chown=node:node /app/package.json ./package.json
-COPY --from=builder --chown=node:node /app/railway-predeploy.sh ./railway-predeploy.sh
-COPY --from=builder --chown=node:node /app/railway-start.sh ./railway-start.sh
-COPY --from=builder --chown=node:node /app/railway-bootstrap-admin.mjs ./railway-bootstrap-admin.mjs
+COPY --from=builder --chown=node:node /app/deploy/railway/railway-predeploy.sh ./railway-predeploy.sh
+COPY --from=builder --chown=node:node /app/deploy/railway/railway-start.sh ./railway-start.sh
+COPY --from=builder --chown=node:node /app/deploy/railway/railway-bootstrap-admin.mjs ./railway-bootstrap-admin.mjs
 
 USER node
 

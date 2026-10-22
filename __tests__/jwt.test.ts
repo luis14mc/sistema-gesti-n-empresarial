@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { verifyToken, generateToken } from '@/platform/security/authentication/auth';
 
-// JWT_SECRET ya viene seteado desde vitest.setup.ts a un valor seguro.
+// JWT_SECRET ya viene seteado desde tests/setup.ts a un valor seguro.
 // Forzamos uno determinista para esta suite.
 const TEST_SECRET = 'jwt-test-suite-secret-1234567890abc';
 

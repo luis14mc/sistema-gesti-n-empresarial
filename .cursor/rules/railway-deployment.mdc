@@ -1,6 +1,6 @@
 ---
 description: Despliegue Railway, migrate deploy en main y checklist para PRs con migración
-globs: prisma/migrations/**,docs/deployment/**,railway-*.sh
+globs: prisma/migrations/**,docs/deployment/**,deploy/railway/**
 alwaysApply: true
 ---
 

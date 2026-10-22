@@ -43,7 +43,7 @@ page.tsx → hook → service (HTTP) → route.ts → application (caso de uso) 
 2. **`application` no importa `next`, `next/*` ni `@/lib/prisma`** (ESLint).
 3. **`domain` es puro:** no importa `next`, `react`, `@/lib/prisma`, ni `application`/`infrastructure` de ningún módulo.
 4. **`src/lib` congelado:** un test de arquitectura falla si aparece un archivo nuevo en `src/lib`.
-5. **Sin excepciones:** las listas de `eslint.architecture-baseline.mjs` están vacías y un test falla si se agrega cualquier entrada; `eslint.config.mjs` no desactiva reglas por archivo.
+5. **Sin excepciones:** no debe existir `eslint.architecture-baseline.mjs` (un test falla si vuelve a aparecer); `eslint.config.mjs` no desactiva reglas por archivo.
 6. Un módulo no importa la `infrastructure` de otro módulo; usa su `application`.
 7. RBAC (ADR 002) no cambia: autorización por permiso efectivo en `application`/route, nunca por nombre de rol en UI.
 

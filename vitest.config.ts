@@ -7,7 +7,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    setupFiles: ['./vitest.setup.ts'],
+    setupFiles: ['./tests/setup.ts'],
     // E2E (.e2e.spec.ts) and accessibility helpers that depend on
     // @playwright/test are executed by Playwright, not Vitest.
     exclude: [
