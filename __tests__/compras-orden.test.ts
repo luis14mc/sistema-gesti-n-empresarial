@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { calculatePurchaseOrder, toDecimal } from '../src/modules/purchases/infrastructure/purchase-order-calculos';
 import { formatOrderNumber } from '../src/modules/purchases/infrastructure/purchase-order-numbering';
 import { canOrdenAction } from '../src/modules/purchases/domain/purchase-order-permissions';
+import { officialPermissionSetForRole } from '../src/platform/security/authorization/official-role-permissions';
 import { buildPreviewDataFromInput } from '../src/modules/purchases/presentation/purchase-order-preview-data';
 import type { PurchaseOrderTemplateConfig } from '../src/modules/purchases/infrastructure/purchase-order-template-config';
 import { createPurchaseOrderSchema, normalizePurchaseOrderPayload } from '../src/modules/purchases/presentation/purchase-order-schemas';
@@ -161,25 +162,62 @@ describe('formatOrderNumber', () => {
 
 describe('canOrdenAction', () => {
   it('permite editar borrador al perfil administrativo, no a TI', () => {
-    expect(canOrdenAction('ADMINISTRACION', 'update', { isCreator: true, status: 'DRAFT' })).toBe(true);
-    expect(canOrdenAction('IT', 'update', { isCreator: true, status: 'DRAFT' })).toBe(false);
-    expect(canOrdenAction('IT_MANAGER', 'update', { isCreator: true, status: 'DRAFT' })).toBe(false);
+    expect(
+      canOrdenAction(officialPermissionSetForRole('ADMINISTRACION'), 'update', {
+        isCreator: true,
+        status: 'DRAFT',
+      }),
+    ).toBe(true);
+    expect(
+      canOrdenAction(officialPermissionSetForRole('IT_TECHNICIAN'), 'update', {
+        isCreator: true,
+        status: 'DRAFT',
+      }),
+    ).toBe(false);
+    expect(
+      canOrdenAction(officialPermissionSetForRole('IT_MANAGER'), 'update', {
+        isCreator: true,
+        status: 'DRAFT',
+      }),
+    ).toBe(false);
   });
 
   it('impide editar orden emitida', () => {
-    expect(canOrdenAction('ADMIN', 'update', { status: 'ISSUED' })).toBe(false);
+    expect(canOrdenAction(officialPermissionSetForRole('ADMIN'), 'update', { status: 'ISSUED' })).toBe(false);
   });
 
   it('impide anular cerrada', () => {
-    expect(canOrdenAction('ADMIN', 'anular', { status: 'CLOSED' })).toBe(false);
+    expect(canOrdenAction(officialPermissionSetForRole('ADMIN'), 'anular', { status: 'CLOSED' })).toBe(false);
   });
 
   it('restringe emitir a perfiles con aprobación, solo en GENERATED', () => {
-    expect(canOrdenAction('ADMINISTRACION', 'emitir', { status: 'GENERATED' })).toBe(true);
-    expect(canOrdenAction('ADMIN', 'emitir', { status: 'GENERATED' })).toBe(true);
-    expect(canOrdenAction('PROCUREMENT', 'emitir', { status: 'GENERATED' })).toBe(false);
-    expect(canOrdenAction('ADMINISTRACION', 'emitir', { status: 'DRAFT' })).toBe(false);
-    expect(canOrdenAction('ADMIN', 'emitir', { status: 'ISSUED' })).toBe(false);
+    expect(
+      canOrdenAction(officialPermissionSetForRole('ADMINISTRACION'), 'emitir', { status: 'GENERATED' }),
+    ).toBe(true);
+    expect(canOrdenAction(officialPermissionSetForRole('ADMIN'), 'emitir', { status: 'GENERATED' })).toBe(true);
+    expect(
+      canOrdenAction(officialPermissionSetForRole('PROCUREMENT'), 'emitir', { status: 'GENERATED' }),
+    ).toBe(false);
+    expect(
+      canOrdenAction(officialPermissionSetForRole('ADMINISTRACION'), 'emitir', { status: 'DRAFT' }),
+    ).toBe(false);
+    expect(canOrdenAction(officialPermissionSetForRole('ADMIN'), 'emitir', { status: 'ISSUED' })).toBe(false);
+  });
+
+  it('PROCUREMENT puede anular con purchase-orders.cancel', () => {
+    expect(
+      canOrdenAction(officialPermissionSetForRole('PROCUREMENT'), 'anular', { status: 'GENERATED' }),
+    ).toBe(true);
+  });
+
+  it('AUDITOR puede leer cualquier orden con purchase-orders.read', () => {
+    expect(
+      canOrdenAction(officialPermissionSetForRole('AUDITOR'), 'read', {
+        membershipRole: 'AUDITOR',
+        isCreator: false,
+        status: 'ISSUED',
+      }),
+    ).toBe(true);
   });
 });
 

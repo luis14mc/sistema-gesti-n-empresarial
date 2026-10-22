@@ -7,8 +7,8 @@ import {
 } from '@/modules/purchases/application/purchase-order-use-cases';
 import { updateCompraOrdenSchema, normalizePurchaseOrderPayload } from '@/modules/purchases/presentation/purchase-order-schemas';
 import { canOrdenAction } from '@/modules/purchases/domain/purchase-order-permissions';
+import { loadEffectivePermissions } from '@/modules/purchases/presentation/purchase-order-effective-permissions';
 import { handlePrismaRouteError } from '@/modules/purchases/presentation/http';
-import type { Role } from '@/types';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 
 async function getHandler(
@@ -16,14 +16,15 @@ async function getHandler(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const role = req.user!.role as Role;
-    const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.read');
+    const org = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.read');
+    const permissions = await loadEffectivePermissions(org);
     const { id } = await params;
-    const orden = await getCompraOrden(id, organizationId);
+    const orden = await getCompraOrden(id, org.organizationId);
     if (!orden) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
 
     if (
-      !canOrdenAction(role, 'read', {
+      !canOrdenAction(permissions, 'read', {
+        membershipRole: org.role,
         isCreator: orden.createdById === req.user!.userId,
       })
     ) {
@@ -41,14 +42,15 @@ async function patchHandler(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const role = req.user!.role as Role;
-    const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.update');
+    const org = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.update');
+    const permissions = await loadEffectivePermissions(org);
     const { id } = await params;
-    const existing = await getCompraOrden(id, organizationId);
+    const existing = await getCompraOrden(id, org.organizationId);
     if (!existing) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
 
     if (
-      !canOrdenAction(role, 'update', {
+      !canOrdenAction(permissions, 'update', {
+        membershipRole: org.role,
         isCreator: existing.createdById === req.user!.userId,
         status: existing.status,
       })
@@ -62,7 +64,7 @@ async function patchHandler(
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
-    const orden = await updateCompraOrden(id, parsed.data, req.user!.userId, organizationId);
+    const orden = await updateCompraOrden(id, parsed.data, req.user!.userId, org.organizationId);
     return NextResponse.json({ orden });
   } catch (error) {
     if (error instanceof Error && !('code' in error)) {
@@ -80,14 +82,15 @@ async function deleteHandler(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const role = req.user!.role as Role;
-    const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.update');
+    const org = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.update');
+    const permissions = await loadEffectivePermissions(org);
     const { id } = await params;
-    const existing = await getCompraOrden(id, organizationId);
+    const existing = await getCompraOrden(id, org.organizationId);
     if (!existing) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
 
     if (
-      !canOrdenAction(role, 'delete', {
+      !canOrdenAction(permissions, 'delete', {
+        membershipRole: org.role,
         isCreator: existing.createdById === req.user!.userId,
         status: existing.status,
       })
@@ -95,7 +98,7 @@ async function deleteHandler(
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
 
-    await deleteCompraOrden(id, req.user!.userId, organizationId);
+    await deleteCompraOrden(id, req.user!.userId, org.organizationId);
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (error instanceof Error && error.message === 'ORDER_NOT_FOUND') {

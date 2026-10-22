@@ -8,26 +8,30 @@ import {
   createCompraOrdenSchema,
   normalizePurchaseOrderPayload,
 } from '@/modules/purchases/presentation/purchase-order-schemas';
-import { canOrdenAction } from '@/modules/purchases/domain/purchase-order-permissions';
+import {
+  canOrdenAction,
+  shouldScopePurchaseOrdersToMine,
+} from '@/modules/purchases/domain/purchase-order-permissions';
+import { loadEffectivePermissions } from '@/modules/purchases/presentation/purchase-order-effective-permissions';
 import { handlePrismaRouteError } from '@/modules/purchases/presentation/http';
 import { parsePurchaseOrderListStatus } from '@/modules/purchases/domain/list-status-filter';
-import type { Role } from '@/types';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 
 async function getHandler(req: AuthenticatedRequest) {
   try {
     const requestId = crypto.randomUUID();
-    const role = req.user!.role as Role;
-    const { organizationId } = await authorizeOrganization(req, requestId, 'purchase-orders.read');
+    const org = await authorizeOrganization(req, requestId, 'purchase-orders.read');
+    const permissions = await loadEffectivePermissions(org);
 
     const { searchParams } = new URL(req.url);
-    const mine = searchParams.get('mine') === 'true' || role === 'USER';
+    const mine =
+      searchParams.get('mine') === 'true' || shouldScopePurchaseOrdersToMine(permissions, org.role);
 
     const statusQuery = searchParams.get('status') || searchParams.get('estado') || undefined;
     const statusFilter = parsePurchaseOrderListStatus(statusQuery);
 
     const result = await listCompraOrdenes({
-      organizationId,
+      organizationId: org.organizationId,
       page: Number.parseInt(searchParams.get('page') || '1', 10),
       pageSize: Number.parseInt(searchParams.get('pageSize') || '10', 10),
       search: searchParams.get('search') || undefined,
@@ -46,9 +50,9 @@ async function getHandler(req: AuthenticatedRequest) {
 async function postHandler(req: AuthenticatedRequest) {
   try {
     const requestId = crypto.randomUUID();
-    const role = req.user!.role as Role;
-    const { organizationId } = await authorizeOrganization(req, requestId, 'purchase-orders.create');
-    if (!canOrdenAction(role, 'create')) {
+    const org = await authorizeOrganization(req, requestId, 'purchase-orders.create');
+    const permissions = await loadEffectivePermissions(org);
+    if (!canOrdenAction(permissions, 'create')) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
 
@@ -58,7 +62,7 @@ async function postHandler(req: AuthenticatedRequest) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
-    const orden = await createCompraOrden(parsed.data, req.user!.userId, organizationId);
+    const orden = await createCompraOrden(parsed.data, req.user!.userId, org.organizationId);
     return NextResponse.json({ orden }, { status: 201 });
   } catch (error) {
     return handlePrismaRouteError(error, 'POST /api/compras/ordenes');

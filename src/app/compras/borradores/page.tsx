@@ -19,10 +19,12 @@ import {
 import { Pagination } from '@/components/shared/Pagination';
 import { useCompraOrdenes } from '@/hooks/useCompraOrden';
 import { useAuth } from '@/hooks/useAuth';
-import { canOrdenAction } from '@/modules/purchases/domain/purchase-order-permissions';
+import {
+  canCompraOrdenAction,
+  useOrganizationPermissions,
+} from '@/modules/purchases/presentation/purchase-order-client-permissions';
 import { getPurchaseOrderApiErrorMessage } from '@/platform/api/api-error';
 import Swal from '@/components/compras/purchase-order-swal';
-import type { Role } from '@/types';
 import type { PurchaseOrderStatus } from '@/types/compra-orden';
 import {
   draftProvisionalLabel,
@@ -32,6 +34,7 @@ import {
 
 export default function ComprasBorradoresPage() {
   const { user } = useAuth();
+  const permissions = useOrganizationPermissions();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const { ordenes, totalPages, isLoading, deleteOrden, isSaving } = useCompraOrdenes({
@@ -42,7 +45,9 @@ export default function ComprasBorradoresPage() {
   });
 
   if (!user) return null;
-  const role = user.role as Role;
+  const membershipRole = (user.membershipRole ?? user.role) as
+    | import('@/platform/security/authorization/permissions').OrganizationRole
+    | undefined;
 
   const handleDeleteDraft = async (orderId: string) => {
     const confirmation = await Swal.fire({
@@ -125,9 +130,10 @@ export default function ComprasBorradoresPage() {
                 ) : (
                   ordenes.map((order) => {
                     const status = (order.status ?? order.estado) as PurchaseOrderStatus;
-                    const canDelete = canOrdenAction(role, 'delete', {
+                    const canDelete = canCompraOrdenAction(permissions, 'delete', {
                       isCreator: order.createdById === user.id,
                       status,
+                      membershipRole,
                     });
                     return (
                       <TableRow key={order.id}>

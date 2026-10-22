@@ -7,24 +7,24 @@ import {
   savePurchaseOrderTemplate,
 } from '@/modules/purchases/application/purchase-order-template';
 import { canOrdenAction } from '@/modules/purchases/domain/purchase-order-permissions';
-import type { Role } from '@/types';
+import { loadEffectivePermissions } from '@/modules/purchases/presentation/purchase-order-effective-permissions';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 
 export const GET = withAuth(async (req: AuthenticatedRequest) => {
-  const role = req.user!.role as Role;
-  const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.read');
-  if (!canOrdenAction(role, 'read')) {
+  const org = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.read');
+  const permissions = await loadEffectivePermissions(org);
+  if (!canOrdenAction(permissions, 'read', { membershipRole: org.role })) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
   }
-  await ensureDefaultTemplate(organizationId, req.user!.userId);
-  const template = await findActivePurchaseOrderTemplateForOrganization(organizationId);
+  await ensureDefaultTemplate(org.organizationId, req.user!.userId);
+  const template = await findActivePurchaseOrderTemplateForOrganization(org.organizationId);
   return NextResponse.json({ template });
 });
 
 export const PUT = withAuth(async (req: AuthenticatedRequest) => {
-  const role = req.user!.role as Role;
-  const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.update');
-  if (!canOrdenAction(role, 'template')) {
+  const org = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.update');
+  const permissions = await loadEffectivePermissions(org);
+  if (!canOrdenAction(permissions, 'template', { membershipRole: org.role })) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
   }
   const body = await req.json();
@@ -32,6 +32,6 @@ export const PUT = withAuth(async (req: AuthenticatedRequest) => {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
-  const template = await savePurchaseOrderTemplate(parsed.data, req.user!.userId, organizationId);
+  const template = await savePurchaseOrderTemplate(parsed.data, req.user!.userId, org.organizationId);
   return NextResponse.json({ template });
 });

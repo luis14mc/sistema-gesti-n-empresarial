@@ -11,8 +11,11 @@ import { CompraStatusBadge } from '@/components/compras/CompraStatusBadge';
 import { useCompraOrden, useCompraOrdenes } from '@/hooks/useCompraOrden';
 import { useProveedores } from '@/hooks/useCompras';
 import { useAuth } from '@/hooks/useAuth';
-import type { Role } from '@/types';
-import { canOrdenAction } from '@/modules/purchases/domain/purchase-order-permissions';
+import {
+  canCompraOrdenAction,
+  useOrganizationPermissions,
+} from '@/modules/purchases/presentation/purchase-order-client-permissions';
+import { CompraOrdenLoadError } from '@/components/compras/CompraOrdenLoadError';
 import { ORDER_STATUS_LABELS } from '@/modules/purchases/domain/purchase-order-constants';
 import type { CreatePurchaseOrderInput, DraftPurchaseOrderInput } from '@/modules/purchases/presentation/purchase-order-schemas';
 import type { OrdenWorkflowActionName } from '@/hooks/useCompraOrden';
@@ -73,23 +76,41 @@ export default function CompraDetallePage({ params }: { params: Promise<{ id: st
   const router = useRouter();
   const { user } = useAuth();
   const [generating, setGenerating] = useState(false);
-  const { data: orden, isLoading, refetch } = useCompraOrden(id);
+  const permissions = useOrganizationPermissions();
+  const { data: orden, isLoading, isError, error, refetch } = useCompraOrden(id);
   const { data: proveedoresData } = useProveedores({ pageSize: 100 });
   const proveedores = proveedoresData?.proveedores ?? [];
   const { updateOrden, runWorkflow, uploadDocumento, deleteDocumento, deleteOrden, isSaving } = useCompraOrdenes();
 
   if (!user) return null;
-  if (isLoading || !orden) {
+  if (isLoading) {
     return (
       <MainLayout>
         <div className="p-8">Cargando…</div>
       </MainLayout>
     );
   }
+  if (isError) {
+    return (
+      <MainLayout>
+        <CompraOrdenLoadError error={error} />
+      </MainLayout>
+    );
+  }
+  if (!orden) {
+    return (
+      <MainLayout>
+        <CompraOrdenLoadError error={{ response: { status: 404, data: { error: 'Orden no encontrada' } } }} />
+      </MainLayout>
+    );
+  }
 
-  const role = user.role as Role;
   const isCreator = orden.createdById === user.id;
   const status = (orden.status ?? orden.estado) as PurchaseOrderStatus;
+  const membershipRole = (user.membershipRole ?? user.role) as
+    | import('@/platform/security/authorization/permissions').OrganizationRole
+    | undefined;
+  const actionCtx = { isCreator, status, membershipRole };
   const isDraft = status === 'DRAFT';
   const orderNumber = orden.orderNumber ?? orden.numeroOrden;
   const requestedBy = orden.requestedByName ?? orden.solicitadoPorNombre;
@@ -217,32 +238,33 @@ export default function CompraDetallePage({ params }: { params: Promise<{ id: st
           onPendingChange={() => undefined}
           onSave={handleSave}
           onGenerateOrder={
-            canOrdenAction(role, 'generar', { isCreator, status })
+            canCompraOrdenAction(permissions, 'generar', actionCtx)
               ? handleGenerateOrder
               : undefined
           }
           onUpload={
-            canOrdenAction(role, 'documentos', { isCreator, status })
+            canCompraOrdenAction(permissions, 'documentos', actionCtx)
               ? handleUploadDocument
               : undefined
           }
           onDeleteDocument={handleDeleteDocument}
-          canUploadDocuments={canOrdenAction(role, 'documentos', { isCreator, status })}
-          canDeleteDocuments={canOrdenAction(role, 'documentos', { isCreator, status })}
+          canUploadDocuments={canCompraOrdenAction(permissions, 'documentos', actionCtx)}
+          canDeleteDocuments={canCompraOrdenAction(permissions, 'documentos', actionCtx)}
           isSaving={isSaving}
           isGenerating={generating}
-          onDelete={canOrdenAction(role, 'delete', { isCreator, status }) ? handleDelete : undefined}
-          canDelete={canOrdenAction(role, 'delete', { isCreator, status })}
+          onDelete={canCompraOrdenAction(permissions, 'delete', actionCtx) ? handleDelete : undefined}
+          canDelete={canCompraOrdenAction(permissions, 'delete', actionCtx)}
         />
       ) : (
         <CompraOrdenGeneratedDetail
           orden={orden}
-          role={role}
+          permissions={permissions}
+          membershipRole={membershipRole}
           userId={user.id}
           onWorkflow={handleWorkflow}
           onDeleteDocument={handleDeleteDocument}
           onUpload={
-            canOrdenAction(role, 'documentos', { isCreator, status })
+            canCompraOrdenAction(permissions, 'documentos', actionCtx)
               ? handleUploadDocument
               : undefined
           }

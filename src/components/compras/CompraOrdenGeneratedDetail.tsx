@@ -27,9 +27,9 @@ import { RELATED_DOCUMENT_TYPES, DOCUMENT_TYPE_LABELS } from '@/modules/purchase
 import { validatePurchaseDocumentFile } from '@/modules/purchases/domain/document-validation';
 import type { PurchaseDocumentType } from '@prisma/client';
 import { compraOrdenService } from '@/services/compra-orden.service';
-import { canOrdenAction } from '@/modules/purchases/domain/purchase-order-permissions';
+import { canCompraOrdenAction } from '@/modules/purchases/presentation/purchase-order-client-permissions';
+import type { Permission } from '@/platform/security/authorization/permissions';
 import type { CompraOrden } from '@/types/compra-orden';
-import type { Role } from '@/types';
 import type { PurchaseOrderStatus } from '@prisma/client';
 import type { OrdenWorkflowActionName } from '@/hooks/useCompraOrden';
 
@@ -44,7 +44,8 @@ const ACTION_LABELS: Record<OrdenWorkflowActionName, string> = {
 
 interface CompraOrdenGeneratedDetailProps {
   orden: CompraOrden;
-  role: Role;
+  permissions: readonly Permission[];
+  membershipRole?: import('@/platform/security/authorization/permissions').OrganizationRole;
   userId: string;
   onWorkflow: (action: OrdenWorkflowActionName, motivoAnulacion?: string) => Promise<void>;
   onDeleteDocument: (documentId: string) => Promise<void>;
@@ -54,7 +55,8 @@ interface CompraOrdenGeneratedDetailProps {
 
 export function CompraOrdenGeneratedDetail({
   orden,
-  role,
+  permissions,
+  membershipRole,
   userId,
   onWorkflow,
   onDeleteDocument,
@@ -70,19 +72,20 @@ export function CompraOrdenGeneratedDetail({
 
   const isCreator = orden.createdById === userId;
   const status = (orden.status ?? orden.estado) as PurchaseOrderStatus;
+  const actionCtx = { isCreator, status, membershipRole };
   const documents = orden.documentos ?? [];
   const activePdf = documents.find((document) => document.type === 'ORDER_PDF' && document.isActive);
-  const canViewPdf = canOrdenAction(role, 'read', { isCreator, status });
+  const canViewPdf = canCompraOrdenAction(permissions, 'read', actionCtx);
   const pdfViewUrl =
     activePdf && canViewPdf ? compraOrdenService.getDocumentViewUrl(orden.id, activePdf.id) : null;
   const pdfDownloadUrl =
     activePdf && canViewPdf ? compraOrdenService.getDocumentDownloadUrl(orden.id, activePdf.id) : null;
 
-  const canEmitir = canOrdenAction(role, 'emitir', { isCreator, status });
-  const canCerrar = canOrdenAction(role, 'cerrar', { isCreator, status });
-  const canAnular = canOrdenAction(role, 'anular', { isCreator, status });
-  const canRegenerar = canOrdenAction(role, 'regenerar_pdf', { isCreator, status });
-  const canManageDocuments = canOrdenAction(role, 'documentos', { isCreator, status });
+  const canEmitir = canCompraOrdenAction(permissions, 'emitir', actionCtx);
+  const canCerrar = canCompraOrdenAction(permissions, 'cerrar', actionCtx);
+  const canAnular = canCompraOrdenAction(permissions, 'anular', actionCtx);
+  const canRegenerar = canCompraOrdenAction(permissions, 'regenerar_pdf', actionCtx);
+  const canManageDocuments = canCompraOrdenAction(permissions, 'documentos', actionCtx);
 
   const handleUpload = async (files: FileList | null) => {
     if (!files?.length || !onUpload) return;
