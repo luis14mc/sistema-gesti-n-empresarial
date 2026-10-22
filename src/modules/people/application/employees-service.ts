@@ -13,6 +13,7 @@ import {
   updateEmployee,
   findEmployeeActiveAssetSummary,
 } from '@/modules/people/infrastructure/employee-repository';
+import { findEmployeeActiveAssetsDetail } from '@/modules/people/infrastructure/employee-assets';
 import { EmployeeHasActiveAssetsError } from '@/modules/people/domain/errors';
 
 const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
@@ -144,4 +145,23 @@ export async function updateEmployeeFields(
   });
 
   return { kind: 'ok', employee };
+}
+
+export async function getEmployeeActiveAssets(
+  organizationId: string,
+  employeeId: string,
+  options?: { includeLicenses?: boolean },
+) {
+  const employee = await findEmployee(organizationId, employeeId);
+  if (!employee) return null;
+  const assets = await findEmployeeActiveAssetsDetail(organizationId, employeeId, options);
+  return {
+    employee: {
+      id: employee.id,
+      fullName: employee.fullName,
+      employeeCode: employee.employeeCode,
+      isActive: employee.isActive,
+    },
+    ...assets,
+  };
 }

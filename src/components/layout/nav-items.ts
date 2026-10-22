@@ -83,7 +83,7 @@ export const NAV_ITEMS: NavItem[] = [
     children: [
       { label: 'Equipos', href: '/activos/equipos', module: 'equipment' },
       { label: 'Asignaciones', href: '/activos/asignaciones', module: 'assignments' },
-      // PR B: { label: 'Mantenimiento', href: '/activos/mantenimiento', module: 'equipment' },
+      { label: 'Mantenimiento', href: '/activos/mantenimiento', module: 'equipment' },
       { label: 'Licencias', href: '/activos/licencias', module: 'software-licenses' },
       { label: 'Bajas', href: '/activos/bajas', module: 'equipment' },
     ],

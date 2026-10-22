@@ -96,6 +96,18 @@ export const equipmentService = {
 
   // --- Mantenimientos ---
 
+  /** Listar mantenimientos */
+  listMaintenances: (params?: Record<string, string | number | undefined>) =>
+    apiHelpers.get<{
+      maintenances: (EquipmentMaintenance & {
+        equipment: Pick<Equipment, 'id' | 'inventoryCode' | 'brand' | 'model' | 'type'>;
+      })[];
+      total: number;
+      page: number;
+      pageSize: number;
+      totalPages: number;
+    }>('/api/maintenance', params),
+
   /** Registrar mantenimiento para un equipo */
   addMaintenance: (data: CreateMaintenanceData) =>
     apiHelpers.post<MaintenanceResponse>('/api/maintenance', data),
