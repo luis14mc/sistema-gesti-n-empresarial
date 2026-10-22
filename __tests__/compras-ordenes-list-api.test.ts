@@ -21,6 +21,10 @@ vi.mock('@/platform/security/authorization/http', () => ({
   })),
 }));
 
+vi.mock('@/modules/purchases/presentation/purchase-order-effective-permissions', () => ({
+  loadEffectivePermissions: vi.fn(async () => new Set(['purchase-orders.read'])),
+}));
+
 import { GET } from '@/app/api/compras/ordenes/route';
 
 function request(url: string): AuthenticatedRequest {

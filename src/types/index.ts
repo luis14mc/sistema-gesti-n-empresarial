@@ -114,6 +114,8 @@ export interface SessionUser {
       extras: string[];
     }
   >;
+  /** Permisos efectivos en la organización activa (rol + matriz + overrides). */
+  permissions?: import('@/platform/security/authorization/permissions').Permission[];
 }
 
 // ── Resultado genérico de Server Actions ──────────────────────
@@ -180,6 +182,9 @@ export interface User {
   updatedAt: string;
   department?: Department | null;
   position?: JobPosition | null;
+  permissions?: import('@/platform/security/authorization/permissions').Permission[];
+  membershipRole?: string;
+  membershipRoleDisplayName?: string | null;
 }
 
 export interface Ticket {

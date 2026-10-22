@@ -13,6 +13,10 @@ vi.mock('@/platform/security/authorization/http', () => ({
   authorizeOrganization: vi.fn(async () => ({ organizationId: 'org-1', userId: 'user-1', role: 'ADMIN' })),
 }));
 
+vi.mock('@/modules/purchases/presentation/purchase-order-effective-permissions', () => ({
+  loadEffectivePermissions: vi.fn(async () => new Set(['purchase-orders.create'])),
+}));
+
 vi.mock('@/modules/purchases/application/purchase-order-use-cases', () => ({
   listCompraOrdenes: vi.fn(),
   createCompraOrden: (...args: unknown[]) => createMock(...args),

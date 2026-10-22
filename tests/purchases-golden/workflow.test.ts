@@ -8,11 +8,19 @@ import {
   type CompraWorkflowAction,
 } from '@/modules/purchases/domain/workflow';
 import { canOrdenAction, type OrderAction } from '@/modules/purchases/domain/purchase-order-permissions';
+import { officialPermissionSetForRole } from '@/platform/security/authorization/official-role-permissions';
+import type { OrganizationRole } from '@/platform/security/authorization/permissions';
 import { parsePurchaseOrderListStatus } from '@/modules/purchases/domain/list-status-filter';
 import fixture from './__fixtures__/workflow.json';
 
 const COMPRA_ACTIONS = Object.keys(fixture.compraTransitions) as CompraWorkflowAction[];
 const COMPRA_ESTADOS = Object.keys(fixture.compraTransitions.generar_orden) as CompraEstado[];
+
+function fixtureRoleToOrgRole(role: string): OrganizationRole {
+  if (role === 'RRHH') return 'HR';
+  if (role === 'IT') return 'IT_TECHNICIAN';
+  return role as OrganizationRole;
+}
 
 describe('purchases golden — workflow y permisos', () => {
   it('transiciones legacy CompraSolicitud (workflow.ts)', () => {
@@ -37,10 +45,13 @@ describe('purchases golden — workflow y permisos', () => {
     for (const [key, expected] of Object.entries(fixture.orderPermissionMatrix)) {
       const [action, status, role, creatorPart] = key.split('|');
       const isCreator = creatorPart === 'creator=true';
+      const permissions = officialPermissionSetForRole(fixtureRoleToOrgRole(role));
       expect(
-        canOrdenAction(role as Role, action as OrderAction, {
+        canOrdenAction(permissions, action as OrderAction, {
           isCreator,
           status: status as PurchaseOrderStatus,
+          membershipRole: fixtureRoleToOrgRole(role),
+          sessionRole: role,
         }),
       ).toBe(expected);
     }

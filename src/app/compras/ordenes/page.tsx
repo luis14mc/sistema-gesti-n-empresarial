@@ -28,10 +28,12 @@ import { CompraStatusBadge } from '@/components/compras/CompraStatusBadge';
 import { CompraOrdenGeneratedRowActions } from '@/components/compras/CompraOrdenGeneratedRowActions';
 import { useCompraOrdenes } from '@/hooks/useCompraOrden';
 import { useAuth } from '@/hooks/useAuth';
-import { canOrdenAction } from '@/modules/purchases/domain/purchase-order-permissions';
+import {
+  canCompraOrdenAction,
+  useOrganizationPermissions,
+} from '@/modules/purchases/presentation/purchase-order-client-permissions';
 import { ORDER_STATUS_LABELS } from '@/modules/purchases/domain/purchase-order-constants';
 import type { GeneratedOrdersStatusFilter } from '@/modules/purchases/domain/list-status-filter';
-import type { Role } from '@/types';
 import type { PurchaseOrderStatus } from '@/types/compra-orden';
 import { formatPurchaseDateTime, formatPurchaseMoney } from '@/components/compras/purchase-order-format-list';
 
@@ -44,6 +46,7 @@ const FILTER_LABELS: Record<GeneratedOrdersStatusFilter, string> = {
 
 export default function ComprasOrdenesGeneradasPage() {
   const { user } = useAuth();
+  const permissions = useOrganizationPermissions();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<GeneratedOrdersStatusFilter>('active');
@@ -55,7 +58,10 @@ export default function ComprasOrdenesGeneradasPage() {
   });
 
   if (!user) return null;
-  const role = user.role as Role;
+  const membershipRole = (user.membershipRole ?? user.role) as
+    | import('@/platform/security/authorization/permissions').OrganizationRole
+    | undefined;
+  const sessionRole = user.role;
 
   return (
     <MainLayout>
@@ -131,9 +137,11 @@ export default function ComprasOrdenesGeneradasPage() {
                 ) : (
                   ordenes.map((order) => {
                     const status = (order.status ?? order.estado) as PurchaseOrderStatus;
-                    const canViewPdf = canOrdenAction(role, 'read', {
+                    const canViewPdf = canCompraOrdenAction(permissions, 'read', {
                       isCreator: order.createdById === user.id,
                       status,
+                      membershipRole,
+                      sessionRole,
                     });
                     return (
                       <TableRow key={order.id}>

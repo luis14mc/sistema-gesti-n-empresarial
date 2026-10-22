@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { PermissionDeniedError } from '@/platform/domain/errors';
 import {
   canWithOverrides,
+  ORGANIZATION_PERMISSIONS,
   organizationRole,
   type Permission,
   type PermissionOverride,
@@ -49,6 +50,28 @@ export async function requireOrganizationPermission(
       scope: 'organization',
     });
   }
+}
+
+export async function listEffectivePermissionsForMember(
+  userId: string,
+  organizationId: string,
+  role: OrganizationRole,
+): Promise<Permission[]> {
+  return listEffectiveOrganizationPermissions(userId, organizationId, role);
+}
+
+export async function listEffectiveOrganizationPermissions(
+  userId: string,
+  organizationId: string,
+  role: OrganizationRole,
+): Promise<Permission[]> {
+  const granted = await getEffectiveOrganizationPermissions(
+    userId,
+    organizationId,
+    role,
+    ORGANIZATION_PERMISSIONS,
+  );
+  return [...granted];
 }
 
 export async function getEffectiveOrganizationPermissions(

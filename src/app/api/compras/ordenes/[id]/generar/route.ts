@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { generarCompraOrden, getCompraOrden } from '@/modules/purchases/application/purchase-order-use-cases';
 import { canOrdenAction } from '@/modules/purchases/domain/purchase-order-permissions';
-import type { Role } from '@/types';
+import { loadEffectivePermissions } from '@/modules/purchases/presentation/purchase-order-effective-permissions';
 import { isMissingBrowserError } from '@/platform/pdf/html-to-pdf';
 import { InvalidPurchaseOrderError } from '@/modules/purchases/domain/generation-validation';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
@@ -15,8 +15,9 @@ async function postHandler(
   let orderId = 'unknown';
   let stage = 'LOAD_ORDER';
   try {
-    const role = req.user!.role as Role;
-    const { organizationId } = await authorizeOrganization(req, requestId, 'purchase-orders.generate');
+    const org = await authorizeOrganization(req, requestId, 'purchase-orders.generate');
+    const permissions = await loadEffectivePermissions(org);
+    const { organizationId } = org;
     const { id } = await params;
     orderId = id;
     console.info('[PURCHASE ORDER VALIDATION START]', { requestId, orderId });
@@ -44,7 +45,8 @@ async function postHandler(
     }
 
     if (
-      !canOrdenAction(role, 'generar', {
+      !canOrdenAction(permissions, 'generar', {
+        membershipRole: org.role, sessionRole: req.user!.role,
         isCreator: existing.createdById === req.user!.userId,
         status: existing.status,
       })

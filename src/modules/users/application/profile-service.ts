@@ -25,6 +25,7 @@ import {
 import { getRoleSettingRow } from '@/platform/security/authorization/role-catalog-service';
 import { resolveSessionRole } from '@/platform/security/authorization/session-role';
 import type { PermissionOverride } from '@/platform/security/authorization/permissions';
+import { listEffectiveOrganizationPermissions } from '@/platform/security/authorization/effective-permissions';
 
 export async function getProfile(params: {
   userId: string;
@@ -62,6 +63,12 @@ export async function getProfile(params: {
   const tokenStale =
     params.tokenAccessVersion !== undefined && params.tokenAccessVersion !== accessVersion;
 
+  const permissions = await listEffectiveOrganizationPermissions(
+    params.userId,
+    params.organizationId,
+    orgRole,
+  );
+
   return {
     user: {
       ...user,
@@ -72,6 +79,7 @@ export async function getProfile(params: {
       accessVersion,
       modulesRead: moduleIdsWithRead(moduleAccess),
       moduleAccess,
+      permissions,
     },
     tokenStale,
   };

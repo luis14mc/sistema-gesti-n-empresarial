@@ -1,5 +1,6 @@
 import type { PurchaseOrderStatus } from '@prisma/client';
-import type { Role } from '@/types';
+import type { OrganizationRole, Permission } from '@/platform/security/authorization/permissions';
+import { PURCHASE_ORDER_APPROVE } from '@/platform/security/authorization/permissions';
 
 export type OrderAction =
   | 'read'
@@ -15,61 +16,92 @@ export type OrderAction =
   | 'historial'
   | 'template';
 
-const MATRIX: Record<string, OrderAction[]> = {
-  ADMIN: ['read', 'create', 'update', 'delete', 'generar', 'emitir', 'anular', 'cerrar', 'regenerar_pdf', 'documentos', 'historial', 'template'],
-  OWNER: ['read', 'create', 'update', 'delete', 'generar', 'emitir', 'anular', 'cerrar', 'regenerar_pdf', 'documentos', 'historial', 'template'],
-  ADMINISTRACION: ['read', 'create', 'update', 'delete', 'generar', 'emitir', 'anular', 'cerrar', 'regenerar_pdf', 'documentos', 'historial'],
-  PROCUREMENT: ['read', 'create', 'update', 'delete', 'generar', 'documentos', 'historial'],
-  IT: ['read'],
-  IT_MANAGER: ['read'],
-  RRHH: ['read', 'create', 'update', 'delete', 'historial'],
-  USER: ['read'],
+const ACTION_TO_PERMISSION: Record<OrderAction, Permission> = {
+  read: 'purchase-orders.read',
+  historial: 'purchase-orders.read',
+  create: 'purchase-orders.create',
+  update: 'purchase-orders.update',
+  delete: 'purchase-orders.update',
+  documentos: 'purchase-orders.update',
+  generar: 'purchase-orders.generate',
+  regenerar_pdf: 'purchase-orders.generate',
+  emitir: PURCHASE_ORDER_APPROVE,
+  cerrar: PURCHASE_ORDER_APPROVE,
+  anular: 'purchase-orders.cancel',
+  template: PURCHASE_ORDER_APPROVE,
 };
 
-export function canOrdenAction(
-  role: Role,
-  action: OrderAction,
-  ctx: { isCreator?: boolean; status?: PurchaseOrderStatus } = {}
+export type EffectivePermissions = ReadonlySet<Permission> | readonly Permission[];
+
+/** Lista GET: usuarios USER ven solo las propias (equivalente a ?mine=true). */
+export function shouldScopePurchaseOrdersToMine(
+  permissions: EffectivePermissions,
+  membershipRole?: OrganizationRole,
 ): boolean {
-  if (!MATRIX[role]?.includes(action)) return false;
+  return membershipRole === 'USER';
+}
+
+function hasPermission(permissions: EffectivePermissions, permission: Permission): boolean {
+  if (permissions instanceof Set) return permissions.has(permission);
+  return (permissions as readonly Permission[]).includes(permission);
+}
+
+function requiresOwnPurchaseOrderForMutations(ctx: {
+  membershipRole?: OrganizationRole;
+  sessionRole?: string;
+}): boolean {
+  if (ctx.membershipRole === 'USER' || ctx.membershipRole === 'HR') return true;
+  if (ctx.sessionRole === 'RRHH') return true;
+  return false;
+}
+
+export function canOrdenAction(
+  permissions: EffectivePermissions,
+  action: OrderAction,
+  ctx: {
+    isCreator?: boolean;
+    status?: PurchaseOrderStatus;
+    membershipRole?: OrganizationRole;
+    sessionRole?: string;
+  } = {},
+): boolean {
+  const required = ACTION_TO_PERMISSION[action];
+  if (!hasPermission(permissions, required)) return false;
 
   if (action === 'update') {
     if (ctx.status !== 'DRAFT') return false;
-    if (role === 'USER' || role === 'RRHH') return !!ctx.isCreator;
+    if (requiresOwnPurchaseOrderForMutations(ctx)) return !!ctx.isCreator;
     return true;
   }
 
   if (action === 'delete') {
     if (ctx.status !== 'DRAFT') return false;
-    if (role === 'USER' || role === 'RRHH') return !!ctx.isCreator;
+    if (requiresOwnPurchaseOrderForMutations(ctx)) return !!ctx.isCreator;
     return true;
   }
 
-  if (['generar', 'regenerar_pdf'].includes(action)) {
-    if (role === 'USER' || role === 'RRHH') return !!ctx.isCreator;
+  if (action === 'generar' || action === 'regenerar_pdf') {
+    if (requiresOwnPurchaseOrderForMutations(ctx)) return !!ctx.isCreator;
     return true;
   }
 
   if (action === 'anular') {
     if (ctx.status === 'CLOSED') return false;
-    return role === 'ADMIN' || role === 'OWNER' || role === 'ADMINISTRACION';
+    return true;
   }
 
   if (action === 'emitir') {
     if (ctx.status && ctx.status !== 'GENERATED') return false;
-    return role === 'ADMIN' || role === 'OWNER' || role === 'ADMINISTRACION';
+    return true;
   }
 
   if (action === 'cerrar') {
-    return role === 'ADMIN' || role === 'OWNER' || role === 'ADMINISTRACION';
-  }
-
-  if (action === 'template') {
-    return role === 'ADMIN' || role === 'OWNER';
+    if (ctx.status && ctx.status !== 'ISSUED') return false;
+    return true;
   }
 
   if (action === 'read' || action === 'historial' || action === 'documentos') {
-    if (role === 'USER') return !!ctx.isCreator;
+    if (ctx.membershipRole === 'USER') return !!ctx.isCreator;
     return true;
   }
 
