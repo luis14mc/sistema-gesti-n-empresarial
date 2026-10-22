@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { isOrganizationContextError } from '@/modules/organizations/application/context';
-import { PermissionDeniedError } from '@/platform/domain/errors';
+import { DomainError, PermissionDeniedError } from '@/platform/domain/errors';
 
 function statusFromPrismaCode(code: string): number {
   switch (code) {
@@ -35,6 +35,9 @@ export function handlePurchaseOrderRouteError(
   }
   if (isOrganizationContextError(error)) {
     return NextResponse.json({ error: error.message }, { status: error.status });
+  }
+  if (error instanceof DomainError) {
+    return NextResponse.json({ error: error.message }, { status: error.httpStatus });
   }
   console.error(`[${context}]`, { requestId, error });
 

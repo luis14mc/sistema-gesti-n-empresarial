@@ -39,6 +39,7 @@ import {
   purchaseOrderChildScope,
   purchaseOrderScope,
 } from '@/modules/purchases/infrastructure/purchase-order-tenant';
+import { PurchaseBusinessError, PurchaseNotFoundError } from '@/modules/purchases/domain/errors';
 
 export const orderInclude = {
   createdBy: { select: { id: true, firstName: true, lastName: true } },
@@ -74,7 +75,7 @@ const listInclude = {
 } satisfies Prisma.CompraOrdenInclude;
 
 async function resolveSupplierSnapshot(input: DraftPurchaseOrderInput, _organizationId: string) {
-  if (!input.supplierId) throw new Error('SUPPLIER_REQUIRED');
+  if (!input.supplierId) throw new PurchaseBusinessError('SUPPLIER_REQUIRED', 500);
   const supplier = await prisma.proveedor.findFirst({
     where: { id: input.supplierId, organizationId: _organizationId, deletedAt: null, activo: true },
   });
@@ -86,7 +87,7 @@ async function resolveSupplierSnapshot(input: DraftPurchaseOrderInput, _organiza
       supplierPhone: supplier.telefono ?? '',
     };
   }
-  throw new Error('SUPPLIER_NOT_AVAILABLE');
+  throw new PurchaseBusinessError('SUPPLIER_NOT_AVAILABLE', 500);
 }
 
 async function resolveRequesterSnapshot(input: DraftPurchaseOrderInput, organizationId: string) {
@@ -101,8 +102,8 @@ async function resolveRequesterSnapshot(input: DraftPurchaseOrderInput, organiza
     where: { id: input.requesterEmployeeId, organizationId, isActive: true },
     include: { position: { select: { name: true } } },
   });
-  if (!employee) throw new Error('REQUESTER_NOT_AVAILABLE');
-  if (!employee.position?.name?.trim()) throw new Error('REQUESTER_POSITION_REQUIRED');
+  if (!employee) throw new PurchaseBusinessError('REQUESTER_NOT_AVAILABLE', 500);
+  if (!employee.position?.name?.trim()) throw new PurchaseBusinessError('REQUESTER_POSITION_REQUIRED', 500);
   return {
     requesterEmployeeId: employee.id,
     requestedByName: employee.fullName,
@@ -173,9 +174,9 @@ function resolveDraftDates(input: DraftPurchaseOrderInput) {
 function buildItems(input: CreatePurchaseOrderInput) {
   const discountType = input.discountType ?? 'NINGUNO';
   const discountValue = toDecimal(input.discountValue ?? 0);
-  if (discountValue.isNegative()) throw new Error('INVALID_DISCOUNT_VALUE');
+  if (discountValue.isNegative()) throw new PurchaseBusinessError('INVALID_DISCOUNT_VALUE', 500);
   if (discountType === 'PORCENTAJE' && discountValue.greaterThan(100)) {
-    throw new Error('INVALID_DISCOUNT_PERCENTAGE');
+    throw new PurchaseBusinessError('INVALID_DISCOUNT_PERCENTAGE', 500);
   }
   const calculation = calculatePurchaseOrder({
     items: input.items.map((item) => ({
@@ -189,7 +190,7 @@ function buildItems(input: CreatePurchaseOrderInput) {
   });
   const { subtotal, discount: disc, tax, total, taxRate } = calculation;
   if (discountType === 'MONTO' && discountValue.greaterThan(subtotal)) {
-    throw new Error('DISCOUNT_EXCEEDS_SUBTOTAL');
+    throw new PurchaseBusinessError('DISCOUNT_EXCEEDS_SUBTOTAL', 500);
   }
   const mapped = input.items.map((item, index) => {
     const calculated = calculation.items[index];
@@ -238,7 +239,7 @@ export async function createPurchaseOrder(input: DraftPurchaseOrderInput, userId
 
   return prisma.$transaction(async (tx) => {
     const template = await getActiveTemplate(organizationId, tx);
-    if (!template) throw new Error('No hay plantilla activa configurada');
+    if (!template) throw new PurchaseBusinessError('No hay plantilla activa configurada', 500);
     const { sequenceNumber, sequenceYear, orderNumber } = await allocateOrderNumber(
       tx,
       organizationId,
@@ -297,8 +298,8 @@ export async function createPurchaseOrder(input: DraftPurchaseOrderInput, userId
 
 export async function updatePurchaseOrder(id: string, input: UpdatePurchaseOrderInput, userId: string, organizationId: string) {
   const existing = await prisma.compraOrden.findFirst({ where: { id, organizationId, deletedAt: null } });
-  if (!existing) throw new Error('Orden no encontrada');
-  if (existing.status !== 'DRAFT') throw new Error('Solo se pueden editar borradores');
+  if (!existing) throw new PurchaseNotFoundError('Orden no encontrada', 400);
+  if (existing.status !== 'DRAFT') throw new PurchaseBusinessError('Solo se pueden editar borradores', 400);
 
   const supplier = await resolveSupplierSnapshot(input, organizationId);
   const requester = await resolveRequesterSnapshot(input, organizationId);
@@ -358,8 +359,8 @@ export async function updatePurchaseOrder(id: string, input: UpdatePurchaseOrder
 
 export async function deletePurchaseOrder(id: string, userId: string, organizationId: string) {
   const existing = await prisma.compraOrden.findFirst({ where: { id, organizationId, deletedAt: null } });
-  if (!existing) throw new Error('ORDER_NOT_FOUND');
-  if (existing.status !== 'DRAFT') throw new Error('ONLY_DRAFT_CAN_BE_DELETED');
+  if (!existing) throw new PurchaseNotFoundError('ORDER_NOT_FOUND', 404);
+  if (existing.status !== 'DRAFT') throw new PurchaseBusinessError('ONLY_DRAFT_CAN_BE_DELETED', 409);
 
   await prisma.$transaction(async (tx) => {
     await tx.compraOrden.update({
@@ -465,7 +466,7 @@ async function saveOrderPdf(
       issuedBy: { select: { firstName: true, lastName: true } },
     },
   });
-  if (!order) throw new Error('Orden no encontrada');
+  if (!order) throw new PurchaseNotFoundError('Orden no encontrada', 400);
 
   const template = configuredTemplate ?? await resolveTemplateForOrder(order);
   const lastDoc = await client.compraOrdenDocumento.findFirst({
@@ -530,13 +531,13 @@ export async function generatePurchaseOrder(
     where: { id, organizationId, deletedAt: null },
     include: { items: { include: { taxes: { orderBy: { sortOrder: 'asc' as const } } } } },
   });
-  if (!existing) throw new Error('ORDER_NOT_FOUND');
-  if (existing.status !== 'DRAFT') throw new Error('ORDER_ALREADY_GENERATED');
+  if (!existing) throw new PurchaseNotFoundError('ORDER_NOT_FOUND', 404);
+  if (existing.status !== 'DRAFT') throw new PurchaseBusinessError('ORDER_ALREADY_GENERATED', 409);
 
   onStage?.('LOAD_TEMPLATE');
   console.info('[PURCHASE ORDER] Loading active format');
   const template = await getActiveTemplate(organizationId);
-  if (!template) throw new Error('ACTIVE_PURCHASE_FORMAT_NOT_FOUND');
+  if (!template) throw new PurchaseBusinessError('ACTIVE_PURCHASE_FORMAT_NOT_FOUND', 500);
   const templateSnapshot = buildTemplateSnapshot(template);
 
   onStage?.('VALIDATE_ORDER');
@@ -667,7 +668,7 @@ export async function generatePurchaseOrder(
           total: generationCalculation.total,
         },
       });
-      if (claimed.count !== 1) throw new Error('ORDER_ALREADY_GENERATED');
+      if (claimed.count !== 1) throw new PurchaseBusinessError('ORDER_ALREADY_GENERATED', 409);
 
       await Promise.all(existing.items.map((item, index) =>
         tx.compraOrdenItem.update({
@@ -745,13 +746,13 @@ export async function issuePurchaseOrder(id: string, userId: string, organizatio
       generatedBy: { select: { firstName: true, lastName: true } },
     },
   });
-  if (!order) throw new Error('Orden no encontrada');
-  if (order.status !== 'GENERATED') throw new Error('Solo órdenes generadas pueden emitirse');
+  if (!order) throw new PurchaseNotFoundError('Orden no encontrada', 400);
+  if (order.status !== 'GENERATED') throw new PurchaseBusinessError('Solo órdenes generadas pueden emitirse', 400);
 
   const activePdf = await prisma.compraOrdenDocumento.findFirst({
     where: { orderId: id, type: 'ORDER_PDF', isActive: true, orden: { organizationId } },
   });
-  if (!activePdf) throw new Error('Debe existir PDF activo');
+  if (!activePdf) throw new PurchaseBusinessError('Debe existir PDF activo', 400);
 
   const issuer = await prisma.user.findUnique({
     where: { id: userId },
@@ -795,7 +796,7 @@ export async function issuePurchaseOrder(id: string, userId: string, organizatio
         where: { id, organizationId, status: 'GENERATED' },
         data: { status: 'ISSUED', issuedById: userId, issuedAt },
       });
-      if (claimed.count !== 1) throw new Error('ORDER_ALREADY_ISSUED');
+      if (claimed.count !== 1) throw new PurchaseBusinessError('ORDER_ALREADY_ISSUED', 400);
 
       await tx.compraOrdenDocumento.updateMany({
         where: { orderId: id, type: 'ORDER_PDF', isActive: true },
@@ -858,10 +859,10 @@ export async function issuePurchaseOrder(id: string, userId: string, organizatio
 
 export async function cancelPurchaseOrder(id: string, userId: string, cancellationReason: string, organizationId: string) {
   const order = await prisma.compraOrden.findFirst({ where: { id, organizationId, deletedAt: null } });
-  if (!order) throw new Error('Orden no encontrada');
-  if (order.status === 'CLOSED') throw new Error('No se puede anular una orden cerrada');
+  if (!order) throw new PurchaseNotFoundError('Orden no encontrada', 400);
+  if (order.status === 'CLOSED') throw new PurchaseBusinessError('No se puede anular una orden cerrada', 400);
   if (!['DRAFT', 'GENERATED', 'ISSUED'].includes(order.status)) {
-    throw new Error('Estado no permite anulación');
+    throw new PurchaseBusinessError('Estado no permite anulación', 400);
   }
 
   await prisma.$transaction(async (tx) => {
@@ -901,8 +902,8 @@ export async function cancelPurchaseOrder(id: string, userId: string, cancellati
 
 export async function closePurchaseOrder(id: string, userId: string, organizationId: string) {
   const order = await prisma.compraOrden.findFirst({ where: { id, organizationId, deletedAt: null } });
-  if (!order) throw new Error('Orden no encontrada');
-  if (order.status !== 'ISSUED') throw new Error('Solo órdenes emitidas pueden cerrarse');
+  if (!order) throw new PurchaseNotFoundError('Orden no encontrada', 400);
+  if (order.status !== 'ISSUED') throw new PurchaseBusinessError('Solo órdenes emitidas pueden cerrarse', 400);
 
   await prisma.$transaction(async (tx) => {
     await tx.compraOrden.update({
@@ -935,9 +936,9 @@ export async function closePurchaseOrder(id: string, userId: string, organizatio
 
 export async function regeneratePurchaseOrderPdf(id: string, userId: string, organizationId: string) {
   const order = await prisma.compraOrden.findFirst({ where: { id, organizationId, deletedAt: null } });
-  if (!order) throw new Error('Orden no encontrada');
+  if (!order) throw new PurchaseNotFoundError('Orden no encontrada', 400);
   if (!['GENERATED', 'ISSUED', 'CLOSED'].includes(order.status)) {
-    throw new Error('Estado no permite regenerar PDF');
+    throw new PurchaseBusinessError('Estado no permite regenerar PDF', 400);
   }
 
   await saveOrderPdf(id, userId, organizationId);
@@ -974,7 +975,7 @@ export async function uploadPurchaseOrderDocument(
   organizationId: string
 ) {
   const order = await prisma.compraOrden.findFirst({ where: { id: orderId, organizationId, deletedAt: null } });
-  if (!order) throw new Error('Orden no encontrada');
+  if (!order) throw new PurchaseNotFoundError('Orden no encontrada', 500);
 
   const stored = await saveOrdenDocument(file, organizationId, orderId);
   const doc = await prisma.$transaction(async (tx) => {
@@ -1035,8 +1036,8 @@ export async function deletePurchaseOrderDocument(
   const doc = await prisma.compraOrdenDocumento.findFirst({
     where: { id: documentId, orderId, orden: { organizationId } },
   });
-  if (!doc) throw new Error('Documento no encontrado');
-  if (doc.type === 'ORDER_PDF') throw new Error('No se puede eliminar el PDF de la orden');
+  if (!doc) throw new PurchaseNotFoundError('Documento no encontrado', 400);
+  if (doc.type === 'ORDER_PDF') throw new PurchaseBusinessError('No se puede eliminar el PDF de la orden', 400);
 
   await prisma.$transaction(async (tx) => {
     await tx.compraOrdenDocumento.delete({ where: { id: documentId } });
@@ -1102,7 +1103,7 @@ export async function readPurchaseOrderDocumentFile(orderId: string, documentId:
   const doc = await prisma.compraOrdenDocumento.findFirst({
     where: { id: documentId, orderId, ...purchaseOrderChildScope(organizationId) },
   });
-  if (!doc) throw new Error('Documento no encontrado');
+  if (!doc) throw new PurchaseNotFoundError('Documento no encontrado', 404);
   const file = await readStoredDocument(doc.storageKey, doc.mimeType);
   return {
     id: doc.id,
@@ -1123,7 +1124,7 @@ export async function getPurchaseOrderHtmlPreview(orderId: string, organizationI
       issuedBy: { select: { firstName: true, lastName: true } },
     },
   });
-  if (!order) throw new Error('Orden no encontrada');
+  if (!order) throw new PurchaseNotFoundError('Orden no encontrada', 400);
   const template = await resolveTemplateForOrder(order);
   const activePdf = await prisma.compraOrdenDocumento.findFirst({
     where: { orderId, type: 'ORDER_PDF', isActive: true, orden: { organizationId } },

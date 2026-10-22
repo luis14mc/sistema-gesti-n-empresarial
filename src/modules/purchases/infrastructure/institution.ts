@@ -7,6 +7,7 @@ import {
   getInstitutionSettings,
   type InstitutionSettings,
 } from '@/modules/purchases/infrastructure/institution-store';
+import { PurchaseBusinessError } from '@/modules/purchases/domain/errors';
 
 const MIME_BY_EXT: Record<string, string> = {
   svg: 'image/svg+xml',
@@ -127,7 +128,7 @@ const LOGO_DIR = path.join(PUBLIC_ROOT, 'uploads', 'institution');
 
 export async function saveInstitutionLogo(file: File): Promise<string> {
   if (file.size > 2 * 1024 * 1024) {
-    throw new Error('El logo no puede superar 2 MB.');
+    throw new PurchaseBusinessError('El logo no puede superar 2 MB.', 500);
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());

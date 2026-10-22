@@ -1,6 +1,6 @@
 import { isOrganizationContextError } from '@/modules/organizations/application/context';
 import { authorizationFailure } from '@/platform/security/authorization/http';
-import { PermissionDeniedError } from '@/platform/domain/errors';
+import { DomainError, PermissionDeniedError } from '@/platform/domain/errors';
 import { NextResponse } from 'next/server';
 import {
   AdminRoleAlwaysAssignableError,
@@ -42,6 +42,9 @@ export function handleUsersApiError(
   if (domain) return domain;
   const denied = usersAuthorizationFailure(error, requestId);
   if (denied) return denied;
+  if (error instanceof DomainError) {
+    return NextResponse.json({ error: error.message }, { status: error.httpStatus });
+  }
   return NextResponse.json({ error: fallbackMessage }, { status: 500 });
 }
 

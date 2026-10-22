@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { apiFailure, apiSuccess } from '@/platform/api/response';
 import { isOrganizationContextError } from '@/modules/organizations/application/context';
 import { authorizationFailure } from '@/platform/security/authorization/http';
-import { PermissionDeniedError } from '@/platform/domain/errors';
+import { DomainError, PermissionDeniedError } from '@/platform/domain/errors';
 import {
   ImportBatchDocumentsNotFoundError,
   ImportBatchNotFoundError,
@@ -58,6 +58,9 @@ export function handleOficiosApiError(
   if (domain) return domain;
   const organizationResponse = oficioOrganizationFailure(error, requestId);
   if (organizationResponse) return organizationResponse;
+  if (error instanceof DomainError) {
+    return NextResponse.json({ error: error.message }, { status: error.httpStatus });
+  }
   if (error instanceof Error && error.message.includes('Formato no permitido')) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }

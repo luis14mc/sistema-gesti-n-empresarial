@@ -1,7 +1,9 @@
 import { Prisma } from '@prisma/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { handlePurchaseOrderRouteError } from '@/modules/purchases/infrastructure/purchase-order-prisma-route-error';
+import { PurchaseBusinessError, PurchaseNotFoundError } from '@/modules/purchases/domain/errors';
 import { PermissionDeniedError } from '@/platform/domain/errors';
+import { InvalidUploadError } from '@/platform/security/uploads/raster-image-validation';
 
 function knownError(code: string) {
   return new Prisma.PrismaClientKnownRequestError('Unique constraint failed on users_email_key', {
@@ -67,6 +69,33 @@ describe('handlePurchaseOrderRouteError', () => {
       const response = handlePurchaseOrderRouteError(new PermissionDeniedError('Sin permiso'), 'GET /api/test', 'req-4');
       expect(response.status).toBe(403);
       expect(await response.json()).toEqual({ error: 'Sin permiso' });
+    });
+
+    it('errores de negocio tipados responden el mensaje original y el status del caso', async () => {
+      const template = handlePurchaseOrderRouteError(
+        new PurchaseBusinessError('No hay plantilla activa configurada', 500),
+        'POST /api/compras/ordenes',
+        'req-biz',
+      );
+      expect(template.status).toBe(500);
+      expect(await template.json()).toEqual({ error: 'No hay plantilla activa configurada' });
+
+      const notFound = handlePurchaseOrderRouteError(
+        new PurchaseNotFoundError('Orden no encontrada', 400),
+        'PATCH /api/compras/ordenes/[id]',
+        'req-nf',
+      );
+      expect(notFound.status).toBe(400);
+      expect(await notFound.json()).toEqual({ error: 'Orden no encontrada' });
+
+      const upload = handlePurchaseOrderRouteError(
+        new InvalidUploadError('Formato de logo no permitido. Use PNG, JPG o WebP.'),
+        'POST /api/compras/institucion/logo',
+        'req-up',
+      );
+      expect(upload.status).toBe(500);
+      expect(await upload.json()).toEqual({ error: 'Formato de logo no permitido. Use PNG, JPG o WebP.' });
+      expect(consoleError).not.toHaveBeenCalled();
     });
   });
 
