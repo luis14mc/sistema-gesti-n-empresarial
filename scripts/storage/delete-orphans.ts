@@ -9,6 +9,7 @@
 import { readFile } from 'fs/promises';
 import { validateStorageEnvironment } from '@/platform/config/env';
 import { getStorage } from '@/platform/storage';
+import { isProtectedStorageExportKey } from '@/platform/storage/protected-prefixes';
 import { parseOrphanKeysFromAuditCsv } from '@/platform/storage/storage-audit';
 
 const MS_7_DAYS = 7 * 24 * 60 * 60 * 1000;
@@ -41,9 +42,15 @@ async function main(): Promise<void> {
     return age > MS_7_DAYS;
   });
 
-  const keysToDelete = explicitKeys.length
+  const requestedKeys = explicitKeys.length
     ? explicitKeys.filter((key) => orphanKeySet.has(key))
     : eligible.map((row) => row.storageKey);
+
+  const keysToDelete = requestedKeys.filter((key) => !isProtectedStorageExportKey(key));
+  const rejectedProtected = requestedKeys.filter((key) => isProtectedStorageExportKey(key));
+  for (const key of rejectedProtected) {
+    console.error(`[storage:delete-orphans] Rechazada clave protegida: ${key}`);
+  }
 
   if (keysToDelete.length === 0) {
     console.info('[storage:delete-orphans] No hay claves elegibles (huérfanas en CSV y >7 días).');

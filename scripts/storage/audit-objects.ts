@@ -130,6 +130,7 @@ async function main(): Promise<void> {
   const orphans = rows.filter((r) => r.section === 'HUERFANOS').length;
   const missing = rows.filter((r) => r.section === 'FALTANTES').length;
   const overwrites = rows.filter((r) => r.section === 'POSIBLE_SOBRESCRITURA').length;
+  const exports = rows.filter((r) => r.section === 'EXPORTACION').length;
 
   await mkdir(path.dirname(reportPath), { recursive: true });
   await writeFile(reportPath, formatStorageAuditCsv(rows), 'utf8');
@@ -140,6 +141,7 @@ async function main(): Promise<void> {
   console.info(`  HUÉRFANOS: ${orphans}`);
   console.info(`  FALTANTES: ${missing}`);
   console.info(`  POSIBLE SOBRESCRITURA: ${overwrites}`);
+  console.info(`  EXPORTACIÓN (protegidos): ${exports}`);
   console.info(`  Reporte: ${reportPath}`);
 }
 

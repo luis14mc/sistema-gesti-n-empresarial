@@ -1,5 +1,6 @@
 import type { PrismaClient } from '@prisma/client';
-import { equipmentDocumentKeyFromUrl } from '@/modules/equipment/infrastructure/equipment-document-access';
+import { isProtectedStorageExportKey } from '@/platform/storage/protected-prefixes';
+import { storageKeyFromStoredUrl } from '@/platform/storage/storage-key-from-url';
 
 export type DbStorageReference = {
   entity: string;
@@ -16,7 +17,7 @@ export type ListedStorageObject = {
 };
 
 export type StorageAuditRow = {
-  section: 'HUERFANOS' | 'FALTANTES' | 'POSIBLE_SOBRESCRITURA';
+  section: 'HUERFANOS' | 'FALTANTES' | 'POSIBLE_SOBRESCRITURA' | 'EXPORTACION';
   storageKey: string;
   size?: number;
   lastModified?: string;
@@ -60,7 +61,7 @@ function pushUrlRef(
   createdAt: Date | string,
 ) {
   if (!url?.trim()) return;
-  const key = equipmentDocumentKeyFromUrl(url) ?? url.trim();
+  const key = storageKeyFromStoredUrl(url) ?? url.trim();
   pushRef(refs, entity, id, key, createdAt);
 }
 
@@ -75,6 +76,7 @@ export async function collectDbStorageReferences(prisma: PrismaClient): Promise<
     payslips,
     organizations,
     reportExecutions,
+    purchaseTemplates,
     assignments,
     maintenances,
   ] = await Promise.all([
@@ -102,6 +104,10 @@ export async function collectDbStorageReferences(prisma: PrismaClient): Promise<
     prisma.reportExecution.findMany({
       where: { storageKey: { not: null } },
       select: { id: true, storageKey: true, createdAt: true },
+    }),
+    prisma.compraOrdenTemplate.findMany({
+      where: { logoUrl: { not: null } },
+      select: { id: true, logoUrl: true, updatedAt: true },
     }),
     prisma.equipmentAssignment.findMany({
       select: {
@@ -146,6 +152,10 @@ export async function collectDbStorageReferences(prisma: PrismaClient): Promise<
     pushRef(refs, 'ReportExecution', report.id, report.storageKey, report.createdAt);
   }
 
+  for (const template of purchaseTemplates) {
+    pushUrlRef(refs, 'CompraOrdenTemplate.logo', template.id, template.logoUrl, template.updatedAt);
+  }
+
   for (const assignment of assignments) {
     pushUrlRef(refs, 'EquipmentAssignment.delivery', assignment.id, assignment.deliveryDocumentUrl, assignment.createdAt);
     pushUrlRef(refs, 'EquipmentAssignment.return', assignment.id, assignment.returnDocumentUrl, assignment.createdAt);
@@ -184,13 +194,24 @@ export function reconcileStorageAudit(params: {
     if (!key.includes('organizations/')) continue;
     const refs = refsByKey.get(key);
     if (!refs?.length) {
-      rows.push({
-        section: 'HUERFANOS',
-        storageKey: key,
-        size: obj.size,
-        lastModified: obj.lastModified,
-        originalName: obj.originalName,
-      });
+      if (isProtectedStorageExportKey(key)) {
+        rows.push({
+          section: 'EXPORTACION',
+          storageKey: key,
+          size: obj.size,
+          lastModified: obj.lastModified,
+          originalName: obj.originalName,
+          detail: 'Prefijo protegido (exportación generada)',
+        });
+      } else {
+        rows.push({
+          section: 'HUERFANOS',
+          storageKey: key,
+          size: obj.size,
+          lastModified: obj.lastModified,
+          originalName: obj.originalName,
+        });
+      }
     }
   }
 
@@ -226,12 +247,14 @@ const CSV_SECTION_ORDER: StorageAuditRow['section'][] = [
   'HUERFANOS',
   'FALTANTES',
   'POSIBLE_SOBRESCRITURA',
+  'EXPORTACION',
 ];
 
 const CSV_SECTION_LABEL: Record<StorageAuditRow['section'], string> = {
   HUERFANOS: 'HUÉRFANOS',
   FALTANTES: 'FALTANTES',
   POSIBLE_SOBRESCRITURA: 'POSIBLE SOBRESCRITURA',
+  EXPORTACION: 'EXPORTACIÓN',
 };
 
 export function formatStorageAuditCsv(rows: StorageAuditRow[]): string {
