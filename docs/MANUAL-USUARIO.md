@@ -1,6 +1,6 @@
-# Manual de Usuario — SGE v1.0.0
+# Manual de Usuario — SGE
 
-> **Sistema de Gestión Empresarial** · 13 jul 2026
+> **Sistema de Gestión Empresarial** · entrega operativa v1.0
 
 ---
 
@@ -8,47 +8,37 @@
 
 ### Iniciar sesión
 
-1. Abra su navegador en `https://sge.empresa.com` (URL configurable).
-2. Ingrese su **email** y **contraseña** proporcionados por RRHH.
-3. Marque "Recordarme" (opcional) si confía en el dispositivo.
-
-> Primer login con credenciales de desarrollo: `admin@empresa.com` / `password123`
+1. Abra su navegador en la URL que le proporcionó la institución (por ejemplo la app en Railway).
+2. Ingrese **correo** y **contraseña**.
+3. Si es su primer acceso con contraseña temporal, el sistema le pedirá **cambiar la contraseña** antes de continuar.
 
 ### Cambiar contraseña
 
-Una vez autenticado, vaya a **Ajustes** (esquina inferior del menú lateral):
+En **Administración → Configuración** (o **Ajustes** en el menú inferior):
 
-1. Sección "Cambiar contraseña"
-2. Ingrese contraseña actual
-3. Ingrese nueva contraseña (mínimo 8 caracteres)
-4. Confirme la nueva contraseña
-5. Click en "Cambiar contraseña"
-
-> El cambio invalida sesiones en otros dispositivos. Re-login requerido allí.
-
-### Editar perfil
-
-En **Ajustes** → sección "Tu perfil":
-
-1. Modifique nombre, apellido, email o teléfono.
-2. Click en "Guardar cambios".
-
-> El **rol** y **número de empleado** son administrados por RRHH, no son editables desde aquí.
+1. Sección "Cambiar contraseña".
+2. Contraseña actual, nueva (mínimo 8 caracteres) y confirmación.
+3. Guarde.
 
 ### Cerrar sesión
 
-Click en su avatar (esquina inferior del sidebar) → "Cerrar sesión".
+Avatar o menú de usuario → **Cerrar sesión**.
 
 ---
 
 ## 2. Roles y permisos
 
-| Rol | Módulos accesibles | Capacidades |
-|---|---|---|
-| **ADMIN** | Todos | CRUD completo |
-| **IT** | Dashboard, Equipos, Asignaciones, Empleados, Compras | Gestión técnica |
-| **RRHH** | Dashboard, Usuarios, Empleados, Oficios, Compras | Gestión personal |
-| **USER** | Dashboard, Equipos (ver), Oficios (ver), Asignaciones (las propias) | Lectura personal |
+El menú lateral muestra solo los módulos permitidos para su usuario. Los roles de organización (ADMIN, PROCUREMENT, SECRETARIA, IT, RRHH, etc.) se combinan con **permisos personalizados** configurados en **Administración → Roles y permisos**.
+
+| Área típica | Quién suele usarla |
+| --- | --- |
+| Correspondencia / Oficios | SECRETARIA, ADMIN |
+| Equipos y asignaciones | IT, ADMIN |
+| Compras | PROCUREMENT, ADMINISTRACION, ADMIN |
+| Planilla | RRHH, ADMIN |
+| Usuarios y roles | ADMIN |
+
+Si falta una opción de menú, pida a un administrador que revise su rol y permisos (no es necesario reinstalar la aplicación).
 
 ---
 
@@ -56,100 +46,111 @@ Click en su avatar (esquina inferior del sidebar) → "Cerrar sesión".
 
 ### 3.1. Dashboard
 
-Vista central con estadísticas rápidas:
-- Oficios pendientes, equipos totales, compras activas
-- Accesos directos a módulos según su rol
-- Registros recientes
+Resumen e accesos rápidos según permisos.
 
-### 3.2. Oficios (CNI / Despacho / Internos)
+### 3.2. Correspondencia (Oficios)
 
-Tres sub-vistas oficiales con numeración automática:
+Menú **Correspondencia**:
 
-| Scope | Tipos | Numeración |
-|---|---|---|
-| `/oficios/cni` | INCOMING, OUTGOING | `0001-CNI-2026` |
-| `/oficios/despacho` | INCOMING, OUTGOING | `DPICP-0001-2026` |
-| `/oficios/internos` | INTERNAL_MEMO | `MEMO-0001-2026` |
+| Pantalla | Uso |
+| --- | --- |
+| **Todos / Entradas / Salidas** | Listados y filtros |
+| **Importar** | Carga masiva desde Excel |
 
-**Crear oficio:**
-1. Click "+ Nuevo oficio"
-2. Complete subject, recipient, institución
-3. Adjunte PDF obligatorio (JPG/PNG/PDF, máx 10MB)
-4. Click "Guardar"
+**Crear oficio de salida:**
 
-> Oficios INCOMING (recibidos) no generan número propio: conservan el número del remitente externo.
+1. Elija el flujo (CNI, Despacho o interno según pantalla).
+2. Complete asunto, destinatario e institución.
+3. Adjunte documento si la pantalla lo exige.
+4. Guarde; el sistema asigna **número correlativo** en salidas.
 
-### 3.3. Equipos / Asignaciones
+**Entradas:** registre datos del remitente y adjuntos; el número puede ser el del documento recibido.
 
-**Ver inventario:**
-- `/equipment` muestra el catálogo con código asset (ej: `TI-LAP-0001`)
-- Filtros: categoría, estado, búsqueda libre
+### 3.3. Activos (Equipos)
 
-**Asignar equipo:**
-1. Click "Asignar" sobre el equipo deseado
-2. Seleccione empleado (auto-rellena depto/posición)
-3. Suba acta de entrega en PDF
-4. Click "Confirmar"
+| Pantalla | Uso |
+| --- | --- |
+| **Equipos** | Inventario, alta, import/export Excel |
+| **Asignaciones** | Asignar, devolver, cambio de equipo |
+| **Baja de equipos** | Dictamen y flujo de baja |
+| **Licencias** | Inventario de licencias de software |
 
-**Devolver:**
-1. Click "Devolver" sobre la asignación activa
-2. Seleccione condición y motivo
-3. Suba acta de devolución
-4. Click "Confirmar"
+**Asignar:** seleccione equipo → empleado → suba **acta de entrega** → confirme.
 
-**Swap** (intercambio entre usuarios): `/assignments` → botón "Swap"
+**Devolver:** desde asignaciones activas → acta de devolución → confirme.
 
-### 3.4. Empleados
+### 3.4. Personas (Empleados)
 
-CRUD completo de empleados con:
-- Código (auto)
-- Nombre, apellido, email, teléfono
-- Departamento y puesto (snapshots al asignar equipos)
-- Estado activo/inactivo
+Listado y ficha de empleados (código, departamento, datos de contacto). RRHH mantiene datos maestros usados en planilla y asignaciones.
 
 ### 3.5. Compras
 
-Registro de solicitudes con flujo de aprobación:
-1. Estado inicial: `DRAFT`
-2. Modificar a `IN_PROCESS` al aprobar
-3. `COMPLETED` al recibir
-4. `CANCELLED` si se anula (soft delete)
+Menú **Compras**:
 
-### 3.6. Auditoría (solo ADMIN)
+| Pantalla | Uso |
+| --- | --- |
+| **Nueva orden** / **Borradores** | Crear y editar borradores |
+| **Órdenes generadas** | PDF, emitir, cerrar, anular |
+| **Proveedores** | Catálogo de proveedores |
+| **Formato CNI** | Plantilla institucional (permiso de aprobación) |
+| **Reportes** | Consultas y exportación |
 
-`/audit/logs` muestra todos los eventos del sistema:
-- Filtros: módulo, categoría, búsqueda libre
-- Click en una fila → modal con JSON completo (datos anteriores/nuevos)
-- Eventos con coordenadas GPS muestran botón "Ver en Google Maps"
+Flujo habitual: **Borrador** → **Generar** (PDF) → **Emitir** → **Cerrar** o **Anular** según permisos. Puede **adjuntar documentos** en el detalle de la orden.
 
-> Los registros son **inmutables**: no se pueden editar.
+### 3.6. Planilla
 
-### 3.7. Ajustes
+Menú **Planilla**:
 
-(Su perfil + cambio de contraseña + dark mode + logout)
+| Pantalla | Uso |
+| --- | --- |
+| **Boletas** | Generar y consultar el mes |
+| **Histórico** | Meses anteriores |
+| **Empleados en planilla** | Quién entra en nómina |
+| **Configuración** | ISR, IHSS y parámetros (solo con permiso) |
+
+Pasos típicos RRHH: configurar deducciones → **generar mes** → revisar boleta → **enviar por correo** (pruebe primero a su propio correo).
+
+### 3.7. Control
+
+| Pantalla | Uso |
+| --- | --- |
+| **Reportes** | Catálogo institucional |
+| **Auditoría institucional** | Auditorías con hallazgos |
+| **Auditoría del sistema** | Registro técnico de eventos (según rol) |
+
+Los registros de auditoría del sistema son de **solo lectura**.
+
+### 3.8. Administración
+
+| Pantalla | Uso |
+| --- | --- |
+| **Configuración** | Preferencias de la cuenta |
+| **Roles y permisos** | Matriz por rol y overrides |
+| **Usuarios** | Alta, baja, contraseña temporal |
+| **Correspondencia** | Ajustes de numeración / scopes |
+
+Tras cambiar permisos de un usuario, el menú se actualiza al **refrescar** o en la siguiente carga de sesión según configuración.
 
 ---
 
 ## 4. Atajos y tips
 
-| Acción | Atajo |
-|---|---|
-| Búsqueda global | Próximamente (Sprint 4+) |
-| Dark/Light mode | Botón luna/sol en sidebar |
-| Paginación | Selector inferior de página |
+| Acción | Dónde |
+| --- | --- |
+| Modo oscuro / claro | Botón luna/sol en la barra lateral |
+| Paginación | Controles al pie de las tablas |
 
 ---
 
 ## 5. Soporte
 
-¿Encontró un problema?
-
-1. **Error reproducible:** anote los pasos exactos y capture pantalla.
-2. **Error 401/403:** verifique su sesión. Si persiste tras re-login, contacte a RRHH para verificar permisos.
-3. **Error 500:** revise `/audit/logs` con su rol ADMIN o contacte al equipo técnico.
-4. **Reportar:** use la opción "Reportar problema" en cualquier pantalla (próximamente) o contacte a `soporte@sge.empresa`.
+1. Anote pasos exactos y capture pantalla.
+2. Indique su **rol** y la **hora**.
+3. Errores 401/403: cierre sesión e intente de nuevo; si persiste, contacte al administrador.
+4. Use la guía [pruebas de aceptación](05-pruebas/pruebas-aceptacion-usuarios.md) para reportes formales.
 
 ---
 
-**Cambios respecto a versiones anteriores:** ver `CHANGELOG.md`.
-**Documentación técnica:** `docs/` (arquitectura, ADRs, runbook AWS).
+**Cambios por versión:** [CHANGELOG.md](CHANGELOG.md) (raíz del repositorio; copia en `docs/CHANGELOG.md` cuando aplique).
+
+**Documentación técnica:** [docs/deployment/railway.md](deployment/railway.md) (Railway + Cloudflare R2).

@@ -1,5 +1,11 @@
 # Guía para agentes (SGE)
 
+## CONGELAMIENTO DE ENTREGA (hasta 29 oct 2026)
+
+Hasta la fecha de entrega **solo correcciones de errores** (bugs, regresiones, documentación alineada a lo desplegado).
+
+**Prohibido en este periodo:** funcionalidades nuevas, cambios en `prisma/schema` o migraciones, refactors amplios o mezclar normalización de BD (`chore/db-normalization-*`).
+
 ## Regla de base de datos
 
 Todo **modelo nuevo** o **migración nueva** debe cumplir [docs/database/conventions.md](docs/database/conventions.md).
