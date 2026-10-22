@@ -1,5 +1,5 @@
 import type { OficioType as PrismaOficioType, Prisma } from '@prisma/client';
-import { createAuditRecord } from '@/lib/audit';
+import { createAuditRecord } from '@/platform/security/audit/audit-record';
 import { OficioBadRequestError } from '@/modules/oficios/domain/errors';
 import {
   normalizeOficioDirection,

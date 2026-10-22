@@ -4,7 +4,7 @@ import {
   applyNomenclaturePattern,
   previewNextNumber,
   validateNomenclaturePattern,
-} from '@/lib/oficios-numbering';
+} from '@/modules/oficios/domain/oficios-numbering';
 import {
   allocateOficioNumber,
   previewOficioNumber,

@@ -1,0 +1,376 @@
+{
+  "PURCHASE_ORDER_SUMMARY": {
+    "status": 200,
+    "contentType": "text/csv; charset=utf-8",
+    "disposition": "attachment; filename=\"ordenes-compra-2026-01-01_2026-12-31.csv\"",
+    "csv": "Resumen de órdenes de compra\r\nOrganización: Consejo Nacional de Inversiones\r\nGenerado: 2026-10-15T15:30:00.000Z\r\nDesde: 2026-01-01\r\nHasta: 2026-12-31\r\n\r\nN.º de orden,Fecha,Estado,Proveedor,RTN,Subtotal,Descuento,Base gravable,ISV,Total\r\nOC-2026-0001,2026-03-02,Emitida,Papelería Central S. de R.L.,08011999123456,1500.00,100.00,1400.00,210.00,1610.00\r\n(sin número),2026-04-10,Borrador,Ferretería Norte,,300.00,0.00,300.00,45.00,345.00\r\nTOTAL,,,,,1800.00,100.00,1700.00,255.00,1955.00",
+    "countWhere": {
+      "organizationId": "org_cni_default",
+      "deletedAt": null,
+      "requestDate": {
+        "gte": "2026-01-01T00:00:00.000Z",
+        "lte": "2026-12-31T00:00:00.000Z"
+      }
+    },
+    "findMany": {
+      "orderBy": [
+        {
+          "requestDate": "asc"
+        },
+        {
+          "orderNumber": "asc"
+        }
+      ],
+      "take": 10000,
+      "select": {
+        "orderNumber": true,
+        "requestDate": true,
+        "status": true,
+        "supplierName": true,
+        "supplierRtn": true,
+        "subtotal": true,
+        "discount": true,
+        "tax": true,
+        "total": true
+      }
+    }
+  },
+  "PURCHASE_ORDER_SUMMARY_xlsx": {
+    "status": 200,
+    "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "disposition": "attachment; filename=\"ordenes-compra-2026-01-01_2026-12-31.xlsx\"",
+    "isZip": true
+  },
+  "EQUIPMENT_INVENTORY": {
+    "status": 200,
+    "contentType": "text/csv; charset=utf-8",
+    "disposition": "attachment; filename=\"inventario-equipos-2026-01-01_2026-12-31.csv\"",
+    "csv": "Inventario de equipos\r\nOrganización: Consejo Nacional de Inversiones\r\nGenerado: 2026-10-15T15:30:00.000Z\r\nDesde: 2026-01-01\r\nHasta: 2026-12-31\r\n\r\nCódigo de activo,Categoría,Marca,Modelo,Serie,Estado,Asignado a,Departamento,Fecha adquisición\r\nCNI-LAP-001,Laptop,Dell,Latitude 5440,SN-123,Asignado,Ana López,Finanzas,2026-01-20\r\nCNI-MON-002,Monitor,LG,24MK,—,Disponible,—,—,2026-02-01\r\nTOTAL,,,,,,2 equipos,,",
+    "countWhere": {
+      "organizationId": "org_cni_default",
+      "purchaseDate": {
+        "gte": "2026-01-01T00:00:00.000Z",
+        "lte": "2026-12-31T00:00:00.000Z"
+      }
+    },
+    "findMany": {
+      "orderBy": [
+        {
+          "inventoryCode": "asc"
+        }
+      ],
+      "take": 10000,
+      "select": {
+        "inventoryCode": true,
+        "category": true,
+        "brand": true,
+        "model": true,
+        "serialNumber": true,
+        "status": true,
+        "purchaseDate": true,
+        "assignments": {
+          "where": {
+            "status": "ACTIVE"
+          },
+          "take": 1,
+          "select": {
+            "employeeNameSnapshot": true,
+            "employeeNameAtTime": true,
+            "departmentSnapshot": true,
+            "departmentAtTime": true
+          }
+        }
+      }
+    }
+  },
+  "EQUIPMENT_INVENTORY_xlsx": {
+    "status": 200,
+    "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "disposition": "attachment; filename=\"inventario-equipos-2026-01-01_2026-12-31.xlsx\"",
+    "isZip": true
+  },
+  "OFFICE_REGISTER": {
+    "status": 200,
+    "contentType": "text/csv; charset=utf-8",
+    "disposition": "attachment; filename=\"registro-oficios-2026-01-01_2026-12-31.csv\"",
+    "csv": "Registro de oficios\r\nOrganización: Consejo Nacional de Inversiones\r\nGenerado: 2026-10-15T15:30:00.000Z\r\nDesde: 2026-01-01\r\nHasta: 2026-12-31\r\n\r\nNúmero,Tipo,Fecha,Remitente,Destinatario,Asunto,Estado,Dirección\r\nCNI-OF-001-2026,Salida,2026-05-05,Dirección Ejecutiva,Ministerio de Finanzas,Solicitud de información,Enviado,EXTERNAL\r\nCNI-IN-010-2026,Entrada,2026-05-06,—,Dirección,Respuesta,Recibido,INTERNAL\r\nTOTAL,,,,,2 oficios,,",
+    "countWhere": {
+      "organizationId": "org_cni_default",
+      "archivedAt": null,
+      "oficioDate": {
+        "gte": "2026-01-01T00:00:00.000Z",
+        "lte": "2026-12-31T00:00:00.000Z"
+      }
+    },
+    "findMany": {
+      "orderBy": [
+        {
+          "oficioDate": "asc"
+        },
+        {
+          "number": "asc"
+        }
+      ],
+      "take": 10000,
+      "select": {
+        "number": true,
+        "type": true,
+        "oficioDate": true,
+        "senderName": true,
+        "preparedBy": true,
+        "recipientName": true,
+        "recipient": true,
+        "subject": true,
+        "status": true,
+        "scope": true
+      }
+    }
+  },
+  "OFFICE_REGISTER_xlsx": {
+    "status": 200,
+    "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "disposition": "attachment; filename=\"registro-oficios-2026-01-01_2026-12-31.xlsx\"",
+    "isZip": true
+  },
+  "EQUIPMENT_ASSIGNMENT_HISTORY": {
+    "status": 200,
+    "contentType": "text/csv; charset=utf-8",
+    "disposition": "attachment; filename=\"historial-asignaciones-2026-01-01_2026-12-31.csv\"",
+    "csv": "Historial de asignaciones\r\nOrganización: Consejo Nacional de Inversiones\r\nGenerado: 2026-10-15T15:30:00.000Z\r\nDesde: 2026-01-01\r\nHasta: 2026-12-31\r\n\r\nEquipo,Empleado,Departamento,Fecha asignación,Fecha devolución,Estado\r\nCNI-LAP-001,Ana López,Finanzas,2026-06-01,,Activa\r\nCNI-MON-002,Luis Pérez,IT,2026-06-03,2026-06-20,Devuelta\r\nTOTAL,2 asignaciones,,,,",
+    "countWhere": {
+      "organizationId": "org_cni_default",
+      "assignedDate": {
+        "gte": "2026-01-01T00:00:00.000Z",
+        "lt": "2027-01-01T00:00:00.000Z"
+      }
+    },
+    "findMany": {
+      "orderBy": [
+        {
+          "assignedDate": "asc"
+        },
+        {
+          "createdAt": "asc"
+        }
+      ],
+      "take": 10000,
+      "select": {
+        "assignedDate": true,
+        "returnedDate": true,
+        "status": true,
+        "employeeNameSnapshot": true,
+        "employeeNameAtTime": true,
+        "departmentSnapshot": true,
+        "departmentAtTime": true,
+        "equipment": {
+          "select": {
+            "inventoryCode": true
+          }
+        }
+      }
+    }
+  },
+  "EQUIPMENT_ASSIGNMENT_HISTORY_xlsx": {
+    "status": 200,
+    "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "disposition": "attachment; filename=\"historial-asignaciones-2026-01-01_2026-12-31.xlsx\"",
+    "isZip": true
+  },
+  "EQUIPMENT_DISPOSAL_SUMMARY": {
+    "status": 200,
+    "contentType": "text/csv; charset=utf-8",
+    "disposition": "attachment; filename=\"bajas-equipos-2026-01-01_2026-12-31.csv\"",
+    "csv": "Resumen de bajas de equipos\r\nOrganización: Consejo Nacional de Inversiones\r\nGenerado: 2026-10-15T15:30:00.000Z\r\nDesde: 2026-01-01\r\nHasta: 2026-12-31\r\n\r\nEquipo,Estado,Resultado,Solicitante,Aprobador,Fecha envío,Fecha aprobación,Fecha registro\r\nCNI-LAP-009,Aprobado,Baja justificada,Carlos Ruiz,María Díaz,2026-07-01,2026-07-03,2026-06-30\r\nCNI-UPS-003,Borrador,,tecnico@cni.hn,—,,,2026-07-10\r\nTOTAL,,,2 bajas,,,,",
+    "countWhere": {
+      "organizationId": "org_cni_default",
+      "createdAt": {
+        "gte": "2026-01-01T00:00:00.000Z",
+        "lt": "2027-01-01T00:00:00.000Z"
+      }
+    },
+    "findMany": {
+      "orderBy": [
+        {
+          "createdAt": "asc"
+        },
+        {
+          "folio": "asc"
+        }
+      ],
+      "take": 10000,
+      "select": {
+        "status": true,
+        "disposalResult": true,
+        "submittedAt": true,
+        "approvedAt": true,
+        "createdAt": true,
+        "equipment": {
+          "select": {
+            "inventoryCode": true
+          }
+        },
+        "evaluatedBy": {
+          "select": {
+            "firstName": true,
+            "lastName": true,
+            "email": true
+          }
+        },
+        "approvedBy": {
+          "select": {
+            "firstName": true,
+            "lastName": true,
+            "email": true
+          }
+        }
+      }
+    }
+  },
+  "EQUIPMENT_DISPOSAL_SUMMARY_xlsx": {
+    "status": 200,
+    "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "disposition": "attachment; filename=\"bajas-equipos-2026-01-01_2026-12-31.xlsx\"",
+    "isZip": true
+  },
+  "filters": {
+    "purchaseIssued": {
+      "status": 200,
+      "body": "Resumen de órdenes de compra\r\nOrganización: Consejo Nacional de Inversiones\r\nGenerado: 2026-10-15T15:30:00.000Z\r\nDesde: 2026-01-01\r\nHasta: 2026-12-31\r\nEstado: Emitida\r\n\r\nN.º de orden,Fecha,Estado,Proveedor,RTN,Subtotal,Descuento,Base gravable,ISV,Total\r\nOC-2026-0001,2026-03-02,Emitida,Papelería Central S. de R.L.,08011999123456,1500.00,100.00,1400.00,210.00,1610.00\r\n(sin número),2026-04-10,Borrador,Ferretería Norte,,300.00,0.00,300.00,45.00,345.00\r\nTOTAL,,,,,1800.00,100.00,1700.00,255.00,1955.00",
+      "countWhere": {
+        "organizationId": "org_cni_default",
+        "deletedAt": null,
+        "requestDate": {
+          "gte": "2026-01-01T00:00:00.000Z",
+          "lte": "2026-12-31T00:00:00.000Z"
+        },
+        "status": "ISSUED"
+      }
+    },
+    "purchaseBadStatus": {
+      "status": 400,
+      "body": {
+        "error": "Filtro inválido.",
+        "code": "INVALID_STATUS",
+        "hasDetails": false
+      },
+      "countWhere": null
+    },
+    "equipmentFiltered": {
+      "status": 200,
+      "body": "Inventario de equipos\r\nOrganización: Consejo Nacional de Inversiones\r\nGenerado: 2026-10-15T15:30:00.000Z\r\nDesde: 2026-01-01\r\nHasta: 2026-12-31\r\nEstado: Asignado\r\nCategoría: Laptop\r\n\r\nCódigo de activo,Categoría,Marca,Modelo,Serie,Estado,Asignado a,Departamento,Fecha adquisición\r\nCNI-LAP-001,Laptop,Dell,Latitude 5440,SN-123,Asignado,Ana López,Finanzas,2026-01-20\r\nCNI-MON-002,Monitor,LG,24MK,—,Disponible,—,—,2026-02-01\r\nTOTAL,,,,,,2 equipos,,",
+      "countWhere": {
+        "organizationId": "org_cni_default",
+        "purchaseDate": {
+          "gte": "2026-01-01T00:00:00.000Z",
+          "lte": "2026-12-31T00:00:00.000Z"
+        },
+        "status": "ASSIGNED",
+        "category": "LAPTOP"
+      }
+    },
+    "equipmentBadCategory": {
+      "status": 400,
+      "body": {
+        "error": "Filtro inválido.",
+        "code": "INVALID_CATEGORY",
+        "hasDetails": false
+      },
+      "countWhere": null
+    },
+    "oficioType": {
+      "status": 200,
+      "body": "Registro de oficios\r\nOrganización: Consejo Nacional de Inversiones\r\nGenerado: 2026-10-15T15:30:00.000Z\r\nDesde: 2026-01-01\r\nHasta: 2026-12-31\r\nTipo: Salida\r\nEstado: Enviado\r\n\r\nNúmero,Tipo,Fecha,Remitente,Destinatario,Asunto,Estado,Dirección\r\nCNI-OF-001-2026,Salida,2026-05-05,Dirección Ejecutiva,Ministerio de Finanzas,Solicitud de información,Enviado,EXTERNAL\r\nCNI-IN-010-2026,Entrada,2026-05-06,—,Dirección,Respuesta,Recibido,INTERNAL\r\nTOTAL,,,,,2 oficios,,",
+      "countWhere": {
+        "organizationId": "org_cni_default",
+        "archivedAt": null,
+        "oficioDate": {
+          "gte": "2026-01-01T00:00:00.000Z",
+          "lte": "2026-12-31T00:00:00.000Z"
+        },
+        "type": "OUTGOING",
+        "status": "SENT"
+      }
+    },
+    "oficioBadType": {
+      "status": 400,
+      "body": {
+        "error": "Filtro inválido.",
+        "code": "INVALID_TYPE",
+        "hasDetails": false
+      },
+      "countWhere": null
+    },
+    "badRange": {
+      "status": 400,
+      "body": {
+        "error": "Parámetros de exportación inválidos.",
+        "code": "INVALID_REPORT_EXPORT_PARAMS",
+        "hasDetails": true
+      },
+      "countWhere": null
+    },
+    "badDate": {
+      "status": 400,
+      "body": {
+        "error": "Parámetros de exportación inválidos.",
+        "code": "INVALID_REPORT_EXPORT_PARAMS",
+        "hasDetails": true
+      },
+      "countWhere": null
+    },
+    "unknownParam": {
+      "status": 200,
+      "body": "Inventario de equipos\r\nOrganización: Consejo Nacional de Inversiones\r\nGenerado: 2026-10-15T15:30:00.000Z\r\nDesde: 2026-01-01\r\nHasta: 2026-12-31\r\n\r\nCódigo de activo,Categoría,Marca,Modelo,Serie,Estado,Asignado a,Departamento,Fecha adquisición\r\nCNI-LAP-001,Laptop,Dell,Latitude 5440,SN-123,Asignado,Ana López,Finanzas,2026-01-20\r\nCNI-MON-002,Monitor,LG,24MK,—,Disponible,—,—,2026-02-01\r\nTOTAL,,,,,,2 equipos,,",
+      "countWhere": {
+        "organizationId": "org_cni_default",
+        "purchaseDate": {
+          "gte": "2026-01-01T00:00:00.000Z",
+          "lte": "2026-12-31T00:00:00.000Z"
+        }
+      }
+    },
+    "unsupportedFormat": {
+      "status": 400,
+      "body": {
+        "error": "Parámetros de exportación inválidos.",
+        "code": "INVALID_REPORT_EXPORT_PARAMS",
+        "hasDetails": true
+      },
+      "countWhere": null
+    },
+    "unknownReport": {
+      "status": 404,
+      "body": {
+        "error": "Reporte no disponible.",
+        "code": "REPORT_NOT_AVAILABLE",
+        "hasDetails": false
+      },
+      "countWhere": null
+    }
+  },
+  "limitsAndAudit": {
+    "tooLarge": {
+      "status": 413,
+      "body": {
+        "error": "El reporte excede el límite de 10000 filas para exportación directa.",
+        "code": "EXPORT_ROW_LIMIT_EXCEEDED"
+      }
+    },
+    "audit": [
+      {
+        "title": "Exportación de reporte Inventario de equipos",
+        "description": "Exportó 2 filas (CSV, 2026-01-01–2026-12-31)",
+        "module": "AUDITORIA",
+        "category": "EXPORT",
+        "newData": {
+          "reportCode": "EQUIPMENT_INVENTORY",
+          "format": "csv",
+          "from": "2026-01-01",
+          "to": "2026-12-31",
+          "rows": 2,
+          "executionId": "exec-1"
+        }
+      }
+    ]
+  }
+}

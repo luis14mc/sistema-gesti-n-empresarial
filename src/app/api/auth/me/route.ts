@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { verifyToken } from '@/lib/auth';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
+import { verifyToken } from '@/platform/security/authentication/auth';
 import { getProfile, patchProfile } from '@/modules/users/application/profile-service';
 import { usersDomainErrorResponse } from '@/modules/users/presentation/http';
 import { canonicalOrganizationId } from '@/platform/security/organization-scope';

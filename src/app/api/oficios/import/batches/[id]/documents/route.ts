@@ -1,4 +1,4 @@
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { attachBatchDocumentsUseCase } from '@/modules/oficios/application/attach-batch-documents';
 import {
   handleImportBatchDocumentsApiError,

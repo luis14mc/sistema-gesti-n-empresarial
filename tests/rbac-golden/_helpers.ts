@@ -9,12 +9,12 @@ import {
   type Permission,
 } from '@/platform/security/authorization/permissions';
 import { lockedPermissionsForRole } from '@/platform/security/authorization/role-permission-locks';
-import { ROUTE_PATH_TO_MODULE as LIB_ROUTE_PATH_TO_MODULE, canAccessRoute } from '@/lib/permissions';
+import { ROUTE_PATH_TO_MODULE as LIB_ROUTE_PATH_TO_MODULE, canAccessRoute } from '@/platform/security/session-route-navigation';
 import {
   ROUTE_PATH_TO_MODULE as PLATFORM_ROUTE_PATH_TO_MODULE,
   routeToAccess as platformRouteToAccess,
 } from '@/platform/security/route-access';
-import { SESSION_ROLES, type SessionRole } from '@/lib/session-roles';
+import { SESSION_ROLES, type SessionRole } from '@/platform/security/authorization/session-roles';
 
 export type OfficialMatrixRow = {
   role: OrganizationRole;

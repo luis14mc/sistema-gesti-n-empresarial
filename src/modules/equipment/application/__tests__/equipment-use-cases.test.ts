@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { assignEquipment } from '@/modules/equipment/application/assignment-service';
 import { resolveEquipmentCategory } from '@/modules/equipment/domain/equipment-asset-code';
 
-vi.mock('@/lib/employees', () => ({
+vi.mock('@/modules/people/application/resolve-employee-snapshot', () => ({
   resolveEmployeeSnapshot: vi.fn(async () => ({
     employeeId: 'emp-1',
     departmentAtTime: 'TI',
@@ -12,7 +12,7 @@ vi.mock('@/lib/employees', () => ({
   })),
 }));
 
-vi.mock('@/lib/audit', () => ({
+vi.mock('@/platform/security/audit/audit-record', () => ({
   createAuditRecord: vi.fn(async () => undefined),
 }));
 

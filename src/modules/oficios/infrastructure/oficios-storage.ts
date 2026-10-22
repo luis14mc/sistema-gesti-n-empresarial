@@ -10,7 +10,7 @@
 import { createHash } from 'crypto';
 import type { OficioAttachment } from '@/types';
 import { sanitizeOriginalName, validateOficioUploadFile } from '@/modules/oficios/infrastructure/oficios-attachments';
-import { getStorage } from '@/lib/storage';
+import { getStorage } from '@/platform/storage';
 import { prepareUploadBuffer } from '@/platform/storage/prepare-upload-buffer';
 
 export interface SaveOficioDocumentResult extends OficioAttachment {

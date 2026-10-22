@@ -1,8 +1,8 @@
-import { Prisma } from '@prisma/client';
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import type { Prisma } from '@prisma/client';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { apiSuccess } from '@/platform/api/response';
 import { runIntegrationRoute } from '@/platform/integrations/presentation/http';
-import { prisma } from '@/lib/prisma';
+import { integrationQueries } from '@/platform/integrations/application/integration-queries';
 import { integrationRegistry } from '@/platform/integrations/application/registry';
 import { integrationsListQuerySchema, createIntegrationSchema } from '@/platform/integrations/presentation/schemas';
 import { integrationConnectionService } from '@/platform/integrations/application/connection-service';
@@ -14,20 +14,12 @@ async function getHandler(request: AuthenticatedRequest) {
     const parsed = integrationsListQuerySchema.parse(params);
     const page = parsed.page ?? 1;
     const pageSize = parsed.pageSize ?? 20;
-    const where = {
-      organizationId: context.organizationId,
-      ...(parsed.provider ? { provider: parsed.provider } : {}),
-      ...(parsed.status ? { status: parsed.status } : {}),
-    };
-    const [items, total] = await Promise.all([
-      prisma.organizationIntegration.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
-      prisma.organizationIntegration.count({ where }),
-    ]);
+    const [items, total] = await integrationQueries.list(
+      context.organizationId,
+      { provider: parsed.provider, status: parsed.status },
+      (page - 1) * pageSize,
+      pageSize,
+    );
     const itemsWithHealth = await Promise.all(items.map(async (item) => {
       const health = await integrationExecutionService.computeIntegrationHealth(item);
       return {

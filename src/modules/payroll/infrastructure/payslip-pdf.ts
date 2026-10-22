@@ -1,5 +1,5 @@
 import { renderHtmlToPdf } from '@/platform/pdf/html-to-pdf';
-import { getStorage } from '@/lib/storage';
+import { getStorage } from '@/platform/storage';
 import { formatLempiras } from '@/modules/payroll/application/mappers';
 import { CNI_PAYSLIP_LOGO_DATA_URI } from './cni-logo';
 

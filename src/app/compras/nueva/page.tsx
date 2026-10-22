@@ -14,7 +14,7 @@ import { useProveedores } from '@/hooks/useCompras';
 import { useAuth } from '@/hooks/useAuth';
 import type { DraftPurchaseOrderInput } from '@/modules/purchases/presentation/purchase-order-schemas';
 import type { PendingPurchaseDocument } from '@/types/compra-orden-documents';
-import { getPurchaseOrderApiErrorMessage } from '@/lib/api-error';
+import { getPurchaseOrderApiErrorMessage } from '@/platform/api/api-error';
 
 export default function NuevaCompraPage() {
   const { user } = useAuth();

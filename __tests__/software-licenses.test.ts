@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { billingEquivalents, formatPaymentSchedule, parsePaymentText } from '@/lib/software-licenses/billing';
-import { planLicenseImport } from '@/lib/software-licenses/import-rows';
-import { renewalAlert, displaySubscriptionStatus } from '@/lib/software-licenses/renewals';
+import { billingEquivalents, formatPaymentSchedule, parsePaymentText } from '@/modules/software-licenses/domain/billing';
+import { planLicenseImport } from '@/modules/software-licenses/domain/import-rows';
+import { renewalAlert, displaySubscriptionStatus } from '@/modules/software-licenses/domain/renewals';
 import {
   assertSameOrganization,
   canAssignSeat,
@@ -9,9 +9,10 @@ import {
   effectiveSeatStatus,
   isAvailableSeat,
   summarizeSeats,
-} from '@/lib/software-licenses/seats';
+} from '@/modules/software-licenses/domain/seats';
 import { can, organizationRole } from '@/platform/security/authorization/permissions';
-import { canAccessRoute, hasModuleAccess } from '@/lib/permissions';
+import { hasModuleAccess } from '@/platform/security/session-module-access';
+import { canAccessRoute } from '@/platform/security/session-route-navigation';
 
 const today = new Date('2026-10-01T00:00:00.000Z');
 

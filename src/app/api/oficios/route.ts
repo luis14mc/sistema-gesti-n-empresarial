@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import {
   createRateLimiter,
   RATE_LIMIT_RULES,
   rateLimitHeaders,
-} from '@/lib/rate-limit';
+} from '@/platform/security/authentication/rate-limit';
 import { createOficioUseCase } from '@/modules/oficios/application/create-oficio';
 import { listOficiosUseCase } from '@/modules/oficios/application/list-oficios';
 import { handleOficiosApiError } from '@/modules/oficios/presentation/http';

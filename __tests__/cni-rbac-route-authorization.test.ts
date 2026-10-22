@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import type { OrganizationRole, PermissionEffect } from '@prisma/client';
-import type { AuthenticatedRequest } from '@/lib/middleware';
+import type { AuthenticatedRequest } from '@/platform/api/with-auth';
 
 const { overrideStore, prismaMock } = vi.hoisted(() => {
   const store: Array<{ permission: string; effect: PermissionEffect }> = [];
@@ -42,7 +42,7 @@ const { overrideStore, prismaMock } = vi.hoisted(() => {
 
 vi.mock('@/lib/prisma', () => ({ prisma: prismaMock }));
 
-vi.mock('@/lib/middleware', () => ({
+vi.mock('@/platform/api/with-auth', () => ({
   withAuth: (handler: unknown) => handler,
 }));
 
@@ -71,7 +71,7 @@ vi.mock('@/platform/security/audit/security-events', () => ({
   recordSecurityEventBestEffort: vi.fn(),
 }));
 
-vi.mock('@/lib/audit', () => ({
+vi.mock('@/platform/security/audit/audit-record', () => ({
   createAuditRecord: vi.fn(),
 }));
 

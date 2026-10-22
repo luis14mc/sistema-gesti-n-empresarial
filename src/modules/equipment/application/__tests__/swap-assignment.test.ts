@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { swapEquipmentAssignment } from '@/modules/equipment/application/assignment-service';
 
-vi.mock('@/lib/employees', () => ({
+vi.mock('@/modules/people/application/resolve-employee-snapshot', () => ({
   resolveEmployeeSnapshot: vi.fn(async () => ({
     employeeId: 'emp-1',
     departmentAtTime: 'TI',
@@ -11,7 +11,7 @@ vi.mock('@/lib/employees', () => ({
   })),
 }));
 
-vi.mock('@/lib/audit', () => ({
+vi.mock('@/platform/security/audit/audit-record', () => ({
   createAuditRecord: vi.fn(async () => undefined),
 }));
 

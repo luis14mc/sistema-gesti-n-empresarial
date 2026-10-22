@@ -12,7 +12,7 @@ import { hasModuleAccess } from '@/platform/security/session-module-access';
 import {
   groupReportsByUiSection,
   REPORT_UI_GROUPS,
-} from '@/lib/reportes/report-ui';
+} from '@/modules/reporting/presentation/report-ui';
 import type { ReportDefinition } from '@/modules/reporting/domain/report-types';
 import { ReportExportDialog } from '@/app/reportes/_components/ReportExportDialog';
 

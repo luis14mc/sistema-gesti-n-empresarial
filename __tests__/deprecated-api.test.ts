@@ -3,7 +3,7 @@ import {
   DEPRECATED_API_MESSAGES,
   DEPRECATED_FRONTEND_PREFIXES,
   isDeprecatedFrontendPath,
-} from '../src/lib/deprecated-api';
+} from '@/platform/api/deprecated-api';
 
 describe('deprecated API modules', () => {
   it('define mensajes 410 para módulos fuera de alcance', () => {

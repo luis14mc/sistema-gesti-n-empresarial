@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { hashPassword, comparePassword } from '../src/lib/auth';
+import { hashPassword, comparePassword } from '@/platform/security/authentication/auth';
 
 describe('Auth Utilities', () => {
   it('should hash a password and verify it correctly', async () => {

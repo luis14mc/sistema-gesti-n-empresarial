@@ -1,5 +1,5 @@
-import { createAuditRecord } from '@/lib/audit';
-import { resolveEmployeeSnapshot } from '@/lib/employees';
+import { createAuditRecord } from '@/platform/security/audit/audit-record';
+import { resolveEmployeeSnapshot } from '@/modules/people/application/resolve-employee-snapshot';
 import { logEquipmentHistory, mapReturnConditionToStatus } from '@/modules/equipment/infrastructure/equipment-history';
 import {
   assignEquipmentInTransaction,

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 import { getPayslipPdfBuffer } from '@/modules/payroll/application/payroll-service';
 import { payrollFailure } from '@/modules/payroll/application/http';

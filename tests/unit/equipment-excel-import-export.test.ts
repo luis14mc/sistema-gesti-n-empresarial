@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/lib/prisma', () => ({
   prisma: { equipment: { findMany: mocks.findMany } },
 }));
-vi.mock('@/modules/equipment/import-export/equipment-create', () => ({
+vi.mock('@/modules/equipment/infrastructure/equipment-create', () => ({
   createEquipmentRecord: mocks.createEquipmentRecord,
 }));
 

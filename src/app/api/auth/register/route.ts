@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { hashPassword } from '@/lib/auth';
-import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, AuthenticatedRequest } from '@/platform/api/with-auth';
 import { registerSchema } from '@/lib/zod-schemas';
-import { createAuditRecord } from '@/lib/audit';
+import { registerUserFromApi } from '@/modules/auth/application/register';
 
 async function postHandler(req: AuthenticatedRequest) {
   try {
@@ -17,49 +15,17 @@ async function postHandler(req: AuthenticatedRequest) {
       );
     }
 
-    const { email, password, firstName, lastName, employeeNumber } = parsed.data;
+    const result = await registerUserFromApi(parsed.data, req.user!.userId);
 
-    // Verificar si el usuario ya existe
-    const existingUser = await prisma.user.findFirst({
-      where: { OR: [{ email }, { employeeNumber }] },
-    });
-
-    if (existingUser) {
+    if (result.kind === 'duplicate') {
       return NextResponse.json(
         { error: 'El email o número de empleado ya está registrado' },
         { status: 409 }
       );
     }
 
-    // Hash de la contraseña
-    const hashedPassword = await hashPassword(password);
-
-    const user = await prisma.user.create({
-      data: {
-        employeeNumber,
-        email,
-        password: hashedPassword,
-        firstName,
-        lastName,
-        role: 'USER',
-      },
-    });
-
-    // Retornar usuario sin contraseña
-    const { password: _, ...userWithoutPassword } = user;
-
-    await createAuditRecord({
-      title: 'Registro de usuario',
-      description: `Se creó el usuario ${firstName} ${lastName} (${email})`,
-      module: 'USUARIOS',
-      category: 'CREATE',
-      userId: req.user!.userId,
-      entityId: user.id,
-      newData: { email, employeeNumber, role: 'USER' },
-    });
-
     return NextResponse.json({
-      user: userWithoutPassword,
+      user: result.user,
     }, { status: 201 });
   } catch (error) {
     console.error('Error en registro:', error);

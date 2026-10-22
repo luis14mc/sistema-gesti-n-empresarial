@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { comprasService } from '@/services/compras.service';
-import { getApiErrorMessage } from '@/lib/api-error';
+import { getApiErrorMessage } from '@/platform/api/api-error';
 import type {
   CompraSolicitudFilters,
   CreateCompraSolicitudData,

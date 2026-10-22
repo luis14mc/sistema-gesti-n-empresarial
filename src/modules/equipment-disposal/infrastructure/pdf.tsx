@@ -1,7 +1,7 @@
 import type { EquipmentDisposal, Equipment, Organization } from '@prisma/client';
 import { DisposalDocument, type DisposalDocumentData } from '../presentation/components/DisposalDocument';
 import { renderHtmlToPdf } from '@/platform/pdf/html-to-pdf';
-import { getStorage } from '@/lib/storage';
+import { getStorage } from '@/platform/storage';
 import { prisma } from '@/lib/prisma';
 
 type DisposalForPdf = EquipmentDisposal & { equipment: Pick<Equipment, 'inventoryCode' | 'status'> };

@@ -10,7 +10,7 @@ import axios, {
   AxiosResponse,
   InternalAxiosRequestConfig,
 } from 'axios';
-import type { ApiErrorResponse } from '@/lib/api-error';
+import type { ApiErrorResponse } from '@/platform/api/api-error';
 
 // ============================================
 // CONFIGURACIÓN BASE

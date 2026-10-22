@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { hashPassword } from '@/lib/auth';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
+import { hashPassword } from '@/platform/security/authentication/auth';
 import {
   createUser,
   listUsers,

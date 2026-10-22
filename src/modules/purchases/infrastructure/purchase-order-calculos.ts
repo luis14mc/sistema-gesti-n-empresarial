@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { PurchaseBusinessError } from '@/modules/purchases/domain/errors';
 
 export const MAX_TAX_RATE = 100;
 
@@ -106,7 +107,7 @@ export function profileFromLegacyRate(rate: Prisma.Decimal | number | string): P
   if (value === 0) return 'EXEMPT';
   if (value === 18) return 'ISV_18';
   if (value === 15) return 'GENERAL_15';
-  throw new Error('INVALID_ISV_RATE');
+  throw new PurchaseBusinessError('INVALID_ISV_RATE', 500);
 }
 
 export function formatItemTaxLabel(
@@ -123,7 +124,7 @@ export function formatItemTaxLabel(
 
 function assertRate(rate: Prisma.Decimal) {
   if (rate.isNegative() || rate.greaterThan(MAX_TAX_RATE) || !rate.isFinite()) {
-    throw new Error('INVALID_TAX_RATE');
+    throw new PurchaseBusinessError('INVALID_TAX_RATE', 500);
   }
 }
 
@@ -132,16 +133,16 @@ export function resolveTaxComponents(
   customTaxes: PurchaseTaxComponentInput[] = [],
 ): Array<{ code: string; name: string; rate: Prisma.Decimal }> {
   if (profile === 'CUSTOM') {
-    if (customTaxes.length === 0) throw new Error('INVALID_CUSTOM_TAX');
+    if (customTaxes.length === 0) throw new PurchaseBusinessError('INVALID_CUSTOM_TAX', 500);
     const codes = new Set<string>();
     return customTaxes.map((tax) => {
       const code = tax.code.trim().toUpperCase();
       const name = tax.name.trim();
       const rate = toDecimal(tax.rate);
       if (!/^[A-Z][A-Z0-9_]{0,31}$/.test(code) || name.length < 2) {
-        throw new Error('INVALID_CUSTOM_TAX');
+        throw new PurchaseBusinessError('INVALID_CUSTOM_TAX', 500);
       }
-      if (codes.has(code)) throw new Error('DUPLICATE_TAX_CODE');
+      if (codes.has(code)) throw new PurchaseBusinessError('DUPLICATE_TAX_CODE', 500);
       codes.add(code);
       assertRate(rate);
       return { code, name, rate };
@@ -162,7 +163,7 @@ export function calculateItemTaxes(
   return components.map((component, index) => {
     assertRate(component.rate);
     const amount = base.mul(component.rate).div(HUNDRED).toDecimalPlaces(2);
-    if (amount.isNegative()) throw new Error('INVALID_TAX_AMOUNT');
+    if (amount.isNegative()) throw new PurchaseBusinessError('INVALID_TAX_AMOUNT', 500);
     return {
       code: component.code,
       name: component.name,
@@ -206,8 +207,8 @@ export function calculatePurchaseOrderItem(input: {
 }): CalculatedPurchaseItem {
   const quantity = toDecimal(input.quantity);
   const unitPrice = toDecimal(input.unitPrice);
-  if (quantity.isNegative() || !quantity.isFinite()) throw new Error('INVALID_QUANTITY');
-  if (unitPrice.isNegative() || !unitPrice.isFinite()) throw new Error('INVALID_UNIT_PRICE');
+  if (quantity.isNegative() || !quantity.isFinite()) throw new PurchaseBusinessError('INVALID_QUANTITY', 500);
+  if (unitPrice.isNegative() || !unitPrice.isFinite()) throw new PurchaseBusinessError('INVALID_UNIT_PRICE', 500);
 
   const lineSubtotal = quantity.mul(unitPrice).toDecimalPlaces(2);
   const requestedDiscount = toDecimal(input.itemDiscount ?? 0);
@@ -280,9 +281,9 @@ function representativeTaxRate(items: CalculatedPurchaseItem[]): Prisma.Decimal 
 export function calculatePurchaseOrder(input: PurchaseCalculationInput) {
   const discountType = input.discountType;
   const discountValue = toDecimal(input.discountValue);
-  if (discountValue.isNegative()) throw new Error('INVALID_DISCOUNT_VALUE');
+  if (discountValue.isNegative()) throw new PurchaseBusinessError('INVALID_DISCOUNT_VALUE', 500);
   if (discountType === 'PORCENTAJE' && discountValue.greaterThan(100)) {
-    throw new Error('INVALID_DISCOUNT_PERCENTAGE');
+    throw new PurchaseBusinessError('INVALID_DISCOUNT_PERCENTAGE', 500);
   }
 
   const fallbackProfile = input.taxRate === undefined
@@ -292,8 +293,8 @@ export function calculatePurchaseOrder(input: PurchaseCalculationInput) {
   const lineSubtotals = input.items.map((item) => {
     const quantity = toDecimal(item.quantity);
     const unitPrice = toDecimal(item.unitPrice);
-    if (!quantity.isFinite() || quantity.isNegative()) throw new Error('INVALID_QUANTITY');
-    if (!unitPrice.isFinite() || unitPrice.isNegative()) throw new Error('INVALID_UNIT_PRICE');
+    if (!quantity.isFinite() || quantity.isNegative()) throw new PurchaseBusinessError('INVALID_QUANTITY', 500);
+    if (!unitPrice.isFinite() || unitPrice.isNegative()) throw new PurchaseBusinessError('INVALID_UNIT_PRICE', 500);
     return quantity.mul(unitPrice).toDecimalPlaces(2);
   });
 

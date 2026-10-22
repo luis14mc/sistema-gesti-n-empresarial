@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import type { OrganizationRole } from '@prisma/client';
-import type { AuthenticatedRequest } from '@/lib/middleware';
+import type { AuthenticatedRequest } from '@/platform/api/with-auth';
 
 const executionCreate = vi.fn(async (input: unknown) => ({
   id: 'exec-1',
@@ -29,7 +29,7 @@ vi.mock('@/lib/prisma', () => ({
   },
 }));
 
-vi.mock('@/lib/middleware', () => ({
+vi.mock('@/platform/api/with-auth', () => ({
   withAuth: (handler: unknown) => handler,
 }));
 
@@ -49,7 +49,7 @@ vi.mock('@/modules/organizations/application/context', async (importOriginal) =>
   };
 });
 
-vi.mock('@/lib/reportes/registry', () => ({
+vi.mock('@/modules/reporting/infrastructure/exports/registry', () => ({
   isExportableReportCode: (code: string) => code === 'PURCHASE_ORDER_SUMMARY',
   REPORT_DATASET_BUILDERS: {
     PURCHASE_ORDER_SUMMARY: vi.fn(async () => ({
@@ -69,7 +69,7 @@ vi.mock('@/modules/reporting/infrastructure/repositories/report-execution-reposi
   },
 }));
 
-vi.mock('@/lib/audit', () => ({
+vi.mock('@/platform/security/audit/audit-record', () => ({
   createAuditRecord: vi.fn(),
 }));
 
@@ -79,7 +79,7 @@ vi.mock('@/platform/security/audit/security-events', () => ({
 }));
 
 import { GET as exportReport } from '@/app/api/reports/[code]/export/route';
-import { createAuditRecord } from '@/lib/audit';
+import { createAuditRecord } from '@/platform/security/audit/audit-record';
 
 function request(role: OrganizationRole, code: string, query: string): AuthenticatedRequest {
   const req = new NextRequest(

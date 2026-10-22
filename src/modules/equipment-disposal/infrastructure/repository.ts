@@ -1,6 +1,6 @@
 import type { DisposalStatus, Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
-import { disposalScope } from './tenant-scope';
+import { disposalDocumentScope, disposalScope } from './tenant-scope';
 
 const detailInclude = {
   equipment: { select: { id: true, inventoryCode: true, status: true } },
@@ -52,4 +52,60 @@ export async function listDisposals(input: {
     prisma.equipmentDisposal.count({ where }),
   ]);
   return { items, total, page: input.page, pageSize: input.pageSize, totalPages: Math.ceil(total / input.pageSize) };
+}
+
+export function findDisposalId(organizationId: string, id: string) {
+  return prisma.equipmentDisposal.findFirst({ where: { id, organizationId }, select: { id: true } });
+}
+
+export function findEditableDisposalId(organizationId: string, id: string) {
+  return prisma.equipmentDisposal.findFirst({ where: { id, organizationId, status: { in: ['DRAFT', 'PENDING_APPROVAL'] } }, select: { id: true } });
+}
+
+export function listDisposalDocuments(organizationId: string, disposalId: string) {
+  return prisma.disposalDocument.findMany({ where: { disposalId, organizationId }, orderBy: { createdAt: 'desc' } });
+}
+
+export function findDisposalDocument(organizationId: string, disposalId: string, documentId: string) {
+  return prisma.disposalDocument.findFirst({ where: disposalDocumentScope(organizationId, disposalId, documentId) });
+}
+
+export function findDraftDisposalDocument(organizationId: string, disposalId: string, documentId: string) {
+  return prisma.disposalDocument.findFirst({ where: { ...disposalDocumentScope(organizationId, disposalId, documentId), disposal: { status: 'DRAFT' } } });
+}
+
+export function findApprovedDisposalPdf(organizationId: string, id: string) {
+  return prisma.equipmentDisposal.findFirst({ where: { id, organizationId, status: 'APPROVED' }, select: { folio: true, pdfStorageKey: true } });
+}
+
+export type NewDisposalDocument = Omit<Prisma.DisposalDocumentUncheckedCreateInput, 'organizationId' | 'disposalId' | 'uploadedById'>;
+
+/** Inserta el documento y su historial; `onDuplicate` lanza el error de dominio si el hash ya existe. */
+export function insertDisposalDocument(
+  input: { organizationId: string; disposalId: string; userId: string; requestId: string; data: NewDisposalDocument },
+  onDuplicate: () => never,
+) {
+  const { organizationId, disposalId, userId, requestId, data } = input;
+  return prisma.$transaction(async (tx) => {
+    const duplicate = await tx.disposalDocument.findFirst({ where: { organizationId, disposalId, fileHash: data.fileHash } });
+    if (duplicate) onDuplicate();
+    const created = await tx.disposalDocument.create({ data: { organizationId, disposalId, ...data, uploadedById: userId } });
+    await tx.equipmentDisposalHistory.create({ data: { organizationId, disposalId, action: 'DISPOSAL_DOCUMENT_UPLOADED', performedById: userId, requestId, newValues: { documentId: created.id, fileName: created.fileName } } });
+    return created;
+  });
+}
+
+export function deleteDisposalDocumentRecord(input: {
+  organizationId: string;
+  disposalId: string;
+  userId: string;
+  requestId: string;
+  document: { id: string; fileName: string };
+  documentId: string;
+}) {
+  const { organizationId, disposalId, userId, requestId, document, documentId } = input;
+  return prisma.$transaction(async (tx) => {
+    await tx.disposalDocument.delete({ where: { id: document.id } });
+    await tx.equipmentDisposalHistory.create({ data: { organizationId, disposalId, action: 'DISPOSAL_DOCUMENT_DELETED', performedById: userId, requestId, previousValues: { documentId, fileName: document.fileName } } });
+  });
 }

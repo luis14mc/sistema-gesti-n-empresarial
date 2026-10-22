@@ -9,9 +9,9 @@ import {
 import { createRolePermissionCheck } from '@/platform/security/authorization/role-permission-service';
 import type { Permission, PermissionOverride } from '@/platform/security/authorization/permissions';
 import { MODULE_CATALOG } from '@/platform/security/modules';
-import type { Module } from '@/lib/permissions';
+import type { Module } from '@/platform/security/session-module-access';
 import type { Role } from '@/types';
-import { hasModuleAccess } from '@/lib/permissions';
+import { hasModuleAccess } from '@/platform/security/session-module-access';
 import { encodeRouteSpecialsForJwt, JWT_ROUTE_SPECIALS } from '@/platform/security/jwt-route-specials';
 
 type NavAccessContext = {

@@ -7,6 +7,7 @@ import {
   templateToConfig,
   type PurchaseOrderTemplateConfig,
 } from '@/modules/purchases/infrastructure/purchase-order-template-config';
+import { PurchaseBusinessError } from '@/modules/purchases/domain/errors';
 
 export async function getActiveTemplate(organizationId: string, tx: Prisma.TransactionClient = prisma) {
   return tx.compraOrdenTemplate.findFirst({
@@ -95,7 +96,7 @@ export async function getActiveTemplateConfig(
   tx: Prisma.TransactionClient = prisma
 ): Promise<PurchaseOrderTemplateConfig> {
   const template = await getActiveTemplate(organizationId, tx);
-  if (!template) throw new Error('No hay plantilla activa configurada');
+  if (!template) throw new PurchaseBusinessError('No hay plantilla activa configurada', 500);
   return templateToConfig(template);
 }
 
@@ -114,7 +115,7 @@ export async function resolveTemplateForOrder(order: {
     const stored = await prisma.compraOrdenTemplate.findUnique({ where: { id: order.templateId } });
     if (stored) return templateToConfig(stored);
   }
-  if (!order.organizationId) throw new Error('Orden sin organización');
+  if (!order.organizationId) throw new PurchaseBusinessError('Orden sin organización', 500);
   return getActiveTemplateConfig(order.organizationId);
 }
 
@@ -157,7 +158,7 @@ export async function getTemplateForOrder(order: {
     const stored = await prisma.compraOrdenTemplate.findUnique({ where: { id: order.templateId } });
     if (stored) return stored;
   }
-  if (!order.organizationId) throw new Error('Orden sin organización');
+  if (!order.organizationId) throw new PurchaseBusinessError('Orden sin organización', 500);
   return getActiveTemplate(order.organizationId);
 }
 

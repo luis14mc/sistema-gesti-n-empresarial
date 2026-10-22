@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AuthenticatedRequest } from '@/lib/middleware';
+import type { AuthenticatedRequest } from '@/platform/api/with-auth';
 
 const INTERNAL = 'SENSITIVE_REPO_FAILURE_XYZ';
 
@@ -15,7 +15,7 @@ vi.mock('@/modules/purchases/application/suppliers', () => ({
   deleteProveedor: (...args: unknown[]) => deleteProveedorMock(...args),
 }));
 
-vi.mock('@/lib/middleware', () => ({
+vi.mock('@/platform/api/with-auth', () => ({
   withAuth: (handler: unknown) => handler,
 }));
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, AuthenticatedRequest } from '@/platform/api/with-auth';
 import { getEquipment, updateEquipment } from '@/modules/equipment/application/equipment-service';
 import { equipmentApiFailure } from '@/modules/equipment/application/http';
 import { authorizeOrganization } from '@/platform/security/authorization/http';

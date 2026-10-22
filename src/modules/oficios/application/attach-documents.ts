@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import { createAuditRecord } from '@/lib/audit';
+import { createAuditRecord } from '@/platform/security/audit/audit-record';
 import { OficioBadRequestError, OficioNotFoundError } from '@/modules/oficios/domain/errors';
 import {
   clearPrimaryOficioDocuments,

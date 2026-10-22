@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
-import type { AuthenticatedRequest } from '@/lib/middleware';
+import type { AuthenticatedRequest } from '@/platform/api/with-auth';
 
 const listMock = vi.fn();
 
@@ -9,7 +9,7 @@ vi.mock('@/modules/purchases/application/purchase-order-use-cases', () => ({
   createCompraOrden: vi.fn(),
 }));
 
-vi.mock('@/lib/middleware', () => ({
+vi.mock('@/platform/api/with-auth', () => ({
   withAuth: (handler: unknown) => handler,
 }));
 

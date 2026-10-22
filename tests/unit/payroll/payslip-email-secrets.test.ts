@@ -79,7 +79,7 @@ describe('sendPayslipEmails failure paths', () => {
       },
     }));
 
-    vi.doMock('@/lib/audit', () => ({ createAuditRecord }));
+    vi.doMock('@/platform/security/audit/audit-record', () => ({ createAuditRecord }));
     vi.doMock('@/modules/payroll/application/payroll-service', () => ({
       getPayslipPdfBuffer: vi.fn(async () => ({ buffer: Buffer.from('pdf'), filename: 'x.pdf' })),
     }));

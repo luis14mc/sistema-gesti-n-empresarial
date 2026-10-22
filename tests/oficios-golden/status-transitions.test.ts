@@ -5,7 +5,7 @@ import {
   OFICIO_TERMINAL_STATUSES,
   getNextOficioStatuses,
   isValidOficioStatusTransition,
-} from '@/lib/oficios-status-transitions';
+} from '@/modules/oficios/domain/oficios-status-transitions';
 import fixture from './__fixtures__/status-transitions.json';
 
 const ALL_STATUSES = Object.keys(OFICIO_STATUS_TRANSITIONS) as OficioStatus[];

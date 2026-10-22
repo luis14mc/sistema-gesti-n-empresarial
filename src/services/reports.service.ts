@@ -1,6 +1,6 @@
 import axios from 'axios';
 import type { ReportDefinition } from '@/modules/reporting/domain/report-types';
-import { defaultExportFilename } from '@/lib/reportes/report-ui';
+import { defaultExportFilename } from '@/modules/reporting/presentation/report-ui';
 import { extractApiErrorMessage, parseApiErrorPayload } from '@/lib/api-error-message';
 
 export type ReportExportParams = {

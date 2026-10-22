@@ -9,7 +9,7 @@ import {
   previewNextNumber,
   shouldGenerateOficioNumber,
   validateNomenclaturePattern,
-} from '@/lib/oficios-numbering';
+} from '@/modules/oficios/domain/oficios-numbering';
 import {
   allocateOficioNumber,
   OficioNumberingError,

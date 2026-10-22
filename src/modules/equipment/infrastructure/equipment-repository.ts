@@ -550,3 +550,20 @@ export async function deleteMaintenance(id: string, organizationId: string) {
     where: { id, equipment: { organizationId } },
   });
 }
+
+export async function findEquipmentCodeConflicts(organizationId: string, codes: string[], serials: string[]) {
+  return prisma.equipment.findMany({
+    where: {
+      organizationId,
+      OR: [
+        ...(codes.length ? [{ inventoryCode: { in: codes, mode: 'insensitive' as const } }] : []),
+        ...(serials.length ? [{ serialNumber: { in: serials, mode: 'insensitive' as const } }] : []),
+      ],
+    },
+    select: { inventoryCode: true, serialNumber: true },
+  });
+}
+
+export async function listEquipmentForExport(where: Prisma.EquipmentWhereInput) {
+  return prisma.equipment.findMany({ where, orderBy: { inventoryCode: 'asc' } });
+}

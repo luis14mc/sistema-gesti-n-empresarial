@@ -1,5 +1,5 @@
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { createAuditRecord } from '@/lib/audit';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
+import { createAuditRecord } from '@/platform/security/audit/audit-record';
 import { apiSuccess } from '@/platform/api/response';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 import { listIsrBracketRecords, replaceIsrBracketRecords } from '@/modules/payroll/application/settings-loader';

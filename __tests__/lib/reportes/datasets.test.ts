@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { PrismaClient } from '@prisma/client';
 import { SYNC_EXPORT_ROW_LIMIT } from '@/platform/reporting/export';
-import { ReportExportTooLargeError } from '@/lib/reportes/errors';
-import { buildPurchaseOrderSummaryExportDataset } from '@/lib/reportes/purchase-order-summary-export';
-import { buildEquipmentInventoryExportDataset } from '@/lib/reportes/equipment-inventory-export';
-import { buildOfficeRegisterExportDataset } from '@/lib/reportes/office-register-export';
-import { buildEquipmentAssignmentHistoryExportDataset } from '@/lib/reportes/equipment-assignment-history-export';
-import { buildEquipmentDisposalSummaryExportDataset } from '@/lib/reportes/equipment-disposal-summary-export';
+import { ReportExportTooLargeError } from '@/modules/reporting/domain/export-errors';
+import { buildPurchaseOrderSummaryExportDataset } from '@/modules/reporting/infrastructure/exports/purchase-order-summary-export';
+import { buildEquipmentInventoryExportDataset } from '@/modules/reporting/infrastructure/exports/equipment-inventory-export';
+import { buildOfficeRegisterExportDataset } from '@/modules/reporting/infrastructure/exports/office-register-export';
+import { buildEquipmentAssignmentHistoryExportDataset } from '@/modules/reporting/infrastructure/exports/equipment-assignment-history-export';
+import { buildEquipmentDisposalSummaryExportDataset } from '@/modules/reporting/infrastructure/exports/equipment-disposal-summary-export';
 
 const baseParams = {
   organizationId: 'org-a',

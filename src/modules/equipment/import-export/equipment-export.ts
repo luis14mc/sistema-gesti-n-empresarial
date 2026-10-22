@@ -1,5 +1,5 @@
 import type { EquipmentStatus, Prisma } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
+import { listEquipmentForExport } from '@/modules/equipment/infrastructure/equipment-repository';
 import { toXlsx } from '@/platform/reporting/export/xlsx';
 
 const formulaPrefix = /^[=+\-@]/;
@@ -24,7 +24,7 @@ export async function buildEquipmentExport(input: {
     { model: { contains: input.search, mode: 'insensitive' } },
     { serialNumber: { contains: input.search, mode: 'insensitive' } },
   ];
-  const equipment = await prisma.equipment.findMany({ where, orderBy: { inventoryCode: 'asc' } });
+  const equipment = await listEquipmentForExport(where);
   const date = new Date();
   const dataset = {
     reportTitle: 'Inventario de Equipos CNI',

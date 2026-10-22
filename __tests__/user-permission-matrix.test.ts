@@ -5,7 +5,7 @@ import {
   overridesFromDesiredMatrix,
   sessionRoleModuleMatrix,
 } from '@/platform/security/module-effective';
-import { hasModuleAccess } from '@/lib/permissions';
+import { hasModuleAccess } from '@/platform/security/session-module-access';
 import { organizationRole } from '@/platform/security/authorization/permissions';
 
 describe('user permission matrix (role + overrides)', () => {

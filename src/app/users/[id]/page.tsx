@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { UserPermissionsMatrix } from '@/components/users/UserPermissionsMatrix';
 import { useUsers } from '@/hooks/useUsers';
 import { ChevronLeft } from 'lucide-react';
-import type { SessionRole } from '@/lib/session-roles';
+import type { SessionRole } from '@/platform/security/authorization/session-roles';
 
 export default function UserDetailPage() {
   const params = useParams();

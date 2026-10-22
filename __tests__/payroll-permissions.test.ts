@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { can, organizationRole } from '@/platform/security/authorization/permissions';
-import { canAccess, hasModuleAccess } from '@/lib/permissions';
+import { canAccess, hasModuleAccess } from '@/platform/security/session-module-access';
 
 describe('payroll permissions', () => {
   it('grants payroll to HR and organization admins; not IT/USER/PROCUREMENT', () => {

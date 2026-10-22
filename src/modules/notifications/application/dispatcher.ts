@@ -1,5 +1,10 @@
-import { Prisma, type NotificationChannel, type NotificationStatus, type PrismaClient } from '@prisma/client';
-import { prisma as defaultPrisma } from '@/lib/prisma';
+import type { NotificationChannel, NotificationStatus, Prisma } from '@prisma/client';
+import {
+  createNotificationWithDelivery,
+  isPrismaUniqueViolation,
+  resolveSecurityEventClient,
+  type NotificationDbClient,
+} from '../infrastructure/notification-repository';
 import { createLogger } from '@/platform/observability/logger';
 import { appendSecurityEvent } from '@/platform/security/audit/security-events';
 import { recordSecurityEvent } from '@/platform/security/audit/security-events';
@@ -41,7 +46,7 @@ export type DispatchOutcome = Readonly<{
 const NOTIFICATION_AUDIT_MODULE = 'notifications';
 
 export const notificationDispatcher = {
-  async dispatch(input: DispatchInput, client: PrismaClient | Prisma.TransactionClient = defaultPrisma): Promise<DispatchOutcome> {
+  async dispatch(input: DispatchInput, client?: NotificationDbClient): Promise<DispatchOutcome> {
     const log = createLogger({
       requestId: input.requestId,
       organizationId: input.organizationId,
@@ -122,31 +127,28 @@ export const notificationDispatcher = {
           eventId: input.eventId ?? null,
         });
         try {
-          const notification = await (client as PrismaClient).notification.create({
-            data: {
-              organizationId: input.organizationId,
-              userId: recipient.userId,
-              eventType: input.eventType,
-              channel,
-              status: channelInitialStatus(channel, input.eventType),
-              title,
-              body,
-              actionUrl: normalizedActionPath,
-              metadata: input.metadata ?? undefined,
-              idempotencyKey,
-              deliveries: {
-                create: {
-                  channel,
-                  destination: channelDestination(channel, recipient),
-                  status: channelInitialDeliveryStatus(channel, input.eventType),
-                  provider: null,
-                  attempt: 1,
-                  startedAt: new Date(),
-                  completedAt: channel === 'IN_APP' ? new Date() : null,
-                },
+          const notification = await createNotificationWithDelivery(client, {
+            organizationId: input.organizationId,
+            userId: recipient.userId,
+            eventType: input.eventType,
+            channel,
+            status: channelInitialStatus(channel, input.eventType),
+            title,
+            body,
+            actionUrl: normalizedActionPath,
+            metadata: input.metadata ?? undefined,
+            idempotencyKey,
+            deliveries: {
+              create: {
+                channel,
+                destination: channelDestination(channel, recipient),
+                status: channelInitialDeliveryStatus(channel, input.eventType),
+                provider: null,
+                attempt: 1,
+                startedAt: new Date(),
+                completedAt: channel === 'IN_APP' ? new Date() : null,
               },
             },
-            select: { id: true, channel: true, userId: true, status: true },
           });
           created.push({
             id: notification.id,
@@ -154,7 +156,7 @@ export const notificationDispatcher = {
             userId: notification.userId ?? recipient.userId,
             status: notification.status,
           });
-          await appendSecurityEventIfTransactional(client as Prisma.TransactionClient, {
+          await appendSecurityEventIfTransactional(client, {
             organizationId: input.organizationId,
             eventType: `notification.created.${channel.toLowerCase()}`,
             action: 'DISPATCH',
@@ -247,7 +249,7 @@ function channelInitialDeliveryStatus(channel: NotificationChannel, _eventType: 
 }
 
 async function appendSecurityEventIfTransactional(
-  client: Prisma.TransactionClient | PrismaClient,
+  client: NotificationDbClient | undefined,
   input: {
     organizationId: string;
     eventType: string;
@@ -258,8 +260,9 @@ async function appendSecurityEventIfTransactional(
     attributes: Record<string, unknown>;
   },
 ) {
-  if (isTransactionClient(client)) {
-    await appendSecurityEvent(client, {
+  const transactional = resolveSecurityEventClient(client);
+  if (transactional) {
+    await appendSecurityEvent(transactional, {
       organizationId: input.organizationId,
       eventType: input.eventType,
       outcome: 'SUCCESS',
@@ -273,17 +276,6 @@ async function appendSecurityEventIfTransactional(
       attributes: input.attributes,
     });
   }
-}
-
-function isTransactionClient(client: Prisma.TransactionClient | PrismaClient): client is Prisma.TransactionClient {
-  return typeof (client as { $transaction?: unknown }).$transaction === 'function';
-}
-
-function isPrismaUniqueViolation(error: unknown, target: readonly string[]): boolean {
-  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return false;
-  if (error.code !== 'P2002') return false;
-  const fields = Array.isArray(error.meta?.target) ? error.meta?.target as string[] : [];
-  return target.every((field) => fields.includes(field));
 }
 
 export type NotificationDispatcherService = typeof notificationDispatcher;

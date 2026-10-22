@@ -8,7 +8,7 @@ import {
   CannotResetOwnerPasswordError,
 } from '@/modules/users/domain/errors';
 
-vi.mock('@/lib/audit', () => ({
+vi.mock('@/platform/security/audit/audit-record', () => ({
   createAuditRecord: vi.fn(async () => undefined),
 }));
 

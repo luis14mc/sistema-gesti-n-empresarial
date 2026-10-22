@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 
 const REPO_ROOT = resolve(__dirname, '..', '..');
 const middlewareSource = readFileSync(resolve(REPO_ROOT, 'src/middleware.ts'), 'utf-8');
-const libMiddlewareSource = readFileSync(resolve(REPO_ROOT, 'src/lib/middleware.ts'), 'utf-8');
+const libMiddlewareSource = readFileSync(resolve(REPO_ROOT, 'src/platform/api/with-auth.ts'), 'utf-8');
 const actionAuthSource = readFileSync(resolve(REPO_ROOT, 'src/actions/auth.ts'), 'utf-8');
 const authStoreSource = readFileSync(resolve(REPO_ROOT, 'src/stores/authStore.ts'), 'utf-8');
 

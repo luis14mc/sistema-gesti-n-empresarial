@@ -1,7 +1,7 @@
 import {
   DEPRECATED_API_MESSAGES,
   deprecatedApiHandler,
-} from '@/lib/deprecated-api';
+} from '@/platform/api/deprecated-api';
 
 const handler = deprecatedApiHandler(DEPRECATED_API_MESSAGES.timeEntries);
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { authorizeOrganization, authorizationFailure } from '@/platform/security/authorization/http';
 import { PermissionDeniedError } from '@/platform/domain/errors';
 import { getRoleCatalog } from '@/platform/security/authorization/role-catalog-service';

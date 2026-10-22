@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectRasterImageKind, looksLikeSvgPayload, validateRasterLogoUpload } from '@/lib/raster-image-validation';
+import { detectRasterImageKind, looksLikeSvgPayload, validateRasterLogoUpload } from '@/platform/security/uploads/raster-image-validation';
 
 const MINIMAL_PNG = Buffer.from([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,

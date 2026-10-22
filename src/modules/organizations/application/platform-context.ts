@@ -1,6 +1,6 @@
 import type { PlatformRole } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
-import type { AuthenticatedRequest } from '@/lib/middleware';
+import { findActivePlatformUser } from '@/modules/organizations/infrastructure/organization-repository';
+import type { AuthenticatedRequest } from '@/platform/api/with-auth';
 import { recordSecurityEventBestEffort } from '@/platform/security/audit/security-events';
 
 export type PlatformContext = Readonly<{
@@ -51,10 +51,7 @@ export async function getPlatformContext(
 ): Promise<PlatformContext | null> {
   const sessionUser = request.user;
   if (!sessionUser?.userId) return null;
-  const user = await prisma.user.findFirst({
-    where: { id: sessionUser.userId, isActive: true, platformRole: { not: null } },
-    select: { id: true, email: true, platformRole: true },
-  });
+  const user = await findActivePlatformUser(sessionUser.userId);
   if (!user?.platformRole) return null;
   return {
     authorizationScope: 'platform',

@@ -1,4 +1,5 @@
 import type { OficioAttachment } from '@/types';
+import { InvalidUploadError } from '@/platform/security/uploads/raster-image-validation';
 
 export const OFICIO_UPLOAD_MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 
@@ -37,11 +38,11 @@ export function validateOficioUploadFile(file: {
   const extension = getFileExtension(file.name);
 
   if (!extension || !OFICIO_ALLOWED_EXTENSIONS.has(extension)) {
-    throw new Error('Formato no permitido. Solo PDF, JPG, JPEG y PNG.');
+    throw new InvalidUploadError('Formato no permitido. Solo PDF, JPG, JPEG y PNG.', 400);
   }
 
   if (BLOCKED_EXTENSIONS.has(extension)) {
-    throw new Error('Tipo de archivo no permitido por seguridad.');
+    throw new InvalidUploadError('Tipo de archivo no permitido por seguridad.', 500);
   }
 
   let mimeType = file.type;
@@ -52,23 +53,23 @@ export function validateOficioUploadFile(file: {
   }
 
   if (!OFICIO_ALLOWED_MIME_TYPES.has(mimeType)) {
-    throw new Error('Tipo MIME no permitido. Verifica que el archivo sea PDF o imagen válida.');
+    throw new InvalidUploadError('Tipo MIME no permitido. Verifica que el archivo sea PDF o imagen válida.', 500);
   }
 
   if (file.size <= 0) {
-    throw new Error('El archivo está vacío.');
+    throw new InvalidUploadError('El archivo está vacío.', 500);
   }
 
   if (file.size > OFICIO_UPLOAD_MAX_BYTES) {
-    throw new Error('El archivo supera el tamaño máximo de 10 MB.');
+    throw new InvalidUploadError('El archivo supera el tamaño máximo de 10 MB.', 500);
   }
 
   // Coherencia extensión ↔ MIME
   if (extension === '.pdf' && mimeType !== 'application/pdf') {
-    throw new Error('La extensión del archivo no coincide con su contenido.');
+    throw new InvalidUploadError('La extensión del archivo no coincide con su contenido.', 500);
   }
   if ((extension === '.jpg' || extension === '.jpeg' || extension === '.png') && !mimeType.startsWith('image/')) {
-    throw new Error('La extensión del archivo no coincide con su contenido.');
+    throw new InvalidUploadError('La extensión del archivo no coincide con su contenido.', 500);
   }
 
   return { extension, mimeType };

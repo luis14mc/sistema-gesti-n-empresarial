@@ -1,5 +1,11 @@
 import type { OrganizationStatus, Prisma } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
+import {
+  countOrganizations,
+  findOrganizationSummary,
+  findOrganizationWithCounts,
+  listLifecycleEvents,
+  listOrganizationsPage,
+} from '@/modules/organizations/infrastructure/organization-repository';
 
 export type OrganizationListQuery = Readonly<{
   status?: OrganizationStatus;
@@ -31,6 +37,10 @@ export type OrganizationListItem = Prisma.OrganizationGetPayload<{
   _count: { memberships: number };
 };
 
+export function getCurrentOrganizationSummary(organizationId: string) {
+  return findOrganizationSummary(organizationId);
+}
+
 export const organizationPlatformQueryService = {
   async list(query: OrganizationListQuery) {
     const page = Number.isSafeInteger(query.page) && query.page > 0 ? query.page : 1;
@@ -48,73 +58,17 @@ export const organizationPlatformQueryService = {
         : {}),
     };
     const [items, total] = await Promise.all([
-      prisma.organization.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          status: true,
-          onboardingStatus: true,
-          timezone: true,
-          locale: true,
-          currency: true,
-          legalName: true,
-          rtn: true,
-          createdAt: true,
-          updatedAt: true,
-          activatedAt: true,
-          suspendedAt: true,
-          archivedAt: true,
-          deletionRequestedAt: true,
-          _count: { select: { memberships: true } },
-        },
-      }),
-      prisma.organization.count({ where }),
+      listOrganizationsPage(where, (page - 1) * pageSize, pageSize),
+      countOrganizations(where),
     ]);
     return { items, total, page, pageSize, totalPages: Math.max(1, Math.ceil(total / pageSize)) };
   },
 
   async findById(organizationId: string) {
-    return prisma.organization.findUnique({
-      where: { id: organizationId },
-      include: {
-        _count: {
-          select: {
-            memberships: true,
-            equipment: true,
-            purchaseOrders: true,
-            oficios: true,
-            audits: true,
-          },
-        },
-      },
-    });
+    return findOrganizationWithCounts(organizationId);
   },
 
   async recentActivity(organizationId: string, take = 20) {
-    return prisma.systemAuditEvent.findMany({
-      where: {
-        organizationId,
-        eventType: { startsWith: 'organization.lifecycle.' },
-      },
-      orderBy: { occurredAt: 'desc' },
-      take,
-      select: {
-        id: true,
-        eventType: true,
-        outcome: true,
-        severity: true,
-        action: true,
-        reasonCode: true,
-        attributes: true,
-        occurredAt: true,
-        userId: true,
-        requestId: true,
-      },
-    });
+    return listLifecycleEvents(organizationId, take);
   },
 };

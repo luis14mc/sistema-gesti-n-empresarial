@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { createAuditRecord } from '@/lib/audit';
+import { createAuditRecord } from '@/platform/security/audit/audit-record';
 import { CATEGORY_LABELS } from '@/modules/equipment/domain/equipment-asset-code';
 import { logEquipmentHistory } from '@/modules/equipment/infrastructure/equipment-history';
 import {
@@ -14,7 +14,7 @@ import {
 } from '@/modules/equipment/infrastructure/equipment-repository';
 import { mapEquipmentResponse } from '@/modules/equipment/presentation/equipment-mapper';
 import { equipmentListQuerySchema } from '@/modules/equipment/presentation/schemas/equipment-queries';
-import { createEquipmentRecord } from '@/modules/equipment/import-export/equipment-create';
+import { createEquipmentRecord } from '@/modules/equipment/infrastructure/equipment-create';
 import { buildEquipmentExport } from '@/modules/equipment/import-export/equipment-export';
 import type { EquipmentInput } from '@/modules/equipment/import-export/schemas';
 import type { EquipmentStatus } from '@prisma/client';

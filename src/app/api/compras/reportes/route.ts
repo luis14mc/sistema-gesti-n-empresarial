@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { getPurchaseReportsSummary } from '@/modules/purchases/application/purchase-reports';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 import { handlePurchaseOrderRouteError } from '@/modules/purchases/presentation/http';

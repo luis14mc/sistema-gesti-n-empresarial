@@ -1,4 +1,4 @@
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { apiFailure, apiSuccess } from '@/platform/api/response';
 import { authorizeOrganization, authorizationFailure } from '@/platform/security/authorization/http';
 import { OFICIO_IMPORT_MAX_BYTES } from '@/modules/oficios/import-export/types';

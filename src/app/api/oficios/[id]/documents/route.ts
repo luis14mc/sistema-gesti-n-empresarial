@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import {
   assertAttachDocumentFile,
   attachDocumentsUseCase,

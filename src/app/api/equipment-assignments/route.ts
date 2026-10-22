@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, AuthenticatedRequest } from '@/platform/api/with-auth';
 import { assignEquipment, listEquipmentAssignments } from '@/modules/equipment/application/assignment-service';
 import { isActiveAssignmentConflict } from '@/modules/equipment/application/assignment-conflict';
 import { equipmentApiFailure } from '@/modules/equipment/application/http';

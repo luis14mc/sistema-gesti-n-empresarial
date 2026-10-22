@@ -13,7 +13,7 @@ const FORBIDDEN = [
   'node:fs',
   'node:path',
   'node:crypto',
-  '@/lib/middleware',
+  '@/platform/api/with-auth',
   '@/platform/security/authorization/roles',
 ];
 

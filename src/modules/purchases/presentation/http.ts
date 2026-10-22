@@ -6,7 +6,7 @@ export {
 export { mapLegacyEstadoFilter } from '@/modules/purchases/domain/legacy-status-map';
 
 import { NextResponse } from 'next/server';
-import { PermissionDeniedError } from '@/platform/domain/errors';
+import { DomainError, PermissionDeniedError } from '@/platform/domain/errors';
 import { isOrganizationContextError } from '@/modules/organizations/application/context';
 
 function isPrismaUniqueViolation(error: unknown): boolean {
@@ -33,6 +33,9 @@ export function supplierRouteErrorResponse(error: unknown): NextResponse | null 
       { error: 'No se puede eliminar: el proveedor tiene órdenes o solicitudes asociadas' },
       { status: 409 },
     );
+  }
+  if (error instanceof DomainError) {
+    return NextResponse.json({ error: error.message }, { status: error.httpStatus });
   }
   if (isPrismaUniqueViolation(error)) {
     return NextResponse.json(

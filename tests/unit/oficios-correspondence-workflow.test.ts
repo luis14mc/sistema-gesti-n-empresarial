@@ -6,7 +6,7 @@ import {
   SEQUENCE_ISSUED_FLOOR_ERROR,
   upsertNumberingConfig,
 } from '@/modules/oficios/application/numbering-config';
-import { previewNextNumber } from '@/lib/oficios-numbering';
+import { previewNextNumber } from '@/modules/oficios/domain/oficios-numbering';
 import {
   isSignerCompatibleWithDependency,
   signerDependencyMismatchMessage,

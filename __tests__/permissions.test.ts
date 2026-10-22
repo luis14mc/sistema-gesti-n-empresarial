@@ -4,9 +4,8 @@ import {
   hasModuleAccess,
   getAccessibleModules,
   getModuleActions,
-  routeToAccess,
-  canAccessRoute,
-} from '../src/lib/permissions';
+} from '@/platform/security/session-module-access';
+import { routeToAccess, canAccessRoute } from '@/platform/security/session-route-navigation';
 
 describe('RBAC — permissions matrix', () => {
   describe('ADMIN', () => {

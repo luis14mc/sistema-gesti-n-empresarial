@@ -3,7 +3,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { buildOficioImportTemplate } from '@/modules/oficios/import-export/oficios-template';
 import { parseOficioImportWorkbook } from '@/modules/oficios/import-export/oficios-excel';
 import { OFICIO_IMPORT_HEADERS, OFICIO_IMPORT_SHEET } from '@/modules/oficios/import-export/types';
-import { parseSequenceFromPattern } from '@/lib/oficios-numbering';
+import { parseSequenceFromPattern } from '@/modules/oficios/domain/oficios-numbering';
 
 const mocks = vi.hoisted(() => ({
   employeeFindMany: vi.fn(),

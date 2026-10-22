@@ -1,5 +1,5 @@
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { prisma } from '@/lib/prisma';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
+import { getCurrentOrganizationSummary } from '@/modules/organizations/application/queries';
 import { isOrganizationContextError, requireOrganizationContext } from '@/modules/organizations/application/context';
 import { apiSuccess, apiFailure } from '@/platform/api/response';
 
@@ -7,7 +7,7 @@ async function handler(request: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();
   try {
     const context = await requireOrganizationContext(request, requestId);
-    const organization = await prisma.organization.findUnique({ where: { id: context.organizationId }, select: { id: true, slug: true, name: true, logoKey: true, timezone: true } });
+    const organization = await getCurrentOrganizationSummary(context.organizationId);
     if (!organization) return apiFailure('ORGANIZATION_NOT_FOUND', 'La organización no existe.', { requestId, status: 404 });
     return apiSuccess({
       organization: { id: organization.id, slug: organization.slug, name: organization.name, logoUrl: organization.logoKey, timezone: organization.timezone },

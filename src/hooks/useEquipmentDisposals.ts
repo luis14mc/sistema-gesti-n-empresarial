@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { equipmentDisposalApi } from '@/services/equipment-disposal.service';
 import { equipmentKeys } from '@/hooks/useEquipment';
-import { getHttpStatus } from '@/lib/api-error';
+import { getHttpStatus } from '@/platform/api/api-error';
 
 const retryTenantQuery = (failureCount: number, error: unknown) => {
   const status = getHttpStatus(error);

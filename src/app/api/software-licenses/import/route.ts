@@ -1,9 +1,9 @@
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { apiSuccess } from '@/platform/api/response';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
-import { readLicenseWorkbook } from '@/lib/software-licenses/excel';
-import { importLicenseRows } from '@/lib/software-licenses/service';
-import { licenseFailure } from '@/lib/software-licenses/http';
+import { readLicenseWorkbook } from '@/modules/software-licenses/infrastructure/excel';
+import { importLicenseRows } from '@/modules/software-licenses/application/service';
+import { licenseFailure } from '@/modules/software-licenses/presentation/http';
 
 async function postHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();

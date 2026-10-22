@@ -1,8 +1,8 @@
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { apiSuccess } from '@/platform/api/response';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
-import { licenseDashboard, syncRenewalNotifications } from '@/lib/software-licenses/service';
-import { licenseFailure } from '@/lib/software-licenses/http';
+import { licenseDashboard, syncRenewalNotifications } from '@/modules/software-licenses/application/service';
+import { licenseFailure } from '@/modules/software-licenses/presentation/http';
 
 async function getHandler(req: AuthenticatedRequest) {
   const requestId = crypto.randomUUID();

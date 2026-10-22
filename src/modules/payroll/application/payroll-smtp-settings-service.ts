@@ -1,4 +1,8 @@
-import { prisma } from '@/lib/prisma';
+import {
+  createPayrollSmtpSettings,
+  findPayrollSmtpSettings,
+  updatePayrollSmtpSettings,
+} from '@/modules/payroll/infrastructure/payroll-settings-repository';
 import { EmailNotConfiguredError } from '@/platform/email/errors';
 import {
   getPublicSmtpStatus,
@@ -94,7 +98,7 @@ export async function getPayrollSmtpPublicSettings(
   env: Record<string, string | undefined> = process.env,
 ): Promise<PayrollSmtpPublicSettings> {
   const secretsKeyConfigured = isPayrollSecretsKeyConfigured(env);
-  const row = await prisma.payrollSmtpSettings.findUnique({ where: { organizationId } });
+  const row = await findPayrollSmtpSettings(organizationId);
 
   if (row) {
     const secure = smtpSecureFromPort(row.port);
@@ -139,7 +143,7 @@ export async function getOrganizationSmtpRuntimeConfig(
   organizationId: string,
   env: Record<string, string | undefined> = process.env,
 ): Promise<SmtpRuntimeConfig> {
-  const row = await prisma.payrollSmtpSettings.findUnique({ where: { organizationId } });
+  const row = await findPayrollSmtpSettings(organizationId);
   if (row) {
     const runtime = runtimeFromDbRow(row, env);
     if (runtime) return runtime;
@@ -181,7 +185,7 @@ export async function upsertPayrollSmtpSettings(
   userId: string,
   input: UpsertPayrollSmtpInput,
 ) {
-  const existing = await prisma.payrollSmtpSettings.findUnique({ where: { organizationId } });
+  const existing = await findPayrollSmtpSettings(organizationId);
   const passwordTrimmed = input.password?.trim() ?? '';
 
   let passwordEncrypted = existing?.passwordEncrypted ?? null;
@@ -215,14 +219,9 @@ export async function upsertPayrollSmtpSettings(
   };
 
   if (existing) {
-    return prisma.payrollSmtpSettings.update({
-      where: { organizationId },
-      data,
-    });
+    return updatePayrollSmtpSettings(organizationId, data);
   }
-  return prisma.payrollSmtpSettings.create({
-    data: { organizationId, ...data },
-  });
+  return createPayrollSmtpSettings({ organizationId, ...data });
 }
 
 export async function assertOrganizationSmtpConfigured(organizationId: string) {

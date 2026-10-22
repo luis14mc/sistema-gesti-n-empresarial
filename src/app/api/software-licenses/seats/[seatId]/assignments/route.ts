@@ -1,9 +1,9 @@
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { apiSuccess } from '@/platform/api/response';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
-import { assignSeatSchema } from '@/lib/software-licenses/schemas';
-import { assignSeat } from '@/lib/software-licenses/service';
-import { licenseFailure } from '@/lib/software-licenses/http';
+import { assignSeatSchema } from '@/modules/software-licenses/presentation/schemas';
+import { assignSeat } from '@/modules/software-licenses/application/service';
+import { licenseFailure } from '@/modules/software-licenses/presentation/http';
 
 async function postHandler(req: AuthenticatedRequest, { params }: { params: Promise<{ seatId: string }> }) {
   const requestId = crypto.randomUUID();

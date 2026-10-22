@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { NAV_ITEMS, type NavItem, type NavSubItem } from '@/components/layout/nav-items';
-import { hasModuleAccess } from '@/lib/permissions';
-import type { Module } from '@/lib/permissions';
+import { hasModuleAccess } from '@/platform/security/session-module-access';
+import type { Module } from '@/platform/security/session-module-access';
 import type { Role } from '@/types';
 import {
   buildEffectiveModuleMatrix,

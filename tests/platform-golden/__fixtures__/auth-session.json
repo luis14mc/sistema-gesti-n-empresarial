@@ -1,0 +1,321 @@
+{
+  "loginActionSuccess": {
+    "result": {
+      "success": true,
+      "data": {
+        "id": "user-golden",
+        "employeeNumber": "CNI-G-1",
+        "email": "golden@cni.hn",
+        "firstName": "Gold",
+        "lastName": "En",
+        "phone": null,
+        "role": "ADMIN",
+        "isActive": true,
+        "departmentId": null,
+        "positionId": null,
+        "department": null,
+        "position": null,
+        "mustChangePassword": false,
+        "passwordChangedAt": null
+      }
+    },
+    "cookie": {
+      "name": "token",
+      "options": {
+        "httpOnly": true,
+        "secure": false,
+        "sameSite": "lax",
+        "maxAge": 3600,
+        "path": "/"
+      },
+      "claims": {
+        "userId": "user-golden",
+        "email": "golden@cni.hn",
+        "role": "ADMIN",
+        "orgId": "org_cni_default",
+        "accessVersion": 0,
+        "pwdChangedAtMs": 0,
+        "mustChangePassword": false,
+        "mod": "dashboard,oficios,equipment,assignments,employees,users,purchases,audits,audit-records,reports,settings,software-licenses,payroll",
+        "spe": "roles.manage,payroll.configure",
+        "aud": "sge-web",
+        "iss": "sge"
+      }
+    },
+    "audit": [
+      {
+        "title": "Inicio de sesión",
+        "description": "Gold En inició sesión",
+        "module": "USUARIOS",
+        "category": "LOGIN",
+        "userId": "user-golden"
+      }
+    ]
+  },
+  "loginActionErrors": {
+    "inactive": {
+      "success": false,
+      "error": "Tu cuenta está desactivada. Contacta al administrador."
+    },
+    "wrong": {
+      "success": false,
+      "error": "Credenciales inválidas"
+    },
+    "unknown": {
+      "success": false,
+      "error": "Credenciales inválidas"
+    },
+    "invalid": {
+      "success": false,
+      "error": "Datos de entrada inválidos"
+    },
+    "cookieSets": 0
+  },
+  "logoutAction": [
+    {
+      "name": "token",
+      "value": "",
+      "options": {
+        "maxAge": 0,
+        "path": "/"
+      }
+    }
+  ],
+  "registerAction": {
+    "created": {
+      "success": true,
+      "data": {
+        "id": "new-user",
+        "employeeNumber": "CNI-NEW-1",
+        "email": "nuevo@cni.hn",
+        "firstName": "Nuevo",
+        "lastName": "Usuario",
+        "phone": null,
+        "role": "USER",
+        "isActive": true,
+        "departmentId": null,
+        "positionId": null,
+        "department": null,
+        "position": null,
+        "mustChangePassword": false,
+        "passwordChangedAt": null
+      }
+    },
+    "createData": {
+      "employeeNumber": "CNI-NEW-1",
+      "email": "nuevo@cni.hn",
+      "password": "<hash>",
+      "firstName": "Nuevo",
+      "lastName": "Usuario",
+      "role": "USER"
+    },
+    "createdCookie": {
+      "name": "token",
+      "options": {
+        "httpOnly": true,
+        "secure": false,
+        "sameSite": "lax",
+        "maxAge": 3600,
+        "path": "/"
+      },
+      "claims": {
+        "userId": "new-user",
+        "email": "nuevo@cni.hn",
+        "role": "USER",
+        "orgId": "org_cni_default",
+        "accessVersion": 0,
+        "pwdChangedAtMs": 0,
+        "mustChangePassword": false,
+        "mod": "dashboard,oficios,equipment,assignments,employees,users,purchases,audits,audit-records,reports,settings,software-licenses,payroll",
+        "spe": "roles.manage,payroll.configure",
+        "aud": "sge-web",
+        "iss": "sge"
+      }
+    },
+    "duplicateEmail": {
+      "success": false,
+      "error": "Ya existe un usuario con ese email"
+    },
+    "duplicateEmployee": {
+      "success": false,
+      "error": "Ya existe un usuario con ese número de empleado"
+    },
+    "invalid": {
+      "success": false,
+      "error": "Datos inválidos",
+      "fieldErrors": {
+        "employeeNumber": [
+          "Número de empleado requerido"
+        ],
+        "email": [
+          "Correo electrónico inválido"
+        ],
+        "password": [
+          "Mínimo 6 caracteres"
+        ],
+        "firstName": [
+          "Nombre requerido"
+        ],
+        "lastName": [
+          "Apellido requerido"
+        ]
+      }
+    }
+  },
+  "registerActionForbidden": [
+    "NEXT_REDIRECT",
+    "replace",
+    "/forbidden"
+  ],
+  "registerRoute": {
+    "ok": {
+      "status": 201,
+      "hasRequestIdHeader": false,
+      "body": {
+        "user": {
+          "id": "new-user",
+          "employeeNumber": "CNI-NEW-1",
+          "email": "nuevo@cni.hn",
+          "firstName": "Nuevo",
+          "lastName": "Usuario",
+          "role": "USER",
+          "phone": null,
+          "isActive": true
+        }
+      }
+    },
+    "audit": [
+      {
+        "title": "Registro de usuario",
+        "description": "Se creó el usuario Nuevo Usuario (nuevo@cni.hn)",
+        "module": "USUARIOS",
+        "category": "CREATE",
+        "userId": "user-golden",
+        "entityId": "new-user",
+        "newData": {
+          "email": "nuevo@cni.hn",
+          "employeeNumber": "CNI-NEW-1",
+          "role": "USER"
+        }
+      }
+    ],
+    "dup": {
+      "status": 409,
+      "hasRequestIdHeader": false,
+      "body": {
+        "error": "El email o número de empleado ya está registrado"
+      }
+    },
+    "invalid": {
+      "status": 400,
+      "error": "Datos inválidos",
+      "hasDetails": true
+    },
+    "failure": {
+      "status": 500,
+      "hasRequestIdHeader": false,
+      "body": {
+        "error": "Error al registrar usuario"
+      }
+    }
+  },
+  "withAuth": {
+    "noToken": {
+      "status": 401,
+      "hasRequestIdHeader": true,
+      "body": {
+        "success": false,
+        "error": {
+          "code": "AUTHENTICATION_REQUIRED",
+          "message": "Debe iniciar sesión para continuar."
+        },
+        "requestId": "<uuid>"
+      }
+    },
+    "badToken": {
+      "status": 401,
+      "hasRequestIdHeader": true,
+      "body": {
+        "success": false,
+        "error": {
+          "code": "AUTHENTICATION_REQUIRED",
+          "message": "La sesión no es válida."
+        },
+        "requestId": "<uuid>"
+      }
+    },
+    "wrongSecret": {
+      "status": 401,
+      "hasRequestIdHeader": true,
+      "body": {
+        "success": false,
+        "error": {
+          "code": "AUTHENTICATION_REQUIRED",
+          "message": "La sesión no es válida."
+        },
+        "requestId": "<uuid>"
+      }
+    },
+    "revokedInactive": {
+      "status": 401,
+      "hasRequestIdHeader": true,
+      "body": {
+        "success": false,
+        "error": {
+          "code": "SESSION_REVOKED",
+          "message": "La sesión expiró. Inicie sesión de nuevo."
+        },
+        "requestId": "<uuid>"
+      }
+    },
+    "revokedPassword": {
+      "status": 401,
+      "hasRequestIdHeader": true,
+      "body": {
+        "success": false,
+        "error": {
+          "code": "SESSION_REVOKED",
+          "message": "La sesión expiró. Inicie sesión de nuevo."
+        },
+        "requestId": "<uuid>"
+      }
+    },
+    "mustChangeBlocked": {
+      "status": 403,
+      "hasRequestIdHeader": true,
+      "body": {
+        "success": false,
+        "error": {
+          "code": "PASSWORD_CHANGE_REQUIRED",
+          "message": "Debe cambiar su contraseña antes de continuar."
+        },
+        "requestId": "<uuid>"
+      }
+    },
+    "mustChangeAllowedStatusIsNot403": true,
+    "forbiddenRole": {
+      "status": 403,
+      "hasRequestIdHeader": true,
+      "body": {
+        "success": false,
+        "error": {
+          "code": "FORBIDDEN",
+          "message": "No tiene permisos para esta acción."
+        },
+        "requestId": "<uuid>"
+      }
+    },
+    "bearerForbidden": {
+      "status": 403,
+      "hasRequestIdHeader": true,
+      "body": {
+        "success": false,
+        "error": {
+          "code": "FORBIDDEN",
+          "message": "No tiene permisos para esta acción."
+        },
+        "requestId": "<uuid>"
+      }
+    }
+  }
+}

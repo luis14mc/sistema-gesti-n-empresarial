@@ -1,4 +1,4 @@
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { listAvailableReports } from '@/modules/reporting/application/services/report-catalog';
 import { runReportingRoute } from '@/modules/reporting/presentation/http';
 import { apiSuccess } from '@/platform/api/response';

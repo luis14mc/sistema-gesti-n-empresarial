@@ -1,9 +1,9 @@
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { apiSuccess } from '@/platform/api/response';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
-import { updateSeatSchema } from '@/lib/software-licenses/schemas';
-import { updateSeat } from '@/lib/software-licenses/service';
-import { licenseFailure } from '@/lib/software-licenses/http';
+import { updateSeatSchema } from '@/modules/software-licenses/presentation/schemas';
+import { updateSeat } from '@/modules/software-licenses/application/service';
+import { licenseFailure } from '@/modules/software-licenses/presentation/http';
 
 async function patchHandler(req: AuthenticatedRequest, { params }: { params: Promise<{ seatId: string }> }) {
   const requestId = crypto.randomUUID();

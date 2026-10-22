@@ -1,9 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { comparePassword } from '@/lib/auth';
-import { generateSessionToken } from '@/lib/session-token';
-import { createAuditRecord } from '@/lib/audit';
-import { resolveSessionRole } from '@/platform/security/authorization/session-role';
 import { loginSchema } from '@/lib/zod-schemas';
 import { createHash } from 'node:crypto';
 import {
@@ -11,7 +6,13 @@ import {
   RATE_LIMIT_RULES,
   getClientIp,
   rateLimitHeaders,
-} from '@/lib/rate-limit';
+} from '@/platform/security/authentication/rate-limit';
+import {
+  auditLoginRateLimit,
+  delayRejectedLogin,
+  loginWithApiCredentials,
+  type LoginStage,
+} from '@/modules/auth/application/login';
 
 // Limiter por proceso (Edge-friendly). En producción multi-worker,
 // reemplazar por Upstash Redis o equivalente distribuido.
@@ -24,9 +25,6 @@ function accountKey(email: string): string {
   return `acct:${createHash('sha256').update(email.trim().toLowerCase()).digest('hex')}`;
 }
 
-// Delay artificial para mitigar fuerza bruta básica
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
 export async function POST(req: NextRequest) {
   // Rate limit por IP — antes de cualquier trabajo
   const ip = getClientIp(req);
@@ -34,12 +32,7 @@ export async function POST(req: NextRequest) {
   const headers = rateLimitHeaders(limitResult);
 
   if (!limitResult.success) {
-    await createAuditRecord({
-      title: 'Rate limit excedido en login',
-      description: `IP ${ip} bloqueada porRateLimit`,
-      module: 'USUARIOS',
-      category: 'LOGIN',
-    }).catch(() => undefined);
+    await auditLoginRateLimit('Rate limit excedido en login', `IP ${ip} bloqueada porRateLimit`);
 
     return NextResponse.json(
       {
@@ -56,13 +49,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let stage = 'LOOKUP_USER';
+  const progress: { stage: LoginStage } = { stage: 'LOOKUP_USER' };
   try {
     const body = await req.json();
     const parsed = loginSchema.safeParse(body);
 
     if (!parsed.success) {
-      await delay(500);
+      await delayRejectedLogin();
       return NextResponse.json(
         { error: 'Datos de acceso inválidos' },
         { status: 400, headers }
@@ -73,12 +66,10 @@ export async function POST(req: NextRequest) {
 
     const accountLimit = loginAccountLimiter.check(accountKey(email));
     if (!accountLimit.success) {
-      await createAuditRecord({
-        title: 'Rate limit por cuenta excedido en login',
-        description: `Demasiados intentos para una cuenta desde IP ${ip}`,
-        module: 'USUARIOS',
-        category: 'LOGIN',
-      }).catch(() => undefined);
+      await auditLoginRateLimit(
+        'Rate limit por cuenta excedido en login',
+        `Demasiados intentos para una cuenta desde IP ${ip}`,
+      );
       return NextResponse.json(
         {
           error: 'Demasiados intentos para esta cuenta. Intenta más tarde.',
@@ -94,78 +85,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
+    const result = await loginWithApiCredentials({ email, password, ip }, progress);
 
-    if (!user) {
-      await delay(500);
+    if (result.kind === 'invalid-credentials') {
       return NextResponse.json(
         { error: 'Credenciales inválidas' },
         { status: 401, headers }
       );
     }
 
-    if (!user.isActive) {
-      await delay(500);
+    if (result.kind === 'inactive') {
       return NextResponse.json(
         { error: 'Usuario inactivo' },
         { status: 403, headers }
       );
     }
 
-    stage = 'VERIFY_PASSWORD';
-    const isPasswordValid = await comparePassword(password, user.password);
-
-    if (!isPasswordValid) {
-      await delay(500);
-      await createAuditRecord({
-        title: 'Intento de login fallido',
-        description: `Password incorrecto para ${email} desde ${ip}`,
-        module: 'USUARIOS',
-        category: 'LOGIN',
-      }).catch(() => undefined);
-      return NextResponse.json(
-        { error: 'Credenciales inválidas' },
-        { status: 401, headers }
-      );
-    }
-
-    stage = 'RESOLVE_SESSION_ROLE';
-    const sessionRole = await resolveSessionRole(user.id, user.role);
-
-    stage = 'GENERATE_TOKEN';
-    const token = await generateSessionToken({
-      userId: user.id,
-      email: user.email,
-      role: sessionRole,
-    });
-
-    const { password: _omit, ...userWithoutPassword } = user;
-
-    stage = 'AUDIT_LOGIN';
-    await createAuditRecord({
-      title: 'Inicio de sesión (API)',
-      description: `${user.firstName} ${user.lastName} inició sesión`,
-      module: 'USUARIOS',
-      category: 'LOGIN',
-      userId: user.id,
-    }).catch((error) => {
-      console.error('[Login] audit failed', {
-        userId: user.id,
-        error: error instanceof Error ? error.message : 'UNKNOWN_ERROR',
-      });
-    });
-
     return NextResponse.json(
-      { user: { ...userWithoutPassword, role: sessionRole }, token },
+      { user: { ...result.user, role: result.sessionRole }, token: result.token },
       { status: 200, headers }
     );
   } catch (error) {
     console.error('[Login] Error', {
       errorName: error instanceof Error ? error.name : 'UnknownError',
       errorMessage: error instanceof Error ? error.message : 'UNKNOWN_ERROR',
-      stage,
+      stage: progress.stage,
     });
     return NextResponse.json(
       { error: 'Error al iniciar sesión' },

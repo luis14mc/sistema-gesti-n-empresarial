@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import type { AuthenticatedRequest } from '@/lib/middleware';
+import type { AuthenticatedRequest } from '@/platform/api/with-auth';
 
 const authorizeOrganization = vi.fn();
 const hashPassword = vi.fn(async (p: string) => `hashed:${p}`);
@@ -20,11 +20,11 @@ vi.mock('@/platform/security/authorization/http', () => ({
   authorizeOrganization,
 }));
 
-vi.mock('@/lib/auth', () => ({
+vi.mock('@/platform/security/authentication/auth', () => ({
   hashPassword,
 }));
 
-vi.mock('@/lib/audit', () => ({
+vi.mock('@/platform/security/audit/audit-record', () => ({
   createAuditRecord,
 }));
 
@@ -32,7 +32,7 @@ vi.mock('@/lib/prisma', () => ({
   prisma: prismaMock,
 }));
 
-vi.mock('@/lib/middleware', () => ({
+vi.mock('@/platform/api/with-auth', () => ({
   withAuth: (handler: (req: AuthenticatedRequest, ctx: unknown) => Promise<Response>) => handler,
 }));
 

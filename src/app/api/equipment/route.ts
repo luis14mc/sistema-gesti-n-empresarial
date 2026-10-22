@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, AuthenticatedRequest } from '@/platform/api/with-auth';
 import { isOrganizationContextError } from '@/modules/organizations/application/context';
 import { createEquipment, listEquipment } from '@/modules/equipment/application/equipment-service';
 import { mapEquipmentResponse } from '@/modules/equipment/presentation/equipment-mapper';

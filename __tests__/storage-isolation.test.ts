@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assertTenantStoragePrefix } from '@/lib/storage/s3';
+import { assertTenantStoragePrefix } from '@/platform/storage/s3';
 
 describe('protected storage namespaces', () => {
   it('requires organization-scoped logical prefixes', () => {

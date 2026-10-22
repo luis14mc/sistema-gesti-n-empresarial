@@ -1,6 +1,6 @@
 import type { OrganizationRole } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
-import type { AuthenticatedRequest } from '@/lib/middleware';
+import { findActiveUserIdentity, listMembershipsWithOrganization } from '@/modules/organizations/infrastructure/organization-repository';
+import type { AuthenticatedRequest } from '@/platform/api/with-auth';
 import { recordSecurityEventBestEffort } from '@/platform/security/audit/security-events';
 
 export type OrganizationContext = {
@@ -56,24 +56,14 @@ export async function requireOrganizationContext(
   if (!sessionUser?.userId) throw new AuthenticationRequiredError();
 
   const selectedOrganizationId = request.cookies.get('organizationId')?.value ?? null;
-  const user = await prisma.user.findFirst({
-    where: { id: sessionUser.userId, isActive: true },
-    select: { id: true, email: true },
-  });
+  const user = await findActiveUserIdentity(sessionUser.userId);
   if (!user) {
     warnDenied({ requestId, userId: sessionUser.userId, sessionEmail: sessionUser.email, membershipCount: 0, activeMembershipCount: 0, selectedOrganizationId, reason: 'CANONICAL_USER_NOT_FOUND' });
     await auditDenied(requestId, sessionUser.userId, 'CANONICAL_USER_NOT_FOUND', false, 0, 0);
     throw new AuthenticationRequiredError();
   }
 
-  const memberships = await prisma.organizationMembership.findMany({
-    where: { userId: user.id },
-    // Keep authorization independent from optional lifecycle columns. Older
-    // CNI databases may not yet have `organizations.timezone`; it is not part
-    // of the tenant boundary or permission decision.
-    include: { organization: { select: { id: true, slug: true, status: true } } },
-    orderBy: { createdAt: 'asc' },
-  });
+  const memberships = await listMembershipsWithOrganization(user.id);
   const activeMemberships = memberships.filter(
     (membership) => membership.status === 'ACTIVE' && membership.organization.status === 'ACTIVE',
   );

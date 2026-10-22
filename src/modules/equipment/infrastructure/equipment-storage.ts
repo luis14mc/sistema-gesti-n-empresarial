@@ -9,7 +9,7 @@ import {
   resolveEquipmentDocumentType,
   type EquipmentDocumentType,
 } from '@/modules/equipment/domain/equipment-document-types';
-import { getStorage } from '@/lib/storage';
+import { getStorage } from '@/platform/storage';
 import { equipmentDocumentFileUrl } from '@/modules/equipment/infrastructure/equipment-document-access';
 
 export interface EquipmentDocumentMeta {

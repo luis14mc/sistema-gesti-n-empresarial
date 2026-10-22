@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
-import { createAuditRecord } from '@/lib/audit';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
+import { createAuditRecord } from '@/platform/security/audit/audit-record';
 import { getCompraOrden, readPurchaseOrderDocumentFile } from '@/modules/purchases/application/purchase-order-use-cases';
 import { buildInlineContentDisposition } from '@/modules/purchases/infrastructure/purchase-order-document-access';
 import { canOrdenAction } from '@/modules/purchases/domain/purchase-order-permissions';

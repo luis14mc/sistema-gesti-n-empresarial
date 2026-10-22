@@ -1,31 +1,14 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { prisma } from '@/lib/prisma';
-import { comparePassword, hashPassword } from '@/lib/auth';
-import { generateSessionToken } from '@/lib/session-token';
 import { loginSchema, registerSchema } from '@/lib/zod-schemas';
-import { createAuditRecord } from '@/lib/audit';
-import { resolveSessionRole } from '@/platform/security/authorization/session-role';
+import { requireRole } from '@/platform/security/authentication/session';
+import { auditSessionLogin, loginWithSessionCredentials } from '@/modules/auth/application/login';
+import { registerUserWithSession } from '@/modules/auth/application/register';
 import type { ActionResult, SessionUser } from '@/types';
 
 const COOKIE_NAME = 'token';
 const COOKIE_MAX_AGE = 60 * 60; // 1 hora
-
-const sessionSelect = {
-  id: true,
-  employeeNumber: true,
-  email: true,
-  firstName: true,
-  lastName: true,
-  phone: true,
-  role: true,
-  isActive: true,
-  departmentId: true,
-  positionId: true,
-  department: { select: { id: true, name: true } },
-  position: { select: { id: true, name: true } },
-} as const;
 
 async function setAuthCookie(token: string) {
   const cookieStore = await cookies();
@@ -48,55 +31,21 @@ export async function loginAction(
     return { success: false, error: 'Datos de entrada inválidos' };
   }
 
-  const { email, password } = parsed.data;
-
-  const user = await prisma.user.findUnique({
-    where: { email },
-    select: { ...sessionSelect, password: true },
-  });
-
-  if (!user) {
+  const result = await loginWithSessionCredentials(parsed.data);
+  if (result.kind === 'invalid-credentials') {
     return { success: false, error: 'Credenciales inválidas' };
   }
-
-  if (!user.isActive) {
+  if (result.kind === 'inactive') {
     return { success: false, error: 'Tu cuenta está desactivada. Contacta al administrador.' };
   }
 
-  const valid = await comparePassword(password, user.password);
-  if (!valid) {
-    return { success: false, error: 'Credenciales inválidas' };
-  }
+  await setAuthCookie(result.token);
+  await auditSessionLogin(result.user);
 
-  const sessionRole = await resolveSessionRole(user.id, user.role);
-  const token = await generateSessionToken({
-    userId: user.id,
-    email: user.email,
-    role: sessionRole,
-  });
-
-  await setAuthCookie(token);
-
-  await createAuditRecord({
-    title: 'Inicio de sesión',
-    description: `${user.firstName} ${user.lastName} inició sesión`,
-    module: 'USUARIOS',
-    category: 'LOGIN',
-    userId: user.id,
-  }).catch((error) => {
-    console.error('[Login] audit failed', {
-      userId: user.id,
-      error: error instanceof Error ? error.message : 'UNKNOWN_ERROR',
-    });
-  });
-
-  const { password: _, ...sessionUser } = user;
-  return { success: true, data: { ...sessionUser, role: sessionRole } as unknown as SessionUser };
+  return { success: true, data: { ...result.user, role: result.sessionRole } as unknown as SessionUser };
 }
 
 // ── REGISTER ──────────────────────────────────────────────────
-
-import { requireRole } from '@/lib/session';
 
 export async function registerAction(
   input: {
@@ -121,33 +70,14 @@ export async function registerAction(
     return { success: false, error: 'Datos inválidos', fieldErrors };
   }
 
-  const { employeeNumber, email, password, firstName, lastName } = parsed.data;
-
-  const existing = await prisma.user.findFirst({
-    where: { OR: [{ email }, { employeeNumber }] },
-  });
-
-  if (existing) {
-    const field = existing.email === email ? 'email' : 'número de empleado';
-    return { success: false, error: `Ya existe un usuario con ese ${field}` };
+  const result = await registerUserWithSession(parsed.data);
+  if (result.kind === 'duplicate') {
+    return { success: false, error: `Ya existe un usuario con ese ${result.field}` };
   }
 
-  const hashedPassword = await hashPassword(password);
+  await setAuthCookie(result.token);
 
-  const user = await prisma.user.create({
-    data: { employeeNumber, email, password: hashedPassword, firstName, lastName, role: 'USER' },
-    select: sessionSelect,
-  });
-
-  const token = await generateSessionToken({
-    userId: user.id,
-    email: user.email,
-    role: user.role,
-  });
-
-  await setAuthCookie(token);
-
-  return { success: true, data: user as unknown as SessionUser };
+  return { success: true, data: result.user as unknown as SessionUser };
 }
 
 // ── LOGOUT ────────────────────────────────────────────────────

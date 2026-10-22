@@ -1,5 +1,12 @@
-import { Prisma, type Notification, type NotificationStatus, type PrismaClient } from '@prisma/client';
-import { prisma as defaultPrisma } from '@/lib/prisma';
+import type { Notification, NotificationStatus, Prisma } from '@prisma/client';
+import {
+  countNotifications,
+  findNotification,
+  listNotificationsPage,
+  markNotificationRead,
+  markNotificationsRead,
+  type NotificationDbClient,
+} from '../infrastructure/notification-repository';
 import {
   NotificationNotFoundError,
   NotificationOwnershipError,
@@ -30,7 +37,7 @@ const MAX_PAGE_SIZE = 100;
 export const notificationQueryService = {
   async list(
     input: ListNotificationsInput,
-    client: PrismaClient | Prisma.TransactionClient = defaultPrisma,
+    client?: NotificationDbClient,
   ): Promise<ListNotificationsResult> {
     const page = Number.isSafeInteger(input.page) && input.page > 0 ? input.page : DEFAULT_PAGE;
     const pageSize = Math.min(
@@ -44,22 +51,16 @@ export const notificationQueryService = {
       ...(input.unreadOnly ? { readAt: null } : {}),
     };
 
-    const [items, total, unreadCount] = await Promise.all([
-      client.notification.findMany({
-        where: baseWhere,
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
-      client.notification.count({ where: baseWhere }),
-      client.notification.count({
-        where: {
-          organizationId: input.organizationId,
-          OR: [{ userId: input.userId }, { userId: null }],
-          readAt: null,
-        },
-      }),
-    ]);
+    const [items, total, unreadCount] = await listNotificationsPage(client, {
+      where: baseWhere,
+      unreadWhere: {
+        organizationId: input.organizationId,
+        OR: [{ userId: input.userId }, { userId: null }],
+        readAt: null,
+      },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    });
 
     return {
       items,
@@ -74,14 +75,12 @@ export const notificationQueryService = {
   async unreadCount(
     organizationId: string,
     userId: string,
-    client: PrismaClient | Prisma.TransactionClient = defaultPrisma,
+    client?: NotificationDbClient,
   ): Promise<number> {
-    return client.notification.count({
-      where: {
-        organizationId,
-        OR: [{ userId }, { userId: null }],
-        readAt: null,
-      },
+    return countNotifications(client, {
+      organizationId,
+      OR: [{ userId }, { userId: null }],
+      readAt: null,
     });
   },
 };
@@ -89,11 +88,9 @@ export const notificationQueryService = {
 export const notificationCommandService = {
   async markRead(
     input: { organizationId: string; userId: string; notificationId: string; requestId: string },
-    client: PrismaClient | Prisma.TransactionClient = defaultPrisma,
+    client?: NotificationDbClient,
   ): Promise<Notification> {
-    const notification = await client.notification.findFirst({
-      where: { id: input.notificationId, organizationId: input.organizationId },
-    });
+    const notification = await findNotification(client, input.organizationId, input.notificationId);
     if (!notification) throw new NotificationNotFoundError(input.notificationId, input.organizationId);
     if (notification.userId && notification.userId !== input.userId) {
       throw new NotificationOwnershipError(input.notificationId, input.userId);
@@ -101,10 +98,7 @@ export const notificationCommandService = {
     if (notification.readAt) {
       return notification;
     }
-    const updated = await client.notification.update({
-      where: { id: input.notificationId },
-      data: { readAt: new Date() },
-    });
+    const updated = await markNotificationRead(client, input.notificationId);
     await recordSecurityEvent({
       organizationId: input.organizationId,
       userId: input.userId,
@@ -123,15 +117,12 @@ export const notificationCommandService = {
 
   async markAllRead(
     input: { organizationId: string; userId: string; requestId: string },
-    client: PrismaClient | Prisma.TransactionClient = defaultPrisma,
+    client?: NotificationDbClient,
   ): Promise<{ updated: number }> {
-    const result = await client.notification.updateMany({
-      where: {
-        organizationId: input.organizationId,
-        OR: [{ userId: input.userId }, { userId: null }],
-        readAt: null,
-      },
-      data: { readAt: new Date() },
+    const result = await markNotificationsRead(client, {
+      organizationId: input.organizationId,
+      OR: [{ userId: input.userId }, { userId: null }],
+      readAt: null,
     });
     await recordSecurityEvent({
       organizationId: input.organizationId,

@@ -1,6 +1,7 @@
 import { createHash } from 'crypto';
-import { getStorage } from '@/lib/storage';
+import { getStorage } from '@/platform/storage';
 import { prepareUploadBuffer } from '@/platform/storage/prepare-upload-buffer';
+import { PurchaseBusinessError } from '@/modules/purchases/domain/errors';
 
 const ALLOWED_MIME = new Set([
   'application/pdf',
@@ -19,10 +20,10 @@ const MIME_BY_EXTENSION: Record<string, string> = {
 };
 
 export function validateOrdenDocumentUpload(file: { name: string; type: string; size: number }) {
-  if (file.size > MAX_SIZE) throw new Error('El archivo excede el tamaño máximo de 10 MB');
+  if (file.size > MAX_SIZE) throw new PurchaseBusinessError('El archivo excede el tamaño máximo de 10 MB', 500);
   const ext = file.name.includes('.') ? file.name.slice(file.name.lastIndexOf('.')).toLowerCase() : '';
   const mimeType = ALLOWED_MIME.has(file.type) ? file.type : MIME_BY_EXTENSION[ext];
-  if (!mimeType) throw new Error('Tipo de archivo no permitido (PDF, JPG, PNG)');
+  if (!mimeType) throw new PurchaseBusinessError('Tipo de archivo no permitido (PDF, JPG, PNG)', 500);
   const originalName = file.name.replace(/[^a-zA-Z0-9-_.\s]/g, '_');
   return { originalName, mimeType };
 }

@@ -58,7 +58,7 @@ describe('S1 Multi-tenant — regresión de fixes críticos', () => {
 
   describe('C-5 Employee: helper resolveEmployeeSnapshot valida tenant', () => {
     it('lanza EMPLOYEE_NOT_FOUND si el employeeId pertenece a otra organización', async () => {
-      const { resolveEmployeeSnapshot } = await import('../src/lib/employees');
+      const { resolveEmployeeSnapshot } = await import('@/modules/people/application/resolve-employee-snapshot');
       void resolveEmployeeSnapshot;
       // Verificamos que el helper ahora recibe organizationId como
       // primer argumento obligatorio (firma cambió).

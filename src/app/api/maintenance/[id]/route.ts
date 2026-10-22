@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, AuthenticatedRequest } from '@/platform/api/with-auth';
 import {
   deleteMaintenanceRecord,
   getMaintenanceRecord,

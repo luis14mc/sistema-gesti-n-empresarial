@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { PurchaseBusinessError, PurchaseNotFoundError } from '@/modules/purchases/domain/errors';
 
 export async function createSupplier(
   data: {
@@ -31,7 +32,7 @@ export async function updateSupplier(
     where: { id, organizationId, deletedAt: null },
     select: { id: true },
   });
-  if (!existing) throw new Error('PROVEEDOR_NOT_FOUND');
+  if (!existing) throw new PurchaseNotFoundError('PROVEEDOR_NOT_FOUND', 404);
 
   return prisma.proveedor.update({
     where: { id },
@@ -48,9 +49,9 @@ export async function deleteSupplier(id: string, organizationId: string) {
       comprasOrdenes: { select: { id: true }, take: 1 },
     },
   });
-  if (!existing) throw new Error('PROVEEDOR_NOT_FOUND');
+  if (!existing) throw new PurchaseNotFoundError('PROVEEDOR_NOT_FOUND', 404);
   if (existing.comprasSolicitudes.length > 0 || existing.comprasOrdenes.length > 0) {
-    throw new Error('PROVEEDOR_HAS_DEPENDENCIES');
+    throw new PurchaseBusinessError('PROVEEDOR_HAS_DEPENDENCIES', 409);
   }
 
   return prisma.proveedor.update({

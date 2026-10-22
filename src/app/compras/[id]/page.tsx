@@ -20,7 +20,7 @@ import type { PurchaseOrderStatus } from '@prisma/client';
 import {
   getPurchaseOrderApiErrorMessage,
   getPurchaseOrderValidationDetails,
-} from '@/lib/api-error';
+} from '@/platform/api/api-error';
 import { draftProvisionalLabel } from '@/components/compras/purchase-order-format-list';
 
 const ACTION_LABELS: Record<OrdenWorkflowActionName, string> = {

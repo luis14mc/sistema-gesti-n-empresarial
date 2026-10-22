@@ -24,7 +24,7 @@ describe('assertTokenSessionStillValid (password rotation)', () => {
   });
 
   it('rejects tokens issued before passwordChangedAt', async () => {
-    const { assertTokenSessionStillValid } = await import('@/lib/session-validity');
+    const { assertTokenSessionStillValid } = await import('@/platform/security/authentication/session-validity');
     const iatSeconds = Math.floor(new Date('2026-01-01T11:00:00.000Z').getTime() / 1000);
     const ok = await assertTokenSessionStillValid({
       userId: 'u1',
@@ -38,7 +38,7 @@ describe('assertTokenSessionStillValid (password rotation)', () => {
   });
 
   it('accepts a token whose accessVersion is stale (permissions changed, not revoked)', async () => {
-    const { assertTokenSessionStillValid } = await import('@/lib/session-validity');
+    const { assertTokenSessionStillValid } = await import('@/platform/security/authentication/session-validity');
     const ok = await assertTokenSessionStillValid({
       userId: 'u1',
       email: 'u@test',
@@ -55,7 +55,7 @@ describe('assertTokenSessionStillValid (password rotation)', () => {
       isActive: true,
       passwordChangedAt: new Date('2026-01-01T12:00:00.750Z'),
     });
-    const { assertTokenSessionStillValid } = await import('@/lib/session-validity');
+    const { assertTokenSessionStillValid } = await import('@/platform/security/authentication/session-validity');
     const ok = await assertTokenSessionStillValid({
       userId: 'u1',
       email: 'u@test',
@@ -69,7 +69,7 @@ describe('assertTokenSessionStillValid (password rotation)', () => {
 
   it('rejects when the user was deactivated', async () => {
     prismaMock.user.findUnique.mockResolvedValue({ isActive: false, passwordChangedAt: null });
-    const { assertTokenSessionStillValid } = await import('@/lib/session-validity');
+    const { assertTokenSessionStillValid } = await import('@/platform/security/authentication/session-validity');
     const ok = await assertTokenSessionStillValid({
       userId: 'u1',
       email: 'u@test',

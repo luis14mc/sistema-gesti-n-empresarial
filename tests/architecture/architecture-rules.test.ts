@@ -10,43 +10,17 @@ import {
 // ADR 003 — docs/adr/003-arquitectura-monolito-modular.md
 const ROOT = resolve(__dirname, '../..');
 
-/** Contenido de src/lib al congelarlo (2026-10-21). Solo puede reducirse. */
+/** Contenido final de src/lib tras la fase 5 (ADR 003). Solo puede reducirse. */
 const LIB_FROZEN_ENTRIES = [
   'api-error-message.ts',
-  'api-error.ts',
-  'audit.ts',
-  'auth.ts',
   'brand.ts',
-  'deprecated-api.ts',
-  'deprecated-frontend-paths.ts',
-  'employees.ts',
   'form-errors.ts',
-  'idor.ts',
-  'jwt-config.ts',
-  'middleware.ts',
-  'oficios-attachments.ts',
-  'oficios-numbering.ts',
-  'oficios-status-transitions.ts',
-  'oficios-storage.ts',
   'organization-page-context.ts',
-  'permissions.ts',
   'prisma.ts',
-  'raster-image-validation.ts',
-  'rate-limit.ts',
-  'reportes',
-  'session-roles.ts',
-  'session-token.ts',
-  'session-validity.ts',
-  'session.ts',
-  'software-licenses',
-  'storage',
   'swal.ts',
   'utils.ts',
   'zod-schemas.ts',
 ];
-
-const BASELINE_MAX = 31;
-const APPLICATION_BASELINE_MAX = APPLICATION_LAYER_BASELINE.length;
 
 describe('ADR 003 · src/lib congelado', () => {
   it('no se agregan archivos ni carpetas nuevas en src/lib', () => {
@@ -56,30 +30,18 @@ describe('ADR 003 · src/lib congelado', () => {
   });
 });
 
-describe('ADR 003 · lista de excepciones de application (Next/Prisma)', () => {
-  it('solo puede reducirse', () => {
-    expect(APPLICATION_LAYER_BASELINE.length).toBeLessThanOrEqual(APPLICATION_BASELINE_MAX);
+describe('ADR 003 · listas de excepciones en cero', () => {
+  it('las tres listas están vacías', () => {
+    expect(PRISMA_IN_PRESENTATION_BASELINE).toEqual([]);
+    expect(PRISMA_OUTSIDE_INFRASTRUCTURE_BASELINE).toEqual([]);
+    expect(APPLICATION_LAYER_BASELINE).toEqual([]);
   });
 
-  it('no contiene archivos que ya no existen (quítalos al migrar)', () => {
-    const missing = APPLICATION_LAYER_BASELINE.filter((file) => !existsSync(join(ROOT, file)));
-    expect(missing).toEqual([]);
-  });
-
-  it('no tiene duplicados', () => {
-    expect(new Set(APPLICATION_LAYER_BASELINE).size).toBe(APPLICATION_LAYER_BASELINE.length);
-  });
-
-  it('users/application no está en la lista de excepciones', () => {
-    const usersViolations = APPLICATION_LAYER_BASELINE.filter((file) =>
-      file.includes('src/modules/users/application/'),
-    );
-    expect(usersViolations).toEqual([]);
-  });
-
-  it('la regla está activa en eslint.config.mjs', () => {
+  it('eslint.config.mjs aplica las reglas sin excepciones por archivo', () => {
     const config = readFileSync(join(ROOT, 'eslint.config.mjs'), 'utf8');
-    expect(config).toMatch(/APPLICATION_LAYER_BASELINE/);
+    expect(config).toMatch(/@typescript-eslint\/no-restricted-imports/);
+    expect(config).not.toMatch(/BASELINE/);
+    expect(config).not.toMatch(/'@typescript-eslint\/no-restricted-imports': 'off'/);
   });
 });
 
@@ -96,51 +58,30 @@ function walkModuleSourceFiles(dir: string, acc: string[] = []): string[] {
   return acc;
 }
 
-describe('ADR 003 · Prisma solo en infrastructure (módulos)', () => {
-  const PRISMA_OUTSIDE_INFRA_MAX = PRISMA_OUTSIDE_INFRASTRUCTURE_BASELINE.length;
-
-  it('src/modules/oficios no importa @/lib/prisma fuera de infrastructure', () => {
-    const moduleDir = join(ROOT, 'src/modules/oficios');
-    const allowedOficiosLegacy = new Set(
-      PRISMA_OUTSIDE_INFRASTRUCTURE_BASELINE.filter((file) =>
-        file.startsWith('src/modules/oficios/'),
-      ),
-    );
-    const violations: string[] = [];
-    for (const file of walkModuleSourceFiles(moduleDir)) {
-      const rel = file.replace(`${ROOT}/`, '');
-      if (rel.includes('/infrastructure/')) continue;
-      const content = readFileSync(file, 'utf8');
-      if (/\bfrom ['"]@\/lib\/prisma['"]/.test(content)) {
-        if (!allowedOficiosLegacy.has(rel)) violations.push(rel);
-      }
+function walkSourceFiles(dir: string, acc: string[] = []): string[] {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name === 'node_modules') continue;
+      walkSourceFiles(full, acc);
+    } else if (entry.isFile() && /\.(ts|tsx)$/.test(entry.name)) {
+      acc.push(full);
     }
+  }
+  return acc;
+}
+
+const PRISMA_IMPORT_RE = /\bfrom ['"]@\/lib\/prisma['"]|import\(\s*['"]@\/lib\/prisma['"]\s*\)/;
+const PRISMA_ALLOWED_RE = /^src\/(modules\/[^/]+\/infrastructure\/|platform\/)/;
+
+describe('ADR 003 · @/lib/prisma solo en infrastructure y platform', () => {
+  it('ningún archivo fuera de src/modules/*/infrastructure/** o src/platform/** importa @/lib/prisma', () => {
+    const violations = walkSourceFiles(join(ROOT, 'src'))
+      .map((file) => file.replace(`${ROOT}/`, ''))
+      .filter((rel) => rel !== 'src/lib/prisma.ts' && !PRISMA_ALLOWED_RE.test(rel))
+      .filter((rel) => !/\.test\.tsx?$/.test(rel) && !rel.includes('/__tests__/'))
+      .filter((rel) => PRISMA_IMPORT_RE.test(readFileSync(join(ROOT, rel), 'utf8')));
     expect(violations).toEqual([]);
-  });
-
-  it('lista de excepciones Prisma fuera de infrastructure solo puede reducirse', () => {
-    const modulesRoot = join(ROOT, 'src/modules');
-    const current: string[] = [];
-
-    for (const moduleName of readdirSync(modulesRoot)) {
-      const moduleDir = join(modulesRoot, moduleName);
-      for (const file of walkModuleSourceFiles(moduleDir)) {
-        const rel = file.replace(`${ROOT}/`, '');
-        if (rel.includes('/infrastructure/')) continue;
-        const content = readFileSync(file, 'utf8');
-        if (/\bfrom ['"]@\/lib\/prisma['"]/.test(content)) {
-          current.push(rel);
-        }
-      }
-    }
-
-    current.sort();
-    const baseline = [...PRISMA_OUTSIDE_INFRASTRUCTURE_BASELINE].sort();
-    expect(baseline.length).toBeLessThanOrEqual(PRISMA_OUTSIDE_INFRA_MAX);
-    const unexpected = current.filter((file) => !baseline.includes(file));
-    expect(unexpected, 'Nuevo import de Prisma fuera de infrastructure').toEqual([]);
-    const missing = baseline.filter((file) => !existsSync(join(ROOT, file)));
-    expect(missing, 'Quita entradas del baseline al migrar').toEqual([]);
   });
 
   it('infrastructure no reexporta el cliente Prisma', () => {
@@ -174,26 +115,5 @@ describe('ADR 003 · Prisma solo en infrastructure (módulos)', () => {
     }
 
     expect(violations).toEqual([]);
-  });
-});
-
-describe('ADR 003 · lista de excepciones de Prisma en presentación', () => {
-  it('solo puede reducirse', () => {
-    expect(PRISMA_IN_PRESENTATION_BASELINE.length).toBeLessThanOrEqual(BASELINE_MAX);
-  });
-
-  it('no contiene archivos que ya no existen (quítalos al migrar)', () => {
-    const missing = PRISMA_IN_PRESENTATION_BASELINE.filter((file) => !existsSync(join(ROOT, file)));
-    expect(missing).toEqual([]);
-  });
-
-  it('no tiene duplicados', () => {
-    expect(new Set(PRISMA_IN_PRESENTATION_BASELINE).size).toBe(PRISMA_IN_PRESENTATION_BASELINE.length);
-  });
-
-  it('la regla está activa en eslint.config.mjs', () => {
-    const config = readFileSync(join(ROOT, 'eslint.config.mjs'), 'utf8');
-    expect(config).toMatch(/PRISMA_IN_PRESENTATION_BASELINE/);
-    expect(config).toMatch(/@typescript-eslint\/no-restricted-imports/);
   });
 });

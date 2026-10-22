@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { canAccess } from '../src/lib/permissions';
+import { canAccess } from '@/platform/security/session-module-access';
 import {
   ORDER_STATUS_LABELS,
   ORDER_PENDING_STATUSES,
 } from '../src/modules/purchases/domain/purchase-order-constants';
-import { isOficioAttachmentUrlAllowed } from '../src/lib/oficios-attachments';
+import { isOficioAttachmentUrlAllowed } from '@/modules/oficios/infrastructure/oficios-attachments';
 import {
   assignmentScope,
   equipmentScope,

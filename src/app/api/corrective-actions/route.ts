@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
-import { createAuditRecord } from '@/lib/audit';
+import { withAuth, AuthenticatedRequest } from '@/platform/api/with-auth';
 import { requireOrganizationContext } from '@/modules/organizations/application/context';
-import { correctiveActionWhere, findAudit } from '@/modules/audits/infrastructure/repository';
-import { auditChildScope } from '@/modules/audits/infrastructure/tenant-scope';
+import { createCorrectiveAction, listCorrectiveActionsPage } from '@/modules/audits/application/corrective-actions-service';
 
 // ============================================
 // GET /api/corrective-actions — Listar acciones correctivas
@@ -23,29 +20,12 @@ async function getHandler(req: AuthenticatedRequest) {
         const pageSize = Math.min(parseInt(searchParams.get('pageSize') || '10'), 100);
         const skip     = (page - 1) * pageSize;
 
-        const where = correctiveActionWhere(organization.organizationId);
-        if (status)    where.status = status as any;
-        if (auditId)   where.auditId = auditId;
-        if (findingId) where.findingId = findingId;
-        if (responsibleId) where.responsibleId = responsibleId;
-
-        // IDOR: USER solo ve acciones donde es responsable
-        if (req.user!.role === 'USER') {
-            where.responsibleId = req.user!.userId;
-        }
-
-        const [actions, total] = await Promise.all([
-            prisma.correctiveAction.findMany({
-                where,
-                skip,
-                take: pageSize,
-                include: {
-                    responsible: { select: { id: true, firstName: true, lastName: true, email: true } },
-                },
-                orderBy: { createdAt: 'desc' },
-            }),
-            prisma.correctiveAction.count({ where }),
-        ]);
+        const [actions, total] = await listCorrectiveActionsPage(
+            { organizationId: organization.organizationId, userId: req.user!.userId, role: req.user!.role },
+            { status, auditId, findingId, responsibleId },
+            skip,
+            pageSize,
+        );
 
         return NextResponse.json({
             actions,
@@ -68,52 +48,21 @@ async function postHandler(req: AuthenticatedRequest) {
     try {
         const organization = await requireOrganizationContext(req);
         const data = await req.json();
-        const { description, auditId, findingId, responsibleId, dueDate, evidence, notes } = data;
+        const { description } = data;
 
         if (!description) {
             return NextResponse.json({ error: 'Descripción requerida' }, { status: 400 });
         }
 
-        // Validar auditId si viene
-        if (auditId) {
-            const audit = await findAudit(organization.organizationId, auditId);
-            if (!audit) return NextResponse.json({ error: 'Auditoría no encontrada' }, { status: 404 });
+        const result = await createCorrectiveAction(
+            { organizationId: organization.organizationId, userId: req.user!.userId, role: req.user!.role },
+            data,
+        );
+        if (result.kind === 'audit-not-found') return NextResponse.json({ error: 'Auditoría no encontrada' }, { status: 404 });
+        if (result.kind === 'finding-not-found') {
+            return NextResponse.json({ error: 'Hallazgo no encontrado' }, { status: 404 });
         }
-        if (findingId) {
-            const finding = await prisma.auditFinding.findFirst({
-                where: auditChildScope(organization.organizationId, auditId ?? undefined, findingId),
-            });
-            if (!finding || (auditId && finding.auditId !== auditId)) {
-                return NextResponse.json({ error: 'Hallazgo no encontrado' }, { status: 404 });
-            }
-        }
-
-        const action = await prisma.correctiveAction.create({
-            data: {
-                organizationId: organization.organizationId,
-                description,
-                auditId:        auditId ?? null,
-                findingId:      findingId ?? null,
-                responsibleId:  responsibleId ?? null,
-                dueDate:        dueDate ? new Date(dueDate) : null,
-                evidence:       evidence ?? null,
-                notes:          notes ?? null,
-            } as any,
-            include: {
-                responsible: { select: { id: true, firstName: true, lastName: true } },
-            },
-        });
-
-        await createAuditRecord({
-            title: 'Creación de acción correctiva',
-            description: `Se creó acción: ${action.description.slice(0, 80)}`,
-            module: 'AUDITORIA',
-            category: 'CREATE',
-            userId: req.user!.userId,
-            entityId: action.id,
-            organizationId: organization.organizationId,
-            newData: { auditId: action.auditId, status: action.status },
-        });
+        const { action } = result;
 
         return NextResponse.json({ action }, { status: 201 });
     } catch (error) {

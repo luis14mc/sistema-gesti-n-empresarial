@@ -8,8 +8,8 @@ import {
   resolveEquipmentDocumentType,
 } from '../src/modules/equipment/domain/equipment-document-types';
 import { saveEquipmentDocument } from '../src/modules/equipment/infrastructure/equipment-storage';
-import { LocalStorageAdapter } from '../src/lib/storage/local';
-import { resetStorageForTests, setStorageForTests } from '../src/lib/storage';
+import { LocalStorageAdapter } from '@/platform/storage/local';
+import { resetStorageForTests, setStorageForTests } from '@/platform/storage';
 
 function makePdfFile(name = 'acta.pdf', content = 'pdf-content') {
   return new File([content], name, { type: 'application/pdf' });

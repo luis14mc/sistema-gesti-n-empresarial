@@ -1,6 +1,6 @@
 import type { OrganizationStatus, Prisma, SecurityEventOutcome, SecurityEventSeverity } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
-import { appendSecurityEvent, recordSecurityEvent } from '@/platform/security/audit/security-events';
+import { recordSecurityEvent } from '@/platform/security/audit/security-events';
+import { runOrganizationLifecycleTransaction } from '@/modules/organizations/infrastructure/organization-repository';
 import { createLogger } from '@/platform/observability/logger';
 import { notificationDispatcher } from '@/modules/notifications/application/dispatcher';
 import type { NotificationEventType } from '@/modules/notifications/domain/notification-types';
@@ -100,15 +100,6 @@ async function audit(
   await recordSecurityEvent(event);
 }
 
-async function countActiveOwners(
-  tx: Prisma.TransactionClient,
-  organizationId: string,
-): Promise<number> {
-  return tx.organizationMembership.count({
-    where: { organizationId, role: 'OWNER', status: 'ACTIVE' },
-  });
-}
-
 function normalizeSlug(value: string): string {
   return value.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64);
 }
@@ -146,25 +137,23 @@ export const organizationLifecycleService = {
     const log = createLogger({ requestId: actor.requestId, module: 'organizations' });
     const data = validateCreateInput(input);
     try {
-      const organization = await prisma.$transaction(async (tx) => {
-        const created = await tx.organization.create({
-          data: {
-            name: data.name,
-            slug: data.slug,
-            legalName: data.legalName ?? null,
-            rtn: data.rtn ?? null,
-            timezone: data.timezone,
-            locale: data.locale,
-            currency: data.currency,
-            primaryContactName: data.primaryContactName ?? null,
-            primaryContactEmail: data.primaryContactEmail ?? null,
-            primaryContactPhone: data.primaryContactPhone ?? null,
-            settings: data.settings ?? undefined,
-            status: 'PROVISIONING',
-            onboardingStatus: 'PENDING',
-          },
+      const organization = await runOrganizationLifecycleTransaction(async (store) => {
+        const created = await store.create({
+          name: data.name,
+          slug: data.slug,
+          legalName: data.legalName ?? null,
+          rtn: data.rtn ?? null,
+          timezone: data.timezone,
+          locale: data.locale,
+          currency: data.currency,
+          primaryContactName: data.primaryContactName ?? null,
+          primaryContactEmail: data.primaryContactEmail ?? null,
+          primaryContactPhone: data.primaryContactPhone ?? null,
+          settings: data.settings ?? undefined,
+          status: 'PROVISIONING',
+          onboardingStatus: 'PENDING',
         });
-        await appendSecurityEvent(tx, buildEvent(created.id, 'created', 'SUCCESS', {
+        await store.appendEvent(buildEvent(created.id, 'created', 'SUCCESS', {
           slug: created.slug,
           status: created.status,
         }, actor));
@@ -181,8 +170,8 @@ export const organizationLifecycleService = {
   async activate(input: { organizationId: string }, actor: OrganizationPlatformActor) {
     const { organizationId } = input;
     const log = createLogger({ requestId: actor.requestId, organizationId, module: 'organizations' });
-    return prisma.$transaction(async (tx) => {
-      const organization = await tx.organization.findUnique({ where: { id: organizationId } });
+    return runOrganizationLifecycleTransaction(async (store) => {
+      const organization = await store.find(organizationId);
       if (!organization) {
         await audit(organizationId, 'activate', 'DENIED', { reason: 'NOT_FOUND' }, actor);
         throw new OrganizationNotFoundError(organizationId);
@@ -198,23 +187,20 @@ export const organizationLifecycleService = {
         }, actor);
         throw error;
       }
-      const activeOwners = await countActiveOwners(tx, organizationId);
+      const activeOwners = await store.countActiveOwners(organizationId);
       if (activeOwners < 1) {
         await audit(organizationId, 'activate', 'DENIED', { reason: 'NO_ACTIVE_OWNER' }, actor);
         throw new InvalidOrganizationCommandError('La organización debe tener al menos un propietario activo antes de activarse.');
       }
-      const updated = await tx.organization.update({
-        where: { id: organizationId },
-        data: {
-          status: 'ACTIVE',
-          activatedAt: organization.activatedAt ?? new Date(),
-          suspendedAt: null,
-          archivedAt: null,
-          deletionRequestedAt: null,
-          onboardingStatus: organization.onboardingStatus === 'PENDING' ? 'IN_PROGRESS' : organization.onboardingStatus,
-        },
+      const updated = await store.update(organizationId, {
+        status: 'ACTIVE',
+        activatedAt: organization.activatedAt ?? new Date(),
+        suspendedAt: null,
+        archivedAt: null,
+        deletionRequestedAt: null,
+        onboardingStatus: organization.onboardingStatus === 'PENDING' ? 'IN_PROGRESS' : organization.onboardingStatus,
       });
-      await appendSecurityEvent(tx, buildEvent(organizationId, 'activated', 'SUCCESS', {
+      await store.appendEvent(buildEvent(organizationId, 'activated', 'SUCCESS', {
         from: organization.status,
         to: updated.status,
         activatedAt: updated.activatedAt,
@@ -230,8 +216,8 @@ export const organizationLifecycleService = {
       throw new InvalidOrganizationCommandError('Debe proporcionar un motivo para suspender la organización.');
     }
     const log = createLogger({ requestId: actor.requestId, organizationId, module: 'organizations' });
-    return prisma.$transaction(async (tx) => {
-      const organization = await tx.organization.findUnique({ where: { id: organizationId } });
+    return runOrganizationLifecycleTransaction(async (store) => {
+      const organization = await store.find(organizationId);
       if (!organization) {
         await audit(organizationId, 'suspend', 'DENIED', { reason: 'NOT_FOUND' }, actor);
         throw new OrganizationNotFoundError(organizationId);
@@ -242,15 +228,12 @@ export const organizationLifecycleService = {
         await audit(organizationId, 'suspend', 'DENIED', { from: organization.status, reason }, actor);
         throw error;
       }
-      const activeOwners = await countActiveOwners(tx, organizationId);
-      const updated = await tx.organization.update({
-        where: { id: organizationId },
-        data: {
-          status: 'SUSPENDED',
-          suspendedAt: new Date(),
-        },
+      const activeOwners = await store.countActiveOwners(organizationId);
+      const updated = await store.update(organizationId, {
+        status: 'SUSPENDED',
+        suspendedAt: new Date(),
       });
-      await appendSecurityEvent(tx, buildEvent(organizationId, 'suspended', 'SUCCESS', {
+      await store.appendEvent(buildEvent(organizationId, 'suspended', 'SUCCESS', {
         from: organization.status,
         to: updated.status,
         reason,
@@ -272,8 +255,8 @@ export const organizationLifecycleService = {
   async reactivate(input: OrganizationLifecycleInput, actor: OrganizationPlatformActor) {
     const { organizationId, reason } = input;
     const log = createLogger({ requestId: actor.requestId, organizationId, module: 'organizations' });
-    return prisma.$transaction(async (tx) => {
-      const organization = await tx.organization.findUnique({ where: { id: organizationId } });
+    return runOrganizationLifecycleTransaction(async (store) => {
+      const organization = await store.find(organizationId);
       if (!organization) {
         await audit(organizationId, 'reactivate', 'DENIED', { reason: 'NOT_FOUND' }, actor);
         throw new OrganizationNotFoundError(organizationId);
@@ -284,19 +267,16 @@ export const organizationLifecycleService = {
         await audit(organizationId, 'reactivate', 'DENIED', { from: organization.status, reason }, actor);
         throw error;
       }
-      const activeOwners = await countActiveOwners(tx, organizationId);
+      const activeOwners = await store.countActiveOwners(organizationId);
       if (activeOwners < 1) {
         await audit(organizationId, 'reactivate', 'DENIED', { reason: 'NO_ACTIVE_OWNER' }, actor);
         throw new InvalidOrganizationCommandError('La organización debe tener al menos un propietario activo antes de reactivarse.');
       }
-      const updated = await tx.organization.update({
-        where: { id: organizationId },
-        data: {
-          status: 'ACTIVE',
-          suspendedAt: null,
-        },
+      const updated = await store.update(organizationId, {
+        status: 'ACTIVE',
+        suspendedAt: null,
       });
-      await appendSecurityEvent(tx, buildEvent(organizationId, 'reactivated', 'SUCCESS', {
+      await store.appendEvent(buildEvent(organizationId, 'reactivated', 'SUCCESS', {
         from: organization.status,
         to: updated.status,
         reason,
@@ -321,8 +301,8 @@ export const organizationLifecycleService = {
       throw new InvalidOrganizationCommandError('Debe proporcionar un motivo para archivar la organización.');
     }
     const log = createLogger({ requestId: actor.requestId, organizationId, module: 'organizations' });
-    return prisma.$transaction(async (tx) => {
-      const organization = await tx.organization.findUnique({ where: { id: organizationId } });
+    return runOrganizationLifecycleTransaction(async (store) => {
+      const organization = await store.find(organizationId);
       if (!organization) {
         await audit(organizationId, 'archive', 'DENIED', { reason: 'NOT_FOUND' }, actor);
         throw new OrganizationNotFoundError(organizationId);
@@ -334,15 +314,12 @@ export const organizationLifecycleService = {
         await audit(organizationId, 'archive', 'DENIED', { from: previousStatus, reason }, actor);
         throw error;
       }
-      const updated = await tx.organization.update({
-        where: { id: organizationId },
-        data: {
-          status: 'ARCHIVED',
-          archivedAt: new Date(),
-          suspendedAt: previousStatus === 'SUSPENDED' ? organization.suspendedAt : null,
-        },
+      const updated = await store.update(organizationId, {
+        status: 'ARCHIVED',
+        archivedAt: new Date(),
+        suspendedAt: previousStatus === 'SUSPENDED' ? organization.suspendedAt : null,
       });
-      await appendSecurityEvent(tx, buildEvent(organizationId, 'archived', 'SUCCESS', {
+      await store.appendEvent(buildEvent(organizationId, 'archived', 'SUCCESS', {
         from: previousStatus,
         to: updated.status,
         reason,
@@ -367,8 +344,8 @@ export const organizationLifecycleService = {
       throw new InvalidOrganizationCommandError('Debe proporcionar un motivo para solicitar el cierre de la organización.');
     }
     const log = createLogger({ requestId: actor.requestId, organizationId, module: 'organizations' });
-    return prisma.$transaction(async (tx) => {
-      const organization = await tx.organization.findUnique({ where: { id: organizationId } });
+    return runOrganizationLifecycleTransaction(async (store) => {
+      const organization = await store.find(organizationId);
       if (!organization) {
         await audit(organizationId, 'request_closure', 'DENIED', { reason: 'NOT_FOUND' }, actor);
         throw new OrganizationNotFoundError(organizationId);
@@ -380,15 +357,12 @@ export const organizationLifecycleService = {
         await audit(organizationId, 'request_closure', 'DENIED', { from: previousStatus, reason }, actor);
         throw error;
       }
-      const updated = await tx.organization.update({
-        where: { id: organizationId },
-        data: {
-          status: 'PENDING_DELETION',
-          deletionRequestedAt: new Date(),
-          archivedAt: previousStatus === 'ACTIVE' || previousStatus === 'SUSPENDED' ? null : organization.archivedAt,
-        },
+      const updated = await store.update(organizationId, {
+        status: 'PENDING_DELETION',
+        deletionRequestedAt: new Date(),
+        archivedAt: previousStatus === 'ACTIVE' || previousStatus === 'SUSPENDED' ? null : organization.archivedAt,
       });
-      await appendSecurityEvent(tx, buildEvent(organizationId, 'closure_requested', 'SUCCESS', {
+      await store.appendEvent(buildEvent(organizationId, 'closure_requested', 'SUCCESS', {
         from: previousStatus,
         to: updated.status,
         reason,

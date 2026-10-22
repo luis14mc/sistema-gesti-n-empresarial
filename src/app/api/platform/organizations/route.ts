@@ -1,4 +1,4 @@
-import { withAuth, type AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { apiSuccess } from '@/platform/api/response';
 import { runPlatformRoute } from '@/modules/organizations/presentation/platform-http';
 import { createOrganizationSchema, organizationListQuerySchema } from '@/modules/organizations/presentation/schemas/lifecycle';
