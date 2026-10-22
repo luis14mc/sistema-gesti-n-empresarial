@@ -12,12 +12,13 @@ export class EquipmentFlowStatusError extends DomainError {
 
 const MANUAL_ALLOWED: EquipmentStatus[] = ['DAMAGED', 'LOST'];
 
-const FLOW_ONLY_STATUSES: EquipmentStatus[] = ['ASSIGNED', 'AVAILABLE'];
+const RECOVERABLE_STATUSES: EquipmentStatus[] = ['DAMAGED', 'LOST'];
 
 export function assertManualEquipmentStatusUpdate(input: {
   requested: unknown;
   current: EquipmentStatus;
   hasActiveAssignment: boolean;
+  hasOpenMaintenance: boolean;
 }): EquipmentStatus | undefined {
   if (input.requested === undefined) return undefined;
 
@@ -28,8 +29,21 @@ export function assertManualEquipmentStatusUpdate(input: {
     throw new DomainConflictError('Use el flujo de dictamen técnico para dar de baja el equipo.');
   }
 
-  if (FLOW_ONLY_STATUSES.includes(requested)) {
+  if (requested === 'ASSIGNED') {
     throw new EquipmentFlowStatusError();
+  }
+
+  if (requested === 'AVAILABLE') {
+    if (!RECOVERABLE_STATUSES.includes(input.current)) {
+      throw new EquipmentFlowStatusError();
+    }
+    if (input.hasActiveAssignment) {
+      throw new DomainConflictError('Devuelva el equipo antes de marcarlo como disponible.');
+    }
+    if (input.hasOpenMaintenance) {
+      throw new DomainConflictError('Complete o cancele el mantenimiento abierto.');
+    }
+    return 'AVAILABLE';
   }
 
   if (!MANUAL_ALLOWED.includes(requested)) {

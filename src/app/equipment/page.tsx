@@ -70,8 +70,48 @@ const statusLabels: Record<string, string> = {
     DAMAGED: 'Dañado', RETIRED: 'Dado de baja', LOST: 'Extraviado',
 };
 
-/** Estados seleccionables desde UI (excluye RETIRED/DISPOSED — solo via disposal workflow). */
-const selectableStatuses = ['DAMAGED', 'LOST'] as const;
+const maintenanceStatusLabels: Record<string, string> = {
+    SCHEDULED: 'Programado',
+    IN_PROGRESS: 'En curso',
+    COMPLETED: 'Completado',
+    CANCELLED: 'Cancelado',
+};
+
+function equipmentApiErrorMessage(err: unknown, fallback: string): string {
+    const data = (err as { response?: { data?: { error?: { message?: string } | string; message?: string } } })
+        .response?.data;
+    if (!data) return fallback;
+    const nested = data.error;
+    if (typeof nested === 'string') return nested;
+    if (nested?.message) return nested.message;
+    if (typeof data.message === 'string') return data.message;
+    return fallback;
+}
+
+function equipmentManualStatusOptions(eq: Equipment): { value: EquipmentStatus; label: string }[] {
+    const hasActiveAssignment = eq.assignments?.some((a) => a.status === 'ACTIVE') ?? false;
+    const hasOpenMaintenance = eq.maintenances?.some(
+        (m) => m.status === 'SCHEDULED' || m.status === 'IN_PROGRESS',
+    ) ?? false;
+    const options: { value: EquipmentStatus; label: string }[] = [
+        { value: 'DAMAGED', label: statusLabels.DAMAGED },
+        { value: 'LOST', label: statusLabels.LOST },
+    ];
+    if (
+        (eq.status === 'DAMAGED' || eq.status === 'LOST')
+        && !hasActiveAssignment
+        && !hasOpenMaintenance
+    ) {
+        options.unshift({ value: 'AVAILABLE', label: 'Disponible (recuperado / reparado)' });
+    }
+    if (!options.some((o) => o.value === eq.status)) {
+        options.unshift({
+            value: eq.status,
+            label: statusLabels[eq.status] ?? eq.status,
+        });
+    }
+    return options;
+}
 
 const typeLabels: Record<string, string> = {
     LAPTOP: 'Laptop',
@@ -499,7 +539,19 @@ type EquipmentDocumentPreview =
     | { kind: 'return'; assignment: EquipmentAssignment };
 
 function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: string; role: Role; onClose: () => void }) {
-    const { equipment: eq, isLoading, updateEquipment, isUpdating, deleteEquipment, isDeleting, addMaintenance, isAddingMaintenance, refetch } = useEquipmentDetail(equipmentId);
+    const {
+        equipment: eq,
+        isLoading,
+        updateEquipment,
+        isUpdating,
+        deleteEquipment,
+        isDeleting,
+        addMaintenance,
+        isAddingMaintenance,
+        updateMaintenance,
+        isUpdatingMaintenance,
+        refetch,
+    } = useEquipmentDetail(equipmentId);
     const canUpdate = canAccess(role, 'equipment', 'update');
     const canDelete = canAccess(role, 'equipment', 'delete');
     const [editing, setEditing] = useState(false);
@@ -570,11 +622,29 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
             await updateEquipment({ status: newStatus });
             sileo.success({ title: `Estado: ${statusLabels[newStatus]}` });
         } catch (err: unknown) {
-            const apiError = (err as { response?: { data?: { error?: { message?: string } | string } } }).response?.data?.error;
-            const message = typeof apiError === 'string'
-              ? apiError
-              : apiError?.message ?? 'No se pudo actualizar el estado';
-            sileo.error({ title: 'Error', description: message });
+            sileo.error({
+                title: 'Error',
+                description: equipmentApiErrorMessage(err, 'No se pudo actualizar el estado'),
+            });
+        }
+    };
+
+    const handleMaintenanceStatusChange = async (
+        maintenanceId: string,
+        nextStatus: 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED',
+        confirm: { title: string; text: string },
+    ) => {
+        const result = await swalConfirm(confirm.title, confirm.text, 'Confirmar');
+        if (!result.isConfirmed) return;
+        try {
+            await updateMaintenance({ maintenanceId, data: { status: nextStatus } });
+            await refetch();
+            sileo.success({ title: 'Mantenimiento actualizado' });
+        } catch (err: unknown) {
+            sileo.error({
+                title: 'Error',
+                description: equipmentApiErrorMessage(err, 'No se pudo actualizar el mantenimiento'),
+            });
         }
     };
 
@@ -742,7 +812,9 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
                         <Select value={eq.status} onValueChange={(v) => handleStatusChange(v as EquipmentStatus)}>
                             <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent>
-                                {selectableStatuses.map((k) => (<SelectItem key={k} value={k}>{statusLabels[k]}</SelectItem>))}
+                                {equipmentManualStatusOptions(eq).map((opt) => (
+                                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </div>
@@ -889,9 +961,9 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
                     <div className="space-y-2">
                         {eq.maintenances.map(m => (
                             <div key={m.id} className="rounded-lg border p-3 text-sm">
-                                <div className="flex justify-between">
+                                <div className="flex justify-between gap-2">
                                     <p className="font-medium capitalize">{m.type.toLowerCase()}</p>
-                                    <Badge variant="outline">{m.status}</Badge>
+                                    <Badge variant="outline">{maintenanceStatusLabels[m.status] ?? m.status}</Badge>
                                 </div>
                                 <p className="text-xs mt-1">{m.description}</p>
                                 <p className="text-xs text-muted-foreground mt-1">
@@ -899,6 +971,65 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
                                         ? `Programado: ${format(new Date(m.scheduledDate), 'dd/MM/yyyy', { locale: es })}`
                                         : 'Sin fecha programada'}
                                 </p>
+                                {canUpdate && (m.status === 'SCHEDULED' || m.status === 'IN_PROGRESS') && (
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                        {m.status === 'SCHEDULED' && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8"
+                                                disabled={isUpdatingMaintenance}
+                                                onClick={() => void handleMaintenanceStatusChange(
+                                                    m.id,
+                                                    'IN_PROGRESS',
+                                                    {
+                                                        title: '¿Iniciar mantenimiento?',
+                                                        text: 'El equipo quedará en estado En mantenimiento.',
+                                                    },
+                                                )}
+                                            >
+                                                Iniciar
+                                            </Button>
+                                        )}
+                                        {m.status === 'IN_PROGRESS' && (
+                                            <Button
+                                                type="button"
+                                                variant="default"
+                                                size="sm"
+                                                className="h-8"
+                                                disabled={isUpdatingMaintenance}
+                                                onClick={() => void handleMaintenanceStatusChange(
+                                                    m.id,
+                                                    'COMPLETED',
+                                                    {
+                                                        title: '¿Completar mantenimiento?',
+                                                        text: 'Se registrará como completado. Si no hay otros mantenimientos abiertos, el equipo volverá a Disponible.',
+                                                    },
+                                                )}
+                                            >
+                                                Completar
+                                            </Button>
+                                        )}
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 text-destructive hover:text-destructive"
+                                            disabled={isUpdatingMaintenance}
+                                            onClick={() => void handleMaintenanceStatusChange(
+                                                m.id,
+                                                'CANCELLED',
+                                                {
+                                                    title: '¿Cancelar mantenimiento?',
+                                                    text: 'El mantenimiento se marcará como cancelado.',
+                                                },
+                                            )}
+                                        >
+                                            Cancelar
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>

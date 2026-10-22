@@ -17,6 +17,7 @@ import type {
     CreateEquipmentData,
     UpdateEquipmentData,
     CreateMaintenanceData,
+    UpdateMaintenanceData,
     EquipmentStats,
 } from '@/types';
 
@@ -200,6 +201,24 @@ export function useEquipmentDetail(id: string | null) {
         },
     });
 
+    const updateMaintenanceMutation = useMutation({
+        mutationFn: async ({
+            maintenanceId,
+            data,
+        }: {
+            maintenanceId: string;
+            data: UpdateMaintenanceData;
+        }) => {
+            const response = await equipmentService.updateMaintenance(maintenanceId, data);
+            return response.data.maintenance;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: equipmentKeys.detail(id!) });
+            queryClient.invalidateQueries({ queryKey: equipmentKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: equipmentKeys.stats() });
+        },
+    });
+
     return {
         equipment: detailQuery.data ?? null,
         isLoading: detailQuery.isLoading,
@@ -213,6 +232,9 @@ export function useEquipmentDetail(id: string | null) {
 
         addMaintenance: addMaintenanceMutation.mutateAsync,
         isAddingMaintenance: addMaintenanceMutation.isPending,
+
+        updateMaintenance: updateMaintenanceMutation.mutateAsync,
+        isUpdatingMaintenance: updateMaintenanceMutation.isPending,
 
         refetch: detailQuery.refetch,
     };

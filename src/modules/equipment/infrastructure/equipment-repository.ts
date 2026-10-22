@@ -90,6 +90,10 @@ export async function findEquipmentForUpdate(id: string, organizationId: string)
         where: { status: 'ACTIVE' },
         select: { id: true },
       },
+      maintenances: {
+        where: { status: { in: ['SCHEDULED', 'IN_PROGRESS'] } },
+        select: { id: true },
+      },
     },
   });
 }
@@ -538,10 +542,18 @@ export async function updateMaintenanceInTransaction(params: {
     });
 
     if (params.wasActive && !params.isNowActive) {
-      await tx.equipment.update({
-        where: { id: updated.equipmentId, organizationId: params.organizationId },
-        data: { status: 'AVAILABLE' },
+      const openMaintenances = await tx.equipmentMaintenance.count({
+        where: {
+          equipmentId: updated.equipmentId,
+          status: { in: ['SCHEDULED', 'IN_PROGRESS'] },
+        },
       });
+      if (openMaintenances === 0) {
+        await tx.equipment.update({
+          where: { id: updated.equipmentId, organizationId: params.organizationId },
+          data: { status: 'AVAILABLE' },
+        });
+      }
     } else if (!params.wasActive && params.isNowActive) {
       await tx.equipment.update({
         where: { id: updated.equipmentId, organizationId: params.organizationId },

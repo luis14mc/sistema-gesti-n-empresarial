@@ -128,10 +128,12 @@ export async function updateEquipment(params: {
   if (!current) throw new EntityNotFoundError('Equipo no encontrado.');
 
   const hasActiveAssignment = current.assignments.length > 0;
+  const hasOpenMaintenance = current.maintenances.length > 0;
   const manualStatus = assertManualEquipmentStatusUpdate({
     requested: params.data.status,
     current: current.status,
     hasActiveAssignment,
+    hasOpenMaintenance,
   });
 
   const updateData: Record<string, unknown> = {};
