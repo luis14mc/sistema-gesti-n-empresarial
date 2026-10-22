@@ -2,6 +2,7 @@ import { ZodError } from 'zod';
 import { apiFailure } from '@/platform/api/response';
 import { authorizationFailure } from '@/platform/security/authorization/http';
 import { isOrganizationContextError } from '@/modules/organizations/application/context';
+import { DomainError } from '@/platform/domain/errors';
 import { XLSX_WORKBOOK_USER_MESSAGES } from '@/platform/excel/inspect-xlsx';
 
 const MESSAGES: Record<string, string> = {
@@ -14,6 +15,10 @@ const MESSAGES: Record<string, string> = {
   SEAT_LIMIT_REACHED: 'La suscripción ya tiene todos los asientos contratados.',
   TOTAL_SEATS_CANNOT_SHRINK: 'No se pueden reducir asientos: libera o cancela asientos vacíos antes de bajar el total contratado.',
   SEAT_STILL_ASSIGNED: 'Quite las asignaciones activas antes de marcar el asiento como disponible.',
+  SUBSCRIPTION_NOT_ACTIVE: 'La licencia está suspendida o cancelada.',
+  SUBSCRIPTION_EXPIRED: 'La licencia está vencida; renuévela antes de asignar.',
+  SEAT_HAS_ACTIVE_ASSIGNMENTS: 'Libere las asignaciones del asiento antes de suspenderlo o cancelarlo.',
+  SUBSCRIPTION_HAS_ACTIVE_ASSIGNMENTS: 'Libere las asignaciones del asiento antes de suspenderlo o cancelarlo.',
   SHARED_SEAT_HAS_MULTIPLE_ASSIGNMENTS: 'Un asiento compartido con varias personas no puede volver a individual.',
   CROSS_ORGANIZATION_ASSIGNMENT: 'El empleado pertenece a otra organización.',
   ASSIGNMENT_NOT_FOUND: 'La asignación no existe o ya fue cerrada.',
@@ -29,6 +34,14 @@ export function licenseFailure(error: unknown, requestId: string) {
   }
   if (error instanceof ZodError) {
     return apiFailure('INVALID_LICENSE', 'Los datos de la licencia no son válidos.', { requestId, status: 400, details: error.issues, stage: 'VALIDATE' });
+  }
+  if (error instanceof DomainError) {
+    return apiFailure(error.code, error.message, {
+      requestId,
+      status: error.httpStatus,
+      details: error.details ?? [],
+      stage: 'LICENSE',
+    });
   }
   const code = error instanceof Error ? error.message : 'LICENSE_ERROR';
   return apiFailure(code, MESSAGES[code] ?? 'No se pudo completar la operación de licencias.', {

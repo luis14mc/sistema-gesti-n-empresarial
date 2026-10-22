@@ -71,7 +71,7 @@ const statusLabels: Record<string, string> = {
 };
 
 /** Estados seleccionables desde UI (excluye RETIRED/DISPOSED — solo via disposal workflow). */
-const selectableStatuses = ['AVAILABLE', 'ASSIGNED', 'IN_MAINTENANCE', 'DAMAGED', 'LOST'] as const;
+const selectableStatuses = ['DAMAGED', 'LOST'] as const;
 
 const typeLabels: Record<string, string> = {
     LAPTOP: 'Laptop',
@@ -569,8 +569,12 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
         try {
             await updateEquipment({ status: newStatus });
             sileo.success({ title: `Estado: ${statusLabels[newStatus]}` });
-        } catch {
-            sileo.error({ title: 'Error', description: 'No se pudo actualizar el estado' });
+        } catch (err: unknown) {
+            const apiError = (err as { response?: { data?: { error?: { message?: string } | string } } }).response?.data?.error;
+            const message = typeof apiError === 'string'
+              ? apiError
+              : apiError?.message ?? 'No se pudo actualizar el estado';
+            sileo.error({ title: 'Error', description: message });
         }
     };
 
@@ -601,7 +605,6 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
                 brand: editForm.brand || undefined,
                 model: editForm.model || undefined,
                 serialNumber: editForm.serialNumber || undefined,
-                status: editForm.status as EquipmentStatus,
                 ram: isComputer ? editForm.ram || undefined : null,
                 processor: isComputer ? editForm.processor || undefined : null,
                 storage: isComputer ? editForm.storage || undefined : null,
@@ -930,15 +933,6 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
                                         {Object.entries(typeLabels).filter(([k]) => k !== 'DESKTOP').map(([k, v]) => (
                                             <SelectItem key={k} value={k}>{v}</SelectItem>
                                         ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Estado</Label>
-                                <Select value={editForm.status} onValueChange={(v) => setEditForm(f => ({ ...f, status: v }))}>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        {Object.entries(statusLabels).map(([k, v]) => (<SelectItem key={k} value={k}>{v}</SelectItem>))}
                                     </SelectContent>
                                 </Select>
                             </div>

@@ -82,6 +82,36 @@ export function findEmployee(organizationId: string, id: string) {
   return prisma.employee.findFirst({ where: { id, organizationId } });
 }
 
+export async function findEmployeeActiveAssetSummary(organizationId: string, employeeId: string) {
+  const [equipmentAssignments, licenseAssignments] = await Promise.all([
+    prisma.equipmentAssignment.findMany({
+      where: {
+        employeeId,
+        status: 'ACTIVE',
+        equipment: { organizationId },
+      },
+      select: { equipment: { select: { inventoryCode: true } } },
+    }),
+    prisma.licenseAssignment.findMany({
+      where: {
+        employeeId,
+        unassignedAt: null,
+        seat: { subscription: { organizationId } },
+      },
+      select: {
+        seat: { select: { subscription: { select: { product: { select: { name: true } } } } } },
+      },
+    }),
+  ]);
+
+  return {
+    equipos: equipmentAssignments
+      .map((row) => row.equipment.inventoryCode)
+      .filter((code): code is string => Boolean(code)),
+    licencias: licenseAssignments.map((row) => row.seat.subscription.product.name),
+  };
+}
+
 export function findEmployeeWithPlacementSummary(organizationId: string, id: string) {
   return prisma.employee.findFirst({
     where: { id, organizationId },

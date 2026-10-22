@@ -64,6 +64,38 @@ function licenseStore(db: Db, tx?: Prisma.TransactionClient) {
     createAssignment(data: Prisma.LicenseAssignmentUncheckedCreateInput) {
       return db.licenseAssignment.create({ data });
     },
+    async lockSeatForUpdate(seatId: string, organizationId: string) {
+      const rows = await db.$queryRaw<{ id: string }[]>`
+        SELECT s.id
+        FROM software_license_seats s
+        INNER JOIN software_subscriptions sub ON sub.id = s."subscriptionId"
+        WHERE s.id = ${seatId} AND sub."organizationId" = ${organizationId}
+        FOR UPDATE
+      `;
+      if (rows.length === 0) return null;
+      return rows[0]!.id;
+    },
+    findSeatWithAssignmentsInTx(seatId: string, organizationId: string) {
+      return db.softwareLicenseSeat.findFirst({
+        where: { id: seatId, subscription: { organizationId } },
+        include: {
+          subscription: { include: { product: true } },
+          assignments: {
+            where: { unassignedAt: null },
+            include: {
+              employee: {
+                select: { id: true, fullName: true, organizationId: true, isActive: true },
+              },
+            },
+          },
+        },
+      });
+    },
+    countActiveAssignmentsForSubscription(subscriptionId: string) {
+      return db.licenseAssignment.count({
+        where: { unassignedAt: null, seat: { subscriptionId } },
+      });
+    },
     async audit(input: LicenseAuditInput) {
       await createAuditRecord({
         tx,

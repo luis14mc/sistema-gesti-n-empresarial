@@ -83,7 +83,15 @@ export async function getEquipmentById(id: string, organizationId: string) {
 }
 
 export async function findEquipmentForUpdate(id: string, organizationId: string) {
-  return prisma.equipment.findFirst({ where: { id, organizationId } });
+  return prisma.equipment.findFirst({
+    where: { id, organizationId },
+    include: {
+      assignments: {
+        where: { status: 'ACTIVE' },
+        select: { id: true },
+      },
+    },
+  });
 }
 
 export async function updateEquipmentRecord(
