@@ -3,6 +3,16 @@ import { sanitizeLogoCandidate } from '@/modules/purchases/infrastructure/instit
 import { DEFAULT_INSTITUTION_SETTINGS, getInstitutionSettings } from '@/modules/purchases/infrastructure/institution-store';
 import fixture from './__fixtures__/institution-template.json';
 
+vi.mock('@/lib/prisma', () => ({
+  prisma: {
+    compraOrdenTemplate: {
+      findFirst: vi.fn().mockResolvedValue(null),
+      update: vi.fn(),
+      create: vi.fn(),
+    },
+  },
+}));
+
 vi.mock('@/platform/integrations/application/ssrf-guard', () => ({
   checkUrlForSsrf: vi.fn((url: string) => {
     if (url.includes('cdn.example.com')) return { ok: true };
@@ -16,8 +26,8 @@ describe('purchases golden — institución y plantilla', () => {
     expect(DEFAULT_INSTITUTION_SETTINGS.logoPath).toBe(fixture.defaultSettings.logoPath);
   });
 
-  it('getInstitutionSettings devuelve defaults si no hay archivo', async () => {
-    const settings = await getInstitutionSettings();
+  it('getInstitutionSettings devuelve defaults si no hay plantilla activa', async () => {
+    const settings = await getInstitutionSettings('org-golden-default');
     expect(settings.name).toBeTruthy();
     expect(settings.logoPath).toBeTruthy();
   });

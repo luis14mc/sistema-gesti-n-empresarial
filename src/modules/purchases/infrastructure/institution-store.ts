@@ -1,16 +1,21 @@
-import { mkdir, readFile, writeFile } from 'fs/promises';
+import { readFile } from 'fs/promises';
 import path from 'path';
+import { prisma } from '@/lib/prisma';
+import {
+  ensureDefaultTemplate,
+  getActiveTemplate,
+} from '@/modules/purchases/infrastructure/purchase-order-template';
 
 export interface InstitutionSettings {
   name: string;
   address: string;
   phone: string;
   website: string;
-  /** Ruta pública del logo oficial CNI */
+  /** Clave de storage, URL https, ruta pública legacy o data URI */
   logoPath: string;
 }
 
-const SETTINGS_PATH = path.join(process.cwd(), 'data', 'compras-institution.json');
+const SEED_SETTINGS_PATH = path.join(process.cwd(), 'data', 'compras-institution.json');
 
 export const DEFAULT_INSTITUTION_SETTINGS: InstitutionSettings = {
   name: process.env.INSTITUTION_NAME ?? 'Consejo Nacional de Inversiones',
@@ -22,22 +27,64 @@ export const DEFAULT_INSTITUTION_SETTINGS: InstitutionSettings = {
   logoPath: process.env.INSTITUTION_LOGO_PATH ?? '/Logo_CNI.png',
 };
 
-export async function getInstitutionSettings(): Promise<InstitutionSettings> {
+async function readSeedSettings(): Promise<Partial<InstitutionSettings> | null> {
   try {
-    const raw = await readFile(SETTINGS_PATH, 'utf-8');
-    const parsed = JSON.parse(raw) as Partial<InstitutionSettings>;
-    return { ...DEFAULT_INSTITUTION_SETTINGS, ...parsed };
+    const raw = await readFile(SEED_SETTINGS_PATH, 'utf-8');
+    return JSON.parse(raw) as Partial<InstitutionSettings>;
   } catch {
-    return { ...DEFAULT_INSTITUTION_SETTINGS };
+    return null;
   }
 }
 
+function templateToSettings(template: {
+  institutionName: string;
+  institutionAddress: string | null;
+  institutionPhone: string | null;
+  institutionWebsite: string | null;
+  logoUrl: string | null;
+}): InstitutionSettings {
+  return {
+    name: template.institutionName,
+    address: template.institutionAddress ?? DEFAULT_INSTITUTION_SETTINGS.address,
+    phone: template.institutionPhone ?? DEFAULT_INSTITUTION_SETTINGS.phone,
+    website: template.institutionWebsite ?? DEFAULT_INSTITUTION_SETTINGS.website,
+    logoPath: template.logoUrl ?? DEFAULT_INSTITUTION_SETTINGS.logoPath,
+  };
+}
+
+export async function getInstitutionSettings(organizationId: string): Promise<InstitutionSettings> {
+  const template = await getActiveTemplate(organizationId);
+  if (template) {
+    return templateToSettings(template);
+  }
+
+  const seed = await readSeedSettings();
+  return { ...DEFAULT_INSTITUTION_SETTINGS, ...seed };
+}
+
 export async function saveInstitutionSettings(
-  data: Partial<InstitutionSettings>
+  organizationId: string,
+  actorUserId: string,
+  data: Partial<InstitutionSettings>,
 ): Promise<InstitutionSettings> {
-  await mkdir(path.dirname(SETTINGS_PATH), { recursive: true });
-  const current = await getInstitutionSettings();
+  let template = await getActiveTemplate(organizationId);
+  if (!template) {
+    template = await ensureDefaultTemplate(organizationId, actorUserId);
+  }
+
+  const current = await getInstitutionSettings(organizationId);
   const merged = { ...current, ...data };
-  await writeFile(SETTINGS_PATH, JSON.stringify(merged, null, 2), 'utf-8');
+
+  await prisma.compraOrdenTemplate.update({
+    where: { id: template.id },
+    data: {
+      institutionName: merged.name,
+      institutionAddress: merged.address,
+      institutionPhone: merged.phone,
+      institutionWebsite: merged.website,
+      ...(data.logoPath !== undefined ? { logoUrl: merged.logoPath } : {}),
+    },
+  });
+
   return merged;
 }
