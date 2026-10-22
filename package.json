@@ -42,6 +42,7 @@
     "saas:check": "tsx scripts/check-tenant-bootstrap.ts",
     "payroll:import": "tsx scripts/payroll/import-legacy.ts",
     "payroll:check-isr": "tsx scripts/payroll/find-wrong-isr.ts",
+    "payroll:compare": "tsx scripts/payroll/compare-month.ts",
     "rbac:verify-role-permissions": "tsx scripts/security/verify-role-permissions.ts",
     "browser:install": "puppeteer browsers install chrome",
     "browser:list": "puppeteer browsers list",
