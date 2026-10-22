@@ -20,6 +20,7 @@ export function canCompraOrdenAction(
     isCreator?: boolean;
     status?: PurchaseOrderStatus;
     membershipRole?: import('@/platform/security/authorization/permissions').OrganizationRole;
+    sessionRole?: string;
   } = {},
 ): boolean {
   if (!permissions?.length) return false;
@@ -34,6 +35,6 @@ export function useCompraOrdenPermissionContext(isCreator: boolean, status?: Pur
     | undefined;
   return {
     permissions,
-    ctx: { isCreator, status, membershipRole },
+    ctx: { isCreator, status, membershipRole, sessionRole: user?.role },
   };
 }

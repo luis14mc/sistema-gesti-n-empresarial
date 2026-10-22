@@ -28,7 +28,7 @@ const ACTION_TO_PERMISSION: Record<OrderAction, Permission> = {
   emitir: PURCHASE_ORDER_APPROVE,
   cerrar: PURCHASE_ORDER_APPROVE,
   anular: 'purchase-orders.cancel',
-  template: 'purchase-orders.update',
+  template: PURCHASE_ORDER_APPROVE,
 };
 
 export type EffectivePermissions = ReadonlySet<Permission> | readonly Permission[];
@@ -46,8 +46,13 @@ function hasPermission(permissions: EffectivePermissions, permission: Permission
   return (permissions as readonly Permission[]).includes(permission);
 }
 
-export function hasPurchaseOrderApprove(permissions: EffectivePermissions): boolean {
-  return hasPermission(permissions, PURCHASE_ORDER_APPROVE);
+function requiresOwnPurchaseOrderForMutations(ctx: {
+  membershipRole?: OrganizationRole;
+  sessionRole?: string;
+}): boolean {
+  if (ctx.membershipRole === 'USER' || ctx.membershipRole === 'HR') return true;
+  if (ctx.sessionRole === 'RRHH') return true;
+  return false;
 }
 
 export function canOrdenAction(
@@ -57,6 +62,7 @@ export function canOrdenAction(
     isCreator?: boolean;
     status?: PurchaseOrderStatus;
     membershipRole?: OrganizationRole;
+    sessionRole?: string;
   } = {},
 ): boolean {
   const required = ACTION_TO_PERMISSION[action];
@@ -64,18 +70,18 @@ export function canOrdenAction(
 
   if (action === 'update') {
     if (ctx.status !== 'DRAFT') return false;
-    if (!hasPurchaseOrderApprove(permissions)) return !!ctx.isCreator;
+    if (requiresOwnPurchaseOrderForMutations(ctx)) return !!ctx.isCreator;
     return true;
   }
 
   if (action === 'delete') {
     if (ctx.status !== 'DRAFT') return false;
-    if (!hasPurchaseOrderApprove(permissions)) return !!ctx.isCreator;
+    if (requiresOwnPurchaseOrderForMutations(ctx)) return !!ctx.isCreator;
     return true;
   }
 
   if (action === 'generar' || action === 'regenerar_pdf') {
-    if (!hasPurchaseOrderApprove(permissions)) return !!ctx.isCreator;
+    if (requiresOwnPurchaseOrderForMutations(ctx)) return !!ctx.isCreator;
     return true;
   }
 

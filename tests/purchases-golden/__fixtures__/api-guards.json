@@ -38,7 +38,7 @@
   {
     "file": "src/app/api/compras/template/route.ts",
     "method": "PUT",
-    "permission": "purchase-orders.read",
+    "permission": "purchase-orders.approve",
     "permissionKind": "authorizeOrganization"
   },
   {

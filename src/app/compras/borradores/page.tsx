@@ -48,6 +48,7 @@ export default function ComprasBorradoresPage() {
   const membershipRole = (user.membershipRole ?? user.role) as
     | import('@/platform/security/authorization/permissions').OrganizationRole
     | undefined;
+  const sessionRole = user.role;
 
   const handleDeleteDraft = async (orderId: string) => {
     const confirmation = await Swal.fire({
@@ -134,6 +135,7 @@ export default function ComprasBorradoresPage() {
                       isCreator: order.createdById === user.id,
                       status,
                       membershipRole,
+                      sessionRole,
                     });
                     return (
                       <TableRow key={order.id}>

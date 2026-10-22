@@ -26,7 +26,14 @@ export const GET = withAuth(async (req: AuthenticatedRequest, { params }) => {
   const { id } = await params;
   const orden = await getCompraOrden(id, org.organizationId);
   if (!orden) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
-  if (!canOrdenAction(permissions, 'read', { isCreator: orden.createdById === req.user!.userId })) {
+  if (
+    !canOrdenAction(permissions, 'read', {
+      membershipRole: org.role,
+      sessionRole: req.user!.role,
+      isCreator: orden.createdById === req.user!.userId,
+      status: orden.status,
+    })
+  ) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
   }
   const documents = await getPurchaseOrderDocuments(id, org.organizationId);
@@ -39,7 +46,13 @@ export const POST = withAuth(async (req: AuthenticatedRequest, { params }) => {
   const { id } = await params;
   const orden = await getCompraOrden(id, org.organizationId);
   if (!orden) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
-  if (!canOrdenAction(permissions, 'documentos', { isCreator: orden.createdById === req.user!.userId })) {
+  if (
+    !canOrdenAction(permissions, 'documentos', {
+      membershipRole: org.role,
+      sessionRole: req.user!.role,
+      isCreator: orden.createdById === req.user!.userId,
+    })
+  ) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
   }
   const formData = await req.formData();

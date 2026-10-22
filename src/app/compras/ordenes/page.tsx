@@ -61,6 +61,7 @@ export default function ComprasOrdenesGeneradasPage() {
   const membershipRole = (user.membershipRole ?? user.role) as
     | import('@/platform/security/authorization/permissions').OrganizationRole
     | undefined;
+  const sessionRole = user.role;
 
   return (
     <MainLayout>
@@ -140,6 +141,7 @@ export default function ComprasOrdenesGeneradasPage() {
                       isCreator: order.createdById === user.id,
                       status,
                       membershipRole,
+                      sessionRole,
                     });
                     return (
                       <TableRow key={order.id}>

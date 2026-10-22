@@ -16,7 +16,14 @@ export const GET = withAuth(async (req: AuthenticatedRequest, { params }) => {
   if (!orden) {
     return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
   }
-  if (!canOrdenAction(permissions, 'read', { isCreator: orden.createdById === req.user!.userId, status: orden.status })) {
+  if (
+    !canOrdenAction(permissions, 'read', {
+      membershipRole: org.role,
+      sessionRole: req.user!.role,
+      isCreator: orden.createdById === req.user!.userId,
+      status: orden.status,
+    })
+  ) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
   }
   try {

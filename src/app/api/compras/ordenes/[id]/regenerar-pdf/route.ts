@@ -11,7 +11,14 @@ export const POST = withAuth(async (req: AuthenticatedRequest, { params }) => {
   const { id } = await params;
   const existing = await getCompraOrden(id, org.organizationId);
   if (!existing) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
-  if (!canOrdenAction(permissions, 'regenerar_pdf', { isCreator: existing.createdById === req.user!.userId, status: existing.status })) {
+  if (
+    !canOrdenAction(permissions, 'regenerar_pdf', {
+      membershipRole: org.role,
+      sessionRole: req.user!.role,
+      isCreator: existing.createdById === req.user!.userId,
+      status: existing.status,
+    })
+  ) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
   }
   try {

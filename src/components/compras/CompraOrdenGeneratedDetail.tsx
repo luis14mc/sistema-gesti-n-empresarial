@@ -46,6 +46,7 @@ interface CompraOrdenGeneratedDetailProps {
   orden: CompraOrden;
   permissions: readonly Permission[];
   membershipRole?: import('@/platform/security/authorization/permissions').OrganizationRole;
+  sessionRole?: string;
   userId: string;
   onWorkflow: (action: OrdenWorkflowActionName, motivoAnulacion?: string) => Promise<void>;
   onDeleteDocument: (documentId: string) => Promise<void>;
@@ -57,6 +58,7 @@ export function CompraOrdenGeneratedDetail({
   orden,
   permissions,
   membershipRole,
+  sessionRole,
   userId,
   onWorkflow,
   onDeleteDocument,
@@ -72,7 +74,7 @@ export function CompraOrdenGeneratedDetail({
 
   const isCreator = orden.createdById === userId;
   const status = (orden.status ?? orden.estado) as PurchaseOrderStatus;
-  const actionCtx = { isCreator, status, membershipRole };
+  const actionCtx = { isCreator, status, membershipRole, sessionRole };
   const documents = orden.documentos ?? [];
   const activePdf = documents.find((document) => document.type === 'ORDER_PDF' && document.isActive);
   const canViewPdf = canCompraOrdenAction(permissions, 'read', actionCtx);

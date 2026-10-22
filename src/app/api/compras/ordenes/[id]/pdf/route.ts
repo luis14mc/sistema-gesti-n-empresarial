@@ -11,7 +11,14 @@ export const GET = withAuth(async (req: AuthenticatedRequest, { params }) => {
   const { id } = await params;
   const orden = await getCompraOrden(id, org.organizationId);
   if (!orden) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
-  if (!canOrdenAction(permissions, 'read', { isCreator: orden.createdById === req.user!.userId })) {
+  if (
+    !canOrdenAction(permissions, 'read', {
+      membershipRole: org.role,
+      sessionRole: req.user!.role,
+      isCreator: orden.createdById === req.user!.userId,
+      status: orden.status,
+    })
+  ) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
   }
   const html = await getCompraOrdenHtmlPreview(id, org.organizationId);

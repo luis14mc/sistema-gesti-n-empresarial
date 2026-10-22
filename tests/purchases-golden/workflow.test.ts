@@ -51,6 +51,7 @@ describe('purchases golden — workflow y permisos', () => {
           isCreator,
           status: status as PurchaseOrderStatus,
           membershipRole: fixtureRoleToOrgRole(role),
+          sessionRole: role,
         }),
       ).toBe(expected);
     }

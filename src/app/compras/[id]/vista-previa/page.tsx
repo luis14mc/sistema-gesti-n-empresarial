@@ -23,6 +23,7 @@ export default async function CompraVistaPreviaPage({ params }: { params: Promis
   if (
     !canOrdenAction(permissions, 'read', {
       membershipRole: orgRole,
+      sessionRole: user.role,
       isCreator: orden.createdById === user.id,
     })
   ) {

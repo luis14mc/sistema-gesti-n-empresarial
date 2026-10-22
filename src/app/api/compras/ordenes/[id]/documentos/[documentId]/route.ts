@@ -11,7 +11,13 @@ export const DELETE = withAuth(async (req: AuthenticatedRequest, { params }) => 
   const { id, documentId } = await params;
   const orden = await getCompraOrden(id, org.organizationId);
   if (!orden) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
-  if (!canOrdenAction(permissions, 'documentos', { isCreator: orden.createdById === req.user!.userId })) {
+  if (
+    !canOrdenAction(permissions, 'documentos', {
+      membershipRole: org.role,
+      sessionRole: req.user!.role,
+      isCreator: orden.createdById === req.user!.userId,
+    })
+  ) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
   }
   try {

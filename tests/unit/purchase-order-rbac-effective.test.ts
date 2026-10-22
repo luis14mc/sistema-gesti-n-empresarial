@@ -84,6 +84,21 @@ describe('Compras RBAC efectivo — GET /api/compras/ordenes/[id]', () => {
     expect(canOrdenAction(userPerms, 'generar', { isCreator: true, status: 'DRAFT' })).toBe(false);
   });
 
+  it('PROCUREMENT puede update/delete/generar borradores ajenos; no editar plantilla', () => {
+    const procurementPerms = officialPermissionSetForRole('PROCUREMENT');
+    const ctx = {
+      membershipRole: 'PROCUREMENT' as const,
+      sessionRole: 'PROCUREMENT',
+      isCreator: false,
+      status: 'DRAFT' as const,
+    };
+
+    expect(canOrdenAction(procurementPerms, 'update', ctx)).toBe(true);
+    expect(canOrdenAction(procurementPerms, 'delete', ctx)).toBe(true);
+    expect(canOrdenAction(procurementPerms, 'generar', ctx)).toBe(true);
+    expect(canOrdenAction(procurementPerms, 'template', ctx)).toBe(false);
+  });
+
   it('mensaje de detalle para 403 y 404', () => {
     expect(resolveCompraOrdenDetailMessage({ response: { status: 403, data: {} } })).toBe(
       'No tienes permiso para ver esta orden.',

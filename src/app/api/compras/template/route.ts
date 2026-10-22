@@ -13,7 +13,7 @@ import { authorizeOrganization } from '@/platform/security/authorization/http';
 export const GET = withAuth(async (req: AuthenticatedRequest) => {
   const org = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.read');
   const permissions = await loadEffectivePermissions(org);
-  if (!canOrdenAction(permissions, 'read', { membershipRole: org.role })) {
+  if (!canOrdenAction(permissions, 'read', { membershipRole: org.role, sessionRole: req.user!.role })) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
   }
   await ensureDefaultTemplate(org.organizationId, req.user!.userId);
@@ -22,9 +22,9 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
 });
 
 export const PUT = withAuth(async (req: AuthenticatedRequest) => {
-  const org = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.update');
+  const org = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.approve');
   const permissions = await loadEffectivePermissions(org);
-  if (!canOrdenAction(permissions, 'template', { membershipRole: org.role })) {
+  if (!canOrdenAction(permissions, 'template', { membershipRole: org.role, sessionRole: req.user!.role })) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
   }
   const body = await req.json();

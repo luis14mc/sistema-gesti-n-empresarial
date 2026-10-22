@@ -9,7 +9,7 @@ import { authorizeOrganization } from '@/platform/security/authorization/http';
 export const POST = withAuth(async (req: AuthenticatedRequest) => {
   const org = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.read');
   const permissions = await loadEffectivePermissions(org);
-  if (!canOrdenAction(permissions, 'read')) {
+  if (!canOrdenAction(permissions, 'read', { membershipRole: org.role, sessionRole: req.user!.role })) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
   }
   const body = normalizePurchaseOrderPayload(await req.json());

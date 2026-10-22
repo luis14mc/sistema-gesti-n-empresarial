@@ -110,7 +110,7 @@ export default function CompraDetallePage({ params }: { params: Promise<{ id: st
   const membershipRole = (user.membershipRole ?? user.role) as
     | import('@/platform/security/authorization/permissions').OrganizationRole
     | undefined;
-  const actionCtx = { isCreator, status, membershipRole };
+  const actionCtx = { isCreator, status, membershipRole, sessionRole: user.role };
   const isDraft = status === 'DRAFT';
   const orderNumber = orden.orderNumber ?? orden.numeroOrden;
   const requestedBy = orden.requestedByName ?? orden.solicitadoPorNombre;
@@ -260,6 +260,7 @@ export default function CompraDetallePage({ params }: { params: Promise<{ id: st
           orden={orden}
           permissions={permissions}
           membershipRole={membershipRole}
+          sessionRole={user.role}
           userId={user.id}
           onWorkflow={handleWorkflow}
           onDeleteDocument={handleDeleteDocument}

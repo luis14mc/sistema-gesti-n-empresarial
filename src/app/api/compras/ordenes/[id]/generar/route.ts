@@ -46,7 +46,7 @@ async function postHandler(
 
     if (
       !canOrdenAction(permissions, 'generar', {
-        membershipRole: org.role,
+        membershipRole: org.role, sessionRole: req.user!.role,
         isCreator: existing.createdById === req.user!.userId,
         status: existing.status,
       })

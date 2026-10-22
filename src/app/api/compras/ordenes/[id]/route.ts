@@ -24,7 +24,7 @@ async function getHandler(
 
     if (
       !canOrdenAction(permissions, 'read', {
-        membershipRole: org.role,
+        membershipRole: org.role, sessionRole: req.user!.role,
         isCreator: orden.createdById === req.user!.userId,
       })
     ) {
@@ -50,7 +50,7 @@ async function patchHandler(
 
     if (
       !canOrdenAction(permissions, 'update', {
-        membershipRole: org.role,
+        membershipRole: org.role, sessionRole: req.user!.role,
         isCreator: existing.createdById === req.user!.userId,
         status: existing.status,
       })
@@ -90,7 +90,7 @@ async function deleteHandler(
 
     if (
       !canOrdenAction(permissions, 'delete', {
-        membershipRole: org.role,
+        membershipRole: org.role, sessionRole: req.user!.role,
         isCreator: existing.createdById === req.user!.userId,
         status: existing.status,
       })
