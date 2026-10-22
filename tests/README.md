@@ -39,7 +39,7 @@ tests/
 ## Test framework rules
 
 - Vitest globals (`describe`, `it`, `expect`) are available via
-  `vitest.setup.ts`. Do not import them per file.
+  `tests/setup.ts`. Do not import them per file.
 - `vi.hoisted` mocks are allowed at the top of the file only.
 - Tests must run with `pnpm test`. They must not depend on file order.
 - Coverage thresholds (`lines:60, functions:60, statements:60, branches:50`)

@@ -1,12 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import {
-  APPLICATION_LAYER_BASELINE,
-  PRISMA_IN_PRESENTATION_BASELINE,
-  PRISMA_OUTSIDE_INFRASTRUCTURE_BASELINE,
-} from '../../eslint.architecture-baseline.mjs';
-
 // ADR 003 — docs/adr/003-arquitectura-monolito-modular.md
 const ROOT = resolve(__dirname, '../..');
 
@@ -31,10 +25,8 @@ describe('ADR 003 · src/lib congelado', () => {
 });
 
 describe('ADR 003 · listas de excepciones en cero', () => {
-  it('las tres listas están vacías', () => {
-    expect(PRISMA_IN_PRESENTATION_BASELINE).toEqual([]);
-    expect(PRISMA_OUTSIDE_INFRASTRUCTURE_BASELINE).toEqual([]);
-    expect(APPLICATION_LAYER_BASELINE).toEqual([]);
+  it('eslint.architecture-baseline.mjs no debe existir (excepciones por archivo prohibidas)', () => {
+    expect(existsSync(join(ROOT, 'eslint.architecture-baseline.mjs'))).toBe(false);
   });
 
   it('eslint.config.mjs aplica las reglas sin excepciones por archivo', () => {

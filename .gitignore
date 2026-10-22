@@ -20,6 +20,10 @@ yarn-debug.log*
 yarn-error.log*
 
 # Archivos locales
+*.patch
+.phase5-tools/
+.minimax/
+scratch_*.log
 .DS_Store
 *.pem
 
