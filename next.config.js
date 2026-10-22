@@ -7,6 +7,18 @@ const nextConfig = {
   // Keep it external so the production server executes the package as a
   // normal Node dependency.
   serverExternalPackages: ['exceljs'],
+  async redirects() {
+    return [
+      { source: '/equipment', destination: '/activos/equipos', permanent: false },
+      { source: '/equipment/:path*', destination: '/activos/equipos/:path*', permanent: false },
+      { source: '/assignments', destination: '/activos/asignaciones', permanent: false },
+      { source: '/assignments/:path*', destination: '/activos/asignaciones/:path*', permanent: false },
+      { source: '/equipment-disposal', destination: '/activos/bajas', permanent: false },
+      { source: '/equipment-disposal/:path*', destination: '/activos/bajas/:path*', permanent: false },
+      { source: '/ti/licencias', destination: '/activos/licencias', permanent: false },
+      { source: '/ti/licencias/:path*', destination: '/activos/licencias/:path*', permanent: false },
+    ];
+  },
   async rewrites() {
     return [{ source: '/favicon.ico', destination: '/icon' }];
   },

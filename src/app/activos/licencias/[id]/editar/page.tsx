@@ -86,7 +86,7 @@ export default function EditLicensePage() {
         paymentDay: values.paymentDay || null,
         status: values.status,
       });
-      router.push(`/ti/licencias/${params.id}`);
+      router.push(`/activos/licencias/${params.id}`);
     } catch (reason) {
       const message = (reason as { response?: { data?: { error?: { message?: string } } } }).response?.data?.error?.message;
       setError(message ?? 'No se pudo guardar la licencia.');
@@ -102,9 +102,9 @@ export default function EditLicensePage() {
           title="Editar licencia"
           description="Actualiza plan, facturación, asientos contratados y estado administrativo."
           breadcrumbs={[
-            { label: 'Activos', href: '/equipment' },
-            { label: 'Licencias', href: '/ti/licencias' },
-            { label: 'Detalle', href: `/ti/licencias/${params.id}` },
+            { label: 'Activos', href: '/activos/equipos' },
+            { label: 'Licencias', href: '/activos/licencias' },
+            { label: 'Detalle', href: `/activos/licencias/${params.id}` },
             { label: 'Editar' },
           ]}
           primaryAction={
@@ -114,7 +114,7 @@ export default function EditLicensePage() {
           }
           secondaryActions={
             <Button type="button" variant="outline" asChild>
-              <Link href={`/ti/licencias/${params.id}`}>Volver al detalle</Link>
+              <Link href={`/activos/licencias/${params.id}`}>Volver al detalle</Link>
             </Button>
           }
         />

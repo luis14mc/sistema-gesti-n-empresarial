@@ -77,15 +77,15 @@ export const NAV_ITEMS: NavItem[] = [
   // Activos
   {
     label: 'Activos',
-    href: '/equipment',
+    href: '/activos/equipos',
     icon: Monitor,
     module: 'equipment',
     children: [
-      { label: 'Equipos', href: '/equipment', module: 'equipment' },
-      { label: 'Asignaciones', href: '/assignments', module: 'assignments' },
-      { label: 'Baja de equipos', href: '/equipment-disposal', module: 'equipment' },
-      { label: 'Licencias', href: '/ti/licencias', module: 'software-licenses' },
-      { label: 'Registrar licencia', href: '/ti/licencias/nueva', module: 'software-licenses' },
+      { label: 'Equipos', href: '/activos/equipos', module: 'equipment' },
+      { label: 'Asignaciones', href: '/activos/asignaciones', module: 'assignments' },
+      // PR B: { label: 'Mantenimiento', href: '/activos/mantenimiento', module: 'equipment' },
+      { label: 'Licencias', href: '/activos/licencias', module: 'software-licenses' },
+      { label: 'Bajas', href: '/activos/bajas', module: 'equipment' },
     ],
   },
 

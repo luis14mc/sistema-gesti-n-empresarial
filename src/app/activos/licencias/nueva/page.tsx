@@ -35,7 +35,7 @@ export default function RegisterLicensePage() {
         paymentDay: values.paymentDay || null,
       });
       const id = response.data.data.id as string;
-      router.push(`/ti/licencias/${id}`);
+      router.push(`/activos/licencias/${id}`);
     } catch {
       setError('No se pudo registrar la licencia. Revisa los datos e inténtalo de nuevo.');
     } finally {
@@ -50,8 +50,8 @@ export default function RegisterLicensePage() {
           title="Registrar licencia"
           description="Crea el producto, la suscripción y los asientos disponibles. Las personas se asignan después, desde el detalle."
           breadcrumbs={[
-            { label: 'Activos', href: '/equipment' },
-            { label: 'Licencias', href: '/ti/licencias' },
+            { label: 'Activos', href: '/activos/equipos' },
+            { label: 'Licencias', href: '/activos/licencias' },
             { label: 'Registrar' },
           ]}
           primaryAction={
@@ -60,7 +60,7 @@ export default function RegisterLicensePage() {
             </Button>
           }
           secondaryActions={
-            <Button type="button" variant="outline" onClick={() => router.push('/ti/licencias')}>
+            <Button type="button" variant="outline" onClick={() => router.push('/activos/licencias')}>
               Cancelar
             </Button>
           }

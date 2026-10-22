@@ -117,14 +117,14 @@ export default function SoftwareLicenseDetailPage() {
             : 'Cargando'
         }
         breadcrumbs={[
-          { label: 'Activos', href: '/equipment' },
-          { label: 'Licencias', href: '/ti/licencias' },
+          { label: 'Activos', href: '/activos/equipos' },
+          { label: 'Licencias', href: '/activos/licencias' },
           { label: detail?.product.name ?? 'Detalle' },
         ]}
         primaryAction={
           detail ? (
             <Button asChild>
-              <Link href={`/ti/licencias/${detail.id}/editar`}>Editar suscripción</Link>
+              <Link href={`/activos/licencias/${detail.id}/editar`}>Editar suscripción</Link>
             </Button>
           ) : undefined
         }
