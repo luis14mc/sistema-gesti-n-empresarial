@@ -6,8 +6,10 @@
 
 import { access, mkdir, writeFile, unlink, readFile } from 'fs/promises';
 import { constants } from 'fs';
+import { existsSync } from 'fs';
 import path from 'path';
 import { randomUUID } from 'crypto';
+import { buildObjectKey } from './object-key';
 import type { PutObjectInput, PutObjectResult, StorageAdapter } from './types';
 
 const DEFAULT_BASE = path.join(process.cwd(), 'public');
@@ -30,10 +32,6 @@ export class LocalStorageAdapter implements StorageAdapter {
     return this.options.publicPrefix ?? '/uploads';
   }
 
-  private sanitizeFilename(name: string): string {
-    return name.replace(/[/\\?%*:|"<>]/g, '_').replace(/\s+/g, '_');
-  }
-
   private resolveKey(key: string): string {
     const root = path.resolve(this.baseDir);
     const resolved = path.resolve(root, key.replace(/^[/\\]+/, ''));
@@ -49,35 +47,43 @@ export class LocalStorageAdapter implements StorageAdapter {
   }
 
   async put(input: PutObjectInput): Promise<PutObjectResult> {
-    const ext = this.getExtension(input.originalName);
     const now = new Date();
-    const year = String(now.getFullYear());
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const timestamp = now.toISOString().replace(/[:.]/g, '-');
+    let objectId: string | undefined;
 
-    const desired = input.desiredName
-      ? this.sanitizeFilename(input.desiredName)
-      : `${prefixSlug(input.prefix)}-${timestamp}-${randomUUID()}${ext}`;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (attempt === 1) {
+        objectId = randomUUID();
+      }
+      const { key: logicalKey, filename } = buildObjectKey(input.prefix, input, { objectId });
+      const key = path
+        .join(this.publicPrefix.replace(/^\//, ''), logicalKey)
+        .replace(/\\/g, '/');
 
-    const relativeDir = path.join(this.publicPrefix.replace(/^\//, ''), input.prefix, year, month);
-    const absoluteDir = this.resolveKey(relativeDir);
-    await mkdir(absoluteDir, { recursive: true });
+      const relativeDir = path.dirname(key);
+      const absoluteDir = this.resolveKey(relativeDir);
+      await mkdir(absoluteDir, { recursive: true });
 
-    const absolutePath = path.join(absoluteDir, desired);
-    await writeFile(absolutePath, input.buffer);
+      const absolutePath = path.join(absoluteDir, filename);
+      if (!input.overwrite && existsSync(absolutePath)) {
+        if (attempt === 0) continue;
+        throw new Error('STORAGE_KEY_COLLISION');
+      }
 
-    const relativePath = path.join(relativeDir, desired).replace(/\\/g, '/');
-    const url = `/${relativePath}`;
-    const key = relativePath;
+      await writeFile(absolutePath, input.buffer);
 
-    return {
-      key,
-      url,
-      filename: desired,
-      mimeType: input.mimeType,
-      size: input.size,
-      uploadedAt: now.toISOString(),
-    };
+      const url = `/${key.replace(/^\/+/, '')}`;
+
+      return {
+        key,
+        url,
+        filename,
+        mimeType: input.mimeType,
+        size: input.size,
+        uploadedAt: now.toISOString(),
+      };
+    }
+
+    throw new Error('STORAGE_PUT_FAILED');
   }
 
   async remove(key: string): Promise<void> {
@@ -106,10 +112,6 @@ export class LocalStorageAdapter implements StorageAdapter {
     await mkdir(uploadRoot, { recursive: true });
     await access(uploadRoot, constants.R_OK | constants.W_OK);
   }
-}
-
-function prefixSlug(prefix: string): string {
-  return prefix.replace(/[^a-zA-Z0-9-_]/g, '-').replace(/-+/g, '-');
 }
 
 function mimeFromExtension(ext: string): string {

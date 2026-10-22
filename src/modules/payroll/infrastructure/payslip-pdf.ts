@@ -212,6 +212,7 @@ export async function renderAndStorePayslipPdf(input: PayslipPdfInput): Promise<
     size: buffer.length,
     buffer,
     desiredName: `${input.employeeId}.pdf`,
+    overwrite: true,
   });
   return stored.key;
 }

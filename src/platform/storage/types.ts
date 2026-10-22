@@ -42,9 +42,14 @@ export interface PutObjectInput {
    */
   buffer: Buffer | Uint8Array;
   /**
-   * Opcional: nombre final deseado. Si no se da, se genera UUID.
+   * Opcional: nombre legible para componer la clave (se prefija UUID salvo overwrite).
    */
   desiredName?: string;
+  /**
+   * Si true, usa desiredName como nombre de objeto (reemplazo intencional).
+   * Solo boletas de planilla y PDF regenerable de orden de compra.
+   */
+  overwrite?: boolean;
 }
 
 export interface GetObjectResult {

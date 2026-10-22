@@ -11,6 +11,8 @@ import {
   updateMaintenanceInTransaction,
 } from '@/modules/equipment/infrastructure/equipment-repository';
 import { maintenanceScope } from '@/modules/equipment/application/tenant';
+import { equipmentDocumentKeyFromUrl } from '@/modules/equipment/infrastructure/equipment-document-access';
+import { removeStoredDocument } from '@/modules/purchases/infrastructure/purchase-order-document-access';
 import {
   maintenanceCreateSchema,
   maintenanceUpdateSchema,
@@ -185,7 +187,21 @@ export async function deleteMaintenanceRecord(params: {
   const current = await findMaintenanceRecord(params.id, params.organizationId);
   if (!current) return { kind: 'not_found' as const };
 
+  const documentKey = current.documentUrl
+    ? equipmentDocumentKeyFromUrl(current.documentUrl)
+    : null;
+
   await deleteMaintenance(params.id, params.organizationId);
+
+  if (documentKey) {
+    await removeStoredDocument(documentKey).catch((error) => {
+      console.error('[EQUIPMENT] Failed to remove maintenance document after DB delete', {
+        maintenanceId: params.id,
+        storageKey: documentKey,
+        error,
+      });
+    });
+  }
 
   await createAuditRecord({
     title: 'Eliminación de mantenimiento',

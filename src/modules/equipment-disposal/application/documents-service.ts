@@ -49,8 +49,21 @@ export const disposalDocumentsService = {
   async remove(context: OrganizationContext, id: string, documentId: string, requestId: string) {
     const document = await findDraftDisposalDocument(context.organizationId, id, documentId);
     if (!document) throw new EquipmentDisposalError('DISPOSAL_DOCUMENT_NOT_FOUND', 404);
-    await deleteDisposalDocumentRecord({ organizationId: context.organizationId, disposalId: id, userId: context.userId, requestId, document, documentId });
-    await removeStoredDocument(document.storageKey);
+    await deleteDisposalDocumentRecord({
+      organizationId: context.organizationId,
+      disposalId: id,
+      userId: context.userId,
+      requestId,
+      document,
+      documentId,
+    });
+    await removeStoredDocument(document.storageKey).catch((error) => {
+      console.error('[DISPOSAL] Failed to remove stored document after DB delete', {
+        documentId,
+        storageKey: document.storageKey,
+        error,
+      });
+    });
   },
 
   async read(context: OrganizationContext, id: string, documentId: string) {

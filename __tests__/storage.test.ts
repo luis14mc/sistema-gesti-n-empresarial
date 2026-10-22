@@ -33,7 +33,7 @@ describe('LocalStorageAdapter', () => {
     });
 
     expect(result.url).toMatch(/^\/uploads\/oficios\/\d{4}\/\d{2}\//);
-    expect(result.filename).toMatch(/\.pdf$/);
+    expect(result.filename).toMatch(/^[0-9a-f-]{36}-.*\.pdf$/i);
     expect(result.size).toBe(12);
     expect(existsSync(join(tmpDir, result.url.replace(/^\//, '')))).toBe(true);
   });
@@ -54,6 +54,7 @@ describe('LocalStorageAdapter', () => {
     });
 
     expect(result.filename).not.toMatch(/[ ?%*:|"<>]/);
+    expect(result.filename).toMatch(/^[0-9a-f-]{36}-/);
     expect(existsSync(join(tmpDir, result.key))).toBe(true);
   });
 
