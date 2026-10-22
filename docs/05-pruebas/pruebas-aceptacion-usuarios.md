@@ -1,5 +1,12 @@
 # Pruebas de aceptación (usuarios)
 
+> **⚠️ IMPORTANTE — numeración oficial**
+>
+> - Las pruebas se hacen en el **sistema REAL**. Crear un oficio de **SALIDA** o **GENERAR** una orden de compra consume un **número correlativo oficial** que **no se puede reutilizar**.
+> - Para esos pasos use un trámite **REAL del día** (un oficio u orden que de todos modos había que hacer), **NO** uno inventado.
+> - Si se generó uno de prueba por error, **anúlelo de inmediato** y anote el número en **Comentario** para dejar constancia.
+> - **Proveedores**, **usuarios** y **borradores** de prueba sí se pueden crear con datos ficticios y desactivar después.
+
 Use esta lista para validar el sistema **antes de la entrega**. Marque **¿OK?** (Sí / No) y anote comentarios si algo falla.
 
 > **Roles sugeridos:** use una cuenta de prueba por rol indicado. Si no tiene acceso a un módulo, anótelo en Comentario.
