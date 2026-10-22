@@ -11,7 +11,9 @@ import {
   listActiveDepartmentsWithPositions,
   listEmployees,
   updateEmployee,
+  findEmployeeActiveAssetSummary,
 } from '@/modules/people/infrastructure/employee-repository';
+import { EmployeeHasActiveAssetsError } from '@/modules/people/domain/errors';
 
 const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
 
@@ -108,6 +110,14 @@ export async function updateEmployeeFields(
   for (const field of ['employeeCode', 'departmentId', 'positionId']) {
     if (data[field] !== undefined && !String(data[field]).trim()) {
       return { kind: 'invalid', error: `${field} es obligatorio` };
+    }
+  }
+
+  const deactivating = data.isActive === false && current.isActive !== false;
+  if (deactivating) {
+    const assets = await findEmployeeActiveAssetSummary(organizationId, id);
+    if (assets.equipos.length > 0 || assets.licencias.length > 0) {
+      throw new EmployeeHasActiveAssetsError(assets);
     }
   }
 

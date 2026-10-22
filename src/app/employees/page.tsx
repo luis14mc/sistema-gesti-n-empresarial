@@ -145,8 +145,16 @@ export default function EmployeesPage() {
       sileo.success({
         title: employee.isActive ? 'Empleado desactivado' : 'Empleado activado',
       });
-    } catch {
-      sileo.error({ title: 'Error', description: 'No se pudo actualizar el empleado' });
+    } catch (err: unknown) {
+      const data = (err as { response?: { data?: { error?: string; equipos?: string[]; licencias?: string[] } } })
+        .response?.data;
+      const parts: string[] = [];
+      if (data?.equipos?.length) parts.push(`Equipos: ${data.equipos.join(', ')}`);
+      if (data?.licencias?.length) parts.push(`Licencias: ${data.licencias.join(', ')}`);
+      sileo.error({
+        title: 'No se pudo desactivar',
+        description: parts.length > 0 ? `${data?.error ?? ''} ${parts.join(' · ')}`.trim() : (data?.error ?? 'No se pudo actualizar el empleado'),
+      });
     }
   };
 

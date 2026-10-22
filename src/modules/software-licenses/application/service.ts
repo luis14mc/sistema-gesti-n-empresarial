@@ -23,6 +23,12 @@ import {
   summarizeSeats,
   type SeatOccupancy,
 } from '@/modules/software-licenses/domain/seats';
+import {
+  LicenseDomainError,
+  seatBlockedWithAssignmentsError,
+  subscriptionCancelBlockedError,
+  subscriptionNotAssignableError,
+} from '@/modules/software-licenses/domain/errors';
 
 function money(value: number) {
   return new Prisma.Decimal(value.toFixed(2));
@@ -91,6 +97,10 @@ export async function updateSoftwareSubscription(id: string, input: UpdateSubscr
   const costChanged = input.billingAmount !== undefined && input.billingAmount !== Number(existing.billingAmount);
   const renewalChanged = input.renewalDate !== undefined && input.renewalDate !== existing.renewalDate?.toISOString().slice(0, 10);
   return runLicenseTransaction(async (store) => {
+    if (input.status === 'CANCELLED' && existing.status !== 'CANCELLED') {
+      const activeAssignments = await store.countActiveAssignmentsForSubscription(id);
+      if (activeAssignments > 0) throw subscriptionCancelBlockedError();
+    }
     if (input.productName || input.vendor !== undefined || input.category !== undefined || input.active !== undefined) {
       await store.updateProduct(existing.productId, {
           name: input.productName,
@@ -166,9 +176,13 @@ export async function updateSoftwareSubscription(id: string, input: UpdateSubscr
   });
 }
 
+function licenseNotFound(code: string, message: string) {
+  return new LicenseDomainError(code, message, 404);
+}
+
 async function loadSeat(seatId: string, organizationId: string) {
   const seat = await findSeatWithAssignments(seatId, organizationId);
-  if (!seat) throw new Error('SEAT_NOT_FOUND');
+  if (!seat) throw licenseNotFound('SEAT_NOT_FOUND', 'El asiento no existe en esta organización.');
   return seat;
 }
 
@@ -201,8 +215,18 @@ export async function createSeat(subscriptionId: string, input: { accountEmail?:
 export async function updateSeat(seatId: string, input: { accountEmail?: string | null; accountIdentifier?: string | null; seatType?: 'INDIVIDUAL' | 'SHARED'; status?: SeatOccupancy['status']; notes?: string | null }, organizationId: string, userId: string) {
   const seat = await loadSeat(seatId, organizationId);
   const current = occupancy(seat);
+  if (
+    (input.status === 'SUSPENDED' || input.status === 'CANCELLED')
+    && seat.assignments.length > 0
+  ) {
+    throw seatBlockedWithAssignmentsError();
+  }
   if (input.seatType === 'INDIVIDUAL' && !canConvertToIndividual({ ...current, seatType: 'SHARED' }) && current.seatType === 'SHARED') {
-    throw new Error('SHARED_SEAT_HAS_MULTIPLE_ASSIGNMENTS');
+    throw new LicenseDomainError(
+      'SHARED_SEAT_HAS_MULTIPLE_ASSIGNMENTS',
+      'Un asiento compartido con varias personas no puede volver a individual.',
+      409,
+    );
   }
   let status = input.status ?? effectiveSeatStatus(current);
   if (input.status === 'SUSPENDED' || input.status === 'CANCELLED' || input.status === 'AVAILABLE') status = input.status;
@@ -235,21 +259,53 @@ export async function updateSeat(seatId: string, input: { accountEmail?: string 
 }
 
 export async function assignSeat(seatId: string, employeeId: string, organizationId: string, userId: string, notes?: string | null, replaceAssignmentId?: string) {
-  const seat = await loadSeat(seatId, organizationId);
   const employee = await findOrganizationEmployee(employeeId, organizationId);
-  if (!employee) throw new Error('EMPLOYEE_NOT_FOUND');
-  assertSameOrganization(employee.organizationId, seat.subscription.organizationId);
-  if (!employee.isActive) throw new Error('EMPLOYEE_INACTIVE');
-  const current = occupancy(seat);
-  if (replaceAssignmentId) {
-    const target = seat.assignments.find((assignment) => assignment.id === replaceAssignmentId);
-    if (!target) throw new Error('ASSIGNMENT_NOT_FOUND');
-  } else if (!canAssignSeat(current)) {
-    throw new Error('SEAT_NOT_ASSIGNABLE');
+  if (!employee) throw licenseNotFound('EMPLOYEE_NOT_FOUND', 'El empleado no existe en esta organización.');
+  if (!employee.isActive) {
+    throw new LicenseDomainError('EMPLOYEE_INACTIVE', 'Solo se pueden asignar empleados activos.', 409);
   }
-  if (seat.assignments.some((assignment) => assignment.employeeId === employeeId)) throw new Error('EMPLOYEE_ALREADY_ASSIGNED');
-  const shared = seat.seatType === 'SHARED' || current.activeAssignments > 0;
+
   return runLicenseTransaction(async (store) => {
+    const locked = await store.lockSeatForUpdate(seatId, organizationId);
+    if (!locked) throw licenseNotFound('SEAT_NOT_FOUND', 'El asiento no existe en esta organización.');
+
+    const seat = await store.findSeatWithAssignmentsInTx(seatId, organizationId);
+    if (!seat) throw licenseNotFound('SEAT_NOT_FOUND', 'El asiento no existe en esta organización.');
+
+    assertSameOrganization(employee.organizationId, seat.subscription.organizationId);
+
+    if (seat.subscription.status !== 'ACTIVE') {
+      throw subscriptionNotAssignableError('SUSPENDED');
+    }
+    const displayStatus = displaySubscriptionStatus(
+      seat.subscription.status,
+      seat.subscription.renewalDate,
+      new Date(),
+      seat.subscription.expiringSoonDays,
+    );
+    if (displayStatus === 'EXPIRED') {
+      throw subscriptionNotAssignableError('EXPIRED');
+    }
+
+    const current = occupancy(seat);
+    if (replaceAssignmentId) {
+      const target = seat.assignments.find((assignment) => assignment.id === replaceAssignmentId);
+      if (!target) {
+        throw licenseNotFound('ASSIGNMENT_NOT_FOUND', 'La asignación no existe o ya fue cerrada.');
+      }
+    } else if (!canAssignSeat(current)) {
+      throw new LicenseDomainError('SEAT_NOT_ASSIGNABLE', 'El asiento no admite otra asignación.', 409);
+    }
+    if (seat.assignments.some((assignment) => assignment.employeeId === employeeId)) {
+      throw new LicenseDomainError(
+        'EMPLOYEE_ALREADY_ASSIGNED',
+        'Ese empleado ya tiene una asignación activa en el asiento.',
+        409,
+      );
+    }
+
+    const shared = seat.seatType === 'SHARED' || current.activeAssignments > 0;
+
     if (replaceAssignmentId) {
       await store.closeAssignment(replaceAssignmentId, userId);
       await store.audit({
@@ -258,7 +314,10 @@ export async function assignSeat(seatId: string, employeeId: string, organizatio
       });
     }
     const assignment = await store.createAssignment({ seatId, employeeId, assignedById: userId, notes: notes || null });
-    await store.updateSeat(seatId, { status: 'ASSIGNED', seatType: shared && !replaceAssignmentId && current.activeAssignments > 0 ? 'SHARED' : seat.seatType });
+    await store.updateSeat(seatId, {
+      status: 'ASSIGNED',
+      seatType: shared && !replaceAssignmentId && current.activeAssignments > 0 ? 'SHARED' : seat.seatType,
+    });
     await store.audit({
       organizationId, userId,
       action: seat.seatType === 'SHARED' || shared ? 'SHARED_ASSIGNMENT_ADDED' : 'SEAT_ASSIGNED',

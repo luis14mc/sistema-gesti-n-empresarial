@@ -3,7 +3,7 @@ import { withAuth, AuthenticatedRequest } from '@/platform/api/with-auth';
 import { getEmployeeDetail, updateEmployeeFields } from '@/modules/people/application/employees-service';
 import { isOrganizationContextError } from '@/modules/organizations/application/context';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
-import { PermissionDeniedError } from '@/platform/domain/errors';
+import { DomainError, PermissionDeniedError } from '@/platform/domain/errors';
 import type { Permission } from '@/platform/security/authorization/permissions';
 
 function patchPermission(data: Record<string, unknown>): Permission {
@@ -57,6 +57,16 @@ async function patchHandler(
     console.error('Error al actualizar empleado:', error);
     if (error instanceof PermissionDeniedError) {
       return NextResponse.json({ error: error.message }, { status: 403 });
+    }
+    if (error instanceof DomainError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          code: error.code,
+          ...(error.details && typeof error.details === 'object' ? error.details : {}),
+        },
+        { status: error.httpStatus },
+      );
     }
     if (isOrganizationContextError(error)) {
       return NextResponse.json({ error: error.message }, { status: error.status });

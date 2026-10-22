@@ -41,16 +41,6 @@ async function patchHandler(
       data,
     });
 
-    if (result.kind === 'not_found') {
-      return NextResponse.json({ error: 'Equipo no encontrado' }, { status: 404 });
-    }
-    if (result.kind === 'use_disposal_flow') {
-      return NextResponse.json(
-        { error: 'Use el flujo de dictamen técnico para dar de baja el equipo.' },
-        { status: 409 },
-      );
-    }
-
     return NextResponse.json({ equipment: result.equipment });
   } catch (error) {
     console.error('Error al actualizar equipo:', error);

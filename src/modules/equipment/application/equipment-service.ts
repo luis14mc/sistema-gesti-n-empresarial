@@ -19,6 +19,8 @@ import { buildEquipmentExport } from '@/modules/equipment/import-export/equipmen
 import type { EquipmentInput } from '@/modules/equipment/import-export/schemas';
 import type { EquipmentStatus } from '@prisma/client';
 import { EQUIPMENT_EXCEL_TYPES } from '@/modules/equipment/import-export/types';
+import { assertManualEquipmentStatusUpdate } from '@/modules/equipment/domain/equipment-status-manual';
+import { EntityNotFoundError } from '@/platform/domain/errors';
 
 export async function listEquipment(params: {
   organizationId: string;
@@ -110,7 +112,7 @@ export async function getEquipment(id: string, organizationId: string) {
 }
 
 const UPDATE_ALLOWED_FIELDS = [
-  'type', 'category', 'brand', 'model', 'serialNumber', 'status',
+  'type', 'category', 'brand', 'model', 'serialNumber',
   'ram', 'processor', 'storage', 'os', 'includedAccessories', 'installedSoftware', 'purchaseDate', 'purchaseOrder',
   'supplier', 'warrantyDate', 'cost', 'ipAddress', 'macAddress',
   'location', 'notes', 'retirementReason',
@@ -123,22 +125,29 @@ export async function updateEquipment(params: {
   data: Record<string, unknown>;
 }) {
   const current = await findEquipmentForUpdate(params.id, params.organizationId);
-  if (!current) return { kind: 'not_found' as const };
-  if (params.data.status === 'RETIRED' || params.data.status === 'DISPOSED') {
-    return { kind: 'use_disposal_flow' as const };
-  }
+  if (!current) throw new EntityNotFoundError('Equipo no encontrado.');
+
+  const hasActiveAssignment = current.assignments.length > 0;
+  const hasOpenMaintenance = current.maintenances.length > 0;
+  const manualStatus = assertManualEquipmentStatusUpdate({
+    requested: params.data.status,
+    current: current.status,
+    hasActiveAssignment,
+    hasOpenMaintenance,
+  });
 
   const updateData: Record<string, unknown> = {};
   UPDATE_ALLOWED_FIELDS.forEach((field) => {
     if (params.data[field] !== undefined) updateData[field] = params.data[field];
   });
+  if (manualStatus !== undefined) updateData.status = manualStatus;
   if (updateData.cost != null && typeof updateData.cost === 'number') {
     updateData.cost = new Prisma.Decimal(updateData.cost);
   }
 
   const equipment = await updateEquipmentRecord(params.id, params.organizationId, updateData);
 
-  const action = params.data.status && params.data.status !== current.status ? 'STATUS_CHANGED' : 'UPDATED';
+  const action = manualStatus && manualStatus !== current.status ? 'STATUS_CHANGED' : 'UPDATED';
   await logEquipmentHistory({
     equipmentId: equipment.id,
     action,
