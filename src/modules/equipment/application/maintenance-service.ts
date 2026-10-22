@@ -25,6 +25,7 @@ export async function listMaintenanceRecords(params: {
   const equipmentId = params.searchParams.get('equipmentId');
   const status = params.searchParams.get('status');
   const type = params.searchParams.get('type');
+  const search = params.searchParams.get('search')?.trim();
   const page = Math.max(1, parseInt(params.searchParams.get('page') || '1') || 1);
   const pageSize = Math.min(Math.max(1, parseInt(params.searchParams.get('pageSize') || '10') || 10), 100);
   const skip = (page - 1) * pageSize;
@@ -33,6 +34,16 @@ export async function listMaintenanceRecords(params: {
   if (equipmentId) where.equipmentId = equipmentId;
   if (status) where.status = status as Prisma.EnumMaintenanceStatusFilter;
   if (type) where.type = type as Prisma.EnumMaintenanceTypeFilter;
+  if (search) {
+    where.equipment = {
+      organizationId: params.organizationId,
+      OR: [
+        { inventoryCode: { contains: search, mode: 'insensitive' } },
+        { brand: { contains: search, mode: 'insensitive' } },
+        { model: { contains: search, mode: 'insensitive' } },
+      ],
+    };
+  }
 
   const [maintenances, total] = await Promise.all([
     listMaintenances(where, skip, pageSize),

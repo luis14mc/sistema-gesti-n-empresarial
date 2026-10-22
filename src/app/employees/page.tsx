@@ -151,9 +151,10 @@ export default function EmployeesPage() {
       const parts: string[] = [];
       if (data?.equipos?.length) parts.push(`Equipos: ${data.equipos.join(', ')}`);
       if (data?.licencias?.length) parts.push(`Licencias: ${data.licencias.join(', ')}`);
+      const detail = parts.length > 0 ? `${data?.error ?? ''} ${parts.join(' · ')}`.trim() : (data?.error ?? 'No se pudo actualizar el empleado');
       sileo.error({
         title: 'No se pudo desactivar',
-        description: parts.length > 0 ? `${data?.error ?? ''} ${parts.join(' · ')}`.trim() : (data?.error ?? 'No se pudo actualizar el empleado'),
+        description: `${detail} Revise sus activos en Activos → Por empleado (/activos/por-empleado?employeeId=${employee.id}).`,
       });
     }
   };

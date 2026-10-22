@@ -20,6 +20,8 @@ export const ROUTE_PATH_TO_MODULE: Record<string, ModuleId> = {
   '/activos/bajas': 'equipment',
   '/activos/asignaciones': 'assignments',
   '/activos/licencias': 'software-licenses',
+  '/activos/mantenimiento': 'equipment',
+  '/activos/por-empleado': 'equipment',
   '/employees': 'employees',
   '/purchases': 'purchases',
   '/compras': 'purchases',

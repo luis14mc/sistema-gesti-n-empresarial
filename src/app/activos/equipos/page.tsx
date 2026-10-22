@@ -6,6 +6,7 @@
 // CRUD: crear, ver detalle, editar, eliminar, cambiar estado
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -42,6 +43,7 @@ import { AssignmentNoteContent } from '@/components/equipment/AssignmentNoteCont
 import { ReturnNoteContent } from '@/components/equipment/ReturnNoteContent';
 import { EquipmentFileUpload } from '@/components/equipment/EquipmentFileUpload';
 import { EquipmentExcelActions } from '@/components/equipment/EquipmentExcelActions';
+import { MaintenanceWorkflowActions } from '@/components/equipment/MaintenanceWorkflowActions';
 import { equipmentAssignmentsService } from '@/services/equipment-assignments.service';
 import { canAccess } from '@/platform/security/session-module-access';
 import { sileo } from 'sileo';
@@ -162,6 +164,7 @@ function isComputerType(type: string) {
 // ============================================
 
 export default function EquipmentPage() {
+    const searchParams = useSearchParams();
     const { user } = useAuth();
     const [search, setSearch] = useState('');
     const debouncedSearch = useDebounce(search, 500);
@@ -190,6 +193,11 @@ export default function EquipmentPage() {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [selectedEquipmentId, setSelectedEquipmentId] = useState<string | null>(null);
     const sheetOpen = selectedEquipmentId !== null;
+
+    useEffect(() => {
+        const id = searchParams.get('id');
+        if (id) setSelectedEquipmentId(id);
+    }, [searchParams]);
 
     const role = (user?.role ?? 'USER') as Role;
     const canCreate = canAccess(role, 'equipment', 'create');
@@ -632,10 +640,7 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
     const handleMaintenanceStatusChange = async (
         maintenanceId: string,
         nextStatus: 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED',
-        confirm: { title: string; text: string },
     ) => {
-        const result = await swalConfirm(confirm.title, confirm.text, 'Confirmar');
-        if (!result.isConfirmed) return;
         try {
             await updateMaintenance({ maintenanceId, data: { status: nextStatus } });
             await refetch();
@@ -645,6 +650,7 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
                 title: 'Error',
                 description: equipmentApiErrorMessage(err, 'No se pudo actualizar el mantenimiento'),
             });
+            throw err;
         }
     };
 
@@ -971,65 +977,16 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
                                         ? `Programado: ${format(new Date(m.scheduledDate), 'dd/MM/yyyy', { locale: es })}`
                                         : 'Sin fecha programada'}
                                 </p>
-                                {canUpdate && (m.status === 'SCHEDULED' || m.status === 'IN_PROGRESS') && (
-                                    <div className="mt-3 flex flex-wrap gap-2">
-                                        {m.status === 'SCHEDULED' && (
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                className="h-8"
-                                                disabled={isUpdatingMaintenance}
-                                                onClick={() => void handleMaintenanceStatusChange(
-                                                    m.id,
-                                                    'IN_PROGRESS',
-                                                    {
-                                                        title: '¿Iniciar mantenimiento?',
-                                                        text: 'El equipo quedará en estado En mantenimiento.',
-                                                    },
-                                                )}
-                                            >
-                                                Iniciar
-                                            </Button>
-                                        )}
-                                        {m.status === 'IN_PROGRESS' && (
-                                            <Button
-                                                type="button"
-                                                variant="default"
-                                                size="sm"
-                                                className="h-8"
-                                                disabled={isUpdatingMaintenance}
-                                                onClick={() => void handleMaintenanceStatusChange(
-                                                    m.id,
-                                                    'COMPLETED',
-                                                    {
-                                                        title: '¿Completar mantenimiento?',
-                                                        text: 'Se registrará como completado. Si no hay otros mantenimientos abiertos, el equipo volverá a Disponible.',
-                                                    },
-                                                )}
-                                            >
-                                                Completar
-                                            </Button>
-                                        )}
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-8 text-destructive hover:text-destructive"
+                                {canUpdate ? (
+                                    <div className="mt-3">
+                                        <MaintenanceWorkflowActions
+                                            maintenanceId={m.id}
+                                            status={m.status}
                                             disabled={isUpdatingMaintenance}
-                                            onClick={() => void handleMaintenanceStatusChange(
-                                                m.id,
-                                                'CANCELLED',
-                                                {
-                                                    title: '¿Cancelar mantenimiento?',
-                                                    text: 'El mantenimiento se marcará como cancelado.',
-                                                },
-                                            )}
-                                        >
-                                            Cancelar
-                                        </Button>
+                                            onStatusChange={handleMaintenanceStatusChange}
+                                        />
                                     </div>
-                                )}
+                                ) : null}
                             </div>
                         ))}
                     </div>
