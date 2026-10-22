@@ -1,8 +1,13 @@
 import { prisma } from '@/lib/prisma';
 
-export async function findEmployeeActiveAssetsDetail(organizationId: string, employeeId: string) {
-  const [equipmentAssignments, licenseAssignments] = await Promise.all([
-    prisma.equipmentAssignment.findMany({
+export async function findEmployeeActiveAssetsDetail(
+  organizationId: string,
+  employeeId: string,
+  options?: { includeLicenses?: boolean },
+) {
+  const includeLicenses = options?.includeLicenses ?? true;
+
+  const equipmentAssignmentsPromise = prisma.equipmentAssignment.findMany({
       where: {
         employeeId,
         status: 'ACTIVE',
@@ -24,33 +29,40 @@ export async function findEmployeeActiveAssetsDetail(organizationId: string, emp
           },
         },
       },
-    }),
-    prisma.licenseAssignment.findMany({
-      where: {
-        employeeId,
-        unassignedAt: null,
-        seat: { subscription: { organizationId } },
-      },
-      orderBy: { assignedAt: 'desc' },
-      select: {
-        id: true,
-        assignedAt: true,
-        seat: {
-          select: {
-            id: true,
-            accountEmail: true,
-            accountIdentifier: true,
-            subscription: {
-              select: {
-                id: true,
-                planName: true,
-                product: { select: { name: true } },
+    });
+
+  const licenseAssignmentsPromise = includeLicenses
+    ? prisma.licenseAssignment.findMany({
+        where: {
+          employeeId,
+          unassignedAt: null,
+          seat: { subscription: { organizationId } },
+        },
+        orderBy: { assignedAt: 'desc' },
+        select: {
+          id: true,
+          assignedAt: true,
+          seat: {
+            select: {
+              id: true,
+              accountEmail: true,
+              accountIdentifier: true,
+              subscription: {
+                select: {
+                  id: true,
+                  planName: true,
+                  product: { select: { name: true } },
+                },
               },
             },
           },
         },
-      },
-    }),
+      })
+    : Promise.resolve([]);
+
+  const [equipmentAssignments, licenseAssignments] = await Promise.all([
+    equipmentAssignmentsPromise,
+    licenseAssignmentsPromise,
   ]);
 
   return {

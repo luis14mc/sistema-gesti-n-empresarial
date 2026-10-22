@@ -147,10 +147,14 @@ export async function updateEmployeeFields(
   return { kind: 'ok', employee };
 }
 
-export async function getEmployeeActiveAssets(organizationId: string, employeeId: string) {
+export async function getEmployeeActiveAssets(
+  organizationId: string,
+  employeeId: string,
+  options?: { includeLicenses?: boolean },
+) {
   const employee = await findEmployee(organizationId, employeeId);
   if (!employee) return null;
-  const assets = await findEmployeeActiveAssetsDetail(organizationId, employeeId);
+  const assets = await findEmployeeActiveAssetsDetail(organizationId, employeeId, options);
   return {
     employee: {
       id: employee.id,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withAuth, AuthenticatedRequest } from '@/platform/api/with-auth';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
+import { canForOrganization } from '@/platform/security/authorization/effective-permissions';
 import { getEmployeeActiveAssets } from '@/modules/people/application/employees-service';
 import { PermissionDeniedError } from '@/platform/domain/errors';
 import { isOrganizationContextError } from '@/modules/organizations/application/context';
@@ -12,8 +13,14 @@ async function getHandler(
   const requestId = crypto.randomUUID();
   try {
     const { id } = await params;
-    const { organizationId } = await authorizeOrganization(req, requestId, 'equipment.read');
-    const result = await getEmployeeActiveAssets(organizationId, id);
+    const context = await authorizeOrganization(req, requestId, 'equipment.read');
+    const includeLicenses = await canForOrganization(
+      context.userId,
+      context.organizationId,
+      context.role,
+      'software-licenses.read',
+    );
+    const result = await getEmployeeActiveAssets(context.organizationId, id, { includeLicenses });
     if (!result) {
       return NextResponse.json({ error: 'Empleado no encontrado' }, { status: 404 });
     }
