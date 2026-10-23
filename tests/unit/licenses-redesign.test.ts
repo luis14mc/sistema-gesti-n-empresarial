@@ -9,10 +9,15 @@ import {
   type SeatOccupancy,
 } from '@/modules/software-licenses/domain/seats';
 import { maskLicenseKey } from '@/modules/software-licenses/domain/license-key';
+import { assertSeatFields } from '@/modules/software-licenses/domain/seats';
 import { LicenseDomainError } from '@/modules/software-licenses/domain/errors';
 
 const runLicenseTransactionMock = vi.fn();
 const findOrganizationEmployeeMock = vi.fn();
+
+vi.mock('@/platform/security/audit/audit-record', () => ({
+  createAuditRecord: vi.fn(async () => undefined),
+}));
 
 function buildStore() {
   let assignments = 0;
@@ -109,6 +114,12 @@ describe('licencias — dominio', () => {
     expect(maskLicenseKey(null)).toBeNull();
   });
 
+  it('DEVICE exige equipmentId al registrar', () => {
+    expect(() => assertSeatFields({ seatType: 'DEVICE', accountEmail: null, equipmentId: null })).toThrow(
+      'EQUIPMENT_REQUIRED',
+    );
+  });
+
   it('estado de vencimiento derivado', () => {
     const today = new Date('2026-10-01T00:00:00.000Z');
     const renewal = new Date('2026-10-20T00:00:00.000Z');
@@ -153,6 +164,14 @@ describe('assignSeat — reglas de rediseño', () => {
     });
   });
 
+  it('asignar no cambia seatType ni llama updateSeat', async () => {
+    const store = buildStore();
+    runLicenseTransactionMock.mockImplementation(async (work) => work(store));
+    const { assignSeat } = await import('@/modules/software-licenses/application/service');
+    await assignSeat('seat-1', 'emp-1', 'org-1', 'user-1');
+    expect(store.updateSeat).not.toHaveBeenCalled();
+  });
+
   it('Reasignar cierra y abre en una transacción', async () => {
     const store = buildStore();
     store.findSeatWithAssignmentsInTx.mockResolvedValue({
@@ -175,5 +194,101 @@ describe('assignSeat — reglas de rediseño', () => {
     expect(store.closeAssignment).toHaveBeenCalledWith('a1', 'user-1');
     expect(store.createAssignment).toHaveBeenCalled();
     expect(store.updateSeat).not.toHaveBeenCalled();
+  });
+});
+
+describe('registerSubscriptionRenewal', () => {
+  beforeEach(() => {
+    runLicenseTransactionMock.mockReset();
+    runLicenseTransactionMock.mockImplementation(async (work) =>
+      work({
+        updateSubscription: vi.fn(async () => ({ product: { name: 'M365' } })),
+        audit: vi.fn(async () => undefined),
+      }),
+    );
+  });
+
+  it('avanza renewalDate y audita', async () => {
+    const repo = await import('@/modules/software-licenses/infrastructure/license-repository');
+    vi.mocked(repo.findSubscriptionWithProduct).mockResolvedValue({
+      id: 'sub-1',
+      renewalDate: new Date('2026-01-15T00:00:00.000Z'),
+      billingCycle: 'MONTHLY',
+      billingAmount: { toString: () => '100' } as never,
+      product: { name: 'M365' },
+    } as never);
+    vi.mocked(repo.findSubscriptionDetail).mockResolvedValue({
+      id: 'sub-1',
+      status: 'ACTIVE',
+      renewalDate: new Date('2026-02-15T00:00:00.000Z'),
+      expiringSoonDays: 30,
+      monthlyCost: { toString: () => '100' } as never,
+      annualCost: { toString: () => '1200' } as never,
+      billingAmount: { toString: () => '100' } as never,
+      totalSeats: 5,
+      product: { name: 'M365' },
+      seats: [],
+    } as never);
+    const { registerSubscriptionRenewal } = await import('@/modules/software-licenses/application/service');
+    const today = new Date('2026-01-15T00:00:00.000Z');
+    const result = await registerSubscriptionRenewal('sub-1', {}, 'org-1', 'user-1', today);
+    expect(result?.renewalDate).toBeInstanceOf(Date);
+    expect((result?.renewalDate as Date).toISOString().slice(0, 10)).toBe('2026-02-15');
+  });
+});
+
+describe('presentación API', () => {
+  it('GET suscripción enmascara licenseKey', async () => {
+    const repo = await import('@/modules/software-licenses/infrastructure/license-repository');
+    vi.mocked(repo.findSubscriptionDetail).mockResolvedValue({
+      id: 'sub-1',
+      status: 'ACTIVE',
+      renewalDate: new Date('2099-01-01'),
+      expiringSoonDays: 30,
+      monthlyCost: { toString: () => '100' } as never,
+      annualCost: { toString: () => '1200' } as never,
+      billingAmount: { toString: () => '100' } as never,
+      totalSeats: 10,
+      product: { name: 'Adobe' },
+      seats: [
+        {
+          id: 'seat-1',
+          status: 'AVAILABLE',
+          seatType: 'DEVICE',
+          equipmentId: 'eq-1',
+          licenseKey: 'SECRET-LICENSE-KEY',
+          assignments: [],
+        },
+      ],
+    } as never);
+    const { getSoftwareSubscription } = await import('@/modules/software-licenses/application/service');
+    const result = await getSoftwareSubscription('sub-1', 'org-1');
+    expect(result?.seats[0]?.licenseKey).toBe('•••••E-KEY');
+    expect(result?.seats[0]?.licenseKeyPresent).toBe(true);
+  });
+});
+
+describe('releaseDeviceLicensesForEquipment', () => {
+  it('libera equipmentId en licencias DEVICE', async () => {
+    const update = vi.fn();
+    const findMany = vi.fn().mockResolvedValue([
+      {
+        id: 'seat-d1',
+        subscription: { product: { name: 'Windows' } },
+      },
+    ]);
+    const tx = {
+      softwareLicenseSeat: { findMany, update },
+    };
+    const { releaseDeviceLicensesForEquipment } = await import(
+      '@/modules/software-licenses/infrastructure/release-device-licenses'
+    );
+    const count = await releaseDeviceLicensesForEquipment(tx as never, {
+      organizationId: 'org-1',
+      equipmentId: 'eq-1',
+      userId: 'user-1',
+    });
+    expect(count).toBe(1);
+    expect(update).toHaveBeenCalledWith({ where: { id: 'seat-d1' }, data: { equipmentId: null } });
   });
 });

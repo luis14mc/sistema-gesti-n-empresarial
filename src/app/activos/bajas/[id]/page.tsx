@@ -2,6 +2,7 @@
 
 import { use } from 'react';
 import Link from 'next/link';
+import { DisposalDeviceLicenseNotice } from '@/components/software-licenses/DisposalDeviceLicenseNotice';
 import MainLayout from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,9 @@ export default function EquipmentDisposalDetailPage({ params }: { params: Promis
   const { id } = use(params);
   const { organization, query, upload, remove } = useEquipmentDisposal(id);
   const disposal = query.data;
+  const equipmentId = disposal?.equipmentId ?? disposal?.equipment?.id;
+  const showLicenseNotice = disposal != null && disposal.status !== 'APPROVED';
+
   if (query.isLoading || !disposal) return <MainLayout><div className="p-8">Cargando dictamen...</div></MainLayout>;
   const data: DisposalDocumentData = {
     folio: disposal.folio, statusLabel: disposal.status === 'APPROVED' ? 'APROBADO' : 'BORRADOR', institutionName: organization.data?.organization.name ?? 'Consejo Nacional de Inversiones',
@@ -35,6 +39,7 @@ export default function EquipmentDisposalDetailPage({ params }: { params: Promis
     try { await remove.mutateAsync(documentId); await swalSuccess('Evidencia eliminada'); } catch (error) { await swalError('No se pudo eliminar', getApiErrorMessage(error, 'Intente nuevamente.')); }
   };
   return <MainLayout><div className="space-y-6"><PageHeader title={disposal.folio} description={`${disposal.brand} ${disposal.model}`}><Button variant="outline" asChild><Link href="/activos/bajas">Volver</Link></Button>{disposal.status === 'APPROVED' ? <Button asChild><a href={`/api/activos/bajas/${id}/pdf`}>Descargar PDF</a></Button> : null}</PageHeader>
+    <DisposalDeviceLicenseNotice equipmentId={equipmentId} visible={showLicenseNotice} />
     <Tabs defaultValue="asset"><TabsList className="flex h-auto flex-wrap"><TabsTrigger value="asset">Datos del activo</TabsTrigger><TabsTrigger value="evaluation">Evaluación técnica</TabsTrigger><TabsTrigger value="result">Resultado automático</TabsTrigger><TabsTrigger value="evidence">Evidencias</TabsTrigger><TabsTrigger value="preview">Vista previa</TabsTrigger><TabsTrigger value="history">Historial</TabsTrigger></TabsList>
       <TabsContent value="asset"><Card><CardContent className="grid gap-4 pt-6 sm:grid-cols-2"><Info label="Inventario" value={disposal.equipment.inventoryCode} /><Info label="Serie" value={disposal.serialNumber} /><Info label="Equipo" value={`${disposal.brand} ${disposal.model}`} /><Info label="Departamento" value={disposal.department} /></CardContent></Card></TabsContent>
       <TabsContent value="evaluation"><Card><CardContent className="grid gap-4 pt-6 sm:grid-cols-2"><Info label="Condición física" value={disposal.physicalCondition} /><Info label="Condición funcional" value={disposal.functionalCondition} /><Info label="Soporte de seguridad" value={disposal.securitySupportStatus} /><Info label="Costo de reparación" value={money(disposal.estimatedRepairCost)} /><div className="sm:col-span-2"><Info label="Notas técnicas" value={disposal.technicalNotes || 'Sin notas'} /></div></CardContent></Card></TabsContent>

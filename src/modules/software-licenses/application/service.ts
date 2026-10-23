@@ -596,8 +596,23 @@ export async function revealSeatLicenseKey(seatId: string, organizationId: strin
 
 export async function getEquipmentDeviceLicenses(equipmentId: string, organizationId: string) {
   const rows = await listDeviceLicensesForEquipment(equipmentId, organizationId);
-  return rows.map((seat) => presentSeat(seat));
+  return rows.map((seat) => {
+    const activeAssignments = seat.assignments.length;
+    const occupancyState = {
+      status: seat.status,
+      seatType: seat.seatType,
+      activeAssignments,
+      equipmentId: seat.equipmentId,
+    };
+    return presentSeat({
+      ...seat,
+      activeAssignments,
+      effectiveStatus: effectiveSeatStatus(occupancyState),
+    });
+  });
 }
+
+export { countActiveDeviceLicensesForEquipment } from '@/modules/software-licenses/infrastructure/release-device-licenses';
 
 export async function syncRenewalNotifications(organizationId: string, today = new Date()) {
   const subscriptions = await listSoftwareSubscriptions(organizationId, {}, today);

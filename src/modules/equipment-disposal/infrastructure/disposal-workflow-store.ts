@@ -10,7 +10,7 @@ import type { findDisposal } from './repository';
 import type { generateAndStoreDisposalPdf } from './pdf';
 import { allocateDocumentSequence } from '@/platform/sequences/document-sequence';
 import { appendSecurityEvent } from '@/platform/security/audit/security-events';
-import { releaseDeviceLicensesForEquipment } from '@/modules/software-licenses/application/release-device-licenses';
+import { releaseDeviceLicensesForEquipment } from '@/modules/software-licenses/infrastructure/release-device-licenses';
 
 function mapPolicy(policy: {
   maxAgeYears: Prisma.Decimal;

@@ -15,7 +15,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { useEmployees } from '@/hooks/useEmployees';
 import { apiHelpers } from '@/utils/api';
 import { useAuth } from '@/hooks/useAuth';
-import { canAccess } from '@/platform/security/session-module-access';
+import { EmployeeLicensesSection } from '@/components/software-licenses/EmployeeLicensesSection';
 import type { Role } from '@/types';
 
 type EmployeeAssetsResponse = {
@@ -35,6 +35,8 @@ type EmployeeAssetsResponse = {
     producto: string;
     plan: string;
     cuenta: string | null;
+    tipo?: string;
+    costoMensualUnitario?: number;
     asignadoDesde: string;
   }[];
 };
@@ -43,7 +45,6 @@ export default function EmployeeAssetsPage() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const role = (user?.role ?? 'USER') as Role;
-  const showLicenses = canAccess(role, 'software-licenses', 'read');
 
   const initialEmployeeId = searchParams.get('employeeId') ?? '';
   const [search, setSearch] = useState('');
@@ -90,6 +91,14 @@ export default function EmployeeAssetsPage() {
       cancelled = true;
     };
   }, [selectedEmployeeId]);
+
+  function reloadAssets() {
+    if (!selectedEmployeeId) return;
+    void apiHelpers
+      .get<EmployeeAssetsResponse>(`/api/employees/${selectedEmployeeId}/assets`)
+      .then((response) => setAssets(response.data))
+      .catch(() => setAssetsError('No se pudieron cargar los activos del empleado.'));
+  }
 
   const selectedLabel = useMemo(() => {
     if (assets?.employee) return `${assets.employee.fullName} (${assets.employee.employeeCode})`;
@@ -183,40 +192,12 @@ export default function EmployeeAssetsPage() {
                   </CardContent>
                 </Card>
 
-                {showLicenses ? (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Licencias asignadas</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {assets.licencias.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">Sin licencias activas.</p>
-                      ) : (
-                        assets.licencias.map((item) => (
-                          <div key={item.assignmentId} className="rounded-lg border p-3 text-sm space-y-1">
-                            <Link
-                              href={`/activos/licencias/${item.subscriptionId}`}
-                              className="font-medium underline-offset-4 hover:underline"
-                            >
-                              {item.producto}
-                            </Link>
-                            <p className="text-muted-foreground">{item.plan}</p>
-                            {item.cuenta ? <p>Cuenta: {item.cuenta}</p> : null}
-                            {'tipo' in item && item.tipo ? (
-                              <p className="text-muted-foreground">{item.tipo === 'SHARED' ? 'Compartida' : item.tipo === 'DEVICE' ? 'Equipo' : 'Personal'}</p>
-                            ) : null}
-                            {'costoMensualUnitario' in item && typeof item.costoMensualUnitario === 'number' ? (
-                              <p>Costo mensual unitario: {item.costoMensualUnitario.toFixed(2)}</p>
-                            ) : null}
-                            <p className="text-xs text-muted-foreground">
-                              Desde {format(new Date(item.asignadoDesde), 'dd/MM/yyyy', { locale: es })}
-                            </p>
-                          </div>
-                        ))
-                      )}
-                    </CardContent>
-                  </Card>
-                ) : null}
+                <EmployeeLicensesSection
+                  role={role}
+                  employee={assets.employee}
+                  licencias={assets.licencias}
+                  onRefresh={reloadAssets}
+                />
               </>
             ) : null}
           </div>

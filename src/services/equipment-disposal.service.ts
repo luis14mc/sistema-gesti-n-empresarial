@@ -11,7 +11,8 @@ export type DisposalListItem = {
   brand: string;
   model: string;
   createdAt: string;
-  equipment: { inventoryCode: string };
+  equipmentId?: string;
+  equipment: { id?: string; inventoryCode: string };
   _count: { documents: number };
 };
 
