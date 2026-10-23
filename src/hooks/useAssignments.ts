@@ -150,7 +150,7 @@ export function useAssignments(filters?: AssignmentFilters, options?: { enabled?
 }
 
 export function useAssignmentDetail(assignmentId: string | null) {
-    return useQuery({
+    const query = useQuery({
         queryKey: assignmentKeys.detail(assignmentId ?? ''),
         enabled: Boolean(assignmentId),
         queryFn: async () => {
@@ -158,4 +158,12 @@ export function useAssignmentDetail(assignmentId: string | null) {
             return response.data as AssignmentDetailResponse;
         },
     });
+
+    const status = (query.error as { response?: { status?: number } } | undefined)?.response?.status;
+
+    return {
+        ...query,
+        isForbidden: query.isError && status === 403,
+        isNotFound: query.isError && status === 404,
+    };
 }

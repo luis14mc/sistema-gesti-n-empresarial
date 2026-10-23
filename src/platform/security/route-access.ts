@@ -18,7 +18,7 @@ export const ROUTE_PATH_TO_MODULE: Record<string, ModuleId> = {
   '/assignments': 'assignments',
   '/activos/equipos': 'equipment',
   '/activos/bajas': 'equipment',
-  '/activos/asignaciones': 'assignments',
+  '/activos/asignaciones': 'assignments', // incl. /activos/asignaciones/[id] (lectura: equipment.read vía módulo assignments)
   '/activos/licencias': 'software-licenses',
   '/activos/mantenimiento': 'equipment',
   '/activos/por-empleado': 'equipment',

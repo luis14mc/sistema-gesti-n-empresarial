@@ -22,6 +22,28 @@
     }
   },
   {
+    "pathname": "/activos/asignaciones/x",
+    "libModule": "assignments",
+    "platformModule": "assignments",
+    "requiredSpecial": null,
+    "mismatch": false,
+    "canAccessRoute": {
+      "ADMIN": true,
+      "ADMINISTRACION": false,
+      "SECRETARIA": false,
+      "IT_MANAGER": true,
+      "OWNER": true,
+      "IT_TECHNICIAN": true,
+      "PROCUREMENT": false,
+      "HR": false,
+      "AUDITOR": false,
+      "USER": true,
+      "DIRECTOR": false,
+      "RRHH": false,
+      "IT": true
+    }
+  },
+  {
     "pathname": "/activos/bajas",
     "libModule": "equipment",
     "platformModule": "equipment",

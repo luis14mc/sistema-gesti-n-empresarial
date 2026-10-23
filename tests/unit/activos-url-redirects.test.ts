@@ -16,7 +16,10 @@ function destinationPagePath(destination: string): string {
   if (normalized === '/activos/equipos' || normalized.startsWith('/activos/equipos/')) {
     return 'src/app/activos/equipos/page.tsx';
   }
-  if (normalized === '/activos/asignaciones' || normalized.startsWith('/activos/asignaciones/')) {
+  if (normalized.startsWith('/activos/asignaciones/')) {
+    return 'src/app/activos/asignaciones/[id]/page.tsx';
+  }
+  if (normalized === '/activos/asignaciones') {
     return 'src/app/activos/asignaciones/page.tsx';
   }
   if (normalized === '/activos/bajas') return 'src/app/activos/bajas/page.tsx';

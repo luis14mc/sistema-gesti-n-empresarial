@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeftRight, Plus } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,6 @@ import { AssignmentsKpiCards } from '@/components/equipment/assignments/Assignme
 import { AssignmentsFiltersBar } from '@/components/equipment/assignments/AssignmentsFiltersBar';
 import { AssignmentsTable } from '@/components/equipment/assignments/AssignmentsTable';
 import { AssignmentsMobileList } from '@/components/equipment/assignments/AssignmentsMobileList';
-import { AssignmentDetailSheet } from '@/components/equipment/assignments/AssignmentDetailSheet';
 import { NewAssignmentDialog } from '@/components/equipment/assignments/NewAssignmentDialog';
 import { ReturnAssignmentDialog } from '@/components/equipment/assignments/ReturnAssignmentDialog';
 import { SwapAssignmentDialog } from '@/components/equipment/assignments/SwapAssignmentDialog';
@@ -26,6 +26,8 @@ import { actaDownloadUrl } from '@/components/equipment/assignments/utils';
 import type { AssignmentsTab } from '@/components/equipment/assignments/constants';
 
 function AssignmentsViewInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const role = (user?.role ?? 'USER') as Role;
   const canCreate = canAccess(role, 'assignments', 'create');
@@ -51,7 +53,6 @@ function AssignmentsViewInner() {
     isRegeneratingActa,
   } = useAssignments(filtersForApi);
 
-  const [detailId, setDetailId] = useState<string | null>(null);
   const [newOpen, setNewOpen] = useState(false);
   const [returnOpen, setReturnOpen] = useState(false);
   const [swapOpen, setSwapOpen] = useState(false);
@@ -78,6 +79,11 @@ function AssignmentsViewInner() {
   );
 
   const showReturnedColumn = state.tab !== 'active';
+
+  const openAssignmentDetail = (assignmentId: string) => {
+    const query = searchParams.toString();
+    router.push(`/activos/asignaciones/${assignmentId}${query ? `?${query}` : ''}`);
+  };
 
   const handleExport = async () => {
     setExporting(true);
@@ -213,7 +219,7 @@ function AssignmentsViewInner() {
             sortBy={state.sortBy}
             sortDir={state.sortDir}
             onSort={handleSort}
-            onRowClick={(row) => setDetailId(row.id)}
+            onRowClick={(row) => openAssignmentDetail(row.id)}
             canCreate={canCreate}
             canUpdate={canUpdate}
             onReturn={(row) => {
@@ -245,7 +251,7 @@ function AssignmentsViewInner() {
             items={assignments}
             canCreate={canCreate}
             canUpdate={canUpdate}
-            onRowClick={(row) => setDetailId(row.id)}
+            onRowClick={(row) => openAssignmentDetail(row.id)}
             onReturn={(row) => {
               setReturningAssignment(row);
               setReturnOpen(true);
@@ -291,14 +297,6 @@ function AssignmentsViewInner() {
           </div>
         </>
       )}
-
-      <AssignmentDetailSheet
-        assignmentId={detailId}
-        open={detailId !== null}
-        onOpenChange={(open) => {
-          if (!open) setDetailId(null);
-        }}
-      />
 
       <NewAssignmentDialog
         open={newOpen}
