@@ -41,3 +41,20 @@ export function subscriptionCancelBlockedError(): LicenseDomainError {
     409,
   );
 }
+
+export function licenseInUseError(): LicenseDomainError {
+  return new LicenseDomainError(
+    'LICENSE_IN_USE',
+    'Quite primero a los usuarios asignados.',
+    409,
+  );
+}
+
+export function subscriptionInUseError(activeCount: number): LicenseDomainError {
+  return new LicenseDomainError(
+    'SUBSCRIPTION_IN_USE',
+    `Tiene ${activeCount} usuario(s)/equipo(s) asignados. Quítelos primero.`,
+    409,
+    { activeCount },
+  );
+}

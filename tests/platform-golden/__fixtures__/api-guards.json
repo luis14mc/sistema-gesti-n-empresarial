@@ -468,13 +468,15 @@
     },
     "src/app/api/software-licenses/[id]/route.ts": {
       "methods": [
+        "DELETE",
         "GET",
         "PATCH"
       ],
       "withAuthRoles": [],
       "permissions": [
         "software-licenses.read",
-        "software-licenses.update"
+        "software-licenses.update",
+        "software-licenses.manage"
       ],
       "markers": [
         "withAuth(",
@@ -548,6 +550,7 @@
     },
     "src/app/api/software-licenses/seats/[seatId]/route.ts": {
       "methods": [
+        "DELETE",
         "PATCH"
       ],
       "withAuthRoles": [],

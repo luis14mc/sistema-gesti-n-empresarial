@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Trash2 } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,9 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/utils/api';
 import { moneyLabel, STATUS_LABEL } from '@/components/software-licenses/labels';
+import { DeleteLicenseConfirmDialog } from '@/components/software-licenses/DeleteLicenseConfirmDialog';
+import { canManageSoftwareLicenses } from '@/components/software-licenses/can-manage-licenses';
+import { useAuth } from '@/hooks/useAuth';
 
 type Dashboard = {
   contractedSeats: number;
@@ -27,8 +31,11 @@ type Subscription = {
   currency: string;
   monthlyCost: number;
   displayStatus: string;
+  status: 'ACTIVE' | 'SUSPENDED' | 'CANCELLED';
   renewalDate: string | null;
   paymentDay: number | null;
+  hasAssignmentHistory?: boolean;
+  activeAssignmentCount?: number;
   product: { name: string; vendor: string | null };
   counts: {
     contractedSeats: number;
@@ -49,6 +56,9 @@ const KPI = [
 ] as const;
 
 export default function SoftwareLicensesPage() {
+  const { user } = useAuth();
+  const canManage = canManageSoftwareLicenses(user);
+
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [items, setItems] = useState<Subscription[]>([]);
   const [search, setSearch] = useState('');
@@ -57,6 +67,8 @@ export default function SoftwareLicensesPage() {
   const [refresh, setRefresh] = useState(0);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<Subscription | null>(null);
+  const [deletePending, setDeletePending] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -76,6 +88,21 @@ export default function SoftwareLicensesPage() {
     });
     return () => { cancelled = true; };
   }, [search, status, seatType, refresh]);
+
+  async function confirmDeleteSubscription() {
+    if (!deleteTarget) return;
+    setDeletePending(true);
+    setError('');
+    try {
+      await api.delete(`/api/software-licenses/${deleteTarget.id}`);
+      setDeleteTarget(null);
+      setRefresh((value) => value + 1);
+    } catch {
+      setError('No se pudo eliminar la suscripción.');
+    } finally {
+      setDeletePending(false);
+    }
+  }
 
   return (
     <MainLayout>
@@ -184,15 +211,40 @@ export default function SoftwareLicensesPage() {
                 <td className="p-3">{item.renewalDate ?? '—'}</td>
                 <td className="p-3"><Badge variant="outline">{STATUS_LABEL[item.displayStatus] ?? item.displayStatus}</Badge></td>
                 <td className="p-3">
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/activos/licencias/${item.id}/editar`}>Editar</Link>
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-1">
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href={`/activos/licencias/${item.id}/editar`}>Editar</Link>
+                    </Button>
+                    {canManage && item.status !== 'CANCELLED' && (item.activeAssignmentCount ?? 0) === 0 ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        type="button"
+                        className="text-destructive hover:text-destructive"
+                        aria-label="Eliminar suscripción"
+                        onClick={() => setDeleteTarget(item)}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    ) : null}
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      <DeleteLicenseConfirmDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Eliminar suscripción"
+        entityLabel={deleteTarget ? `${deleteTarget.product.name} · ${deleteTarget.planName}` : ''}
+        hasHistory={Boolean(deleteTarget?.hasAssignmentHistory)}
+        pending={deletePending}
+        onConfirm={confirmDeleteSubscription}
+      />
     </MainLayout>
   );
 }

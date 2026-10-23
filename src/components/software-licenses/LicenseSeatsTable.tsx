@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { DeleteLicenseConfirmDialog } from '@/components/software-licenses/DeleteLicenseConfirmDialog';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -36,14 +38,17 @@ export type LicenseSeatRow = {
 type Props = {
   seats: LicenseSeatRow[];
   canUpdate: boolean;
+  canManage?: boolean;
   onChange: () => Promise<void>;
 };
 
-export function LicenseSeatsTable({ seats, canUpdate, onChange }: Props) {
+export function LicenseSeatsTable({ seats, canUpdate, canManage = false, onChange }: Props) {
   const [employeeQuery, setEmployeeQuery] = useState('');
   const [employees, setEmployees] = useState<Array<{ id: string; fullName: string }>>([]);
   const [reveal, setReveal] = useState<Record<string, string>>({});
   const [error, setError] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<LicenseSeatRow | null>(null);
+  const [deletePending, setDeletePending] = useState(false);
 
   async function run(action: () => Promise<unknown>) {
     setError('');
@@ -70,6 +75,24 @@ export function LicenseSeatsTable({ seats, canUpdate, onChange }: Props) {
     setReveal((prev) => ({ ...prev, [seatId]: response.data.data.licenseKey as string }));
   }
 
+  async function confirmDeleteSeat() {
+    if (!deleteTarget) return;
+    setDeletePending(true);
+    try {
+      await api.delete(`/api/software-licenses/seats/${deleteTarget.id}`);
+      setDeleteTarget(null);
+      await onChange();
+    } catch (reason) {
+      const message = (reason as { response?: { data?: { error?: { message?: string } } } }).response?.data?.error
+        ?.message;
+      setError(message ?? 'No se pudo eliminar la licencia.');
+    } finally {
+      setDeletePending(false);
+    }
+  }
+
+  const showActions = canUpdate || canManage;
+
   return (
     <div className="space-y-3">
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -82,7 +105,7 @@ export function LicenseSeatsTable({ seats, canUpdate, onChange }: Props) {
               <TableHead>Equipo</TableHead>
               <TableHead>Usuarios</TableHead>
               <TableHead>Estado</TableHead>
-              {canUpdate ? <TableHead className="text-right">Acciones</TableHead> : null}
+              {showActions ? <TableHead className="text-right">Acciones</TableHead> : null}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -109,7 +132,7 @@ export function LicenseSeatsTable({ seats, canUpdate, onChange }: Props) {
                   <TableCell>
                     <Badge variant="outline">{STATUS_LABEL[seat.effectiveStatus] ?? seat.effectiveStatus}</Badge>
                   </TableCell>
-                  {canUpdate ? (
+                  {showActions ? (
                     <TableCell className="text-right">
                       <div className="flex flex-wrap justify-end gap-1">
                         {seat.licenseKeyPresent ? (
@@ -132,34 +155,49 @@ export function LicenseSeatsTable({ seats, canUpdate, onChange }: Props) {
                             Quitar
                           </Button>
                         ))}
-                        {seat.effectiveStatus !== 'SUSPENDED' ? (
+                        {canUpdate ? (
+                          seat.effectiveStatus !== 'SUSPENDED' ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              type="button"
+                              onClick={() =>
+                                run(() =>
+                                  api.patch(`/api/software-licenses/seats/${seat.id}`, { status: 'SUSPENDED' }),
+                                )
+                              }
+                            >
+                              Suspender
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              type="button"
+                              onClick={() =>
+                                run(() =>
+                                  api.patch(`/api/software-licenses/seats/${seat.id}`, { status: 'AVAILABLE' }),
+                                )
+                              }
+                            >
+                              Reactivar
+                            </Button>
+                          )
+                        ) : null}
+                        {canManage && seat.status !== 'CANCELLED' && active.length === 0 ? (
                           <Button
                             size="sm"
-                            variant="outline"
+                            variant="ghost"
                             type="button"
-                            onClick={() =>
-                              run(() =>
-                                api.patch(`/api/software-licenses/seats/${seat.id}`, { status: 'SUSPENDED' }),
-                              )
-                            }
+                            className="text-destructive hover:text-destructive"
+                            aria-label="Eliminar licencia"
+                            onClick={() => setDeleteTarget(seat)}
                           >
-                            Suspender
+                            <Trash2 className="size-4" />
                           </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            type="button"
-                            onClick={() =>
-                              run(() =>
-                                api.patch(`/api/software-licenses/seats/${seat.id}`, { status: 'AVAILABLE' }),
-                              )
-                            }
-                          >
-                            Reactivar
-                          </Button>
-                        )}
+                        ) : null}
                       </div>
+                      {canUpdate ? (
                       <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:justify-end">
                         <Input
                           className="max-w-[200px]"
@@ -191,6 +229,7 @@ export function LicenseSeatsTable({ seats, canUpdate, onChange }: Props) {
                           );
                         })}
                       </div>
+                      ) : null}
                     </TableCell>
                   ) : null}
                 </TableRow>
@@ -199,6 +238,17 @@ export function LicenseSeatsTable({ seats, canUpdate, onChange }: Props) {
           </TableBody>
         </Table>
       </div>
+      <DeleteLicenseConfirmDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Eliminar licencia"
+        entityLabel={deleteTarget ? (deleteTarget.accountEmail ?? deleteTarget.seatType) : ''}
+        hasHistory={Boolean(deleteTarget && deleteTarget.assignments.length > 0)}
+        pending={deletePending}
+        onConfirm={confirmDeleteSeat}
+      />
     </div>
   );
 }

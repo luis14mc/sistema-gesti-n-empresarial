@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +12,8 @@ import { moneyLabel, STATUS_LABEL } from '@/components/software-licenses/labels'
 import { formatPaymentSchedule } from '@/modules/software-licenses/domain/billing';
 import { AddLicenseForm } from '@/components/software-licenses/AddLicenseForm';
 import { LicenseSeatsTable, type LicenseSeatRow } from '@/components/software-licenses/LicenseSeatsTable';
+import { DeleteLicenseConfirmDialog } from '@/components/software-licenses/DeleteLicenseConfirmDialog';
+import { canManageSoftwareLicenses } from '@/components/software-licenses/can-manage-licenses';
 import { useAuth } from '@/hooks/useAuth';
 import { canAccess } from '@/platform/security/session-module-access';
 
@@ -34,17 +36,24 @@ type Detail = {
     freeSeats: number;
     exceedsContract: boolean;
   };
+  hasAssignmentHistory?: boolean;
+  activeAssignmentCount?: number;
   seats: LicenseSeatRow[];
 };
 
 export default function SoftwareLicenseDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const { user } = useAuth();
   const role = user?.role;
   const canUpdate = role ? canAccess(role, 'software-licenses', 'update') : false;
+  const canManage = canManageSoftwareLicenses(user);
 
   const [detail, setDetail] = useState<Detail | null>(null);
   const [error, setError] = useState('');
+  const [showCancelledSeats, setShowCancelledSeats] = useState(false);
+  const [deleteSubscriptionOpen, setDeleteSubscriptionOpen] = useState(false);
+  const [deleteSubscriptionPending, setDeleteSubscriptionPending] = useState(false);
 
   async function reload() {
     const response = await api.get(`/api/software-licenses/${params.id}`);
@@ -78,7 +87,35 @@ export default function SoftwareLicenseDetailPage() {
     }
   }
 
-  const liveSeats = detail?.seats.filter((seat) => seat.status !== 'CANCELLED') ?? [];
+  const visibleSeats = useMemo(() => {
+    if (!detail) return [];
+    if (showCancelledSeats) return detail.seats;
+    return detail.seats.filter((seat) => seat.status !== 'CANCELLED');
+  }, [detail, showCancelledSeats]);
+
+  const hasCancelledSeats = Boolean(detail?.seats.some((seat) => seat.status === 'CANCELLED'));
+
+  async function confirmDeleteSubscription() {
+    if (!detail) return;
+    setDeleteSubscriptionPending(true);
+    setError('');
+    try {
+      const response = await api.delete(`/api/software-licenses/${detail.id}`);
+      const outcome = response.data.data?.outcome as string | undefined;
+      if (outcome === 'DELETED' || outcome === 'CANCELLED') {
+        router.push('/activos/licencias');
+        return;
+      }
+      await reload();
+      setDeleteSubscriptionOpen(false);
+    } catch (reason) {
+      const message = (reason as { response?: { data?: { error?: { message?: string } } } }).response?.data?.error
+        ?.message;
+      setError(message ?? 'No se pudo eliminar la suscripción.');
+    } finally {
+      setDeleteSubscriptionPending(false);
+    }
+  }
 
   return (
     <MainLayout>
@@ -133,13 +170,58 @@ export default function SoftwareLicenseDetailPage() {
       ) : null}
 
       <section className="mt-6">
-        <h2 className="mb-3 font-medium">Licencias registradas</h2>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-medium">Licencias registradas</h2>
+          {hasCancelledSeats ? (
+            <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={showCancelledSeats}
+                onChange={(event) => setShowCancelledSeats(event.target.checked)}
+              />
+              Mostrar dadas de baja
+            </label>
+          ) : null}
+        </div>
         {detail ? (
-          <LicenseSeatsTable seats={liveSeats} canUpdate={canUpdate} onChange={reload} />
+          <LicenseSeatsTable
+            seats={visibleSeats}
+            canUpdate={canUpdate}
+            canManage={canManage}
+            onChange={reload}
+          />
         ) : (
           <p className="text-sm text-muted-foreground">Cargando…</p>
         )}
       </section>
+
+      {detail && canManage && detail.status !== 'CANCELLED' ? (
+        <section className="mt-10 border-t pt-6">
+          <Button
+            type="button"
+            variant="destructive"
+            disabled={(detail.activeAssignmentCount ?? 0) > 0}
+            onClick={() => setDeleteSubscriptionOpen(true)}
+          >
+            Eliminar suscripción
+          </Button>
+          {(detail.activeAssignmentCount ?? 0) > 0 ? (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Quite las asignaciones activas antes de eliminar la suscripción.
+            </p>
+          ) : null}
+        </section>
+      ) : null}
+
+      <DeleteLicenseConfirmDialog
+        open={deleteSubscriptionOpen}
+        onOpenChange={setDeleteSubscriptionOpen}
+        title="Eliminar suscripción"
+        entityLabel={detail ? `${detail.product.name} · ${detail.planName}` : ''}
+        hasHistory={Boolean(detail?.hasAssignmentHistory)}
+        pending={deleteSubscriptionPending}
+        onConfirm={confirmDeleteSubscription}
+      />
     </MainLayout>
   );
 }

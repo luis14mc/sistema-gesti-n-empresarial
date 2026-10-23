@@ -32,8 +32,10 @@ import { maskLicenseKey } from '@/modules/software-licenses/domain/license-key';
 import { advanceRenewalDate } from '@/modules/software-licenses/domain/renewals';
 import {
   LicenseDomainError,
+  licenseInUseError,
   seatBlockedWithAssignmentsError,
   subscriptionCancelBlockedError,
+  subscriptionInUseError,
   subscriptionNotAssignableError,
 } from '@/modules/software-licenses/domain/errors';
 
@@ -191,6 +193,11 @@ function presentSeat<T extends Record<string, unknown> & { licenseKey?: string |
   } as T & { licenseKey: string | null; licenseKeyPresent: boolean };
 }
 
+function seatAuditSnapshot(seat: Record<string, unknown> & { licenseKey?: string | null }) {
+  const { licenseKey: _licenseKey, ...rest } = seat;
+  return rest;
+}
+
 export async function createSeat(
   subscriptionId: string,
   input: {
@@ -315,6 +322,100 @@ export async function updateSeat(
       title: 'Licencia actualizada', description: seat.subscription.product.name, previousData: { status: seat.status, seatType: seat.seatType }, newData: input,
     });
     return presentSeat(updated);
+  });
+}
+
+export async function deleteSeat(seatId: string, organizationId: string, userId: string) {
+  const seat = await loadSeat(seatId, organizationId);
+  if (seat.assignments.length > 0) {
+    throw licenseInUseError();
+  }
+  const previous = seatAuditSnapshot(seat as Record<string, unknown> & { licenseKey?: string | null });
+  return runLicenseTransaction(async (store) => {
+    const locked = await store.lockSeatForUpdate(seatId, organizationId);
+    if (!locked) throw licenseNotFound('SEAT_NOT_FOUND', 'El asiento no existe en esta organización.');
+    const activeInTx = await store.findSeatWithAssignmentsInTx(seatId, organizationId);
+    if (!activeInTx) throw licenseNotFound('SEAT_NOT_FOUND', 'El asiento no existe en esta organización.');
+    if (activeInTx.assignments.length > 0) {
+      throw licenseInUseError();
+    }
+    const historyCount = await store.countAssignmentHistoryForSeat(seatId);
+    if (historyCount === 0) {
+      await store.deleteSeatPhysical(seatId);
+      await store.audit({
+        organizationId,
+        userId,
+        action: 'SEAT_DELETED',
+        entityId: seatId,
+        entityType: 'SoftwareLicenseSeat',
+        title: 'Licencia eliminada',
+        description: seat.subscription.product.name,
+        previousData: previous,
+      });
+      return { outcome: 'DELETED' as const };
+    }
+    const updated = await store.updateSeat(seatId, { status: 'CANCELLED', equipmentId: null });
+    await store.audit({
+      organizationId,
+      userId,
+      action: 'SEAT_CANCELLED',
+      entityId: seatId,
+      entityType: 'SoftwareLicenseSeat',
+      title: 'Licencia dada de baja',
+      description: seat.subscription.product.name,
+      previousData: previous,
+      newData: { status: 'CANCELLED', equipmentId: null },
+    });
+    return { outcome: 'CANCELLED' as const, seat: presentSeat(updated) };
+  });
+}
+
+export async function deleteSoftwareSubscription(subscriptionId: string, organizationId: string, userId: string) {
+  const existing = await findSubscriptionWithSeatsAndProduct(subscriptionId, organizationId);
+  if (!existing) throw licenseNotFound('SUBSCRIPTION_NOT_FOUND', 'La suscripción no existe en esta organización.');
+  const previous = {
+    id: existing.id,
+    planName: existing.planName,
+    status: existing.status,
+    productId: existing.productId,
+    seatCount: existing.seats.length,
+  };
+  return runLicenseTransaction(async (store) => {
+    const locked = await store.lockSubscriptionForUpdate(subscriptionId, organizationId);
+    if (!locked) throw licenseNotFound('SUBSCRIPTION_NOT_FOUND', 'La suscripción no existe en esta organización.');
+    const activeCount = await store.countActiveAssignmentsForSubscription(subscriptionId);
+    if (activeCount > 0) {
+      throw subscriptionInUseError(activeCount);
+    }
+    const historyCount = await store.countAssignmentHistoryForSubscription(subscriptionId);
+    if (historyCount === 0) {
+      await store.deleteSubscriptionPhysical(subscriptionId);
+      await store.audit({
+        organizationId,
+        userId,
+        action: 'SUBSCRIPTION_DELETED',
+        entityId: subscriptionId,
+        entityType: 'SoftwareSubscription',
+        title: 'Suscripción eliminada',
+        description: existing.product.name,
+        previousData: previous,
+      });
+      return { outcome: 'DELETED' as const };
+    }
+    await store.updateSubscription(subscriptionId, { status: 'CANCELLED' });
+    await store.cancelAllSeatsForSubscription(subscriptionId);
+    await store.audit({
+      organizationId,
+      userId,
+      action: 'SUBSCRIPTION_CANCELLED',
+      entityId: subscriptionId,
+      entityType: 'SoftwareSubscription',
+      title: 'Suscripción dada de baja',
+      description: existing.product.name,
+      previousData: previous,
+      newData: { status: 'CANCELLED' },
+    });
+    return { outcome: 'CANCELLED' as const };
   });
 }
 
@@ -447,6 +548,11 @@ function presentSubscription<T extends {
     subscription.totalSeats,
   );
   const monthly = Number(subscription.monthlyCost);
+  const hasAssignmentHistory = subscription.seats.some((seat) => seat.assignments.length > 0);
+  const activeAssignmentCount = subscription.seats.reduce(
+    (sum, seat) => sum + seat.assignments.filter((assignment) => assignment.unassignedAt === null).length,
+    0,
+  );
   return {
     ...subscription,
     billingAmount: Number(subscription.billingAmount),
@@ -456,6 +562,8 @@ function presentSubscription<T extends {
     wastedMonthlyCost: unitMonthlyCost(monthly, subscription.totalSeats) * counts.freeSeats,
     displayStatus: displaySubscriptionStatus(subscription.status, subscription.renewalDate, today, subscription.expiringSoonDays),
     renewalAlert: renewalAlert(subscription.renewalDate, today, subscription.status),
+    hasAssignmentHistory,
+    activeAssignmentCount,
     counts,
     seats,
   };
@@ -471,7 +579,10 @@ export async function listSoftwareSubscriptions(organizationId: string, filters:
   const subscriptions = await listSubscriptions(organizationId, { search: filters.search, vendor: filters.vendor });
   return subscriptions
     .map((subscription) => presentSubscription(subscription, today))
-    .filter((subscription) => !filters.status || subscription.displayStatus === filters.status)
+    .filter((subscription) => {
+      if (filters.status) return subscription.displayStatus === filters.status;
+      return subscription.status !== 'CANCELLED';
+    })
     .filter((subscription) => !filters.renewal || subscription.renewalAlert === filters.renewal)
     .filter((subscription) => !filters.seatType || subscription.seats.some((seat) => seat.seatType === filters.seatType));
 }
@@ -597,7 +708,7 @@ export async function revealSeatLicenseKey(seatId: string, organizationId: strin
 export async function getEquipmentDeviceLicenses(equipmentId: string, organizationId: string) {
   const rows = await listDeviceLicensesForEquipment(equipmentId, organizationId);
   return rows.map((seat) => {
-    const activeAssignments = seat.assignments.length;
+    const activeAssignments = seat.assignments.filter((assignment) => assignment.unassignedAt === null).length;
     const occupancyState = {
       status: seat.status,
       seatType: seat.seatType,

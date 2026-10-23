@@ -43,6 +43,7 @@ import { ActaCniPreview } from '@/components/equipment/ActaCniPreview';
 import { EquipmentFileUpload } from '@/components/equipment/EquipmentFileUpload';
 import { EquipmentExcelActions } from '@/components/equipment/EquipmentExcelActions';
 import { EquipmentInstalledLicenses } from '@/components/software-licenses/EquipmentInstalledLicenses';
+import { canManageSoftwareLicenses } from '@/components/software-licenses/can-manage-licenses';
 import { MaintenanceWorkflowActions } from '@/components/equipment/MaintenanceWorkflowActions';
 import { equipmentAssignmentsService } from '@/services/equipment-assignments.service';
 import { canAccess } from '@/platform/security/session-module-access';
@@ -547,6 +548,7 @@ type EquipmentDocumentPreview =
     | { kind: 'return'; assignment: EquipmentAssignment };
 
 function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: string; role: Role; onClose: () => void }) {
+    const { user } = useAuth();
     const {
         equipment: eq,
         isLoading,
@@ -564,6 +566,7 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
     const canDelete = canAccess(role, 'equipment', 'delete');
     const canReadLicenses = canAccess(role, 'software-licenses', 'read');
     const canManageLicenses = canAccess(role, 'software-licenses', 'update');
+    const canDeleteLicenses = canManageSoftwareLicenses(user);
     const [editing, setEditing] = useState(false);
     const [documentPreview, setDocumentPreview] = useState<EquipmentDocumentPreview | null>(null);
     const [maintenanceOpen, setMaintenanceOpen] = useState(false);
@@ -941,6 +944,7 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
                     equipmentId={equipmentId}
                     canRead={canReadLicenses}
                     canUpdate={canManageLicenses}
+                    canManage={canDeleteLicenses}
                 />
             ) : null}
 
