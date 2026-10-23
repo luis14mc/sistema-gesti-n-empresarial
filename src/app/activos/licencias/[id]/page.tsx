@@ -7,6 +7,7 @@ import MainLayout from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { api } from '@/utils/api';
 import { moneyLabel, STATUS_LABEL } from '@/components/software-licenses/labels';
 import { formatPaymentSchedule } from '@/modules/software-licenses/domain/billing';
@@ -145,73 +146,85 @@ export default function SoftwareLicenseDetailPage() {
         }
       />
       {error ? <p className="mt-4 text-sm text-destructive">{error}</p> : null}
-      {detail ? (
-        <p className="mt-3 text-sm text-muted-foreground">
-          Próximo pago: {formatPaymentSchedule(detail)} ·{' '}
-          <Badge variant="outline">{STATUS_LABEL[detail.displayStatus] ?? detail.displayStatus}</Badge>
-          {detail.counts.exceedsContract ? (
-            <Badge variant="destructive" className="ml-2">
-              Excede lo contratado
-            </Badge>
-          ) : null}
-        </p>
-      ) : null}
 
-      {detail && canUpdate ? (
-        <section className="mt-6 rounded-lg border p-4">
-          <h2 className="font-medium">Agregar licencia</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Registre cuentas personales, compartidas o claves ligadas a un equipo.
-          </p>
-          <div className="mt-4">
-            <AddLicenseForm subscriptionId={detail.id} onCreated={reload} />
-          </div>
-        </section>
-      ) : null}
+      <Tabs defaultValue="licencias" className="mt-6">
+        <TabsList>
+          <TabsTrigger value="contrato">Contrato</TabsTrigger>
+          <TabsTrigger value="licencias">Licencias</TabsTrigger>
+        </TabsList>
 
-      <section className="mt-6">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-medium">Licencias registradas</h2>
-          {hasCancelledSeats ? (
-            <label className="flex items-center gap-2 text-sm text-muted-foreground">
-              <input
-                type="checkbox"
-                checked={showCancelledSeats}
-                onChange={(event) => setShowCancelledSeats(event.target.checked)}
-              />
-              Mostrar dadas de baja
-            </label>
-          ) : null}
-        </div>
-        {detail ? (
-          <LicenseSeatsTable
-            seats={visibleSeats}
-            canUpdate={canUpdate}
-            canManage={canManage}
-            onChange={reload}
-          />
-        ) : (
-          <p className="text-sm text-muted-foreground">Cargando…</p>
-        )}
-      </section>
-
-      {detail && canManage && detail.status !== 'CANCELLED' ? (
-        <section className="mt-10 border-t pt-6">
-          <Button
-            type="button"
-            variant="destructive"
-            disabled={(detail.activeAssignmentCount ?? 0) > 0}
-            onClick={() => setDeleteSubscriptionOpen(true)}
-          >
-            Eliminar suscripción
-          </Button>
-          {(detail.activeAssignmentCount ?? 0) > 0 ? (
-            <p className="mt-2 text-sm text-muted-foreground">
-              Quite las asignaciones activas antes de eliminar la suscripción.
+        <TabsContent value="contrato" className="mt-4 space-y-4">
+          {detail ? (
+            <p className="text-sm text-muted-foreground">
+              Próximo pago: {formatPaymentSchedule(detail)} ·{' '}
+              <Badge variant="outline">{STATUS_LABEL[detail.displayStatus] ?? detail.displayStatus}</Badge>
+              {detail.counts.exceedsContract ? (
+                <Badge variant="destructive" className="ml-2">
+                  Excede lo contratado
+                </Badge>
+              ) : null}
             </p>
           ) : null}
-        </section>
-      ) : null}
+
+          {detail && canManage && detail.status !== 'CANCELLED' ? (
+            <section className="border-t pt-6">
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={(detail.activeAssignmentCount ?? 0) > 0}
+                onClick={() => setDeleteSubscriptionOpen(true)}
+              >
+                Eliminar suscripción
+              </Button>
+              {(detail.activeAssignmentCount ?? 0) > 0 ? (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Quite las asignaciones activas antes de eliminar la suscripción.
+                </p>
+              ) : null}
+            </section>
+          ) : null}
+        </TabsContent>
+
+        <TabsContent value="licencias" className="mt-4 space-y-6">
+          {detail && canUpdate ? (
+            <section className="rounded-lg border p-4">
+              <h2 className="font-medium">Agregar licencia</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Registre cuentas personales, compartidas o claves ligadas a un equipo.
+              </p>
+              <div className="mt-4">
+                <AddLicenseForm subscriptionId={detail.id} onCreated={reload} />
+              </div>
+            </section>
+          ) : null}
+
+          <section>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="font-medium">Licencias registradas</h2>
+              {hasCancelledSeats ? (
+                <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={showCancelledSeats}
+                    onChange={(event) => setShowCancelledSeats(event.target.checked)}
+                  />
+                  Mostrar dadas de baja
+                </label>
+              ) : null}
+            </div>
+            {detail ? (
+              <LicenseSeatsTable
+                seats={visibleSeats}
+                canUpdate={canUpdate}
+                canManage={canManage}
+                onChange={reload}
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">Cargando…</p>
+            )}
+          </section>
+        </TabsContent>
+      </Tabs>
 
       <DeleteLicenseConfirmDialog
         open={deleteSubscriptionOpen}

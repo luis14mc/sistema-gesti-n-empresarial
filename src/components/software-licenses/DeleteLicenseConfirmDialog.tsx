@@ -46,12 +46,7 @@ export function DeleteLicenseConfirmDialog({
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={pending}>
             Cancelar
           </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            disabled={pending}
-            onClick={() => void onConfirm()}
-          >
+          <Button type="button" variant="destructive" disabled={pending} onClick={() => void onConfirm()}>
             {pending ? 'Procesando…' : 'Eliminar'}
           </Button>
         </DialogFooter>
