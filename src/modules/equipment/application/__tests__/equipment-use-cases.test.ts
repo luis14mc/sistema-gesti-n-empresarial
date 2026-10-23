@@ -21,10 +21,17 @@ vi.mock('@/modules/equipment/infrastructure/equipment-history', () => ({
   mapReturnConditionToStatus: vi.fn(() => 'AVAILABLE'),
 }));
 
+vi.mock('@/modules/equipment/application/acta-generation', () => ({
+  generateDeliveryActaPdf: vi.fn(async () => ({ url: '/acta', storageKey: 'key' })),
+  generateReturnActaPdf: vi.fn(async () => ({ url: '/acta', storageKey: 'key' })),
+}));
+
 const assignEquipmentInTransaction = vi.fn();
+const findAssignmentWithRelations = vi.fn();
 
 vi.mock('@/modules/equipment/infrastructure/equipment-repository', () => ({
   assignEquipmentInTransaction: (...args: unknown[]) => assignEquipmentInTransaction(...args),
+  findAssignmentWithRelations: (...args: unknown[]) => findAssignmentWithRelations(...args),
   countAssignments: vi.fn(),
   listAssignments: vi.fn(),
 }));
@@ -42,6 +49,7 @@ describe('equipment application · asset code domain', () => {
 describe('equipment application · assignEquipment', () => {
   beforeEach(() => {
     assignEquipmentInTransaction.mockReset();
+    findAssignmentWithRelations.mockReset();
   });
 
   it('returns validation when equipment or assignee is missing', async () => {
@@ -64,11 +72,13 @@ describe('equipment application · assignEquipment', () => {
   });
 
   it('creates assignment when repository succeeds', async () => {
-    assignEquipmentInTransaction.mockResolvedValueOnce({
+    const created = {
       id: 'asg-1',
       equipmentId: 'eq-1',
       equipment: { inventoryCode: 'TI-PC-0001' },
-    });
+    };
+    assignEquipmentInTransaction.mockResolvedValueOnce(created);
+    findAssignmentWithRelations.mockResolvedValueOnce(created);
     const result = await assignEquipment({
       organizationId: 'org-1',
       assignedById: 'user-1',

@@ -16,6 +16,8 @@ import { useEmployees } from '@/hooks/useEmployees';
 import { apiHelpers } from '@/utils/api';
 import { useAuth } from '@/hooks/useAuth';
 import { EmployeeLicensesSection } from '@/components/software-licenses/EmployeeLicensesSection';
+import { DischargeActaDialog } from '@/components/equipment/DischargeActaDialog';
+import { canAccess } from '@/platform/security/session-module-access';
 import type { Role } from '@/types';
 
 type EmployeeAssetsResponse = {
@@ -53,6 +55,10 @@ export default function EmployeeAssetsPage() {
   const [assets, setAssets] = useState<EmployeeAssetsResponse | null>(null);
   const [loadingAssets, setLoadingAssets] = useState(false);
   const [assetsError, setAssetsError] = useState<string | null>(null);
+  const [dischargeOpen, setDischargeOpen] = useState(false);
+  const [dischargeHistory, setDischargeHistory] = useState<
+    Array<{ id: string; createdAt: string; url: string | null }>
+  >([]);
 
   const { employees, isLoading: loadingEmployees } = useEmployees({
     search: debouncedSearch.trim() || undefined,
@@ -92,6 +98,19 @@ export default function EmployeeAssetsPage() {
     };
   }, [selectedEmployeeId]);
 
+  useEffect(() => {
+    if (!selectedEmployeeId) {
+      setDischargeHistory([]);
+      return;
+    }
+    void apiHelpers
+      .get<{ actas: Array<{ id: string; createdAt: string; url: string | null }> }>(
+        `/api/employees/${selectedEmployeeId}/discharge-acta?mode=history`,
+      )
+      .then((res) => setDischargeHistory(res.data.actas))
+      .catch(() => setDischargeHistory([]));
+  }, [selectedEmployeeId]);
+
   function reloadAssets() {
     if (!selectedEmployeeId) return;
     void apiHelpers
@@ -99,6 +118,8 @@ export default function EmployeeAssetsPage() {
       .then((response) => setAssets(response.data))
       .catch(() => setAssetsError('No se pudieron cargar los activos del empleado.'));
   }
+
+  const canDischarge = canAccess(role, 'equipment', 'update');
 
   const selectedLabel = useMemo(() => {
     if (assets?.employee) return `${assets.employee.fullName} (${assets.employee.employeeCode})`;
@@ -150,9 +171,14 @@ export default function EmployeeAssetsPage() {
 
         {selectedEmployeeId ? (
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              {selectedLabel ?? 'Empleado seleccionado'}
-            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-sm text-muted-foreground">{selectedLabel ?? 'Empleado seleccionado'}</p>
+              {canDischarge ? (
+                <Button type="button" variant="outline" size="sm" onClick={() => setDischargeOpen(true)}>
+                  Acta de descargo
+                </Button>
+              ) : null}
+            </div>
             {loadingAssets ? (
               <p className="text-sm text-muted-foreground">Cargando activos…</p>
             ) : assetsError ? (
@@ -198,11 +224,50 @@ export default function EmployeeAssetsPage() {
                   licencias={assets.licencias}
                   onRefresh={reloadAssets}
                 />
+
+                {dischargeHistory.length > 0 ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Actas de descargo generadas</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {dischargeHistory.map((acta) => (
+                        <div key={acta.id} className="flex items-center justify-between text-sm border rounded-md p-2">
+                          <span>{format(new Date(acta.createdAt), 'dd/MM/yyyy HH:mm', { locale: es })}</span>
+                          {acta.url ? (
+                            <Button variant="link" className="h-auto p-0" asChild>
+                              <a href={acta.url} target="_blank" rel="noreferrer">
+                                Descargar
+                              </a>
+                            </Button>
+                          ) : (
+                            <span className="text-muted-foreground">Sin enlace</span>
+                          )}
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                ) : null}
               </>
             ) : null}
           </div>
         ) : null}
       </div>
+      <DischargeActaDialog
+        employeeId={selectedEmployeeId || null}
+        open={dischargeOpen}
+        onOpenChange={setDischargeOpen}
+        onGenerated={() => {
+          reloadAssets();
+          if (selectedEmployeeId) {
+            void apiHelpers
+              .get<{ actas: Array<{ id: string; createdAt: string; url: string | null }> }>(
+                `/api/employees/${selectedEmployeeId}/discharge-acta?mode=history`,
+              )
+              .then((res) => setDischargeHistory(res.data.actas));
+          }
+        }}
+      />
     </MainLayout>
   );
 }

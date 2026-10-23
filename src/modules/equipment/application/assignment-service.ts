@@ -6,6 +6,7 @@ import {
   countAssignments,
   findActiveAssignmentForSwap,
   findAssignmentById,
+  findAssignmentWithRelations,
   listAssignments,
   returnAssignmentInTransaction,
   swapAssignmentInTransaction,
@@ -15,7 +16,19 @@ import { mapAssignmentResponse } from '@/modules/equipment/presentation/equipmen
 import { assignmentScope } from '@/modules/equipment/application/tenant';
 import { isEquipmentDocumentUrlAllowed } from '@/modules/equipment/infrastructure/equipment-attachments';
 import { toEquipmentDocumentHref } from '@/modules/equipment/infrastructure/equipment-document-access';
+import {
+  generateDeliveryActaPdf,
+  generateReturnActaPdf,
+} from '@/modules/equipment/application/acta-generation';
 import type { Prisma } from '@prisma/client';
+
+async function tryGenerateActa(task: () => Promise<unknown>) {
+  try {
+    await task();
+  } catch (error) {
+    console.error('ACTA_PDF_GENERATION_FAILED', error);
+  }
+}
 
 const ASSIGNEE_ERRORS: Record<string, string> = {
   EMPLOYEE_NOT_FOUND: 'Empleado no encontrado',
@@ -162,7 +175,19 @@ export async function assignEquipment(params: {
       },
     });
 
-    return { kind: 'created' as const, assignment: mapAssignmentResponse(result) };
+    await tryGenerateActa(() =>
+      generateDeliveryActaPdf({
+        organizationId: params.organizationId,
+        assignmentId: result.id,
+        actorUserId: params.assignedById,
+      }),
+    );
+
+    const refreshed = await findAssignmentWithRelations(result.id, params.organizationId);
+    return {
+      kind: 'created' as const,
+      assignment: mapAssignmentResponse(refreshed ?? result),
+    };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : '';
     if (message === 'NOT_FOUND') return { kind: 'not_found' as const };
@@ -247,7 +272,19 @@ export async function returnEquipmentAssignment(params: {
     newData: { status: finalStatus, returnCondition, equipmentStatus: nextEquipmentStatus },
   });
 
-  return { kind: 'ok' as const, assignment: mapAssignmentResponse(result.updatedAssignment) };
+  await tryGenerateActa(() =>
+    generateReturnActaPdf({
+      organizationId: params.organizationId,
+      assignmentId: params.assignmentId,
+      actorUserId: params.returnedById,
+    }),
+  );
+
+  const refreshed = await findAssignmentWithRelations(params.assignmentId, params.organizationId);
+  return {
+    kind: 'ok' as const,
+    assignment: mapAssignmentResponse(refreshed ?? result.updatedAssignment),
+  };
 }
 
 export async function swapEquipmentAssignment(params: {
@@ -358,10 +395,34 @@ export async function swapEquipmentAssignment(params: {
       },
     });
 
+    await tryGenerateActa(() =>
+      generateReturnActaPdf({
+        organizationId: params.organizationId,
+        assignmentId: result.closedAssignment.id,
+        actorUserId: params.assignedById,
+      }),
+    );
+    await tryGenerateActa(() =>
+      generateDeliveryActaPdf({
+        organizationId: params.organizationId,
+        assignmentId: result.newAssignment.id,
+        actorUserId: params.assignedById,
+      }),
+    );
+
+    const closedRefreshed = await findAssignmentWithRelations(
+      result.closedAssignment.id,
+      params.organizationId,
+    );
+    const newRefreshed = await findAssignmentWithRelations(
+      result.newAssignment.id,
+      params.organizationId,
+    );
+
     return {
       kind: 'ok' as const,
-      closedAssignment: mapAssignmentResponse(result.closedAssignment),
-      newAssignment: mapAssignmentResponse(result.newAssignment),
+      closedAssignment: mapAssignmentResponse(closedRefreshed ?? result.closedAssignment),
+      newAssignment: mapAssignmentResponse(newRefreshed ?? result.newAssignment),
     };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : '';
@@ -414,4 +475,34 @@ export async function attachAssignmentDocument(params: {
   });
 
   return { kind: 'ok' as const, assignment: mapAssignmentResponse(updated) };
+}
+
+export async function regenerateAssignmentActa(params: {
+  organizationId: string;
+  assignmentId: string;
+  actorUserId: string;
+  type: 'delivery' | 'return';
+}) {
+  const assignment = await findAssignmentById(params.assignmentId, params.organizationId);
+  if (!assignment) return { kind: 'not_found' as const };
+
+  if (params.type === 'delivery') {
+    await generateDeliveryActaPdf({
+      organizationId: params.organizationId,
+      assignmentId: params.assignmentId,
+      actorUserId: params.actorUserId,
+    });
+  } else {
+    if (assignment.status === 'ACTIVE') {
+      return { kind: 'validation' as const, error: 'La devolución aún no está registrada' };
+    }
+    await generateReturnActaPdf({
+      organizationId: params.organizationId,
+      assignmentId: params.assignmentId,
+      actorUserId: params.actorUserId,
+    });
+  }
+
+  const refreshed = await findAssignmentWithRelations(params.assignmentId, params.organizationId);
+  return { kind: 'ok' as const, assignment: mapAssignmentResponse(refreshed!) };
 }

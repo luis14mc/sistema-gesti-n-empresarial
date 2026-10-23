@@ -28,7 +28,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { canAccess } from '@/platform/security/session-module-access';
 import { sileo } from 'sileo';
 import { formatDate } from '@/utils/helpers';
-import { ReturnNoteContent } from '@/components/equipment/ReturnNoteContent';
+import { ActaCniPreview } from '@/components/equipment/ActaCniPreview';
+import { RETURN_REASON_OPTIONS } from '@/modules/equipment/domain/acta-texts';
 import { EquipmentFileUpload } from '@/components/equipment/EquipmentFileUpload';
 import type { Role, Equipment, EquipmentAssignment, EquipmentStatus } from '@/types';
 
@@ -55,15 +56,7 @@ const deliveryReasons = [
     'Otro',
 ];
 
-const returnReasons = [
-    'Cambio de equipo',
-    'Fin de contrato',
-    'Cambio de puesto',
-    'Daño',
-    'Mantenimiento',
-    'Baja del activo',
-    'Otro',
-];
+const returnReasonSelectValues = RETURN_REASON_OPTIONS.map((o) => o.value);
 
 const returnConditions = [
     { value: 'BUENO', label: 'Bueno - Disponible', statusAfter: 'AVAILABLE' as EquipmentStatus },
@@ -85,7 +78,7 @@ export default function AssignmentsPage() {
     const { user } = useAuth();
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('ALL');
-    const { assignments, isLoading, createAssignment, isCreating, returnAssignment, isReturning, swapEquipment, isSwapping, attachDocument } = useAssignments({ search: search || undefined, status: statusFilter === 'ALL' ? undefined : statusFilter });
+    const { assignments, isLoading, createAssignment, isCreating, returnAssignment, isReturning, swapEquipment, isSwapping, attachDocument, regenerateActa, isRegeneratingActa } = useAssignments({ search: search || undefined, status: statusFilter === 'ALL' ? undefined : statusFilter });
     const { employees } = useEmployees({ isActive: true, pageSize: 100 });
     const [dialogOpen, setDialogOpen] = useState(false);
     const [returnDialogOpen, setReturnDialogOpen] = useState(false);
@@ -93,15 +86,23 @@ export default function AssignmentsPage() {
     const [returnNoteOpen, setReturnNoteOpen] = useState(false);
     const [returnedForNote, setReturnedForNote] = useState<EquipmentAssignment | null>(null);
     const [returningAssignment, setReturningAssignment] = useState<EquipmentAssignment | null>(null);
-    const [returnForm, setReturnForm] = useState({
+    const [returnForm, setReturnForm] = useState<{
+        returnCondition: string;
+        returnReason: string;
+        returnReasonOther: string;
+        notes: string;
+        accessoriesReturned: string;
+    }>({
         returnCondition: 'BUENO',
-        returnReason: '',
+        returnReason: RETURN_REASON_OPTIONS[0]?.value ?? '',
+        returnReasonOther: '',
         notes: '',
         accessoriesReturned: '',
     });
 
     const role = (user?.role ?? 'USER') as Role;
     const canCreate = canAccess(role, 'assignments', 'create');
+    const canUpdate = canAccess(role, 'assignments', 'update');
 
     const filtered = assignments.filter((a: EquipmentAssignment) => {
         const name = getAssigneeName(a);
@@ -126,7 +127,7 @@ export default function AssignmentsPage() {
     const [swapForm, setSwapForm] = useState({
         oldAssignmentId: '',
         newEquipment: null as Equipment | null,
-        returnReason: 'Cambio de equipo',
+        returnReason: 'Sustitución / cambio de equipo',
         returnCondition: 'BUENO',
         assignmentNotes: '',
     });
@@ -159,7 +160,13 @@ export default function AssignmentsPage() {
 
     const openReturnDialog = (assignment: EquipmentAssignment) => {
         setReturningAssignment(assignment);
-        setReturnForm({ returnCondition: 'BUENO', returnReason: '', notes: '', accessoriesReturned: '' });
+        setReturnForm({
+            returnCondition: 'BUENO',
+            returnReason: RETURN_REASON_OPTIONS[0]?.value ?? '',
+            returnReasonOther: '',
+            notes: '',
+            accessoriesReturned: '',
+        });
         setReturnDialogOpen(true);
     };
 
@@ -169,12 +176,17 @@ export default function AssignmentsPage() {
 
         const conditionMeta = returnConditions.find((c) => c.value === returnForm.returnCondition);
 
+        const resolvedReason =
+            returnForm.returnReason === 'Otro'
+                ? returnForm.returnReasonOther.trim() || 'Otro'
+                : returnForm.returnReason;
+
         returnAssignment(
             {
                 id: returningAssignment.id,
                 data: {
                     returnCondition: returnForm.returnCondition,
-                    returnReason: returnForm.returnReason || undefined,
+                    returnReason: resolvedReason || undefined,
                     returnNotes: returnForm.notes || undefined,
                     accessoriesReturned: returnForm.accessoriesReturned || undefined,
                     equipmentStatusAfter: conditionMeta?.statusAfter,
@@ -194,7 +206,7 @@ export default function AssignmentsPage() {
                             ...closed,
                             status: 'RETURNED',
                             returnedDate: new Date().toISOString(),
-                            returnReason: returnForm.returnReason,
+                            returnReason: resolvedReason,
                             returnCondition: returnForm.returnCondition,
                             returnNotes: returnForm.notes,
                         });
@@ -459,7 +471,31 @@ export default function AssignmentsPage() {
                                                     {statusLabels[assignment.status] ?? assignment.status}
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell className="text-right">
+                                            <TableCell className="text-right space-x-1">
+                                                {assignment.deliveryDocumentUrl && (
+                                                    <Button variant="ghost" size="sm" asChild>
+                                                        <a href={assignment.deliveryDocumentUrl} target="_blank" rel="noreferrer">
+                                                            Descargar acta
+                                                        </a>
+                                                    </Button>
+                                                )}
+                                                {canUpdate && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        disabled={isRegeneratingActa}
+                                                        onClick={async () => {
+                                                            try {
+                                                                await regenerateActa({ id: assignment.id, type: 'delivery' });
+                                                                sileo.success({ title: 'Acta regenerada' });
+                                                            } catch {
+                                                                sileo.error({ title: 'No se pudo regenerar el acta' });
+                                                            }
+                                                        }}
+                                                    >
+                                                        Regenerar acta
+                                                    </Button>
+                                                )}
                                                 {assignment.status === 'ACTIVE' && canCreate && (
                                                     <Button
                                                         variant="ghost"
@@ -501,11 +537,18 @@ export default function AssignmentsPage() {
                             >
                                 <SelectTrigger><SelectValue placeholder="Selecciona motivo" /></SelectTrigger>
                                 <SelectContent>
-                                    {returnReasons.map((r) => (
+                                    {returnReasonSelectValues.map((r) => (
                                         <SelectItem key={r} value={r}>{r}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
+                            {returnForm.returnReason === 'Otro' && (
+                                <Input
+                                    placeholder="Describe el motivo"
+                                    value={returnForm.returnReasonOther}
+                                    onChange={(e) => setReturnForm((f) => ({ ...f, returnReasonOther: e.target.value }))}
+                                />
+                            )}
                         </div>
                         <div className="space-y-2">
                             <Label>Estado físico del equipo</Label>
@@ -555,10 +598,8 @@ export default function AssignmentsPage() {
                         <DialogTitle>Acta de devolución</DialogTitle>
                         <DialogDescription>Imprime o guarda como PDF. Luego puedes subir el formato firmado.</DialogDescription>
                     </DialogHeader>
-                    {returnedForNote?.equipment && (
-                        <div className="border rounded-xl p-4 bg-muted/20">
-                            <ReturnNoteContent equipment={returnedForNote.equipment} assignment={returnedForNote} />
-                        </div>
+                    {returnedForNote && (
+                        <ActaCniPreview assignmentId={returnedForNote.id} type="return" />
                     )}
                     {returnedForNote && (
                         <EquipmentFileUpload
