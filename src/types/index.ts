@@ -897,9 +897,17 @@ export interface EquipmentFilters extends PaginationParams {
 export interface AssignmentFilters extends PaginationParams {
   search?: string;
   status?: string;
+  tab?: 'active' | 'history' | 'all';
   equipmentId?: string;
   userId?: string;
   employeeId?: string;
+  departmentId?: string;
+  equipmentCategory?: string;
+  assignedFrom?: string;
+  assignedTo?: string;
+  sortBy?: 'employee' | 'assignedDate' | 'returnedDate';
+  sortDir?: 'asc' | 'desc';
+  summary?: '1' | '0';
 }
 
 // ── Data types para mutaciones ────────────────────────────────

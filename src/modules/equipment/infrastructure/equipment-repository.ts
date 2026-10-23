@@ -155,14 +155,77 @@ export async function listAssignments(
   where: Prisma.EquipmentAssignmentWhereInput,
   skip: number,
   take: number,
+  orderBy: Prisma.EquipmentAssignmentOrderByWithRelationInput | Prisma.EquipmentAssignmentOrderByWithRelationInput[] = {
+    assignedDate: 'desc',
+  },
 ) {
   return prisma.equipmentAssignment.findMany({
     where,
     skip,
     take,
     include: assignmentInclude,
-    orderBy: { assignedDate: 'desc' },
+    orderBy,
   });
+}
+
+export async function getAssignmentsPageSummary(organizationId: string) {
+  const scope = assignmentScope(organizationId);
+  const now = new Date();
+  const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+
+  const [activeCount, returnsThisMonth, availableEquipmentCount, activeByEmployee] = await Promise.all([
+    prisma.equipmentAssignment.count({ where: { ...scope, status: 'ACTIVE' } }),
+    prisma.equipmentAssignment.count({
+      where: {
+        ...scope,
+        status: { in: ['RETURNED', 'REPLACED'] },
+        returnedDate: { gte: startOfMonth },
+      },
+    }),
+    prisma.equipment.count({
+      where: { organizationId, status: 'AVAILABLE' },
+    }),
+    prisma.equipmentAssignment.groupBy({
+      by: ['employeeId'],
+      where: { ...scope, status: 'ACTIVE', employeeId: { not: null } },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const employeesWithMultipleActive = activeByEmployee.filter((row) => row._count._all > 1).length;
+
+  return {
+    activeCount,
+    returnsThisMonth,
+    availableEquipmentCount,
+    employeesWithMultipleActive,
+  };
+}
+
+export async function findAssignmentDetailBundle(id: string, organizationId: string) {
+  const assignment = await findAssignmentWithRelations(id, organizationId);
+  if (!assignment) return null;
+
+  const [equipmentAssignments, maintenances, history] = await Promise.all([
+    prisma.equipmentAssignment.findMany({
+      where: { equipmentId: assignment.equipmentId, ...assignmentScope(organizationId) },
+      orderBy: { assignedDate: 'desc' },
+      take: 20,
+      include: assignmentInclude,
+    }),
+    prisma.equipmentMaintenance.findMany({
+      where: { equipment: { id: assignment.equipmentId, organizationId } },
+      orderBy: { scheduledDate: 'desc' },
+      take: 10,
+    }),
+    prisma.equipmentHistory.findMany({
+      where: { equipmentId: assignment.equipmentId },
+      orderBy: { createdAt: 'desc' },
+      take: 15,
+    }),
+  ]);
+
+  return { assignment, equipmentAssignments, maintenances, history };
 }
 
 export async function countAssignments(where: Prisma.EquipmentAssignmentWhereInput) {
