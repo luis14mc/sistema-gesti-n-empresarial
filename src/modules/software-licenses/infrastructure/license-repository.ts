@@ -114,6 +114,34 @@ function licenseStore(db: Db, tx?: Prisma.TransactionClient) {
         where: { unassignedAt: null, seat: { subscriptionId } },
       });
     },
+    countAssignmentHistoryForSeat(seatId: string) {
+      return db.licenseAssignment.count({ where: { seatId } });
+    },
+    countAssignmentHistoryForSubscription(subscriptionId: string) {
+      return db.licenseAssignment.count({ where: { seat: { subscriptionId } } });
+    },
+    deleteSeatPhysical(seatId: string) {
+      return db.softwareLicenseSeat.delete({ where: { id: seatId } });
+    },
+    deleteSubscriptionPhysical(subscriptionId: string) {
+      return db.softwareSubscription.delete({ where: { id: subscriptionId } });
+    },
+    async lockSubscriptionForUpdate(subscriptionId: string, organizationId: string) {
+      const rows = await db.$queryRaw<{ id: string }[]>`
+        SELECT id
+        FROM software_subscriptions
+        WHERE id = ${subscriptionId} AND "organizationId" = ${organizationId}
+        FOR UPDATE
+      `;
+      if (rows.length === 0) return null;
+      return rows[0]!.id;
+    },
+    cancelAllSeatsForSubscription(subscriptionId: string) {
+      return db.softwareLicenseSeat.updateMany({
+        where: { subscriptionId },
+        data: { status: 'CANCELLED', equipmentId: null },
+      });
+    },
     async audit(input: LicenseAuditInput) {
       await createAuditRecord({
         tx,
@@ -178,7 +206,7 @@ export function listDeviceLicensesForEquipment(equipmentId: string, organization
     },
     include: {
       subscription: { include: { product: true } },
-      assignments: { where: { unassignedAt: null }, include: { employee: { select: { id: true, fullName: true } } } },
+      assignments: { include: { employee: { select: { id: true, fullName: true } } }, orderBy: { assignedAt: 'asc' } },
     },
     orderBy: { createdAt: 'asc' },
   });

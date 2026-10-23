@@ -22,6 +22,8 @@ const MESSAGES: Record<string, string> = {
   SUBSCRIPTION_EXPIRED: 'La licencia está vencida; renuévela antes de asignar.',
   SEAT_HAS_ACTIVE_ASSIGNMENTS: 'Libere las asignaciones del asiento antes de suspenderlo o cancelarlo.',
   SUBSCRIPTION_HAS_ACTIVE_ASSIGNMENTS: 'Libere las asignaciones del asiento antes de suspenderlo o cancelarlo.',
+  LICENSE_IN_USE: 'Quite primero a los usuarios asignados.',
+  SUBSCRIPTION_IN_USE: 'Tiene asignaciones activas. Quítelas primero.',
   SHARED_SEAT_HAS_MULTIPLE_ASSIGNMENTS: 'Un asiento compartido con varias personas no puede volver a individual.',
   CROSS_ORGANIZATION_ASSIGNMENT: 'El empleado pertenece a otra organización.',
   ASSIGNMENT_NOT_FOUND: 'La asignación no existe o ya fue cerrada.',

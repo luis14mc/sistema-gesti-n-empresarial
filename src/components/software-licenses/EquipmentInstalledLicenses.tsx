@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { DeleteLicenseConfirmDialog } from '@/components/software-licenses/DeleteLicenseConfirmDialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -29,6 +31,7 @@ type InstalledLicense = {
   licenseKeyPresent?: boolean;
   effectiveStatus?: string;
   status?: string;
+  assignments?: Array<{ id: string; unassignedAt: string | null }>;
   subscription: { id: string; product: { name: string }; planName: string };
 };
 
@@ -43,10 +46,12 @@ export function EquipmentInstalledLicenses({
   equipmentId,
   canRead,
   canUpdate,
+  canManage = false,
 }: {
   equipmentId: string;
   canRead: boolean;
   canUpdate: boolean;
+  canManage?: boolean;
 }) {
   const [items, setItems] = useState<InstalledLicense[]>([]);
   const [subscriptions, setSubscriptions] = useState<SubscriptionOption[]>([]);
@@ -54,6 +59,8 @@ export function EquipmentInstalledLicenses({
   const [licenseKey, setLicenseKey] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState<InstalledLicense | null>(null);
+  const [deletePending, setDeletePending] = useState(false);
 
   const reload = useCallback(async () => {
     const response = await api.get(`/api/software-licenses/equipment/${equipmentId}`);
@@ -114,6 +121,23 @@ export function EquipmentInstalledLicenses({
     await reload();
   }
 
+  async function confirmDeleteSeat() {
+    if (!deleteTarget) return;
+    setDeletePending(true);
+    setError('');
+    try {
+      await api.delete(`/api/software-licenses/seats/${deleteTarget.id}`);
+      setDeleteTarget(null);
+      await reload();
+    } catch {
+      setError('No se pudo eliminar la licencia.');
+    } finally {
+      setDeletePending(false);
+    }
+  }
+
+  const showActions = canUpdate || canManage;
+
   if (!canRead) return null;
 
   return (
@@ -131,7 +155,7 @@ export function EquipmentInstalledLicenses({
               <TableHead>Plan</TableHead>
               <TableHead>Clave</TableHead>
               <TableHead>Estado</TableHead>
-              {canUpdate ? <TableHead className="text-right">Acciones</TableHead> : null}
+              {showActions ? <TableHead className="text-right">Acciones</TableHead> : null}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -152,11 +176,29 @@ export function EquipmentInstalledLicenses({
                     {item.licenseKeyPresent ? (item.licenseKey ?? '•••••') : '—'}
                   </TableCell>
                   <TableCell>{STATUS_LABEL[statusKey] ?? statusKey}</TableCell>
-                  {canUpdate ? (
+                  {showActions ? (
                     <TableCell className="text-right">
-                      <Button size="sm" variant="ghost" type="button" onClick={() => void detach(item.id)}>
-                        Quitar
-                      </Button>
+                      <div className="flex justify-end gap-1">
+                        {canUpdate ? (
+                          <Button size="sm" variant="ghost" type="button" onClick={() => void detach(item.id)}>
+                            Quitar
+                          </Button>
+                        ) : null}
+                        {canManage &&
+                        item.status !== 'CANCELLED' &&
+                        !(item.assignments ?? []).some((a) => !a.unassignedAt) ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            type="button"
+                            className="text-destructive hover:text-destructive"
+                            aria-label="Eliminar licencia"
+                            onClick={() => setDeleteTarget(item)}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        ) : null}
+                      </div>
                     </TableCell>
                   ) : null}
                 </TableRow>
@@ -198,6 +240,21 @@ export function EquipmentInstalledLicenses({
           </Button>
         </div>
       ) : null}
+      <DeleteLicenseConfirmDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Eliminar licencia"
+        entityLabel={
+          deleteTarget
+            ? `${deleteTarget.subscription.product.name} · ${deleteTarget.subscription.planName}`
+            : ''
+        }
+        hasHistory={Boolean(deleteTarget && (deleteTarget.assignments?.length ?? 0) > 0)}
+        pending={deletePending}
+        onConfirm={confirmDeleteSeat}
+      />
     </div>
   );
 }

@@ -2,7 +2,11 @@ import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import { apiSuccess } from '@/platform/api/response';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 import { updateSubscriptionSchema } from '@/modules/software-licenses/presentation/schemas';
-import { getSoftwareSubscription, updateSoftwareSubscription } from '@/modules/software-licenses/application/service';
+import {
+  deleteSoftwareSubscription,
+  getSoftwareSubscription,
+  updateSoftwareSubscription,
+} from '@/modules/software-licenses/application/service';
 import { licenseFailure } from '@/modules/software-licenses/presentation/http';
 
 async function getHandler(req: AuthenticatedRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -30,5 +34,17 @@ async function patchHandler(req: AuthenticatedRequest, { params }: { params: Pro
   }
 }
 
+async function deleteHandler(req: AuthenticatedRequest, { params }: { params: Promise<{ id: string }> }) {
+  const requestId = crypto.randomUUID();
+  try {
+    const { organizationId, userId } = await authorizeOrganization(req, requestId, 'software-licenses.manage');
+    const { id } = await params;
+    return apiSuccess(await deleteSoftwareSubscription(id, organizationId, userId), { requestId });
+  } catch (error) {
+    return licenseFailure(error, requestId);
+  }
+}
+
 export const GET = withAuth(getHandler);
 export const PATCH = withAuth(patchHandler);
+export const DELETE = withAuth(deleteHandler);
