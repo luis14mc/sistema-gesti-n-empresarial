@@ -10,6 +10,7 @@ import type { findDisposal } from './repository';
 import type { generateAndStoreDisposalPdf } from './pdf';
 import { allocateDocumentSequence } from '@/platform/sequences/document-sequence';
 import { appendSecurityEvent } from '@/platform/security/audit/security-events';
+import { releaseDeviceLicensesForEquipment } from '@/modules/software-licenses/infrastructure/release-device-licenses';
 
 function mapPolicy(policy: {
   maxAgeYears: Prisma.Decimal;
@@ -319,6 +320,12 @@ export async function commitApproval(
     });
     if (claimed.count !== 1) throw new EquipmentDisposalError('STALE_DISPOSAL_VERSION', 409);
     await tx.equipment.update({ where: { id: existing.equipmentId }, data: { status: 'DISPOSED', retiredAt: new Date(), retirementReason: `Dictamen ${existing.folio}` } });
+    await releaseDeviceLicensesForEquipment(tx, {
+      organizationId: context.organizationId,
+      equipmentId: existing.equipmentId,
+      userId: context.userId,
+      requestId,
+    });
     await tx.replacementProjection.upsert({
       where: { disposalId: id },
       update: {},

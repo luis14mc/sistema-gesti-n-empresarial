@@ -156,7 +156,8 @@
   "seats": {
     "types": [
       "INDIVIDUAL",
-      "SHARED"
+      "SHARED",
+      "DEVICE"
     ],
     "statuses": [
       "AVAILABLE",
@@ -171,7 +172,7 @@
         "available": true,
         "shared": false,
         "canAssign": true,
-        "canConvertToIndividual": false
+        "canChangeToIndividual": true
       },
       {
         "effective": "ASSIGNED",
@@ -179,7 +180,7 @@
         "available": false,
         "shared": false,
         "canAssign": false,
-        "canConvertToIndividual": false
+        "canChangeToIndividual": true
       },
       {
         "effective": "ASSIGNED",
@@ -187,7 +188,7 @@
         "available": false,
         "shared": true,
         "canAssign": true,
-        "canConvertToIndividual": false
+        "canChangeToIndividual": false
       },
       {
         "effective": "ASSIGNED",
@@ -195,7 +196,7 @@
         "available": false,
         "shared": true,
         "canAssign": true,
-        "canConvertToIndividual": true
+        "canChangeToIndividual": true
       },
       {
         "effective": "SUSPENDED",
@@ -203,7 +204,7 @@
         "available": false,
         "shared": false,
         "canAssign": false,
-        "canConvertToIndividual": false
+        "canChangeToIndividual": false
       },
       {
         "effective": "CANCELLED",
@@ -211,7 +212,7 @@
         "available": false,
         "shared": false,
         "canAssign": false,
-        "canConvertToIndividual": false
+        "canChangeToIndividual": true
       },
       {
         "effective": "AVAILABLE",
@@ -219,11 +220,15 @@
         "available": true,
         "shared": false,
         "canAssign": true,
-        "canConvertToIndividual": true
+        "canChangeToIndividual": true
       }
     ],
     "summary": {
       "contractedSeats": 10,
+      "registeredSeats": 6,
+      "inUseSeats": 3,
+      "freeSeats": 2,
+      "exceedsContract": false,
       "occupiedSeats": 3,
       "availableSeats": 2,
       "assignedUsers": 7,
@@ -232,6 +237,10 @@
     },
     "summaryOverbooked": {
       "contractedSeats": 1,
+      "registeredSeats": 6,
+      "inUseSeats": 3,
+      "freeSeats": 2,
+      "exceedsContract": true,
       "occupiedSeats": 3,
       "availableSeats": 2,
       "assignedUsers": 7,
@@ -403,6 +412,7 @@
         "seats": [
           {
             "accountEmail": "ana@cni.hn",
+            "equipmentInventoryCode": null,
             "seatType": "INDIVIDUAL",
             "status": "ASSIGNED",
             "assignments": [
@@ -414,6 +424,7 @@
           },
           {
             "accountEmail": "compartida@cni.hn",
+            "equipmentInventoryCode": null,
             "seatType": "SHARED",
             "status": "ASSIGNED",
             "assignments": [
@@ -437,18 +448,21 @@
         "seats": [
           {
             "accountEmail": "adobe@cni.hn",
+            "equipmentInventoryCode": null,
             "seatType": "INDIVIDUAL",
             "status": "AVAILABLE",
             "assignments": []
           },
           {
             "accountEmail": "adobe2@cni.hn",
+            "equipmentInventoryCode": null,
             "seatType": "INDIVIDUAL",
             "status": "CANCELLED",
             "assignments": []
           },
           {
             "accountEmail": "adobe3@cni.hn",
+            "equipmentInventoryCode": null,
             "seatType": "INDIVIDUAL",
             "status": "SUSPENDED",
             "assignments": [
@@ -468,6 +482,7 @@
         "seats": [
           {
             "accountEmail": null,
+            "equipmentInventoryCode": null,
             "seatType": "INDIVIDUAL",
             "status": "ASSIGNED",
             "assignments": [
@@ -479,6 +494,7 @@
           },
           {
             "accountEmail": null,
+            "equipmentInventoryCode": null,
             "seatType": "INDIVIDUAL",
             "status": "ASSIGNED",
             "assignments": [
@@ -498,6 +514,7 @@
         "seats": [
           {
             "accountEmail": "slack@cni.hn",
+            "equipmentInventoryCode": null,
             "seatType": "SHARED",
             "status": "ASSIGNED",
             "assignments": [

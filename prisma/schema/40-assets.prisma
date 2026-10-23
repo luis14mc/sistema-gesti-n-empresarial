@@ -37,6 +37,7 @@ model Equipment {
   maintenances           EquipmentMaintenance[]
   disposals              EquipmentDisposal[]
   replacementProjections ReplacementProjection[]
+  softwareLicenseSeats   SoftwareLicenseSeat[]
 
   @@unique([organizationId, inventoryCode])
   @@unique([organizationId, serialNumber])
@@ -465,6 +466,7 @@ enum SoftwareSubscriptionStatus {
 enum SoftwareSeatType {
   INDIVIDUAL
   SHARED
+  DEVICE
   @@schema("public")
 }
 
@@ -536,16 +538,20 @@ model SoftwareLicenseSeat {
   subscriptionId    String
   accountEmail      String?
   accountIdentifier String?
+  equipmentId       String?
+  licenseKey        String?
   seatType          SoftwareSeatType   @default(INDIVIDUAL)
   status            SoftwareSeatStatus @default(AVAILABLE)
   notes             String?            @db.Text
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   subscription      SoftwareSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  equipment         Equipment?         @relation(fields: [equipmentId], references: [id], onDelete: SetNull)
   assignments       LicenseAssignment[]
 
   @@index([subscriptionId, status])
   @@index([accountEmail])
+  @@index([equipmentId])
   @@schema("public")
   @@map("software_license_seats")
 }

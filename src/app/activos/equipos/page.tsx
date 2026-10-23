@@ -43,6 +43,7 @@ import { AssignmentNoteContent } from '@/components/equipment/AssignmentNoteCont
 import { ReturnNoteContent } from '@/components/equipment/ReturnNoteContent';
 import { EquipmentFileUpload } from '@/components/equipment/EquipmentFileUpload';
 import { EquipmentExcelActions } from '@/components/equipment/EquipmentExcelActions';
+import { EquipmentInstalledLicenses } from '@/components/software-licenses/EquipmentInstalledLicenses';
 import { MaintenanceWorkflowActions } from '@/components/equipment/MaintenanceWorkflowActions';
 import { equipmentAssignmentsService } from '@/services/equipment-assignments.service';
 import { canAccess } from '@/platform/security/session-module-access';
@@ -562,6 +563,8 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
     } = useEquipmentDetail(equipmentId);
     const canUpdate = canAccess(role, 'equipment', 'update');
     const canDelete = canAccess(role, 'equipment', 'delete');
+    const canReadLicenses = canAccess(role, 'software-licenses', 'read');
+    const canManageLicenses = canAccess(role, 'software-licenses', 'update');
     const [editing, setEditing] = useState(false);
     const [documentPreview, setDocumentPreview] = useState<EquipmentDocumentPreview | null>(null);
     const [maintenanceOpen, setMaintenanceOpen] = useState(false);
@@ -937,6 +940,14 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
                     </form>
                 </DialogContent>
             </Dialog>
+
+            {canReadLicenses ? (
+                <EquipmentInstalledLicenses
+                    equipmentId={equipmentId}
+                    canRead={canReadLicenses}
+                    canUpdate={canManageLicenses}
+                />
+            ) : null}
 
             {/* Historial del activo */}
             {eq.history && eq.history.length > 0 && (

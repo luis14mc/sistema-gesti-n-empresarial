@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import MainLayout from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -19,7 +20,12 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Plus, Search, UserCheck, UserX, Edit3 } from 'lucide-react';
+import { Plus, Search, UserCheck, UserX, Edit3, Briefcase } from 'lucide-react';
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle,
+} from '@/components/ui/sheet';
+import { apiHelpers } from '@/utils/api';
+import { EmployeeLicensesSection, type EmployeeLicenseRow } from '@/components/software-licenses/EmployeeLicensesSection';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useDepartments } from '@/hooks/useDepartments';
 import { useAuth } from '@/hooks/useAuth';
@@ -48,6 +54,34 @@ export default function EmployeesPage() {
   const role = (user?.role ?? 'USER') as Role;
   const canCreate = canAccess(role, 'employees', 'create');
   const canUpdate = canAccess(role, 'employees', 'update');
+  const canViewLicenseAssets = canAccess(role, 'software-licenses', 'read');
+
+  const [assetsSheetOpen, setAssetsSheetOpen] = useState(false);
+  const [assetsSheetEmployee, setAssetsSheetEmployee] = useState<Employee | null>(null);
+  const [sheetLicenses, setSheetLicenses] = useState<EmployeeLicenseRow[]>([]);
+  const [sheetAssetsLoading, setSheetAssetsLoading] = useState(false);
+
+  async function openAssetsSheet(employee: Employee) {
+    setAssetsSheetEmployee(employee);
+    setAssetsSheetOpen(true);
+    setSheetAssetsLoading(true);
+    try {
+      const response = await apiHelpers.get<{
+        employee: { id: string; fullName: string };
+        licencias: EmployeeLicenseRow[];
+      }>(`/api/employees/${employee.id}/assets`);
+      setSheetLicenses(response.data.licencias ?? []);
+    } catch {
+      setSheetLicenses([]);
+    } finally {
+      setSheetAssetsLoading(false);
+    }
+  }
+
+  function reloadSheetLicenses() {
+    if (!assetsSheetEmployee) return;
+    void openAssetsSheet(assetsSheetEmployee);
+  }
 
   const [form, setForm] = useState({
     employeeCode: '', firstName: '', lastName: '', email: '', phone: '', dni: '',
@@ -309,7 +343,7 @@ export default function EmployeesPage() {
                    <TableHead className="hidden md:table-cell">Puesto</TableHead>
                    <TableHead className="hidden lg:table-cell">Fecha de ingreso</TableHead>
                     <TableHead>Estado</TableHead>
-                    {canUpdate && <TableHead className="text-right">Acciones</TableHead>}
+                    {(canUpdate || canViewLicenseAssets) && <TableHead className="text-right">Acciones</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -334,18 +368,27 @@ export default function EmployeesPage() {
                             {employee.isActive ? 'Activo' : 'Inactivo'}
                           </Badge>
                         </TableCell>
-                        {canUpdate && (
+                        {(canUpdate || canViewLicenseAssets) && (
                           <TableCell className="text-right space-x-1">
-                            <Button variant="ghost" size="sm" onClick={() => openEdit(employee)}>
-                              <Edit3 className="h-4 w-4 mr-1" /> Editar
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={() => toggleActive(employee)}>
-                              {employee.isActive ? (
-                                <><UserX className="h-4 w-4 mr-1" /> Desactivar</>
-                              ) : (
-                                <><UserCheck className="h-4 w-4 mr-1" /> Activar</>
-                              )}
-                            </Button>
+                            {canViewLicenseAssets ? (
+                              <Button variant="ghost" size="sm" type="button" onClick={() => void openAssetsSheet(employee)}>
+                                <Briefcase className="h-4 w-4 mr-1" /> Activos
+                              </Button>
+                            ) : null}
+                            {canUpdate ? (
+                              <>
+                                <Button variant="ghost" size="sm" onClick={() => openEdit(employee)}>
+                                  <Edit3 className="h-4 w-4 mr-1" /> Editar
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={() => toggleActive(employee)}>
+                                  {employee.isActive ? (
+                                    <><UserX className="h-4 w-4 mr-1" /> Desactivar</>
+                                  ) : (
+                                    <><UserCheck className="h-4 w-4 mr-1" /> Activar</>
+                                  )}
+                                </Button>
+                              </>
+                            ) : null}
                           </TableCell>
                         )}
                       </TableRow>
@@ -357,6 +400,31 @@ export default function EmployeesPage() {
           </Card>
         )}
       </div>
+
+      <Sheet open={assetsSheetOpen} onOpenChange={setAssetsSheetOpen}>
+        <SheetContent className="overflow-y-auto sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>{assetsSheetEmployee?.fullName ?? 'Activos del empleado'}</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 space-y-4">
+            <Button variant="link" className="h-auto p-0" asChild>
+              <Link href={`/activos/por-empleado?employeeId=${assetsSheetEmployee?.id ?? ''}`}>
+                Ver ficha completa en Activos
+              </Link>
+            </Button>
+            {sheetAssetsLoading ? (
+              <p className="text-sm text-muted-foreground">Cargando licencias…</p>
+            ) : assetsSheetEmployee ? (
+              <EmployeeLicensesSection
+                role={role}
+                employee={{ id: assetsSheetEmployee.id, fullName: assetsSheetEmployee.fullName }}
+                licencias={sheetLicenses}
+                onRefresh={reloadSheetLicenses}
+              />
+            ) : null}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-lg">
