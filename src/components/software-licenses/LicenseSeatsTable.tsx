@@ -1,11 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { DeleteLicenseConfirmDialog } from '@/components/software-licenses/DeleteLicenseConfirmDialog';
-import { Input } from '@/components/ui/input';
+import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -16,6 +13,10 @@ import {
 } from '@/components/ui/table';
 import { api } from '@/utils/api';
 import { STATUS_LABEL } from '@/components/software-licenses/labels';
+import { DeleteLicenseConfirmDialog } from '@/components/software-licenses/DeleteLicenseConfirmDialog';
+import { EditSeatEmailDialog } from '@/components/software-licenses/EditSeatEmailDialog';
+import { SeatAssignEmployeeDialog } from '@/components/software-licenses/AssignLicenseDialog';
+import { LicenseSeatRowActionsMenu } from '@/components/software-licenses/LicenseSeatRowActionsMenu';
 
 type Assignment = {
   id: string;
@@ -42,13 +43,37 @@ type Props = {
   onChange: () => Promise<void>;
 };
 
+type AssignDialogState = {
+  seatId: string;
+  seatLabel: string;
+  mode: 'assign' | 'reassign';
+  replaceAssignmentId?: string;
+};
+
+function accountCellLabel(
+  seat: LicenseSeatRow,
+  revealedKey: string | undefined,
+): { kind: 'text'; value: string } | { kind: 'missing-email' } | { kind: 'missing-key' } {
+  if (seat.seatType === 'DEVICE') {
+    if (revealedKey) return { kind: 'text', value: revealedKey };
+    if (seat.licenseKey) return { kind: 'text', value: seat.licenseKey };
+    if (seat.licenseKeyPresent) return { kind: 'text', value: '•••••' };
+    return { kind: 'missing-key' };
+  }
+  if (seat.accountEmail?.trim()) return { kind: 'text', value: seat.accountEmail.trim() };
+  return { kind: 'missing-email' };
+}
+
 export function LicenseSeatsTable({ seats, canUpdate, canManage = false, onChange }: Props) {
-  const [employeeQuery, setEmployeeQuery] = useState('');
-  const [employees, setEmployees] = useState<Array<{ id: string; fullName: string }>>([]);
   const [reveal, setReveal] = useState<Record<string, string>>({});
   const [error, setError] = useState('');
+  const [assignDialog, setAssignDialog] = useState<AssignDialogState | null>(null);
+  const [editEmailSeat, setEditEmailSeat] = useState<LicenseSeatRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<LicenseSeatRow | null>(null);
   const [deletePending, setDeletePending] = useState(false);
+
+  const showEquipmentColumn = useMemo(() => seats.some((seat) => seat.seatType === 'DEVICE'), [seats]);
+  const showActionsColumn = canUpdate || canManage;
 
   async function run(action: () => Promise<unknown>) {
     setError('');
@@ -60,14 +85,6 @@ export function LicenseSeatsTable({ seats, canUpdate, canManage = false, onChang
         ?.message;
       setError(message ?? 'La operación no se completó.');
     }
-  }
-
-  async function loadEmployees() {
-    if (employeeQuery.trim().length < 2) return;
-    const response = await api.get('/api/employees', {
-      params: { search: employeeQuery.trim(), isActive: true, pageSize: 8 },
-    });
-    setEmployees(response.data.employees ?? response.data.data ?? []);
   }
 
   async function revealKey(seatId: string) {
@@ -91,145 +108,114 @@ export function LicenseSeatsTable({ seats, canUpdate, canManage = false, onChang
     }
   }
 
-  const showActions = canUpdate || canManage;
+  function seatLabel(seat: LicenseSeatRow) {
+    if (seat.seatType === 'DEVICE') {
+      return seat.equipment
+        ? `${seat.equipment.inventoryCode} · ${seat.equipment.brand} ${seat.equipment.model}`
+        : 'Licencia de equipo';
+    }
+    return seat.accountEmail ?? STATUS_LABEL[seat.seatType] ?? seat.seatType;
+  }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-testid="license-seats-table">
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       <div className="overflow-x-auto rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Correo / Cuenta</TableHead>
+              <TableHead>Usada por</TableHead>
               <TableHead>Tipo</TableHead>
-              <TableHead>Cuenta / Clave</TableHead>
-              <TableHead>Equipo</TableHead>
-              <TableHead>Usuarios</TableHead>
               <TableHead>Estado</TableHead>
-              {showActions ? <TableHead className="text-right">Acciones</TableHead> : null}
+              {showEquipmentColumn ? <TableHead>Equipo</TableHead> : null}
+              {showActionsColumn ? <TableHead className="w-12 text-right"> </TableHead> : null}
             </TableRow>
           </TableHeader>
           <TableBody>
             {seats.map((seat) => {
               const active = seat.assignments.filter((a) => !a.unassignedAt);
-              const accountOrKey =
+              const account = accountCellLabel(seat, reveal[seat.id]);
+              const usedBy =
                 seat.seatType === 'DEVICE'
-                  ? reveal[seat.id] ?? seat.licenseKey ?? (seat.licenseKeyPresent ? '•••••' : '—')
-                  : seat.accountEmail ?? '—';
+                  ? '—'
+                  : active.length > 0
+                    ? active.map((a) => a.employee.fullName).join(', ')
+                    : '—';
+
               return (
-                <TableRow key={seat.id}>
-                  <TableCell>{STATUS_LABEL[seat.seatType] ?? seat.seatType}</TableCell>
-                  <TableCell className="font-mono text-xs">{accountOrKey}</TableCell>
-                  <TableCell>
-                    {seat.equipment
-                      ? `${seat.equipment.inventoryCode} · ${seat.equipment.brand} ${seat.equipment.model}`
-                      : '—'}
+                <TableRow key={seat.id} className="h-12">
+                  <TableCell className="max-w-[240px] truncate align-middle">
+                    {account.kind === 'text' ? (
+                      <span className="font-mono text-xs">{account.value}</span>
+                    ) : account.kind === 'missing-email' ? (
+                      canUpdate ? (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => setEditEmailSeat(seat)}
+                        >
+                          Sin correo — completar
+                        </Button>
+                      ) : (
+                        <Badge variant="outline">Sin correo — completar</Badge>
+                      )
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Sin clave</span>
+                    )}
                   </TableCell>
-                  <TableCell>
-                    {active.length > 0
-                      ? active.map((a) => a.employee.fullName).join(', ')
-                      : '—'}
+                  <TableCell className="max-w-[200px] truncate align-middle text-sm">{usedBy}</TableCell>
+                  <TableCell className="whitespace-nowrap align-middle text-sm">
+                    {STATUS_LABEL[seat.seatType] ?? seat.seatType}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap align-middle">
                     <Badge variant="outline">{STATUS_LABEL[seat.effectiveStatus] ?? seat.effectiveStatus}</Badge>
                   </TableCell>
-                  {showActions ? (
-                    <TableCell className="text-right">
-                      <div className="flex flex-wrap justify-end gap-1">
-                        {seat.licenseKeyPresent ? (
-                          <Button size="sm" variant="ghost" type="button" onClick={() => void revealKey(seat.id)}>
-                            Mostrar clave
-                          </Button>
-                        ) : null}
-                        {active.map((assignment) => (
-                          <Button
-                            key={assignment.id}
-                            size="sm"
-                            variant="ghost"
-                            type="button"
-                            onClick={() =>
-                              run(() =>
-                                api.post(`/api/software-licenses/assignments/${assignment.id}/unassign`),
-                              )
-                            }
-                          >
-                            Quitar
-                          </Button>
-                        ))}
-                        {canUpdate ? (
-                          seat.effectiveStatus !== 'SUSPENDED' ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              type="button"
-                              onClick={() =>
-                                run(() =>
-                                  api.patch(`/api/software-licenses/seats/${seat.id}`, { status: 'SUSPENDED' }),
-                                )
-                              }
-                            >
-                              Suspender
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              type="button"
-                              onClick={() =>
-                                run(() =>
-                                  api.patch(`/api/software-licenses/seats/${seat.id}`, { status: 'AVAILABLE' }),
-                                )
-                              }
-                            >
-                              Reactivar
-                            </Button>
+                  {showEquipmentColumn ? (
+                    <TableCell className="max-w-[200px] truncate align-middle text-sm text-muted-foreground">
+                      {seat.seatType === 'DEVICE' && seat.equipment
+                        ? `${seat.equipment.inventoryCode} · ${seat.equipment.brand} ${seat.equipment.model}`
+                        : '—'}
+                    </TableCell>
+                  ) : null}
+                  {showActionsColumn ? (
+                    <TableCell className="text-right align-middle">
+                      <LicenseSeatRowActionsMenu
+                        seat={seat}
+                        active={active}
+                        canUpdate={canUpdate}
+                        canManage={canManage}
+                        onAssign={() =>
+                          setAssignDialog({
+                            seatId: seat.id,
+                            seatLabel: seatLabel(seat),
+                            mode: 'assign',
+                          })
+                        }
+                        onReassign={(assignmentId) =>
+                          setAssignDialog({
+                            seatId: seat.id,
+                            seatLabel: seatLabel(seat),
+                            mode: 'reassign',
+                            replaceAssignmentId: assignmentId,
+                          })
+                        }
+                        onUnassign={(assignmentId) =>
+                          run(() => api.post(`/api/software-licenses/assignments/${assignmentId}/unassign`))
+                        }
+                        onEditEmail={() => setEditEmailSeat(seat)}
+                        onRevealKey={() => void revealKey(seat.id)}
+                        onSuspendToggle={() =>
+                          run(() =>
+                            api.patch(`/api/software-licenses/seats/${seat.id}`, {
+                              status: seat.effectiveStatus === 'SUSPENDED' ? 'AVAILABLE' : 'SUSPENDED',
+                            }),
                           )
-                        ) : null}
-                        {canManage && seat.status !== 'CANCELLED' && active.length === 0 ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            type="button"
-                            className="text-destructive hover:text-destructive"
-                            aria-label="Eliminar licencia"
-                            onClick={() => setDeleteTarget(seat)}
-                          >
-                            <Trash2 className="size-4" />
-                          </Button>
-                        ) : null}
-                      </div>
-                      {canUpdate ? (
-                      <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:justify-end">
-                        <Input
-                          className="max-w-[200px]"
-                          value={employeeQuery}
-                          onChange={(event) => setEmployeeQuery(event.target.value)}
-                          onBlur={() => void loadEmployees()}
-                          placeholder="Asignar empleado"
-                        />
-                        {employees.map((employee) => {
-                          const replaceId =
-                            seat.seatType === 'INDIVIDUAL' && active.length === 1 ? active[0]!.id : undefined;
-                          return (
-                            <Button
-                              key={`${seat.id}-${employee.id}`}
-                              size="sm"
-                              variant="secondary"
-                              type="button"
-                              onClick={() =>
-                                run(() =>
-                                  api.post(`/api/software-licenses/seats/${seat.id}/assignments`, {
-                                    employeeId: employee.id,
-                                    replaceAssignmentId: replaceId,
-                                  }),
-                                )
-                              }
-                            >
-                              {replaceId ? `Reasignar a ${employee.fullName}` : employee.fullName}
-                            </Button>
-                          );
-                        })}
-                      </div>
-                      ) : null}
+                        }
+                        onDelete={() => setDeleteTarget(seat)}
+                      />
                     </TableCell>
                   ) : null}
                 </TableRow>
@@ -238,13 +224,38 @@ export function LicenseSeatsTable({ seats, canUpdate, canManage = false, onChang
           </TableBody>
         </Table>
       </div>
+
+      {assignDialog ? (
+        <SeatAssignEmployeeDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setAssignDialog(null);
+          }}
+          seatId={assignDialog.seatId}
+          seatLabel={assignDialog.seatLabel}
+          mode={assignDialog.mode}
+          replaceAssignmentId={assignDialog.replaceAssignmentId}
+          onAssigned={() => void onChange()}
+        />
+      ) : null}
+
+      <EditSeatEmailDialog
+        open={editEmailSeat !== null}
+        onOpenChange={(open) => {
+          if (!open) setEditEmailSeat(null);
+        }}
+        seatId={editEmailSeat?.id ?? null}
+        initialEmail={editEmailSeat?.accountEmail ?? null}
+        onSaved={onChange}
+      />
+
       <DeleteLicenseConfirmDialog
         open={deleteTarget !== null}
         onOpenChange={(open) => {
           if (!open) setDeleteTarget(null);
         }}
         title="Eliminar licencia"
-        entityLabel={deleteTarget ? (deleteTarget.accountEmail ?? deleteTarget.seatType) : ''}
+        entityLabel={deleteTarget ? seatLabel(deleteTarget) : ''}
         hasHistory={Boolean(deleteTarget && deleteTarget.assignments.length > 0)}
         pending={deletePending}
         onConfirm={confirmDeleteSeat}

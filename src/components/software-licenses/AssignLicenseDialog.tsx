@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select';
 import { api } from '@/utils/api';
 import { STATUS_LABEL } from '@/components/software-licenses/labels';
+import { ActiveEmployeeCombobox } from '@/components/equipment/assignments/ActiveEmployeeCombobox';
 
 type SubscriptionOption = {
   id: string;
@@ -260,6 +261,72 @@ export function AssignLicenseDialog({ employeeId, employeeName, onAssigned }: Pr
 
           {error ? <p className="text-destructive">{error}</p> : null}
         </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Asignar o reasignar un asiento a un empleado (estado aislado por apertura del diálogo). */
+export function SeatAssignEmployeeDialog({
+  open,
+  onOpenChange,
+  seatId,
+  seatLabel,
+  mode,
+  replaceAssignmentId,
+  onAssigned,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  seatId: string;
+  seatLabel: string;
+  mode: 'assign' | 'reassign';
+  replaceAssignmentId?: string;
+  onAssigned?: () => void;
+}) {
+  const [employeeId, setEmployeeId] = useState('');
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      setEmployeeId('');
+      setError('');
+    }
+  }, [open, seatId]);
+
+  async function submit() {
+    if (!employeeId) return;
+    setPending(true);
+    setError('');
+    try {
+      await api.post(`/api/software-licenses/seats/${seatId}/assignments`, {
+        employeeId,
+        replaceAssignmentId: mode === 'reassign' ? replaceAssignmentId : undefined,
+      });
+      onOpenChange(false);
+      onAssigned?.();
+    } catch (reason) {
+      const message = (reason as { response?: { data?: { error?: { message?: string } } } }).response?.data?.error
+        ?.message;
+      setError(message ?? 'No se pudo asignar.');
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md" data-testid="seat-assign-employee-dialog">
+        <DialogHeader>
+          <DialogTitle>{mode === 'reassign' ? 'Reasignar licencia' : 'Asignar licencia'}</DialogTitle>
+          <DialogDescription>{seatLabel}</DialogDescription>
+        </DialogHeader>
+        <ActiveEmployeeCombobox value={employeeId} onChange={setEmployeeId} disabled={pending} />
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        <Button type="button" size="sm" disabled={!employeeId || pending} onClick={() => void submit()}>
+          {mode === 'reassign' ? 'Reasignar' : 'Asignar'}
+        </Button>
       </DialogContent>
     </Dialog>
   );
