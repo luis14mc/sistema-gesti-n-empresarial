@@ -18,11 +18,11 @@ const institutionSchema = z.object({
 
 async function getHandler(req: AuthenticatedRequest) {
   try {
-    await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.read');
+    const { organizationId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.read');
 
     const [settings, config] = await Promise.all([
-      getInstitutionSettings(),
-      getInstitutionConfig(),
+      getInstitutionSettings(organizationId),
+      getInstitutionConfig(organizationId),
     ]);
 
     return NextResponse.json({
@@ -36,7 +36,7 @@ async function getHandler(req: AuthenticatedRequest) {
 
 async function putHandler(req: AuthenticatedRequest) {
   try {
-    const { role } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.update');
+    const { role, organizationId, userId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.update');
     if (role !== 'ADMIN' && role !== 'OWNER') {
       return NextResponse.json({ error: 'Solo administradores pueden editar' }, { status: 403 });
     }
@@ -47,8 +47,8 @@ async function putHandler(req: AuthenticatedRequest) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
-    const settings = await saveInstitutionSettings(parsed.data);
-    const config = await getInstitutionConfig();
+    const settings = await saveInstitutionSettings(organizationId, userId, parsed.data);
+    const config = await getInstitutionConfig(organizationId);
 
     return NextResponse.json({ settings, logoUrl: config.logoUrl });
   } catch (error) {

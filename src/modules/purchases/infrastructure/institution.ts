@@ -1,10 +1,12 @@
-import { access, mkdir, readFile, writeFile } from 'fs/promises';
+import { access, readFile } from 'fs/promises';
 import { checkUrlForSsrf } from '@/platform/integrations/application/ssrf-guard';
 import path from 'path';
 import { validateRasterLogoUpload } from '@/platform/security/uploads/raster-image-validation';
+import { getStorage } from '@/platform/storage';
 import {
   DEFAULT_INSTITUTION_SETTINGS,
   getInstitutionSettings,
+  saveInstitutionSettings,
   type InstitutionSettings,
 } from '@/modules/purchases/infrastructure/institution-store';
 import { PurchaseBusinessError } from '@/modules/purchases/domain/errors';
@@ -32,6 +34,10 @@ const PUBLIC_ROOT = path.resolve(process.cwd(), 'public');
 export function sanitizeLogoCandidate(candidate: string): string | null {
   if (!candidate || typeof candidate !== 'string') return null;
 
+  if (candidate.startsWith('organizations/') && !candidate.includes('..')) {
+    return candidate;
+  }
+
   if (candidate.startsWith('https://')) {
     try {
       const u = new URL(candidate);
@@ -39,8 +45,6 @@ export function sanitizeLogoCandidate(candidate: string): string | null {
       if (!u.hostname || u.hostname === 'localhost' || u.hostname === '127.0.0.1' || u.hostname.startsWith('192.168.') || u.hostname.startsWith('10.')) {
         return null;
       }
-      // Política de host completa de la plataforma (169.254/16 metadata, 172.16/12,
-      // 100.64/10, IPv6 privadas, metadata.google.internal…). Auditoría 2026-10-19, F-2.
       if (!checkUrlForSsrf(candidate).ok) return null;
       return candidate;
     } catch {
@@ -87,11 +91,19 @@ async function fileToDataUri(absolutePath: string): Promise<string | null> {
   }
 }
 
+async function storageKeyToDataUri(storageKey: string): Promise<string | null> {
+  try {
+    const stored = await getStorage().get(storageKey);
+    const mime = stored.mimeType.startsWith('image/') ? stored.mimeType : 'image/png';
+    return `data:${mime};base64,${stored.buffer.toString('base64')}`;
+  } catch {
+    return null;
+  }
+}
+
 export async function resolveInstitutionLogoDataUri(logoPath?: string): Promise<string> {
-  const settings = await getInstitutionSettings();
   const candidates = [
     logoPath,
-    settings.logoPath,
     '/Logo_CNI.png',
     '/assets/logo/logo-cni.png',
     '/logo-cni.png',
@@ -102,6 +114,12 @@ export async function resolveInstitutionLogoDataUri(logoPath?: string): Promise<
   for (const candidate of candidates) {
     const safe = sanitizeLogoCandidate(candidate);
     if (!safe) continue;
+
+    if (safe.startsWith('organizations/')) {
+      const dataUri = await storageKeyToDataUri(safe);
+      if (dataUri) return dataUri;
+      continue;
+    }
 
     if (safe.startsWith('https://') || safe.startsWith('data:')) {
       return safe;
@@ -116,28 +134,41 @@ export async function resolveInstitutionLogoDataUri(logoPath?: string): Promise<
   return `data:image/svg+xml;base64,${Buffer.from(FALLBACK_LOGO_SVG).toString('base64')}`;
 }
 
-export async function getInstitutionConfig() {
-  const settings = await getInstitutionSettings();
+export async function getInstitutionConfig(organizationId: string) {
+  const settings = await getInstitutionSettings(organizationId);
   return {
     ...settings,
     logoUrl: await resolveInstitutionLogoDataUri(settings.logoPath),
   };
 }
 
-const LOGO_DIR = path.join(PUBLIC_ROOT, 'uploads', 'institution');
-
-export async function saveInstitutionLogo(file: File): Promise<string> {
+export async function saveInstitutionLogo(
+  organizationId: string,
+  actorUserId: string,
+  file: File,
+): Promise<string> {
   if (file.size > 2 * 1024 * 1024) {
     throw new PurchaseBusinessError('El logo no puede superar 2 MB.', 500);
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const kind = validateRasterLogoUpload(file.name, buffer);
+  validateRasterLogoUpload(file.name, buffer);
 
-  await mkdir(LOGO_DIR, { recursive: true });
-  const filename = `logo.${kind === 'jpeg' ? 'jpg' : kind}`;
-  const absolute = path.join(LOGO_DIR, filename);
-  await writeFile(absolute, buffer);
+  const ext = file.name.includes('.') ? file.name.slice(file.name.lastIndexOf('.')).toLowerCase() : '.png';
+  const mimeType =
+    ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : 'image/jpeg';
 
-  return `/uploads/institution/${filename}`;
+  const storage = getStorage();
+  const stored = await storage.put({
+    prefix: `organizations/${organizationId}/compras/institution`,
+    originalName: file.name,
+    mimeType,
+    size: buffer.length,
+    buffer,
+    desiredName: `logo${ext}`,
+  });
+
+  await saveInstitutionSettings(organizationId, actorUserId, { logoPath: stored.key });
+
+  return stored.key;
 }

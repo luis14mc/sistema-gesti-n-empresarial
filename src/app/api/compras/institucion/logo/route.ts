@@ -2,15 +2,15 @@ import { NextResponse } from 'next/server';
 import { withAuth, type AuthenticatedRequest } from '@/platform/api/with-auth';
 import {
   getInstitutionConfig,
+  getInstitutionSettings,
   saveInstitutionLogo,
-  saveInstitutionSettings,
 } from '@/modules/purchases/application/institution';
 import { authorizeOrganization } from '@/platform/security/authorization/http';
 import { handlePurchaseOrderRouteError } from '@/modules/purchases/presentation/http';
 
 async function postHandler(req: AuthenticatedRequest) {
   try {
-    const { role } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.update');
+    const { role, organizationId, userId } = await authorizeOrganization(req, crypto.randomUUID(), 'purchase-orders.update');
     if (role !== 'ADMIN' && role !== 'OWNER') {
       return NextResponse.json({ error: 'Solo administradores pueden editar' }, { status: 403 });
     }
@@ -21,10 +21,10 @@ async function postHandler(req: AuthenticatedRequest) {
       return NextResponse.json({ error: 'Archivo requerido' }, { status: 400 });
     }
 
-    const logoPath = await saveInstitutionLogo(file);
-    const settings = await saveInstitutionSettings({ logoPath });
-    const config = await getInstitutionConfig();
+    const logoPath = await saveInstitutionLogo(organizationId, userId, file);
+    const config = await getInstitutionConfig(organizationId);
 
+    const settings = await getInstitutionSettings(organizationId);
     return NextResponse.json({ settings, logoUrl: config.logoUrl });
   } catch (error) {
     return handlePurchaseOrderRouteError(error, 'POST /api/compras/institucion/logo');
