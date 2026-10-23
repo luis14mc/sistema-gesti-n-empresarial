@@ -15,6 +15,7 @@ import type {
     ReturnAssignmentData,
     SwapEquipmentData,
 } from '@/types';
+import type { AssignmentDetailResponse } from '@/services/equipment-assignments.service';
 
 // ============================================
 // QUERY KEYS
@@ -31,12 +32,13 @@ export const assignmentKeys = {
 // HOOK PRINCIPAL
 // ============================================
 
-export function useAssignments(filters?: AssignmentFilters) {
+export function useAssignments(filters?: AssignmentFilters, options?: { enabled?: boolean }) {
     const queryClient = useQueryClient();
 
     // --- Lista de asignaciones ---
     const assignmentsQuery = useQuery({
         queryKey: assignmentKeys.list(filters),
+        enabled: options?.enabled !== false,
         queryFn: async () => {
             const response = await equipmentAssignmentsService.list(filters);
             return response.data;
@@ -113,12 +115,17 @@ export function useAssignments(filters?: AssignmentFilters) {
     return {
         // --- Datos ---
         assignments: assignmentsQuery.data?.assignments ?? [],
+        summary: assignmentsQuery.data?.summary,
         total: assignmentsQuery.data?.total ?? 0,
         page: assignmentsQuery.data?.page ?? 1,
         pageSize: assignmentsQuery.data?.pageSize ?? 10,
         totalPages: assignmentsQuery.data?.totalPages ?? 1,
         isLoading: assignmentsQuery.isLoading,
+        isFetching: assignmentsQuery.isFetching,
         isError: assignmentsQuery.isError,
+        isForbidden:
+            assignmentsQuery.isError &&
+            (assignmentsQuery.error as { response?: { status?: number } })?.response?.status === 403,
         error: assignmentsQuery.error,
 
         // --- Mutaciones ---
@@ -140,4 +147,15 @@ export function useAssignments(filters?: AssignmentFilters) {
         // --- Refetch manual ---
         refetch: assignmentsQuery.refetch,
     };
+}
+
+export function useAssignmentDetail(assignmentId: string | null) {
+    return useQuery({
+        queryKey: assignmentKeys.detail(assignmentId ?? ''),
+        enabled: Boolean(assignmentId),
+        queryFn: async () => {
+            const response = await equipmentAssignmentsService.getById(assignmentId!);
+            return response.data as AssignmentDetailResponse;
+        },
+    });
 }

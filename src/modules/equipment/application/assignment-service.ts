@@ -6,7 +6,9 @@ import {
   countAssignments,
   findActiveAssignmentForSwap,
   findAssignmentById,
+  findAssignmentDetailBundle,
   findAssignmentWithRelations,
+  getAssignmentsPageSummary,
   listAssignments,
   returnAssignmentInTransaction,
   swapAssignmentInTransaction,
@@ -20,7 +22,7 @@ import {
   generateDeliveryActaPdf,
   generateReturnActaPdf,
 } from '@/modules/equipment/application/acta-generation';
-import type { Prisma } from '@prisma/client';
+import type { AssignmentStatus, Prisma } from '@prisma/client';
 
 async function tryGenerateActa(task: () => Promise<unknown>) {
   try {
@@ -41,24 +43,65 @@ const ASSIGNEE_ERRORS: Record<string, string> = {
   ASSIGNEE_REQUIRED: 'Debe seleccionar un empleado',
 };
 
+function resolveAssignmentTabFilter(
+  tab: string | null,
+  status: string | null,
+): AssignmentStatus | Prisma.EnumAssignmentStatusFilter | undefined {
+  if (status) return status as AssignmentStatus;
+  if (tab === 'history') return { in: ['RETURNED', 'REPLACED'] };
+  if (tab === 'all') return undefined;
+  return 'ACTIVE';
+}
+
+function resolveAssignmentSort(
+  sortBy: string | null,
+  sortDir: string | null,
+): Prisma.EquipmentAssignmentOrderByWithRelationInput | Prisma.EquipmentAssignmentOrderByWithRelationInput[] {
+  const direction = sortDir === 'asc' ? 'asc' : 'desc';
+  if (sortBy === 'employee') return { employeeNameSnapshot: direction };
+  if (sortBy === 'returnedDate') return { returnedDate: direction };
+  return { assignedDate: direction };
+}
+
 export async function listEquipmentAssignments(params: {
   organizationId: string;
   searchParams: URLSearchParams;
 }) {
+  const tab = params.searchParams.get('tab');
   const status = params.searchParams.get('status');
   const userId = params.searchParams.get('userId');
   const employeeId = params.searchParams.get('employeeId');
   const equipmentId = params.searchParams.get('equipmentId');
+  const departmentId = params.searchParams.get('departmentId');
+  const equipmentCategory = params.searchParams.get('equipmentCategory');
+  const assignedFrom = params.searchParams.get('assignedFrom');
+  const assignedTo = params.searchParams.get('assignedTo');
   const search = params.searchParams.get('search')?.trim();
-  const page = parseInt(params.searchParams.get('page') || '1');
-  const pageSize = parseInt(params.searchParams.get('pageSize') || '100');
+  const sortBy = params.searchParams.get('sortBy');
+  const sortDir = params.searchParams.get('sortDir');
+  const includeSummary = params.searchParams.get('summary') === '1';
+  const page = Math.max(1, parseInt(params.searchParams.get('page') || '1', 10));
+  const pageSize = Math.min(100, Math.max(1, parseInt(params.searchParams.get('pageSize') || '20', 10)));
   const skip = (page - 1) * pageSize;
 
-  const where: Record<string, unknown> = assignmentScope(params.organizationId);
-  if (status) where.status = status;
+  const where: Prisma.EquipmentAssignmentWhereInput = assignmentScope(params.organizationId);
+  const tabStatus = resolveAssignmentTabFilter(tab, status);
+  if (tabStatus) where.status = tabStatus;
   if (userId) where.userId = userId;
   if (employeeId) where.employeeId = employeeId;
   if (equipmentId) where.equipmentId = equipmentId;
+  if (departmentId) {
+    where.employee = { departmentId };
+  }
+  if (equipmentCategory) {
+    where.equipment = { category: equipmentCategory as Prisma.EnumEquipmentCategoryFilter['equals'] };
+  }
+  if (assignedFrom || assignedTo) {
+    where.assignedDate = {
+      ...(assignedFrom ? { gte: new Date(`${assignedFrom}T00:00:00.000Z`) } : {}),
+      ...(assignedTo ? { lte: new Date(`${assignedTo}T23:59:59.999Z`) } : {}),
+    };
+  }
   if (search) {
     where.OR = [
       { employeeNameSnapshot: { contains: search, mode: 'insensitive' } },
@@ -68,12 +111,25 @@ export async function listEquipmentAssignments(params: {
       { serialNumberSnapshot: { contains: search, mode: 'insensitive' } },
       { brandSnapshot: { contains: search, mode: 'insensitive' } },
       { modelSnapshot: { contains: search, mode: 'insensitive' } },
+      {
+        equipment: {
+          OR: [
+            { inventoryCode: { contains: search, mode: 'insensitive' } },
+            { serialNumber: { contains: search, mode: 'insensitive' } },
+            { brand: { contains: search, mode: 'insensitive' } },
+            { model: { contains: search, mode: 'insensitive' } },
+          ],
+        },
+      },
     ];
   }
 
-  const [assignments, total] = await Promise.all([
-    listAssignments(where as Prisma.EquipmentAssignmentWhereInput, skip, pageSize),
-    countAssignments(where as Prisma.EquipmentAssignmentWhereInput),
+  const orderBy = resolveAssignmentSort(sortBy, sortDir);
+
+  const [assignments, total, summary] = await Promise.all([
+    listAssignments(where, skip, pageSize, orderBy),
+    countAssignments(where),
+    includeSummary ? getAssignmentsPageSummary(params.organizationId) : Promise.resolve(undefined),
   ]);
 
   return {
@@ -81,7 +137,21 @@ export async function listEquipmentAssignments(params: {
     total,
     page,
     pageSize,
-    totalPages: Math.ceil(total / pageSize),
+    totalPages: Math.ceil(total / pageSize) || 1,
+    ...(summary ? { summary } : {}),
+  };
+}
+
+export async function getEquipmentAssignmentDetail(id: string, organizationId: string) {
+  const bundle = await findAssignmentDetailBundle(id, organizationId);
+  if (!bundle) return null;
+  return {
+    assignment: mapAssignmentResponse(bundle.assignment),
+    equipmentTimeline: {
+      assignments: bundle.equipmentAssignments.map(mapAssignmentResponse),
+      maintenances: bundle.maintenances,
+      history: bundle.history,
+    },
   };
 }
 
