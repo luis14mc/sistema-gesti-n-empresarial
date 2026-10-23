@@ -410,6 +410,49 @@ export async function clearPrimaryOficioDocuments(
   });
 }
 
+export async function findOficioDocument(
+  organizationId: string,
+  oficioId: string,
+  documentId: string,
+) {
+  return prisma.oficioDocument.findFirst({
+    where: {
+      id: documentId,
+      ...oficioDocumentScope(organizationId, oficioId),
+    },
+  });
+}
+
+export async function deleteOficioDocumentRecord(params: {
+  organizationId: string;
+  oficioId: string;
+  documentId: string;
+  actorUserId: string;
+}) {
+  const doc = await findOficioDocument(
+    params.organizationId,
+    params.oficioId,
+    params.documentId,
+  );
+  if (!doc) return null;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.oficioDocument.delete({ where: { id: doc.id } });
+    await tx.oficioTracking.create({
+      data: {
+        oficioId: params.oficioId,
+        action: 'DOCUMENT_REMOVED',
+        title: 'Documento eliminado',
+        description: doc.originalName,
+        performedById: params.actorUserId,
+        previousData: { documentId: doc.id, storageKey: doc.storageKey },
+      },
+    });
+  });
+
+  return doc;
+}
+
 export async function createOficioTrackingEntry(
   data: Prisma.OficioTrackingUncheckedCreateInput,
 ) {

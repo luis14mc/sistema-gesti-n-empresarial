@@ -74,6 +74,7 @@ export async function saveOrdenPdf(buffer: Buffer, organizationId: string, orden
     size: buffer.length,
     buffer,
     desiredName: filename,
+    overwrite: true,
   });
   if (!stored?.key) throw new Error('PURCHASE_ORDER_PDF_STORAGE_FAILED');
 

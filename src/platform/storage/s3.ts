@@ -14,6 +14,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
+import { buildObjectKey } from './object-key';
 import type { PutObjectInput, PutObjectResult, StorageAdapter } from './types';
 
 export interface S3AdapterConfig {
@@ -77,36 +78,13 @@ export function buildS3ClientConfig(config: S3AdapterConfig): S3ClientConfig {
   return clientConfig;
 }
 
-function sanitizeFilename(name: string): string {
-  return name.replace(/[/\\?%*:|"<>]/g, '_').replace(/\s+/g, '_');
-}
-
-function buildObjectKey(prefix: string, input: PutObjectInput): {
-  key: string;
-  filename: string;
-} {
-  const now = new Date();
-  const year = String(now.getFullYear());
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const timestamp = now.toISOString().replace(/[:.]/g, '-');
-
-  const ext = input.originalName.includes('.')
-    ? '.' + input.originalName.split('.').pop()!.toLowerCase().replace(/[^a-z0-9]/g, '')
-    : '';
-
-  const filename = input.desiredName
-    ? sanitizeFilename(input.desiredName)
-    : `${sanitizeFilename(prefix).replace(/\//g, '-')}-${timestamp}-${randomUUID()}${ext}`;
-
-  const keyParts = [prefix, year, month, filename].filter(Boolean);
-  return {
-    key: keyParts.join('/'),
-    filename,
-  };
-}
-
 export function assertTenantStoragePrefix(prefix: string): void {
   if (!/^organizations\/[^/]+\/.+/.test(prefix)) throw new Error('TENANT_STORAGE_PREFIX_REQUIRED');
+}
+
+function isPreconditionFailed(err: unknown): boolean {
+  const e = err as { name?: string; $metadata?: { httpStatusCode?: number } };
+  return e?.name === 'PreconditionFailed' || e?.$metadata?.httpStatusCode === 412;
 }
 
 export class S3StorageAdapter implements StorageAdapter {
@@ -132,33 +110,50 @@ export class S3StorageAdapter implements StorageAdapter {
 
   async put(input: PutObjectInput): Promise<PutObjectResult> {
     if (this.config.requireTenantPrefix) assertTenantStoragePrefix(input.prefix);
-    const { key, filename } = buildObjectKey(input.prefix, input);
-    const fullKey = this.fullKey(key);
 
-    await this.client.send(
-      new PutObjectCommand({
-        Bucket: this.config.bucket,
-        Key: fullKey,
-        Body: input.buffer,
-        ContentType: input.mimeType,
-        ContentLength: input.size,
-        Metadata: {
-          'original-name': encodeURIComponent(input.originalName.slice(0, 200)),
-        },
-      })
-    );
+    let objectId: string | undefined;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (attempt === 1) {
+        objectId = randomUUID();
+      }
+      const { key, filename } = buildObjectKey(input.prefix, input, { objectId });
+      const fullKey = this.fullKey(key);
 
-    const url = await this.getUrl(key);
+      try {
+        await this.client.send(
+          new PutObjectCommand({
+            Bucket: this.config.bucket,
+            Key: fullKey,
+            Body: input.buffer,
+            ContentType: input.mimeType,
+            ContentLength: input.size,
+            Metadata: {
+              'original-name': encodeURIComponent(input.originalName.slice(0, 200)),
+            },
+            ...(input.overwrite ? {} : { IfNoneMatch: '*' }),
+          }),
+        );
 
-    return {
-      key,
-      url,
-      filename,
-      mimeType: input.mimeType,
-      size: input.size,
-      uploadedAt: new Date().toISOString(),
-      bucket: this.config.bucket,
-    };
+        const url = await this.getUrl(key);
+
+        return {
+          key,
+          url,
+          filename,
+          mimeType: input.mimeType,
+          size: input.size,
+          uploadedAt: new Date().toISOString(),
+          bucket: this.config.bucket,
+        };
+      } catch (err) {
+        if (!input.overwrite && attempt === 0 && isPreconditionFailed(err)) {
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    throw new Error('STORAGE_PUT_FAILED');
   }
 
   async remove(key: string): Promise<void> {
