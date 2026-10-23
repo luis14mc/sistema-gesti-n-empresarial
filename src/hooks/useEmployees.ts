@@ -46,6 +46,9 @@ export function useEmployees(filters?: EmployeeFilters) {
   return {
     employees: employeesQuery.data?.employees ?? [],
     total: employeesQuery.data?.total ?? 0,
+    page: employeesQuery.data?.page ?? 1,
+    pageSize: employeesQuery.data?.pageSize ?? 20,
+    totalPages: employeesQuery.data?.totalPages ?? 1,
     isLoading: employeesQuery.isLoading,
     createEmployee: createMutation.mutateAsync,
     isCreating: createMutation.isPending,

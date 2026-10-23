@@ -748,6 +748,28 @@
     }
   },
   {
+    "pathname": "/employees/x",
+    "libModule": "employees",
+    "platformModule": "employees",
+    "requiredSpecial": null,
+    "mismatch": false,
+    "canAccessRoute": {
+      "ADMIN": true,
+      "ADMINISTRACION": true,
+      "SECRETARIA": false,
+      "IT_MANAGER": false,
+      "OWNER": true,
+      "IT_TECHNICIAN": false,
+      "PROCUREMENT": false,
+      "HR": true,
+      "AUDITOR": false,
+      "USER": false,
+      "DIRECTOR": false,
+      "RRHH": true,
+      "IT": false
+    }
+  },
+  {
     "pathname": "/equipment",
     "libModule": "equipment",
     "platformModule": "equipment",

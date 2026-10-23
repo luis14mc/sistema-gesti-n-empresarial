@@ -32,4 +32,24 @@ export const employeesService = {
 
   update: (id: string, data: UpdateEmployeeData) =>
     apiHelpers.patch<EmployeeResponse>(`${BASE}/${id}`, data),
+
+  delete: (id: string) => apiHelpers.delete<{ success: boolean }>(`${BASE}/${id}`),
+
+  history: (id: string, params?: { page?: number; pageSize?: number }) =>
+    apiHelpers.get<{
+      records: Array<{
+        id: string;
+        title: string;
+        description: string;
+        module: string;
+        category: string;
+        action: string | null;
+        createdAt: string;
+        user: { id: string; firstName: string; lastName: string } | null;
+      }>;
+      total: number;
+      page: number;
+      pageSize: number;
+      totalPages: number;
+    }>(`${BASE}/${id}/history`, params as Record<string, unknown>),
 };

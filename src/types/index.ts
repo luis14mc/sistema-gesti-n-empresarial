@@ -493,10 +493,15 @@ export interface Employee {
   departmentId: string | null;
   positionId: string | null;
   isActive: boolean;
+  monthlySalary?: number | string | null;
+  otherDeduction?: number | string | null;
+  otherDeductionNote?: string | null;
+  payrollEnabled?: boolean;
   createdAt: string;
   updatedAt: string;
   department?: { id: string; name: string } | null;
   position?: { id: string; name: string } | null;
+  user?: { id: string; email: string; firstName: string; lastName: string; isActive: boolean } | null;
   assignments?: EquipmentAssignment[];
 }
 
@@ -1045,13 +1050,19 @@ export interface UpdateEmployeeData extends Partial<CreateEmployeeData> {
   isActive?: boolean;
 }
 
+export type EmployeeListSortBy = 'name' | 'code' | 'hireDate';
+
 export interface EmployeeFilters extends PaginationParams {
   search?: string;
   departmentId?: string;
   isActive?: boolean;
+  status?: 'active' | 'inactive' | 'all';
   positionId?: string;
   hireDateFrom?: string;
   hireDateTo?: string;
+  sortBy?: EmployeeListSortBy;
+  sortDir?: 'asc' | 'desc';
+  limit?: number;
 }
 
 export interface EquipmentStats {
