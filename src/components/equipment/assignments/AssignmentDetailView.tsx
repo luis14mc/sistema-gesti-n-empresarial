@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { createElement, useState } from 'react';
 import { ArrowLeft, ExternalLink, Laptop, MoreHorizontal, User } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -188,7 +188,7 @@ export function AssignmentDetailView({ assignmentId }: { assignmentId: string })
   const assigneeName = getAssigneeName(assignment);
   const inventoryCode = getInventoryCode(assignment);
   const delivery = deliveryFields(assignment);
-  const TypeIcon = equipmentCategoryIcon(assignment.equipment?.category);
+  const equipmentCategory = assignment.equipment?.category;
   const equipmentRows = [
     ['RAM', assignment.ramSnapshot ?? assignment.equipment?.ram],
     ['Procesador', assignment.processorSnapshot ?? assignment.equipment?.processor],
@@ -306,7 +306,9 @@ export function AssignmentDetailView({ assignmentId }: { assignmentId: string })
             </CardHeader>
             <CardContent className="min-w-0 space-y-4 pt-0">
               <div className="flex min-w-0 gap-3 rounded-lg border bg-muted/30 p-4">
-                <TypeIcon className="mt-0.5 size-8 shrink-0 text-muted-foreground" />
+                {createElement(equipmentCategoryIcon(equipmentCategory), {
+                  className: 'mt-0.5 size-8 shrink-0 text-muted-foreground',
+                })}
                 <div className="min-w-0 break-words">
                   <p className="font-semibold">{getEquipmentBrandModel(assignment)}</p>
                   <p className="text-sm text-muted-foreground">{equipmentTypeLabel(assignment)}</p>

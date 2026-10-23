@@ -17,7 +17,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import type { AssignmentDetailResponse } from '@/services/equipment-assignments.service';
-import type { EquipmentAssignment } from '@/types';
 import { formatDateTime, formatRelativeDate } from '@/utils/helpers';
 import { ASSIGNMENT_STATUS_LABELS } from '@/components/equipment/assignments/constants';
 import { getAssigneeName } from '@/components/equipment/assignments/utils';
