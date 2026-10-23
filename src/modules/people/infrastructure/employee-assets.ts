@@ -45,12 +45,15 @@ export async function findEmployeeActiveAssetsDetail(
           seat: {
             select: {
               id: true,
+              seatType: true,
               accountEmail: true,
               accountIdentifier: true,
               subscription: {
                 select: {
                   id: true,
                   planName: true,
+                  monthlyCost: true,
+                  totalSeats: true,
                   product: { select: { name: true } },
                 },
               },
@@ -74,14 +77,21 @@ export async function findEmployeeActiveAssetsDetail(
       asignadoDesde: row.assignedDate.toISOString(),
       actaEntregaUrl: row.deliveryDocumentUrl ?? row.urlNotaPdf,
     })),
-    licencias: licenseAssignments.map((row) => ({
-      assignmentId: row.id,
-      subscriptionId: row.seat.subscription.id,
-      seatId: row.seat.id,
-      producto: row.seat.subscription.product.name,
-      plan: row.seat.subscription.planName,
-      cuenta: row.seat.accountEmail ?? row.seat.accountIdentifier,
-      asignadoDesde: row.assignedAt.toISOString(),
-    })),
+    licencias: licenseAssignments.map((row) => {
+      const monthly = Number(row.seat.subscription.monthlyCost);
+      const totalSeats = row.seat.subscription.totalSeats;
+      const unitMonthly = totalSeats > 0 ? monthly / totalSeats : 0;
+      return {
+        assignmentId: row.id,
+        subscriptionId: row.seat.subscription.id,
+        seatId: row.seat.id,
+        producto: row.seat.subscription.product.name,
+        plan: row.seat.subscription.planName,
+        tipo: row.seat.seatType,
+        cuenta: row.seat.accountEmail ?? row.seat.accountIdentifier,
+        costoMensualUnitario: unitMonthly,
+        asignadoDesde: row.assignedAt.toISOString(),
+      };
+    }),
   };
 }

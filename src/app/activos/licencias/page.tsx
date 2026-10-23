@@ -12,15 +12,13 @@ import { api } from '@/utils/api';
 import { moneyLabel, STATUS_LABEL } from '@/components/software-licenses/labels';
 
 type Dashboard = {
-  activeProducts: number;
   contractedSeats: number;
-  occupiedSeats: number;
-  availableSeats: number;
-  assignedUsers: number;
-  sharedAccounts: number;
-  costs: Record<string, { monthlyCost: number; annualCost: number }>;
-  upcomingRenewals: number;
-  expiredOrSuspended: number;
+  registeredSeats: number;
+  inUseSeats: number;
+  freeSeats: number;
+  wastedMonthlyCost: number;
+  expiringIn30Days: number;
+  costs: Record<string, { monthlyCost: number; annualCost: number; wastedMonthlyCost: number }>;
 };
 
 type Subscription = {
@@ -32,18 +30,22 @@ type Subscription = {
   renewalDate: string | null;
   paymentDay: number | null;
   product: { name: string; vendor: string | null };
-  counts: { contractedSeats: number; occupiedSeats: number; availableSeats: number };
+  counts: {
+    contractedSeats: number;
+    registeredSeats: number;
+    inUseSeats: number;
+    freeSeats: number;
+    exceedsContract: boolean;
+  };
+  unitMonthlyCost: number;
+  billingCycle: string;
 };
 
 const KPI = [
-  ['activeProducts', 'Productos activos'],
-  ['contractedSeats', 'Asientos contratados'],
-  ['occupiedSeats', 'Asientos ocupados'],
-  ['availableSeats', 'Asientos disponibles'],
-  ['assignedUsers', 'Usuarios asignados'],
-  ['sharedAccounts', 'Cuentas compartidas'],
-  ['upcomingRenewals', 'Renovaciones próximas'],
-  ['expiredOrSuspended', 'Vencidas o suspendidas'],
+  ['contractedSeats', 'Licencias contratadas'],
+  ['inUseSeats', 'En uso'],
+  ['freeSeats', 'Libres'],
+  ['expiringIn30Days', 'Vencen en 30 días'],
 ] as const;
 
 export default function SoftwareLicensesPage() {
@@ -79,7 +81,7 @@ export default function SoftwareLicensesPage() {
     <MainLayout>
       <PageHeader
         title="Licencias de software"
-        description="Asientos contratados, cuentas compartidas y renovaciones."
+        description="Suscripciones, licencias registradas y costos mensuales."
         breadcrumbs={[{ label: 'Activos', href: '/activos/equipos' }, { label: 'Licencias' }]}
         primaryAction={<Button asChild><Link href="/activos/licencias/nueva">Nueva licencia</Link></Button>}
         secondaryActions={(
@@ -120,10 +122,10 @@ export default function SoftwareLicensesPage() {
         ))}
         <Card className="col-span-2">
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Costo mensual / anual equivalente</p>
+            <p className="text-xs text-muted-foreground">Costo mensual total · desperdicio (libres)</p>
             <p className="mt-1 text-lg font-semibold tabular-nums">
               {dashboard
-                ? Object.entries(dashboard.costs).map(([currency, cost]) => `${moneyLabel(currency, cost.monthlyCost)} / mes · ${moneyLabel(currency, cost.annualCost)} / año`).join(' · ') || '—'
+                ? Object.entries(dashboard.costs).map(([currency, cost]) => `${moneyLabel(currency, cost.monthlyCost)} / mes · ${moneyLabel(currency, cost.wastedMonthlyCost)} sin usar`).join(' · ') || '—'
                 : '—'}
             </p>
           </CardContent>
@@ -137,8 +139,9 @@ export default function SoftwareLicensesPage() {
         </select>
         <select className="h-10 rounded-md border bg-background px-3 text-sm" value={seatType} onChange={(event) => setSeatType(event.target.value)} aria-label="Tipo de asiento">
           <option value="">Todos los asientos</option>
-          <option value="INDIVIDUAL">Individual</option>
-          <option value="SHARED">Compartida</option>
+          <option value="INDIVIDUAL">Cuenta personal</option>
+          <option value="SHARED">Cuenta compartida</option>
+          <option value="DEVICE">Clave / instalación</option>
         </select>
       </div>
       <div className="mt-4 grid gap-3 md:hidden">
@@ -151,7 +154,7 @@ export default function SoftwareLicensesPage() {
               </div>
               <Badge variant="outline">{STATUS_LABEL[item.displayStatus] ?? item.displayStatus}</Badge>
             </div>
-            <p className="mt-3 text-sm">{item.counts.occupiedSeats}/{item.counts.contractedSeats} ocupados · {moneyLabel(item.currency, item.monthlyCost)} / mes</p>
+            <p className="mt-3 text-sm">{item.counts.inUseSeats}/{item.counts.contractedSeats} en uso · {moneyLabel(item.currency, item.unitMonthlyCost)} / licencia</p>
           </Link>
         ))}
       </div>
@@ -161,8 +164,9 @@ export default function SoftwareLicensesPage() {
             <tr>
               <th className="p-3 font-medium">Software</th>
               <th className="p-3 font-medium">Plan</th>
-              <th className="p-3 font-medium">Asientos</th>
-              <th className="p-3 font-medium">Costo mensual</th>
+              <th className="p-3 font-medium">Contrato</th>
+              <th className="p-3 font-medium">Costo / mes</th>
+              <th className="p-3 font-medium">Renovación</th>
               <th className="p-3 font-medium">Estado</th>
               <th className="p-3 font-medium">Acciones</th>
             </tr>
@@ -172,9 +176,13 @@ export default function SoftwareLicensesPage() {
               <tr key={item.id} className="border-t">
                 <td className="p-3"><Link className="font-medium underline-offset-4 hover:underline" href={`/activos/licencias/${item.id}`}>{item.product.name}</Link></td>
                 <td className="p-3">{item.planName}</td>
-                <td className="p-3 tabular-nums">{item.counts.occupiedSeats} ocupados · {item.counts.availableSeats} disponibles</td>
-                <td className="p-3 tabular-nums">{moneyLabel(item.currency, item.monthlyCost)}</td>
-                <td className="p-3">{STATUS_LABEL[item.displayStatus] ?? item.displayStatus}</td>
+                <td className="p-3 tabular-nums">
+                  {item.counts.contractedSeats} / {item.counts.registeredSeats} reg. · {item.counts.inUseSeats} uso
+                  {item.counts.exceedsContract ? <Badge variant="destructive" className="ml-2">Excede lo contratado</Badge> : null}
+                </td>
+                <td className="p-3 tabular-nums">{moneyLabel(item.currency, item.unitMonthlyCost)} · {moneyLabel(item.currency, item.monthlyCost)} total</td>
+                <td className="p-3">{item.renewalDate ?? '—'}</td>
+                <td className="p-3"><Badge variant="outline">{STATUS_LABEL[item.displayStatus] ?? item.displayStatus}</Badge></td>
                 <td className="p-3">
                   <Button variant="ghost" size="sm" asChild>
                     <Link href={`/activos/licencias/${item.id}/editar`}>Editar</Link>

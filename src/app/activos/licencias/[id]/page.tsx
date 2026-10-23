@@ -17,7 +17,10 @@ type Assignment = { id: string; unassignedAt: string | null; employee: { id: str
 type Seat = {
   id: string;
   accountEmail: string | null;
-  seatType: 'INDIVIDUAL' | 'SHARED';
+  seatType: 'INDIVIDUAL' | 'SHARED' | 'DEVICE';
+  licenseKey?: string | null;
+  licenseKeyPresent?: boolean;
+  equipment?: { inventoryCode: string; brand: string; model: string } | null;
   effectiveStatus: string;
   status: string;
   assignments: Assignment[];
@@ -33,7 +36,16 @@ type Detail = {
   paymentDay: number | null;
   renewalDate: string | null;
   product: { name: string };
-  counts: { contractedSeats: number; occupiedSeats: number; availableSeats: number };
+  counts: {
+    contractedSeats: number;
+    registeredSeats: number;
+    inUseSeats: number;
+    freeSeats: number;
+    exceedsContract: boolean;
+    occupiedSeats: number;
+    availableSeats: number;
+  };
+  unitMonthlyCost: number;
   seats: Seat[];
 };
 
@@ -104,8 +116,10 @@ export default function SoftwareLicenseDetailPage() {
     }
   }
 
-  const liveSeatCount = detail?.seats.filter((seat) => seat.status !== 'CANCELLED').length ?? 0;
-  const canAddSeat = detail ? liveSeatCount < detail.counts.contractedSeats : false;
+  async function registerRenewal() {
+    if (!detail) return;
+    await run(() => api.post(`/api/software-licenses/${detail.id}/renew`, {}));
+  }
 
   return (
     <MainLayout>
@@ -113,7 +127,7 @@ export default function SoftwareLicenseDetailPage() {
         title={detail?.product.name ?? 'Licencia'}
         description={
           detail
-            ? `${detail.planName} · ${detail.counts.occupiedSeats} ocupados · ${detail.counts.availableSeats} disponibles · ${moneyLabel(detail.currency, detail.monthlyCost)} / mes`
+            ? `${detail.planName} · ${detail.counts.contractedSeats} contratadas · ${detail.counts.registeredSeats} registradas · ${detail.counts.inUseSeats} en uso · ${detail.counts.freeSeats} libres · ${moneyLabel(detail.currency, detail.monthlyCost)} / mes`
             : 'Cargando'
         }
         breadcrumbs={[
@@ -123,9 +137,14 @@ export default function SoftwareLicenseDetailPage() {
         ]}
         primaryAction={
           detail ? (
-            <Button asChild>
-              <Link href={`/activos/licencias/${detail.id}/editar`}>Editar suscripción</Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="secondary" onClick={() => void registerRenewal()}>
+                Registrar renovación
+              </Button>
+              <Button asChild>
+                <Link href={`/activos/licencias/${detail.id}/editar`}>Editar suscripción</Link>
+              </Button>
+            </div>
           ) : undefined
         }
         secondaryActions={
@@ -181,11 +200,14 @@ export default function SoftwareLicenseDetailPage() {
         </p>
       ) : null}
 
-      {canAddSeat ? (
+      {detail ? (
         <section className="mt-6 rounded-lg border p-4">
-          <h2 className="font-medium">Agregar asiento</h2>
+          <h2 className="font-medium">Agregar licencia</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {liveSeatCount} de {detail?.counts.contractedSeats} asientos registrados. Puedes crear otro asiento disponible.
+            {detail.counts.registeredSeats} registradas de {detail.counts.contractedSeats} contratadas.
+            {detail.counts.exceedsContract ? (
+              <Badge variant="destructive" className="ml-2">Excede lo contratado</Badge>
+            ) : null}
           </p>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
             <div className="flex-1 space-y-1.5">

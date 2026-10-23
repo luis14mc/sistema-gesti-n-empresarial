@@ -202,6 +202,12 @@ export default function EmployeeAssetsPage() {
                             </Link>
                             <p className="text-muted-foreground">{item.plan}</p>
                             {item.cuenta ? <p>Cuenta: {item.cuenta}</p> : null}
+                            {'tipo' in item && item.tipo ? (
+                              <p className="text-muted-foreground">{item.tipo === 'SHARED' ? 'Compartida' : item.tipo === 'DEVICE' ? 'Equipo' : 'Personal'}</p>
+                            ) : null}
+                            {'costoMensualUnitario' in item && typeof item.costoMensualUnitario === 'number' ? (
+                              <p>Costo mensual unitario: {item.costoMensualUnitario.toFixed(2)}</p>
+                            ) : null}
                             <p className="text-xs text-muted-foreground">
                               Desde {format(new Date(item.asignadoDesde), 'dd/MM/yyyy', { locale: es })}
                             </p>

@@ -33,3 +33,40 @@ export function displaySubscriptionStatus(
   if (days <= expiringSoonDays) return 'EXPIRING_SOON';
   return 'ACTIVE';
 }
+
+export type BillingCycleForRenewal = 'MONTHLY' | 'QUARTERLY' | 'ANNUAL' | 'OTHER';
+
+function addUtcMonths(date: Date, months: number): Date {
+  const y = date.getUTCFullYear();
+  const m = date.getUTCMonth() + months;
+  const d = date.getUTCDate();
+  return new Date(Date.UTC(y, m, d));
+}
+
+function addUtcYears(date: Date, years: number): Date {
+  return addUtcMonths(date, years * 12);
+}
+
+/** Avanza la fecha de renovación un ciclo (OTHER exige fecha explícita). */
+export function advanceRenewalDate(
+  current: Date | null,
+  billingCycle: BillingCycleForRenewal,
+  today: Date,
+  explicitNext?: string | null,
+): Date {
+  if (billingCycle === 'OTHER') {
+    if (!explicitNext) throw new Error('RENEWAL_DATE_REQUIRED');
+    return new Date(`${explicitNext}T00:00:00.000Z`);
+  }
+  const base = current ?? today;
+  switch (billingCycle) {
+    case 'MONTHLY':
+      return addUtcMonths(base, 1);
+    case 'QUARTERLY':
+      return addUtcMonths(base, 3);
+    case 'ANNUAL':
+      return addUtcYears(base, 1);
+    default:
+      return base;
+  }
+}

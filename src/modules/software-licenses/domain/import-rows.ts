@@ -6,6 +6,8 @@ export type LicenseImportRow = {
   usuario: string;
   correo: string;
   compartida: string;
+  tipo: string;
+  equipo: string;
   estado: string;
   fechaPago: string;
 };
@@ -17,7 +19,9 @@ export type LicenseImportAssignment = {
 
 export type LicenseImportSeat = {
   accountEmail: string | null;
-  seatType: 'INDIVIDUAL' | 'SHARED';
+  equipmentInventoryCode: string | null;
+  equipmentId?: string | null;
+  seatType: 'INDIVIDUAL' | 'SHARED' | 'DEVICE';
   status: 'AVAILABLE' | 'ASSIGNED' | 'SUSPENDED' | 'CANCELLED';
   assignments: LicenseImportAssignment[];
 };
@@ -44,6 +48,13 @@ export type LicenseImportPlan = {
 function sharedFlag(value: string): boolean {
   const normalized = value.trim().toLowerCase();
   return ['si', 'sí', 'yes', 'true', '1', 'compartida', 'compartido'].includes(normalized);
+}
+
+function parseSeatType(row: Pick<LicenseImportRow, 'tipo' | 'compartida'>): LicenseImportSeat['seatType'] {
+  const tipo = row.tipo.trim().toLowerCase();
+  if (['equipo', 'device', 'instalación', 'instalacion', 'clave'].includes(tipo)) return 'DEVICE';
+  if (['compartida', 'shared', 'compartido'].includes(tipo) || sharedFlag(row.compartida)) return 'SHARED';
+  return 'INDIVIDUAL';
 }
 
 function seatStatus(value: string, hasAssignee: boolean): LicenseImportSeat['status'] {
@@ -89,21 +100,33 @@ export function planLicenseImport(rows: LicenseImportRow[]): LicenseImportPlan {
       });
     }
 
+    const seatType = parseSeatType(row);
     const email = row.correo.trim().toLowerCase();
-    const seatKey = keyOf(software, email || `row-${row.rowNumber}`);
-    let seat = email
-      ? product.seats.find((candidate) => (candidate.accountEmail ?? '') === email)
-      : undefined;
+    const inventoryCode = row.equipo.trim();
+    const seatKey =
+      seatType === 'DEVICE'
+        ? keyOf(software, inventoryCode || `device-${row.rowNumber}`)
+        : keyOf(software, email || `row-${row.rowNumber}`);
+    let seat =
+      seatType === 'DEVICE'
+        ? product.seats.find(
+            (candidate) =>
+              candidate.seatType === 'DEVICE' && (candidate.equipmentInventoryCode ?? '') === inventoryCode,
+          )
+        : email
+          ? product.seats.find((candidate) => (candidate.accountEmail ?? '') === email)
+          : undefined;
     if (!seat) {
       const usuario = row.usuario.trim();
       seat = {
-        accountEmail: email || null,
-        seatType: sharedFlag(row.compartida) ? 'SHARED' : 'INDIVIDUAL',
-        status: seatStatus(row.estado, Boolean(usuario)),
+        accountEmail: seatType === 'DEVICE' ? null : email || null,
+        equipmentInventoryCode: seatType === 'DEVICE' ? inventoryCode || null : null,
+        seatType,
+        status: seatStatus(row.estado, Boolean(usuario) || Boolean(inventoryCode)),
         assignments: [],
       };
       product.seats.push(seat);
-    } else if (sharedFlag(row.compartida) || seat.assignments.length > 0) {
+    } else if (seatType === 'SHARED' || seat.assignments.length > 0) {
       seat.seatType = 'SHARED';
     }
 

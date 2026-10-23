@@ -2,11 +2,14 @@ import { Prisma } from '@prisma/client';
 import {
   findOpenAssignment,
   findOrganizationEmployee,
+  findOrganizationEquipment,
   findSeatWithAssignments,
+  listDeviceLicensesForEquipment,
   findSubscriptionDetail,
   findSubscriptionWithProduct,
   findSubscriptionWithSeatsAndProduct,
   listEmployeeNames,
+  listOrganizationEquipmentCodes,
   listSubscriptions,
   runLicenseTransaction,
   upsertRenewalNotification,
@@ -17,12 +20,16 @@ import { renewalAlert, displaySubscriptionStatus } from '@/modules/software-lice
 import type { CreateSubscriptionInput, UpdateSubscriptionInput } from '@/modules/software-licenses/presentation/schemas';
 import {
   assertSameOrganization,
+  assertSeatFields,
   canAssignSeat,
-  canConvertToIndividual,
+  canChangeSeatTypeTo,
   effectiveSeatStatus,
   summarizeSeats,
+  unitMonthlyCost,
   type SeatOccupancy,
 } from '@/modules/software-licenses/domain/seats';
+import { maskLicenseKey } from '@/modules/software-licenses/domain/license-key';
+import { advanceRenewalDate } from '@/modules/software-licenses/domain/renewals';
 import {
   LicenseDomainError,
   seatBlockedWithAssignmentsError,
@@ -76,9 +83,6 @@ export async function createSoftwareSubscription(input: CreateSubscriptionInput,
         notes: input.notes || null,
         expiringSoonDays: input.expiringSoonDays,
         createdById: userId,
-        seats: {
-          create: Array.from({ length: input.totalSeats }, () => ({ seatType: 'INDIVIDUAL' as const, status: 'AVAILABLE' as const })),
-        },
     });
     await store.audit({
       organizationId, userId, action: 'SUBSCRIPTION_CREATED', entityId: subscription.id, entityType: 'SoftwareSubscription',
@@ -111,28 +115,6 @@ export async function updateSoftwareSubscription(id: string, input: UpdateSubscr
           active: input.active,
       });
     }
-    if (input.totalSeats !== undefined && input.totalSeats !== existing.totalSeats) {
-      const seatRows = await store.listSeatsWithActiveAssignments(id);
-      const activeRows = seatRows.filter((seat) => seat.status !== 'CANCELLED');
-      if (input.totalSeats > activeRows.length) {
-        const needed = input.totalSeats - activeRows.length;
-        await store.createSeats(Array.from({ length: needed }, () => ({
-          subscriptionId: id,
-          seatType: 'INDIVIDUAL' as const,
-          status: 'AVAILABLE' as const,
-        })));
-      } else if (input.totalSeats < activeRows.length) {
-        const toRemove = activeRows.length - input.totalSeats;
-        const removable = activeRows
-          .filter((seat) => seat.assignments.length === 0 && effectiveSeatStatus({ status: seat.status, seatType: seat.seatType, activeAssignments: 0 }) === 'AVAILABLE')
-          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-        if (removable.length < toRemove) throw new Error('TOTAL_SEATS_CANNOT_SHRINK');
-        for (const seat of removable.slice(0, toRemove)) {
-          await store.updateSeat(seat.id, { status: 'CANCELLED' });
-        }
-      }
-    }
-
     const subscription = await store.updateSubscription(id, {
         planName: input.planName,
         totalSeats: input.totalSeats,
@@ -186,33 +168,101 @@ async function loadSeat(seatId: string, organizationId: string) {
   return seat;
 }
 
-function occupancy(seat: { seatType: SeatOccupancy['seatType']; status: SeatOccupancy['status']; assignments: unknown[] }): SeatOccupancy {
-  return { seatType: seat.seatType, status: seat.status, activeAssignments: seat.assignments.length };
+function occupancy(seat: {
+  seatType: SeatOccupancy['seatType'];
+  status: SeatOccupancy['status'];
+  assignments: unknown[];
+  equipmentId?: string | null;
+}): SeatOccupancy {
+  return {
+    seatType: seat.seatType,
+    status: seat.status,
+    activeAssignments: seat.assignments.length,
+    equipmentId: seat.equipmentId ?? null,
+  };
 }
 
-export async function createSeat(subscriptionId: string, input: { accountEmail?: string | null; accountIdentifier?: string | null; seatType?: 'INDIVIDUAL' | 'SHARED'; notes?: string | null }, organizationId: string, userId: string) {
+function presentSeat<T extends Record<string, unknown> & { licenseKey?: string | null }>(seat: T) {
+  const key = seat.licenseKey ?? null;
+  return {
+    ...seat,
+    licenseKey: maskLicenseKey(key),
+    licenseKeyPresent: Boolean(key),
+  } as T & { licenseKey: string | null; licenseKeyPresent: boolean };
+}
+
+export async function createSeat(
+  subscriptionId: string,
+  input: {
+    accountEmail?: string | null;
+    accountIdentifier?: string | null;
+    seatType?: SeatOccupancy['seatType'];
+    equipmentId?: string | null;
+    licenseKey?: string | null;
+    notes?: string | null;
+    employeeId?: string | null;
+  },
+  organizationId: string,
+  userId: string,
+) {
   const subscription = await findSubscriptionWithSeatsAndProduct(subscriptionId, organizationId);
   if (!subscription) throw new Error('SUBSCRIPTION_NOT_FOUND');
-  if (subscription.seats.filter((seat) => seat.status !== 'CANCELLED').length >= subscription.totalSeats) {
-    throw new Error('SEAT_LIMIT_REACHED');
+  const seatType = input.seatType ?? 'INDIVIDUAL';
+  try {
+    assertSeatFields({
+      seatType,
+      accountEmail: input.accountEmail,
+      equipmentId: input.equipmentId,
+    });
+  } catch {
+    throw new LicenseDomainError('SEAT_FIELDS_INVALID', 'Complete los campos requeridos para el tipo de licencia.', 400);
+  }
+  if (input.equipmentId) {
+    const equipment = await findOrganizationEquipment(input.equipmentId, organizationId);
+    if (!equipment) throw licenseNotFound('EQUIPMENT_NOT_FOUND', 'El equipo no existe en esta organización.');
   }
   return runLicenseTransaction(async (store) => {
     const seat = await store.createSeat({
-        subscriptionId,
-        accountEmail: input.accountEmail || null,
-        accountIdentifier: input.accountIdentifier || null,
-        seatType: input.seatType ?? 'INDIVIDUAL',
-        notes: input.notes || null,
+      subscriptionId,
+      accountEmail: input.accountEmail || null,
+      accountIdentifier: input.accountIdentifier || null,
+      equipmentId: input.equipmentId || null,
+      licenseKey: input.licenseKey?.trim() || null,
+      seatType,
+      notes: input.notes || null,
     });
     await store.audit({
-      organizationId, userId, action: 'SEAT_CREATED', entityId: seat.id, entityType: 'SoftwareLicenseSeat',
-      title: 'Asiento creado', description: `${subscription.product.name} · ${seat.accountEmail ?? 'sin cuenta'}`,
+      organizationId,
+      userId,
+      action: 'SEAT_CREATED',
+      entityId: seat.id,
+      entityType: 'SoftwareLicenseSeat',
+      title: 'Licencia registrada',
+      description: `${subscription.product.name} · ${seat.accountEmail ?? seatType}`,
     });
+    return presentSeat(seat);
+  }).then(async (seat) => {
+    if (input.employeeId && seatType === 'INDIVIDUAL') {
+      await assignSeat(seat.id, input.employeeId, organizationId, userId, input.notes);
+    }
     return seat;
   });
 }
 
-export async function updateSeat(seatId: string, input: { accountEmail?: string | null; accountIdentifier?: string | null; seatType?: 'INDIVIDUAL' | 'SHARED'; status?: SeatOccupancy['status']; notes?: string | null }, organizationId: string, userId: string) {
+export async function updateSeat(
+  seatId: string,
+  input: {
+    accountEmail?: string | null;
+    accountIdentifier?: string | null;
+    seatType?: SeatOccupancy['seatType'];
+    equipmentId?: string | null;
+    licenseKey?: string | null;
+    status?: SeatOccupancy['status'];
+    notes?: string | null;
+  },
+  organizationId: string,
+  userId: string,
+) {
   const seat = await loadSeat(seatId, organizationId);
   const current = occupancy(seat);
   if (
@@ -221,16 +271,24 @@ export async function updateSeat(seatId: string, input: { accountEmail?: string 
   ) {
     throw seatBlockedWithAssignmentsError();
   }
-  if (input.seatType === 'INDIVIDUAL' && !canConvertToIndividual({ ...current, seatType: 'SHARED' }) && current.seatType === 'SHARED') {
-    throw new LicenseDomainError(
-      'SHARED_SEAT_HAS_MULTIPLE_ASSIGNMENTS',
-      'Un asiento compartido con varias personas no puede volver a individual.',
-      409,
-    );
+  if (input.seatType && input.seatType !== seat.seatType) {
+    const change = canChangeSeatTypeTo(input.seatType, current);
+    if (!change.ok) {
+      throw new LicenseDomainError(change.code, change.message, 409);
+    }
+    try {
+      assertSeatFields({
+        seatType: input.seatType,
+        accountEmail: input.accountEmail ?? seat.accountEmail,
+        equipmentId: input.equipmentId ?? seat.equipmentId,
+      });
+    } catch {
+      throw new LicenseDomainError('SEAT_FIELDS_INVALID', 'Complete los campos requeridos para el tipo de licencia.', 400);
+    }
   }
-  let status = input.status ?? effectiveSeatStatus(current);
-  if (input.status === 'SUSPENDED' || input.status === 'CANCELLED' || input.status === 'AVAILABLE') status = input.status;
-  if (status === 'AVAILABLE' && current.activeAssignments > 0) throw new Error('SEAT_STILL_ASSIGNED');
+  let status = input.status ?? seat.status;
+  if (input.status === 'SUSPENDED' || input.status === 'CANCELLED') status = input.status;
+  if (input.status === 'AVAILABLE') status = 'AVAILABLE';
   const action = input.status === 'SUSPENDED'
     ? 'SEAT_SUSPENDED'
     : input.status === 'CANCELLED'
@@ -244,17 +302,19 @@ export async function updateSeat(seatId: string, input: { accountEmail?: string 
             : 'SEAT_UPDATED';
   return runLicenseTransaction(async (store) => {
     const updated = await store.updateSeat(seatId, {
-        accountEmail: input.accountEmail === undefined ? undefined : input.accountEmail || null,
-        accountIdentifier: input.accountIdentifier,
-        seatType: input.seatType,
-        status,
-        notes: input.notes,
+      accountEmail: input.accountEmail === undefined ? undefined : input.accountEmail || null,
+      accountIdentifier: input.accountIdentifier,
+      seatType: input.seatType,
+      equipmentId: input.equipmentId === undefined ? undefined : input.equipmentId || null,
+      licenseKey: input.licenseKey === undefined ? undefined : input.licenseKey?.trim() || null,
+      status,
+      notes: input.notes,
     });
     await store.audit({
       organizationId, userId, action, entityId: seatId, entityType: 'SoftwareLicenseSeat',
-      title: 'Asiento actualizado', description: seat.subscription.product.name, previousData: { status: seat.status, seatType: seat.seatType }, newData: input,
+      title: 'Licencia actualizada', description: seat.subscription.product.name, previousData: { status: seat.status, seatType: seat.seatType }, newData: input,
     });
-    return updated;
+    return presentSeat(updated);
   });
 }
 
@@ -293,8 +353,14 @@ export async function assignSeat(seatId: string, employeeId: string, organizatio
       if (!target) {
         throw licenseNotFound('ASSIGNMENT_NOT_FOUND', 'La asignación no existe o ya fue cerrada.');
       }
+    } else if (seat.seatType === 'INDIVIDUAL' && current.activeAssignments > 0) {
+      throw new LicenseDomainError(
+        'LICENSE_ALREADY_ASSIGNED',
+        'Esta cuenta personal ya tiene un usuario activo. Use Reasignar para cambiarlo.',
+        409,
+      );
     } else if (!canAssignSeat(current)) {
-      throw new LicenseDomainError('SEAT_NOT_ASSIGNABLE', 'El asiento no admite otra asignación.', 409);
+      throw new LicenseDomainError('SEAT_NOT_ASSIGNABLE', 'La licencia no admite otra asignación.', 409);
     }
     if (seat.assignments.some((assignment) => assignment.employeeId === employeeId)) {
       throw new LicenseDomainError(
@@ -304,8 +370,6 @@ export async function assignSeat(seatId: string, employeeId: string, organizatio
       );
     }
 
-    const shared = seat.seatType === 'SHARED' || current.activeAssignments > 0;
-
     if (replaceAssignmentId) {
       await store.closeAssignment(replaceAssignmentId, userId);
       await store.audit({
@@ -314,13 +378,9 @@ export async function assignSeat(seatId: string, employeeId: string, organizatio
       });
     }
     const assignment = await store.createAssignment({ seatId, employeeId, assignedById: userId, notes: notes || null });
-    await store.updateSeat(seatId, {
-      status: 'ASSIGNED',
-      seatType: shared && !replaceAssignmentId && current.activeAssignments > 0 ? 'SHARED' : seat.seatType,
-    });
     await store.audit({
       organizationId, userId,
-      action: seat.seatType === 'SHARED' || shared ? 'SHARED_ASSIGNMENT_ADDED' : 'SEAT_ASSIGNED',
+      action: seat.seatType === 'SHARED' ? 'SHARED_ASSIGNMENT_ADDED' : 'SEAT_ASSIGNED',
       entityId: assignment.id, entityType: 'LicenseAssignment',
       title: 'Asiento asignado', description: `${seat.subscription.product.name} · ${employee.fullName}`,
       newData: { employeeId, seatId },
@@ -332,12 +392,8 @@ export async function assignSeat(seatId: string, employeeId: string, organizatio
 export async function unassignSeat(assignmentId: string, organizationId: string, userId: string) {
   const assignment = await findOpenAssignment(assignmentId, organizationId);
   if (!assignment) throw new Error('ASSIGNMENT_NOT_FOUND');
-  const remaining = assignment.seat.assignments.filter((item) => item.id !== assignmentId).length;
   return runLicenseTransaction(async (store) => {
     const updated = await store.closeAssignment(assignmentId, userId);
-    if (assignment.seat.status !== 'SUSPENDED' && assignment.seat.status !== 'CANCELLED') {
-      await store.updateSeat(assignment.seatId, { status: remaining > 0 ? 'ASSIGNED' : 'AVAILABLE' });
-    }
     await store.audit({
       organizationId, userId,
       action: assignment.seat.seatType === 'SHARED' ? 'SHARED_ASSIGNMENT_REMOVED' : 'SEAT_UNASSIGNED',
@@ -366,17 +422,41 @@ function presentSubscription<T extends {
 }>(subscription: T, today: Date) {
   const seats = subscription.seats.map((seat) => {
     const activeAssignments = seat.assignments.filter((assignment) => assignment.unassignedAt === null).length;
-    const occupancyState = { status: seat.status, seatType: seat.seatType, activeAssignments };
-    return { ...seat, activeAssignments, effectiveStatus: effectiveSeatStatus(occupancyState) };
+    const occupancyState = {
+      status: seat.status,
+      seatType: seat.seatType,
+      activeAssignments,
+      equipmentId: 'equipmentId' in seat ? (seat as { equipmentId?: string | null }).equipmentId : null,
+    };
+    return presentSeat({
+      ...seat,
+      activeAssignments,
+      effectiveStatus: effectiveSeatStatus(occupancyState),
+    });
   });
+  const counts = summarizeSeats(
+    subscription.seats.map((seat) => {
+      const activeAssignments = seat.assignments.filter((assignment) => assignment.unassignedAt === null).length;
+      return {
+        status: seat.status,
+        seatType: seat.seatType,
+        activeAssignments,
+        equipmentId: 'equipmentId' in seat ? (seat as { equipmentId?: string | null }).equipmentId ?? null : null,
+      };
+    }),
+    subscription.totalSeats,
+  );
+  const monthly = Number(subscription.monthlyCost);
   return {
     ...subscription,
     billingAmount: Number(subscription.billingAmount),
-    monthlyCost: Number(subscription.monthlyCost),
+    monthlyCost: monthly,
     annualCost: Number(subscription.annualCost),
+    unitMonthlyCost: unitMonthlyCost(monthly, subscription.totalSeats),
+    wastedMonthlyCost: unitMonthlyCost(monthly, subscription.totalSeats) * counts.freeSeats,
     displayStatus: displaySubscriptionStatus(subscription.status, subscription.renewalDate, today, subscription.expiringSoonDays),
     renewalAlert: renewalAlert(subscription.renewalDate, today, subscription.status),
-    counts: summarizeSeats(seats.map((seat) => ({ status: seat.status, seatType: seat.seatType, activeAssignments: seat.activeAssignments })), subscription.totalSeats),
+    counts,
     seats,
   };
 }
@@ -384,7 +464,7 @@ function presentSubscription<T extends {
 export async function listSoftwareSubscriptions(organizationId: string, filters: {
   search?: string;
   status?: string;
-  seatType?: 'INDIVIDUAL' | 'SHARED';
+  seatType?: SeatOccupancy['seatType'];
   vendor?: string;
   renewal?: 'IN_7_DAYS' | 'IN_15_DAYS' | 'IN_30_DAYS' | 'EXPIRED';
 }, today = new Date()) {
@@ -402,22 +482,35 @@ export async function licenseDashboard(organizationId: string, today = new Date(
   const totals = subscriptions.reduce((sum, item) => {
     if (item.status === 'CANCELLED') return sum;
     sum.contractedSeats += item.counts.contractedSeats;
+    sum.registeredSeats += item.counts.registeredSeats;
+    sum.inUseSeats += item.counts.inUseSeats;
+    sum.freeSeats += item.counts.freeSeats;
+    sum.wastedMonthlyCost += item.wastedMonthlyCost;
     sum.occupiedSeats += item.counts.occupiedSeats;
     sum.availableSeats += item.counts.availableSeats;
     sum.assignedUsers += item.counts.assignedUsers;
     sum.sharedAccounts += item.counts.sharedAccounts;
-    const bucket = sum.costs[item.currency] ?? { monthlyCost: 0, annualCost: 0 };
+    const bucket = sum.costs[item.currency] ?? { monthlyCost: 0, annualCost: 0, wastedMonthlyCost: 0 };
     bucket.monthlyCost += item.monthlyCost;
     bucket.annualCost += item.annualCost;
+    bucket.wastedMonthlyCost += item.wastedMonthlyCost;
     sum.costs[item.currency] = bucket;
+    if (item.renewalAlert === 'IN_30_DAYS' || item.renewalAlert === 'IN_15_DAYS' || item.renewalAlert === 'IN_7_DAYS') {
+      sum.expiringIn30Days += 1;
+    }
     return sum;
   }, {
     contractedSeats: 0,
+    registeredSeats: 0,
+    inUseSeats: 0,
+    freeSeats: 0,
+    wastedMonthlyCost: 0,
     occupiedSeats: 0,
     availableSeats: 0,
     assignedUsers: 0,
     sharedAccounts: 0,
-    costs: {} as Record<string, { monthlyCost: number; annualCost: number }>,
+    expiringIn30Days: 0,
+    costs: {} as Record<string, { monthlyCost: number; annualCost: number; wastedMonthlyCost: number }>,
   });
   return {
     activeProducts: activeProducts.size,
@@ -431,9 +524,79 @@ export async function licenseDashboard(organizationId: string, today = new Date(
       monthlyCost: item.monthlyCost,
       annualCost: item.annualCost,
       contractedSeats: item.counts.contractedSeats,
-      occupiedSeats: item.counts.occupiedSeats,
+      inUseSeats: item.counts.inUseSeats,
+      freeSeats: item.counts.freeSeats,
     })),
   };
+}
+
+export async function registerSubscriptionRenewal(
+  subscriptionId: string,
+  input: { billingAmount?: number; renewalDate?: string | null },
+  organizationId: string,
+  userId: string,
+  today = new Date(),
+) {
+  const existing = await findSubscriptionWithProduct(subscriptionId, organizationId);
+  if (!existing) throw new Error('SUBSCRIPTION_NOT_FOUND');
+  const nextRenewal = advanceRenewalDate(
+    existing.renewalDate,
+    existing.billingCycle,
+    today,
+    input.renewalDate,
+  );
+  const billingAmount = input.billingAmount ?? Number(existing.billingAmount);
+  const costs = billingEquivalents(existing.billingCycle, billingAmount);
+  await runLicenseTransaction(async (store) => {
+    const updated = await store.updateSubscription(subscriptionId, {
+      renewalDate: nextRenewal,
+      billingAmount: money(billingAmount),
+      monthlyCost: money(costs.monthlyCost),
+      annualCost: money(costs.annualCost),
+      updatedById: userId,
+    });
+    await store.audit({
+      organizationId,
+      userId,
+      action: 'SUBSCRIPTION_RENEWED',
+      entityId: subscriptionId,
+      entityType: 'SoftwareSubscription',
+      title: 'Renovación registrada',
+      description: updated.product.name,
+      previousData: {
+        renewalDate: existing.renewalDate?.toISOString().slice(0, 10) ?? null,
+        billingAmount: Number(existing.billingAmount),
+      },
+      newData: {
+        renewalDate: nextRenewal.toISOString().slice(0, 10),
+        billingAmount,
+      },
+    });
+  });
+  return getSoftwareSubscription(subscriptionId, organizationId, today);
+}
+
+export async function revealSeatLicenseKey(seatId: string, organizationId: string, userId: string) {
+  const seat = await findSeatWithAssignments(seatId, organizationId);
+  if (!seat) throw licenseNotFound('SEAT_NOT_FOUND', 'La licencia no existe en esta organización.');
+  if (!seat.licenseKey) throw new LicenseDomainError('LICENSE_KEY_EMPTY', 'Esta licencia no tiene clave guardada.', 404);
+  await runLicenseTransaction(async (store) => {
+    await store.audit({
+      organizationId,
+      userId,
+      action: 'LICENSE_KEY_REVEALED',
+      entityId: seatId,
+      entityType: 'SoftwareLicenseSeat',
+      title: 'Clave de licencia visualizada',
+      description: seat.subscription.product.name,
+    });
+  });
+  return { licenseKey: seat.licenseKey };
+}
+
+export async function getEquipmentDeviceLicenses(equipmentId: string, organizationId: string) {
+  const rows = await listDeviceLicensesForEquipment(equipmentId, organizationId);
+  return rows.map((seat) => presentSeat(seat));
 }
 
 export async function syncRenewalNotifications(organizationId: string, today = new Date()) {
@@ -457,6 +620,8 @@ export async function importLicenseRows(rows: LicenseImportRow[], organizationId
   const plan = planLicenseImport(rows);
   const employees = await listEmployeeNames(organizationId);
   const byName = new Map(employees.map((employee) => [employee.fullName.trim().toLowerCase(), employee]));
+  const equipmentRows = await listOrganizationEquipmentCodes(organizationId);
+  const byInventory = new Map(equipmentRows.map((item) => [item.inventoryCode.trim().toLowerCase(), item]));
   const report = {
     products: 0,
     subscriptions: 0,
@@ -492,11 +657,28 @@ export async function importLicenseRows(rows: LicenseImportRow[], organizationId
       });
       report.subscriptions += 1;
       for (const seatPlan of productPlan.seats) {
+        let equipmentId: string | null = seatPlan.equipmentId ?? null;
+        if (seatPlan.seatType === 'DEVICE' && seatPlan.equipmentInventoryCode) {
+          const equipment = byInventory.get(seatPlan.equipmentInventoryCode.trim().toLowerCase());
+          if (!equipment) {
+            report.warnings.push({
+              rowNumber: 0,
+              code: 'UNMATCHED_EMPLOYEE',
+              message: `Equipo ${seatPlan.equipmentInventoryCode} no encontrado para ${productPlan.software}.`,
+            });
+            continue;
+          }
+          equipmentId = equipment.id;
+        }
         const seat = await store.createSeat({
-            subscriptionId: subscription.id,
-            accountEmail: seatPlan.accountEmail,
-            seatType: seatPlan.assignments.length > 1 ? 'SHARED' : seatPlan.seatType,
-            status: seatPlan.assignments.length > 0 && seatPlan.status !== 'SUSPENDED' && seatPlan.status !== 'CANCELLED' ? 'ASSIGNED' : seatPlan.status,
+          subscriptionId: subscription.id,
+          accountEmail: seatPlan.accountEmail,
+          equipmentId,
+          seatType: seatPlan.seatType,
+          status:
+            seatPlan.status === 'SUSPENDED' || seatPlan.status === 'CANCELLED'
+              ? seatPlan.status
+              : 'AVAILABLE',
         });
         report.seats += 1;
         for (const assignment of seatPlan.assignments) {

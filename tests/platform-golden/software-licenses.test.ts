@@ -74,7 +74,7 @@ describe('platform golden — software-licenses (cálculos puros)', () => {
       available: seats.isAvailableSeat(seat),
       shared: seats.isSharedAccount(seat),
       canAssign: seats.canAssignSeat(seat),
-      canConvertToIndividual: seats.canConvertToIndividual(seat),
+      canChangeToIndividual: seats.canChangeSeatTypeTo('INDIVIDUAL', seat).ok,
     }));
     let crossOrg: string | null = null;
     try {
@@ -121,12 +121,19 @@ describe('platform golden — software-licenses (cálculos puros)', () => {
   });
 
   it('import-rows (plan y validación)', () => {
-    const row = (rowNumber: number, values: Partial<Record<'software' | 'usuario' | 'correo' | 'compartida' | 'estado' | 'fechaPago', string>>) => ({
+    const row = (
+      rowNumber: number,
+      values: Partial<
+        Record<'software' | 'usuario' | 'correo' | 'compartida' | 'tipo' | 'equipo' | 'estado' | 'fechaPago', string>
+      >,
+    ) => ({
       rowNumber,
       software: '',
       usuario: '',
       correo: '',
       compartida: '',
+      tipo: '',
+      equipo: '',
       estado: '',
       fechaPago: '',
       ...values,

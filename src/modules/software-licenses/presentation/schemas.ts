@@ -37,19 +37,38 @@ export const updateSubscriptionSchema = subscriptionFields.partial().extend({
   active: z.boolean().optional(),
 });
 
-export const createSeatSchema = z.object({
-  accountEmail: optionalEmail,
-  accountIdentifier: z.string().trim().max(120).optional().nullable(),
-  seatType: z.enum(SEAT_TYPES).default('INDIVIDUAL'),
-  notes: z.string().trim().max(1000).optional().nullable(),
-});
+export const createSeatSchema = z
+  .object({
+    accountEmail: optionalEmail,
+    accountIdentifier: z.string().trim().max(120).optional().nullable(),
+    seatType: z.enum(SEAT_TYPES).default('INDIVIDUAL'),
+    equipmentId: z.string().min(1).optional().nullable(),
+    licenseKey: z.string().trim().max(500).optional().nullable(),
+    employeeId: z.string().min(1).optional().nullable(),
+    notes: z.string().trim().max(1000).optional().nullable(),
+  })
+  .superRefine((value, ctx) => {
+    if ((value.seatType === 'INDIVIDUAL' || value.seatType === 'SHARED') && !value.accountEmail?.trim()) {
+      ctx.addIssue({ code: 'custom', path: ['accountEmail'], message: 'El correo es obligatorio para cuentas personales o compartidas.' });
+    }
+    if (value.seatType === 'DEVICE' && !value.equipmentId) {
+      ctx.addIssue({ code: 'custom', path: ['equipmentId'], message: 'Seleccione el equipo para licencias de instalación.' });
+    }
+  });
 
 export const updateSeatSchema = z.object({
   accountEmail: optionalEmail,
   accountIdentifier: z.string().trim().max(120).optional().nullable(),
   seatType: z.enum(SEAT_TYPES).optional(),
+  equipmentId: z.string().min(1).optional().nullable(),
+  licenseKey: z.string().trim().max(500).optional().nullable(),
   status: z.enum(SEAT_STATUSES).optional(),
   notes: z.string().trim().max(1000).optional().nullable(),
+});
+
+export const registerRenewalSchema = z.object({
+  billingAmount: money.optional(),
+  renewalDate: isoDate.optional().nullable(),
 });
 
 export const assignSeatSchema = z.object({

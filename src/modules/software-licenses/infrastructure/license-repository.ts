@@ -17,6 +17,20 @@ export type LicenseAuditInput = {
 };
 
 const seatInclude = {
+  equipment: {
+    select: {
+      id: true,
+      inventoryCode: true,
+      brand: true,
+      model: true,
+      assignments: {
+        where: { status: 'ACTIVE' as const },
+        take: 1,
+        orderBy: { assignedDate: 'desc' as const },
+        select: { employee: { select: { id: true, fullName: true } } },
+      },
+    },
+  },
   assignments: {
     include: { employee: { select: { id: true, fullName: true, email: true, isActive: true } } },
     orderBy: { assignedAt: 'asc' as const },
@@ -146,6 +160,26 @@ export function findOrganizationEmployee(employeeId: string, organizationId: str
   return prisma.employee.findFirst({ where: { id: employeeId, organizationId } });
 }
 
+export function findOrganizationEquipment(equipmentId: string, organizationId: string) {
+  return prisma.equipment.findFirst({ where: { id: equipmentId, organizationId } });
+}
+
+export function listDeviceLicensesForEquipment(equipmentId: string, organizationId: string) {
+  return prisma.softwareLicenseSeat.findMany({
+    where: {
+      equipmentId,
+      seatType: 'DEVICE',
+      status: { not: 'CANCELLED' },
+      subscription: { organizationId },
+    },
+    include: {
+      subscription: { include: { product: true } },
+      assignments: { where: { unassignedAt: null }, include: { employee: { select: { id: true, fullName: true } } } },
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+}
+
 export function findOpenAssignment(assignmentId: string, organizationId: string) {
   return prisma.licenseAssignment.findFirst({
     where: { id: assignmentId, unassignedAt: null, seat: { subscription: { organizationId } } },
@@ -191,5 +225,12 @@ export function listEmployeeNames(organizationId: string) {
   return prisma.employee.findMany({
     where: { organizationId },
     select: { id: true, fullName: true, isActive: true },
+  });
+}
+
+export function listOrganizationEquipmentCodes(organizationId: string) {
+  return prisma.equipment.findMany({
+    where: { organizationId },
+    select: { id: true, inventoryCode: true },
   });
 }

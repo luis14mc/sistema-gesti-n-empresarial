@@ -5,7 +5,7 @@ import { renewalAlert, displaySubscriptionStatus } from '@/modules/software-lice
 import {
   assertSameOrganization,
   canAssignSeat,
-  canConvertToIndividual,
+  canChangeSeatTypeTo,
   effectiveSeatStatus,
   isAvailableSeat,
   summarizeSeats,
@@ -42,8 +42,8 @@ describe('software license seats', () => {
   });
 
   it('allows shared conversion back to individual only with one person or none', () => {
-    expect(canConvertToIndividual({ seatType: 'SHARED', status: 'ASSIGNED', activeAssignments: 2 })).toBe(false);
-    expect(canConvertToIndividual({ seatType: 'SHARED', status: 'ASSIGNED', activeAssignments: 1 })).toBe(true);
+    expect(canChangeSeatTypeTo('INDIVIDUAL', { seatType: 'SHARED', status: 'ASSIGNED', activeAssignments: 2 }).ok).toBe(false);
+    expect(canChangeSeatTypeTo('INDIVIDUAL', { seatType: 'SHARED', status: 'ASSIGNED', activeAssignments: 1 }).ok).toBe(true);
   });
 
   it('rejects an employee from another organization', () => {
@@ -77,10 +77,10 @@ describe('software license billing and renewals', () => {
 describe('excel shared-account import', () => {
   it('collapses repeated software and email into one shared seat', () => {
     const plan = planLicenseImport([
-      { rowNumber: 2, software: 'ChatGPT', usuario: 'Aida Sandoval', correo: 'crivera@cni.hn', compartida: 'Sí', estado: 'Activo', fechaPago: '05 de cada mes' },
-      { rowNumber: 3, software: 'ChatGPT', usuario: 'Carmen Rivera', correo: 'crivera@cni.hn', compartida: 'Sí', estado: 'Activo', fechaPago: '05 de cada mes' },
-      { rowNumber: 4, software: 'ChatGPT', usuario: 'Luis Martinez', correo: 'soporteit@cni.hn', compartida: 'No', estado: 'Activo', fechaPago: '05 de cada mes' },
-      { rowNumber: 5, software: 'ChatGPT', usuario: '', correo: '', compartida: 'No', estado: 'Disponible', fechaPago: '05 de cada mes' },
+      { rowNumber: 2, software: 'ChatGPT', usuario: 'Aida Sandoval', correo: 'crivera@cni.hn', compartida: 'Sí', tipo: '', equipo: '', estado: 'Activo', fechaPago: '05 de cada mes' },
+      { rowNumber: 3, software: 'ChatGPT', usuario: 'Carmen Rivera', correo: 'crivera@cni.hn', compartida: 'Sí', tipo: '', equipo: '', estado: 'Activo', fechaPago: '05 de cada mes' },
+      { rowNumber: 4, software: 'ChatGPT', usuario: 'Luis Martinez', correo: 'soporteit@cni.hn', compartida: 'No', tipo: '', equipo: '', estado: 'Activo', fechaPago: '05 de cada mes' },
+      { rowNumber: 5, software: 'ChatGPT', usuario: '', correo: '', compartida: 'No', tipo: '', equipo: '', estado: 'Disponible', fechaPago: '05 de cada mes' },
     ]);
     expect(plan.products).toHaveLength(1);
     expect(plan.products[0].seats).toHaveLength(3);
