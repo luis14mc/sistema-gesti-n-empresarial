@@ -37,6 +37,35 @@ export type ReturnActaViewModel = {
 
 export type DischargeActaTableRow = Record<string, string>;
 
+/** Datos mínimos de asignación para generar actas (sin tipos Prisma en application). */
+export type ActaAssignmentRecord = {
+  id: string;
+  equipmentId: string;
+  assignedDate: Date | null;
+  returnedDate: Date | null;
+  employeeNameSnapshot: string | null;
+  departmentSnapshot: string | null;
+  positionSnapshot: string | null;
+  brandSnapshot: string | null;
+  modelSnapshot: string | null;
+  serialNumberSnapshot: string | null;
+  inventoryNumberSnapshot: string | null;
+  ramSnapshot: string | null;
+  processorSnapshot: string | null;
+  storageSnapshot: string | null;
+  operatingSystemSnapshot: string | null;
+  accessoriesSnapshot: string | null;
+  softwareSnapshot: string | null;
+  returnReason: string | null;
+  returnCondition: string | null;
+  returnNotes: string | null;
+  employee?: {
+    fullName: string;
+    department: { name: string } | null;
+    position: { name: string } | null;
+  } | null;
+};
+
 export type DischargeActaViewModel = {
   documentDate: Date;
   terminationDate: Date;

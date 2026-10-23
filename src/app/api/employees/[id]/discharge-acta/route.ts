@@ -85,8 +85,15 @@ async function postHandler(
     if (result.kind === 'validation') {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
+    if (result.kind === 'closure_failed') {
+      return NextResponse.json({ error: result.error }, { status: 409 });
+    }
 
-    return NextResponse.json({ url: result.url, storageKey: result.storageKey });
+    return NextResponse.json({
+      url: result.url,
+      storageKey: result.storageKey,
+      warnings: result.warnings,
+    });
   } catch (error) {
     console.error('discharge-acta POST failed', requestId, error);
     return NextResponse.json({ error: 'No se pudo generar el acta de descargo' }, { status: 500 });

@@ -66,7 +66,10 @@ export function DischargeActaDialog({ employeeId, open, onOpenChange, onGenerate
     }
     setSubmitting(true);
     try {
-      const res = await apiHelpers.post<{ url: string }>(`/api/employees/${employeeId}/discharge-acta`, {
+      const res = await apiHelpers.post<{
+        url: string;
+        warnings?: Array<{ assignmentId: string; mensaje: string }>;
+      }>(`/api/employees/${employeeId}/discharge-acta`, {
         terminationDate,
         dni,
         position,
@@ -77,7 +80,15 @@ export function DischargeActaDialog({ employeeId, open, onOpenChange, onGenerate
         accessRows,
         miscRows,
       });
-      sileo.success({ title: 'Acta generada', description: 'El PDF de descargo está listo' });
+      const warningCount = res.data.warnings?.length ?? 0;
+      if (warningCount > 0) {
+        sileo.warning({
+          title: 'Acta de descargo generada con advertencias',
+          description: res.data.warnings!.map((w) => w.mensaje).join(' '),
+        });
+      } else {
+        sileo.success({ title: 'Acta generada', description: 'El PDF de descargo está listo' });
+      }
       if (res.data.url) window.open(res.data.url, '_blank', 'noopener,noreferrer');
       onGenerated?.();
       onOpenChange(false);

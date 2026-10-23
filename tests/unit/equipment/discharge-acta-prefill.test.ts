@@ -1,18 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@/lib/prisma', () => ({
-  prisma: {
-    employee: { findFirst: vi.fn() },
-    equipmentAssignment: { findMany: vi.fn() },
-    licenseAssignment: { findMany: vi.fn() },
-  },
+vi.mock('@/modules/equipment/infrastructure/discharge-acta-repository', () => ({
+  findEmployeeForDischargeActa: vi.fn(),
+  listActiveEquipmentAssignmentsForDischarge: vi.fn(),
+  listLicenseAssignmentsForDischargePrefill: vi.fn(),
 }));
 
-vi.mock('@/modules/people/infrastructure/employee-assets', () => ({
-  findEmployeeActiveAssetsDetail: vi.fn(),
-}));
-
-import { prisma } from '@/lib/prisma';
+import {
+  findEmployeeForDischargeActa,
+  listActiveEquipmentAssignmentsForDischarge,
+  listLicenseAssignmentsForDischargePrefill,
+} from '@/modules/equipment/infrastructure/discharge-acta-repository';
 import { getDischargeActaPrefill } from '@/modules/equipment/application/discharge-acta-service';
 
 describe('discharge acta prefill', () => {
@@ -21,14 +19,14 @@ describe('discharge acta prefill', () => {
   });
 
   it('precarga equipos activos y enmascara clave DEVICE en licencias', async () => {
-    vi.mocked(prisma.employee.findFirst).mockResolvedValue({
+    vi.mocked(findEmployeeForDischargeActa).mockResolvedValue({
       id: 'emp-1',
       fullName: 'Ana Ficticia',
       dni: '0801-1990-00000',
       position: { name: 'Analista' },
     } as never);
 
-    vi.mocked(prisma.equipmentAssignment.findMany).mockResolvedValue([
+    vi.mocked(listActiveEquipmentAssignmentsForDischarge).mockResolvedValue([
       {
         equipment: {
           type: 'LAPTOP',
@@ -40,7 +38,7 @@ describe('discharge acta prefill', () => {
       },
     ] as never);
 
-    vi.mocked(prisma.licenseAssignment.findMany).mockResolvedValue([
+    vi.mocked(listLicenseAssignmentsForDischargePrefill).mockResolvedValue([
       {
         seat: {
           seatType: 'DEVICE',

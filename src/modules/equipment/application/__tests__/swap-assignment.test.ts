@@ -20,11 +20,18 @@ vi.mock('@/modules/equipment/infrastructure/equipment-history', () => ({
   mapReturnConditionToStatus: vi.fn(() => 'AVAILABLE'),
 }));
 
+vi.mock('@/modules/equipment/application/acta-generation', () => ({
+  generateDeliveryActaPdf: vi.fn(async () => ({ url: '/acta', storageKey: 'key' })),
+  generateReturnActaPdf: vi.fn(async () => ({ url: '/acta', storageKey: 'key' })),
+}));
+
 const findActiveAssignmentForSwap = vi.fn();
+const findAssignmentWithRelations = vi.fn();
 const swapAssignmentInTransaction = vi.fn();
 
 vi.mock('@/modules/equipment/infrastructure/equipment-repository', () => ({
   findActiveAssignmentForSwap: (...args: unknown[]) => findActiveAssignmentForSwap(...args),
+  findAssignmentWithRelations: (...args: unknown[]) => findAssignmentWithRelations(...args),
   swapAssignmentInTransaction: (...args: unknown[]) => swapAssignmentInTransaction(...args),
 }));
 
@@ -35,6 +42,7 @@ vi.mock('@/modules/equipment/presentation/equipment-mapper', () => ({
 describe('equipment application · swapEquipmentAssignment', () => {
   beforeEach(() => {
     findActiveAssignmentForSwap.mockReset();
+    findAssignmentWithRelations.mockReset();
     swapAssignmentInTransaction.mockReset();
   });
 
@@ -67,11 +75,16 @@ describe('equipment application · swapEquipmentAssignment', () => {
       equipmentId: 'eq-old',
       equipment: { inventoryCode: 'TI-PC-0001' },
     });
+    const closed = { id: 'old-asg' };
+    const created = { id: 'new-asg', equipment: { inventoryCode: 'TI-PC-0002' } };
     swapAssignmentInTransaction.mockResolvedValueOnce({
-      closedAssignment: { id: 'old-asg' },
-      newAssignment: { id: 'new-asg', equipment: { inventoryCode: 'TI-PC-0002' } },
+      closedAssignment: closed,
+      newAssignment: created,
       oldEquipmentId: 'eq-old',
     });
+    findAssignmentWithRelations
+      .mockResolvedValueOnce(closed)
+      .mockResolvedValueOnce(created);
 
     await swapEquipmentAssignment({
       organizationId: 'org-1',

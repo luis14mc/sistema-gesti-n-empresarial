@@ -1,4 +1,3 @@
-import type { EquipmentAssignment } from '@prisma/client';
 import { resolveActaDeliverer } from '@/modules/equipment/infrastructure/acta-deliverer';
 import { resolveInstalledSoftwareLabel } from '@/modules/equipment/infrastructure/acta-equipment-software';
 import {
@@ -11,15 +10,13 @@ import {
   updateAssignmentDocument,
   countAssignmentsForEquipment,
 } from '@/modules/equipment/infrastructure/equipment-repository';
-import type { ActaEquipmentSnapshot, ActaParty } from '@/modules/equipment/domain/acta-view-models';
+import type {
+  ActaAssignmentRecord,
+  ActaEquipmentSnapshot,
+  ActaParty,
+} from '@/modules/equipment/domain/acta-view-models';
 
-type AssignmentRow = EquipmentAssignment & {
-  employee?: {
-    fullName: string;
-    department: { name: string } | null;
-    position: { name: string } | null;
-  } | null;
-};
+type AssignmentRow = ActaAssignmentRecord;
 
 function recipientFromAssignment(assignment: AssignmentRow): ActaParty {
   return {

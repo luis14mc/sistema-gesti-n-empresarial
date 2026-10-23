@@ -266,18 +266,21 @@ export async function assignEquipmentInTransaction(params: {
   });
 }
 
-export async function returnAssignmentInTransaction(params: {
-  organizationId: string;
-  assignmentId: string;
-  returnedById: string;
-  finalStatus: 'RETURNED' | 'REPLACED';
-  nextEquipmentStatus: string;
-  returnReason?: string;
-  returnCondition?: string;
-  combinedReturnNotes?: string;
-  notes?: string | null;
-}) {
-  return prisma.$transaction(async (tx) => {
+export async function returnAssignmentInTransaction(
+  params: {
+    organizationId: string;
+    assignmentId: string;
+    returnedById: string;
+    finalStatus: 'RETURNED' | 'REPLACED';
+    nextEquipmentStatus: string;
+    returnReason?: string;
+    returnCondition?: string;
+    combinedReturnNotes?: string;
+    notes?: string | null;
+  },
+  existingTx?: Prisma.TransactionClient,
+) {
+  const execute = async (tx: Prisma.TransactionClient) => {
     const assignment = await tx.equipmentAssignment.findFirst({
       where: { id: params.assignmentId, ...assignmentScope(params.organizationId) },
       include: { equipment: true },
@@ -303,8 +306,16 @@ export async function returnAssignmentInTransaction(params: {
       data: { status: params.nextEquipmentStatus as 'AVAILABLE' | 'IN_MAINTENANCE' | 'DAMAGED' | 'RETIRED' | 'LOST' },
     });
 
-    return { updatedAssignment, previousEquipmentStatus: assignment.equipment.status, equipmentCode: assignment.equipment.inventoryCode, equipmentId: assignment.equipmentId };
-  });
+    return {
+      updatedAssignment,
+      previousEquipmentStatus: assignment.equipment.status,
+      equipmentCode: assignment.equipment.inventoryCode,
+      equipmentId: assignment.equipmentId,
+    };
+  };
+
+  if (existingTx) return execute(existingTx);
+  return prisma.$transaction(execute);
 }
 
 export async function swapAssignmentInTransaction(params: {

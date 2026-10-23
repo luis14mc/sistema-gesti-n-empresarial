@@ -10,11 +10,18 @@ vi.mock('@/modules/equipment/infrastructure/equipment-history', () => ({
   mapReturnConditionToStatus: vi.fn(() => 'AVAILABLE'),
 }));
 
+vi.mock('@/modules/equipment/application/acta-generation', () => ({
+  generateDeliveryActaPdf: vi.fn(async () => ({ url: '/acta', storageKey: 'key' })),
+  generateReturnActaPdf: vi.fn(async () => ({ url: '/acta', storageKey: 'key' })),
+}));
+
 const findAssignmentById = vi.fn();
+const findAssignmentWithRelations = vi.fn();
 const returnAssignmentInTransaction = vi.fn();
 
 vi.mock('@/modules/equipment/infrastructure/equipment-repository', () => ({
   findAssignmentById: (...args: unknown[]) => findAssignmentById(...args),
+  findAssignmentWithRelations: (...args: unknown[]) => findAssignmentWithRelations(...args),
   returnAssignmentInTransaction: (...args: unknown[]) => returnAssignmentInTransaction(...args),
 }));
 
@@ -25,6 +32,7 @@ vi.mock('@/modules/equipment/presentation/equipment-mapper', () => ({
 describe('equipment application · returnEquipmentAssignment', () => {
   beforeEach(() => {
     findAssignmentById.mockReset();
+    findAssignmentWithRelations.mockReset();
     returnAssignmentInTransaction.mockReset();
   });
 
@@ -58,12 +66,14 @@ describe('equipment application · returnEquipmentAssignment', () => {
       notes: null,
       equipment: { status: 'ASSIGNED' },
     });
+    const returned = { id: 'asg-1', status: 'RETURNED' };
     returnAssignmentInTransaction.mockResolvedValueOnce({
-      updatedAssignment: { id: 'asg-1' },
+      updatedAssignment: returned,
       previousEquipmentStatus: 'ASSIGNED',
       equipmentCode: 'TI-PC-0001',
       equipmentId: 'eq-1',
     });
+    findAssignmentWithRelations.mockResolvedValueOnce(returned);
     const result = await returnEquipmentAssignment({
       organizationId: 'org-1',
       assignmentId: 'asg-1',

@@ -1,7 +1,5 @@
-import { prisma } from '@/lib/prisma';
 import { createAuditRecord } from '@/platform/security/audit/audit-record';
 import { maskLicenseKey } from '@/modules/software-licenses/domain/license-key';
-import { findEmployeeActiveAssetsDetail } from '@/modules/people/infrastructure/employee-assets';
 import {
   AUDIT_ACTION_EMPLOYEE_DISCHARGE_ACTA,
   RETURN_REASON_TERMINATION,
@@ -9,7 +7,14 @@ import {
 import { buildDischargeActaHtml } from '@/modules/equipment/infrastructure/acta-html';
 import { resolveActaDeliverer } from '@/modules/equipment/infrastructure/acta-deliverer';
 import { storeDischargeActaPdf } from '@/modules/equipment/infrastructure/acta-pdf-store';
-import { returnAssignmentInTransaction } from '@/modules/equipment/infrastructure/equipment-repository';
+import {
+  closeEmployeeAssetsForDischargeInTransaction,
+  DischargeAssetClosureError,
+  findEmployeeForDischargeActa,
+  listActiveEquipmentAssignmentsForDischarge,
+  listDischargeActaAuditRecords,
+  listLicenseAssignmentsForDischargePrefill,
+} from '@/modules/equipment/infrastructure/discharge-acta-repository';
 import { generateReturnActaPdf } from '@/modules/equipment/application/acta-generation';
 import type { DischargeActaViewModel } from '@/modules/equipment/domain/acta-view-models';
 
@@ -25,39 +30,17 @@ export type DischargeActaFormInput = {
   miscRows: Array<{ item: string; state: string; notes: string }>;
 };
 
+export type DischargeActaPdfWarning = {
+  assignmentId: string;
+  mensaje: string;
+};
+
 export async function getDischargeActaPrefill(organizationId: string, employeeId: string) {
-  const employee = await prisma.employee.findFirst({
-    where: { id: employeeId, organizationId },
-    select: {
-      id: true,
-      fullName: true,
-      dni: true,
-      position: { select: { name: true } },
-    },
-  });
+  const employee = await findEmployeeForDischargeActa(organizationId, employeeId);
   if (!employee) return null;
 
-  const assets = await findEmployeeActiveAssetsDetail(organizationId, employeeId);
-
-  const activeAssignments = await prisma.equipmentAssignment.findMany({
-    where: { employeeId, status: 'ACTIVE', equipment: { organizationId } },
-    include: { equipment: { select: { type: true, brand: true, model: true, serialNumber: true, includedAccessories: true } } },
-  });
-
-  const licenseAssignments = await prisma.licenseAssignment.findMany({
-    where: { employeeId, unassignedAt: null, seat: { subscription: { organizationId } } },
-    include: {
-      seat: {
-        select: {
-          seatType: true,
-          accountEmail: true,
-          accountIdentifier: true,
-          licenseKey: true,
-          subscription: { select: { product: { select: { name: true } } } },
-        },
-      },
-    },
-  });
+  const activeAssignments = await listActiveEquipmentAssignmentsForDischarge(organizationId, employeeId);
+  const licenseAssignments = await listLicenseAssignmentsForDischargePrefill(organizationId, employeeId);
 
   const equipmentRows = activeAssignments.map((row) => ({
     item: row.equipment.type,
@@ -97,21 +80,7 @@ export async function getDischargeActaPrefill(organizationId: string, employeeId
 }
 
 export async function listDischargeActasForEmployee(organizationId: string, employeeId: string) {
-  const records = await prisma.auditRecord.findMany({
-    where: {
-      organizationId,
-      entityId: employeeId,
-      action: AUDIT_ACTION_EMPLOYEE_DISCHARGE_ACTA,
-    },
-    orderBy: { createdAt: 'desc' },
-    take: 50,
-    select: {
-      id: true,
-      createdAt: true,
-      newData: true,
-      description: true,
-    },
-  });
+  const records = await listDischargeActaAuditRecords(organizationId, employeeId);
 
   return records.map((row) => {
     const data = row.newData as { storageKey?: string; url?: string; summary?: unknown } | null;
@@ -125,16 +94,18 @@ export async function listDischargeActasForEmployee(organizationId: string, empl
   });
 }
 
+function pdfErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) return error.message;
+  return 'Error desconocido al generar el PDF';
+}
+
 export async function generateDischargeActa(params: {
   organizationId: string;
   employeeId: string;
   actorUserId: string;
   input: DischargeActaFormInput;
 }) {
-  const employee = await prisma.employee.findFirst({
-    where: { id: params.employeeId, organizationId: params.organizationId },
-    select: { id: true, fullName: true, dni: true, position: { select: { name: true } } },
-  });
+  const employee = await findEmployeeForDischargeActa(params.organizationId, params.employeeId);
   if (!employee) return { kind: 'not_found' as const };
 
   const terminationDate = new Date(params.input.terminationDate);
@@ -142,47 +113,39 @@ export async function generateDischargeActa(params: {
     return { kind: 'validation' as const, error: 'Fecha efectiva de terminación inválida' };
   }
 
+  let closedEquipmentAssignmentIds: string[] = [];
+
   if (params.input.closeAssignmentsAndLicenses) {
-    const activeAssignments = await prisma.equipmentAssignment.findMany({
-      where: { employeeId: params.employeeId, status: 'ACTIVE', equipment: { organizationId: params.organizationId } },
-      select: { id: true },
-    });
-
-    for (const assignment of activeAssignments) {
-      await returnAssignmentInTransaction({
+    try {
+      const closure = await closeEmployeeAssetsForDischargeInTransaction({
         organizationId: params.organizationId,
-        assignmentId: assignment.id,
-        returnedById: params.actorUserId,
-        finalStatus: 'RETURNED',
-        nextEquipmentStatus: 'AVAILABLE',
-        returnReason: RETURN_REASON_TERMINATION,
-        returnCondition: 'DEVUELTO',
-        combinedReturnNotes: 'Devolución registrada desde acta de descargo por terminación laboral.',
-      });
-      try {
-        await generateReturnActaPdf({
-          organizationId: params.organizationId,
-          assignmentId: assignment.id,
-          actorUserId: params.actorUserId,
-        });
-      } catch (error) {
-        console.error('DISCHARGE_RETURN_ACTA_FAILED', assignment.id, error);
-      }
-    }
-
-    const licenseAssignments = await prisma.licenseAssignment.findMany({
-      where: {
         employeeId: params.employeeId,
-        unassignedAt: null,
-        seat: { subscription: { organizationId: params.organizationId }, seatType: { in: ['INDIVIDUAL', 'SHARED'] } },
-      },
-      select: { id: true },
-    });
+        actorUserId: params.actorUserId,
+        returnReason: RETURN_REASON_TERMINATION,
+        returnNotes: 'Devolución registrada desde acta de descargo por terminación laboral.',
+      });
+      closedEquipmentAssignmentIds = closure.closedEquipmentAssignmentIds;
+    } catch (error) {
+      if (error instanceof DischargeAssetClosureError) {
+        return { kind: 'closure_failed' as const, error: error.message };
+      }
+      throw error;
+    }
+  }
 
-    if (licenseAssignments.length > 0) {
-      await prisma.licenseAssignment.updateMany({
-        where: { id: { in: licenseAssignments.map((l) => l.id) } },
-        data: { unassignedAt: new Date(), unassignedById: params.actorUserId },
+  const warnings: DischargeActaPdfWarning[] = [];
+
+  for (const assignmentId of closedEquipmentAssignmentIds) {
+    try {
+      await generateReturnActaPdf({
+        organizationId: params.organizationId,
+        assignmentId,
+        actorUserId: params.actorUserId,
+      });
+    } catch (error) {
+      warnings.push({
+        assignmentId,
+        mensaje: `La devolución se registró, pero no se pudo generar el acta (${pdfErrorMessage(error)}). Use Regenerar acta.`,
       });
     }
   }
@@ -240,6 +203,7 @@ export async function generateDischargeActa(params: {
     accessCount: params.input.accessRows.length,
     miscCount: params.input.miscRows.length,
     closedAssignments: params.input.closeAssignmentsAndLicenses,
+    closedEquipmentAssignmentIds,
   };
 
   await createAuditRecord({
@@ -258,8 +222,14 @@ export async function generateDischargeActa(params: {
       employeeId: params.employeeId,
       summary,
       terminationDate: terminationDate.toISOString(),
+      warnings: warnings.length > 0 ? warnings : undefined,
     },
   });
 
-  return { kind: 'ok' as const, url: stored.url, storageKey: stored.storageKey };
+  return {
+    kind: 'ok' as const,
+    url: stored.url,
+    storageKey: stored.storageKey,
+    warnings,
+  };
 }

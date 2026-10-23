@@ -37,6 +37,10 @@ const seatInclude = {
   },
 };
 
+export function createLicenseStore(db: Db, tx?: Prisma.TransactionClient) {
+  return licenseStore(db, tx);
+}
+
 function licenseStore(db: Db, tx?: Prisma.TransactionClient) {
   return {
     upsertProduct(args: Prisma.SoftwareProductUpsertArgs) {
