@@ -164,6 +164,7 @@
     },
     "src/app/api/employees/[id]/route.ts": {
       "methods": [
+        "DELETE",
         "GET",
         "PATCH"
       ],

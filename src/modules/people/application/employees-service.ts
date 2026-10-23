@@ -1,6 +1,13 @@
 import type { Prisma } from '@prisma/client';
 import { createAuditRecord } from '@/platform/security/audit/audit-record';
-import { buildFullName, toEmployeeCreateData, validateHireDate } from '@/modules/people/domain/employee';
+import {
+  buildFullName,
+  toEmployeeCreateData,
+  validateHireDate,
+  type EmployeeCreateInput,
+} from '@/modules/people/domain/employee';
+import { parseOptionalDni } from '@/modules/people/domain/dni';
+import { employeeHasHistory } from '@/modules/people/domain/employee-delete';
 import {
   createEmployeeWithPlacement,
   findActiveDepartmentAndPosition,
@@ -10,11 +17,19 @@ import {
   knownPrismaErrorCode,
   listActiveDepartmentsWithPositions,
   listEmployees,
+  listEmployeeAuditRecords,
   updateEmployee,
   findEmployeeActiveAssetSummary,
+  countEmployeeHistory,
+  deleteEmployeeById,
+  type EmployeeListOrderBy,
 } from '@/modules/people/infrastructure/employee-repository';
 import { findEmployeeActiveAssetsDetail } from '@/modules/people/infrastructure/employee-assets';
-import { EmployeeHasActiveAssetsError } from '@/modules/people/domain/errors';
+import {
+  EmployeeDuplicateFieldError,
+  EmployeeHasActiveAssetsError,
+  EmployeeHasHistoryError,
+} from '@/modules/people/domain/errors';
 
 const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
 
@@ -23,8 +38,29 @@ export function persistenceErrorCode(error: unknown): string | null {
   return knownPrismaErrorCode(error);
 }
 
-export function listEmployeesPage(where: Prisma.EmployeeWhereInput, skip: number, take: number) {
-  return listEmployees(where, skip, take);
+export function resolveEmployeeListOrderBy(
+  sortBy: string | null | undefined,
+  sortDir: string | null | undefined,
+): EmployeeListOrderBy {
+  const direction = sortDir === 'desc' ? 'desc' : 'asc';
+  switch (sortBy) {
+    case 'code':
+      return { employeeCode: direction };
+    case 'hireDate':
+      return { hireDate: direction };
+    case 'name':
+    default:
+      return { fullName: direction };
+  }
+}
+
+export function listEmployeesPage(
+  where: Prisma.EmployeeWhereInput,
+  skip: number,
+  take: number,
+  orderBy?: EmployeeListOrderBy,
+) {
+  return listEmployees(where, skip, take, orderBy);
 }
 
 export function getEmployeeDetail(scope: { where: { id: string; organizationId: string } }) {
@@ -67,9 +103,29 @@ export async function createEmployee(
     return { kind: 'invalid', error: 'Departamento o puesto inválido' };
   }
 
-  const employee = await createEmployeeWithPlacement(
-    toEmployeeCreateData({ ...(body as any), organizationId, hireDate: hireDateValue.toISOString().slice(0, 10) }),
-  );
+  let normalizedDni: string | null | undefined;
+  try {
+    normalizedDni = parseOptionalDni(body.dni);
+  } catch {
+    return { kind: 'invalid', error: 'DNI inválido. Use el formato 0000-0000-00000.' };
+  }
+
+  let employee;
+  try {
+    employee = await createEmployeeWithPlacement(
+      toEmployeeCreateData({
+        ...(body as EmployeeCreateInput),
+        organizationId,
+        hireDate: hireDateValue.toISOString().slice(0, 10),
+        dni: normalizedDni ?? undefined,
+        phone: body.phone ? String(body.phone).trim() || undefined : undefined,
+      }),
+    );
+  } catch (error) {
+    const duplicateField = prismaUniqueField(error);
+    if (duplicateField) throw new EmployeeDuplicateFieldError(duplicateField);
+    throw error;
+  }
 
   await createAuditRecord({
     title: 'Creación de empleado',
@@ -108,6 +164,16 @@ export async function updateEmployeeFields(
   if (data.email !== undefined && !EMAIL_PATTERN.test(String(data.email))) {
     return { kind: 'invalid', error: 'Correo inválido' };
   }
+  if (data.dni !== undefined) {
+    try {
+      updateData.dni = parseOptionalDni(data.dni);
+    } catch {
+      return { kind: 'invalid', error: 'DNI inválido. Use el formato 0000-0000-00000.' };
+    }
+  }
+  if (data.phone !== undefined) {
+    updateData.phone = data.phone ? String(data.phone).trim() || null : null;
+  }
   for (const field of ['employeeCode', 'departmentId', 'positionId']) {
     if (data[field] !== undefined && !String(data[field]).trim()) {
       return { kind: 'invalid', error: `${field} es obligatorio` };
@@ -129,7 +195,14 @@ export async function updateEmployeeFields(
     );
   }
 
-  const result = await updateEmployee(organizationId, id, updateData);
+  let result;
+  try {
+    result = await updateEmployee(organizationId, id, updateData);
+  } catch (error) {
+    const duplicateField = prismaUniqueField(error);
+    if (duplicateField) throw new EmployeeDuplicateFieldError(duplicateField);
+    throw error;
+  }
   if (result.count === 0) return { kind: 'not-found' };
 
   const employee = await findEmployeeWithPlacementSummary(organizationId, id);
@@ -141,10 +214,79 @@ export async function updateEmployeeFields(
     category: 'UPDATE',
     userId: actorUserId,
     entityId: id,
+    entityType: 'Employee',
     organizationId,
+    previousData: {
+      employeeCode: current.employeeCode,
+      firstName: current.firstName,
+      lastName: current.lastName,
+      email: current.email,
+      phone: current.phone,
+      dni: current.dni,
+      hireDate: current.hireDate,
+      departmentId: current.departmentId,
+      positionId: current.positionId,
+      isActive: current.isActive,
+    },
+    newData: updateData,
   });
 
   return { kind: 'ok', employee };
+}
+
+function prismaUniqueField(error: unknown): 'email' | 'employeeCode' | null {
+  if (knownPrismaErrorCode(error) !== 'P2002') return null;
+  const target = (error as { meta?: { target?: string[] } }).meta?.target;
+  if (target?.includes('email')) return 'email';
+  if (target?.includes('employeeCode')) return 'employeeCode';
+  return 'email';
+}
+
+export async function deleteEmployeeRecord(
+  organizationId: string,
+  id: string,
+  actorUserId: string,
+): Promise<{ kind: 'not-found' } | { kind: 'ok' }> {
+  const current = await findEmployee(organizationId, id);
+  if (!current) return { kind: 'not-found' };
+
+  const counts = await countEmployeeHistory(organizationId, id);
+  if (employeeHasHistory(counts)) {
+    throw new EmployeeHasHistoryError(counts);
+  }
+
+  const deleted = await deleteEmployeeById(organizationId, id);
+  if (!deleted) return { kind: 'not-found' };
+
+  await createAuditRecord({
+    title: 'Eliminación de empleado',
+    description: `Se eliminó empleado: ${current.fullName}`,
+    module: 'EQUIPOS',
+    category: 'DELETE',
+    action: 'EMPLOYEE_DELETED',
+    userId: actorUserId,
+    entityId: id,
+    entityType: 'Employee',
+    organizationId,
+    previousData: {
+      employeeCode: current.employeeCode,
+      firstName: current.firstName,
+      lastName: current.lastName,
+      email: current.email,
+      fullName: current.fullName,
+    },
+  });
+
+  return { kind: 'ok' };
+}
+
+export function getEmployeeAuditHistory(
+  organizationId: string,
+  employeeId: string,
+  skip: number,
+  take: number,
+) {
+  return listEmployeeAuditRecords(organizationId, employeeId, skip, take);
 }
 
 export async function getEmployeeActiveAssets(

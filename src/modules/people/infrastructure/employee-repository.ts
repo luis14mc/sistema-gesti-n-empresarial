@@ -42,7 +42,14 @@ export function createEmployeeWithPlacement(data: Prisma.EmployeeUncheckedCreate
   });
 }
 
-export function listEmployees(where: Prisma.EmployeeWhereInput, skip: number, take: number) {
+export type EmployeeListOrderBy = Prisma.EmployeeOrderByWithRelationInput;
+
+export function listEmployees(
+  where: Prisma.EmployeeWhereInput,
+  skip: number,
+  take: number,
+  orderBy: EmployeeListOrderBy = { fullName: 'asc' },
+) {
   return Promise.all([
     prisma.employee.findMany({
       where,
@@ -59,7 +66,7 @@ export function listEmployees(where: Prisma.EmployeeWhereInput, skip: number, ta
         isActive: true,
         ...placementSelect,
       },
-      orderBy: { fullName: 'asc' },
+      orderBy,
     }),
     prisma.employee.count({ where }),
   ]);
@@ -71,12 +78,88 @@ export function findEmployeeDetail(scope: { where: { id: string; organizationId:
     include: {
       department: true,
       position: true,
+      user: {
+        select: { id: true, email: true, firstName: true, lastName: true, isActive: true },
+      },
       assignments: {
-        include: { equipment: true },
+        include: {
+          equipment: {
+            select: {
+              id: true,
+              inventoryCode: true,
+              brand: true,
+              model: true,
+              type: true,
+            },
+          },
+        },
         orderBy: { assignedDate: 'desc' },
       },
     },
   });
+}
+
+export function countEmployeeHistory(organizationId: string, employeeId: string) {
+  return Promise.all([
+    prisma.equipmentAssignment.count({
+      where: { employeeId, equipment: { organizationId } },
+    }),
+    prisma.licenseAssignment.count({
+      where: { employeeId, seat: { subscription: { organizationId } } },
+    }),
+    prisma.payslip.count({ where: { employeeId, organizationId } }),
+    prisma.oficio.count({ where: { responsibleEmployeeId: employeeId, organizationId } }),
+    prisma.compraOrden.count({ where: { requesterEmployeeId: employeeId, organizationId } }),
+    prisma.employee.findFirst({
+      where: { id: employeeId, organizationId },
+      select: { userId: true },
+    }),
+  ]).then(([assignments, licenseAssignments, payslips, oficios, purchaseOrders, employee]) => ({
+    assignments,
+    licenseAssignments,
+    payslips,
+    oficios,
+    purchaseOrders,
+    linkedUser: Boolean(employee?.userId),
+  }));
+}
+
+export async function deleteEmployeeById(organizationId: string, id: string) {
+  const existing = await findEmployee(organizationId, id);
+  if (!existing) return false;
+  await prisma.employee.delete({ where: { id } });
+  return true;
+}
+
+export function listEmployeeAuditRecords(
+  organizationId: string,
+  employeeId: string,
+  skip: number,
+  take: number,
+) {
+  const where: Prisma.AuditRecordWhereInput = {
+    organizationId,
+    entityId: employeeId,
+  };
+  return Promise.all([
+    prisma.auditRecord.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        module: true,
+        category: true,
+        action: true,
+        createdAt: true,
+        user: { select: { id: true, firstName: true, lastName: true } },
+      },
+    }),
+    prisma.auditRecord.count({ where }),
+  ]);
 }
 
 export function findEmployee(organizationId: string, id: string) {
