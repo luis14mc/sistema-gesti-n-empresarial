@@ -169,6 +169,10 @@ export async function countAssignments(where: Prisma.EquipmentAssignmentWhereInp
   return prisma.equipmentAssignment.count({ where });
 }
 
+export function countAssignmentsForEquipment(equipmentId: string) {
+  return prisma.equipmentAssignment.count({ where: { equipmentId } });
+}
+
 export async function findAssignmentById(id: string, organizationId: string) {
   return prisma.equipmentAssignment.findFirst({
     where: { id, ...assignmentScope(organizationId) },

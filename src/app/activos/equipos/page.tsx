@@ -39,8 +39,7 @@ import { useEquipment, useEquipmentDetail, useEquipmentStats } from '@/hooks/use
 import { useAuth } from '@/hooks/useAuth';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Pagination } from '@/components/shared/Pagination';
-import { AssignmentNoteContent } from '@/components/equipment/AssignmentNoteContent';
-import { ReturnNoteContent } from '@/components/equipment/ReturnNoteContent';
+import { ActaCniPreview } from '@/components/equipment/ActaCniPreview';
 import { EquipmentFileUpload } from '@/components/equipment/EquipmentFileUpload';
 import { EquipmentExcelActions } from '@/components/equipment/EquipmentExcelActions';
 import { EquipmentInstalledLicenses } from '@/components/software-licenses/EquipmentInstalledLicenses';
@@ -699,7 +698,6 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
 
     if (documentPreview) {
         const isDelivery = documentPreview.kind === 'delivery';
-        const printTargetId = isDelivery ? 'assignment-note-print' : 'return-note-print';
         return (
             <div className="flex min-h-full flex-col gap-4 pt-2">
                 <Button
@@ -724,13 +722,10 @@ function EquipmentDetailPanel({ equipmentId, role, onClose }: { equipmentId: str
                     </p>
                 </SheetHeader>
                 <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border bg-muted/20 p-4">
-                    <div id={printTargetId} className="mx-auto w-full max-w-[800px] bg-white shadow-sm">
-                        {isDelivery ? (
-                            <AssignmentNoteContent equipment={eq as Equipment} assignment={documentPreview.assignment} />
-                        ) : (
-                            <ReturnNoteContent equipment={eq as Equipment} assignment={documentPreview.assignment} />
-                        )}
-                    </div>
+                    <ActaCniPreview
+                        assignmentId={documentPreview.assignment.id}
+                        type={isDelivery ? 'delivery' : 'return'}
+                    />
                 </div>
                 <div className="flex flex-wrap gap-2 border-t pt-4">
                     <Button type="button" variant="outline" onClick={() => setDocumentPreview(null)}>

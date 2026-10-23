@@ -58,4 +58,7 @@ export const equipmentAssignmentsService = {
       `${BASE}/swap`,
       data
     ),
+
+  regenerateActa: (id: string, type: 'delivery' | 'return') =>
+    apiHelpers.post<AssignmentResponse>(`${BASE}/${id}/acta`, { type }),
 };

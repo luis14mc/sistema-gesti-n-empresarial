@@ -81,6 +81,16 @@ export function useAssignments(filters?: AssignmentFilters) {
         },
     });
 
+    const regenerateActaMutation = useMutation({
+        mutationFn: async ({ id, type }: { id: string; type: 'delivery' | 'return' }) => {
+            const response = await equipmentAssignmentsService.regenerateActa(id, type);
+            return response.data.assignment;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: assignmentKeys.lists() });
+        },
+    });
+
     const attachDocumentMutation = useMutation({
         mutationFn: async ({
             id,
@@ -123,6 +133,9 @@ export function useAssignments(filters?: AssignmentFilters) {
 
         attachDocument: attachDocumentMutation.mutateAsync,
         isAttachingDocument: attachDocumentMutation.isPending,
+
+        regenerateActa: regenerateActaMutation.mutateAsync,
+        isRegeneratingActa: regenerateActaMutation.isPending,
 
         // --- Refetch manual ---
         refetch: assignmentsQuery.refetch,

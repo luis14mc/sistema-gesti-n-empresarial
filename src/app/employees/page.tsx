@@ -26,10 +26,11 @@ import {
 } from '@/components/ui/sheet';
 import { apiHelpers } from '@/utils/api';
 import { EmployeeLicensesSection, type EmployeeLicenseRow } from '@/components/software-licenses/EmployeeLicensesSection';
+import { DischargeActaDialog } from '@/components/equipment/DischargeActaDialog';
+import { canAccess } from '@/platform/security/session-module-access';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useDepartments } from '@/hooks/useDepartments';
 import { useAuth } from '@/hooks/useAuth';
-import { canAccess } from '@/platform/security/session-module-access';
 import { sileo } from 'sileo';
 import type { Role, Employee } from '@/types';
 
@@ -55,8 +56,10 @@ export default function EmployeesPage() {
   const canCreate = canAccess(role, 'employees', 'create');
   const canUpdate = canAccess(role, 'employees', 'update');
   const canViewLicenseAssets = canAccess(role, 'software-licenses', 'read');
+  const canDischargeActa = canAccess(role, 'equipment', 'update');
 
   const [assetsSheetOpen, setAssetsSheetOpen] = useState(false);
+  const [dischargeOpen, setDischargeOpen] = useState(false);
   const [assetsSheetEmployee, setAssetsSheetEmployee] = useState<Employee | null>(null);
   const [sheetLicenses, setSheetLicenses] = useState<EmployeeLicenseRow[]>([]);
   const [sheetAssetsLoading, setSheetAssetsLoading] = useState(false);
@@ -407,11 +410,18 @@ export default function EmployeesPage() {
             <SheetTitle>{assetsSheetEmployee?.fullName ?? 'Activos del empleado'}</SheetTitle>
           </SheetHeader>
           <div className="mt-4 space-y-4">
-            <Button variant="link" className="h-auto p-0" asChild>
-              <Link href={`/activos/por-empleado?employeeId=${assetsSheetEmployee?.id ?? ''}`}>
-                Ver ficha completa en Activos
-              </Link>
-            </Button>
+            <div className="flex flex-wrap gap-3">
+              <Button variant="link" className="h-auto p-0" asChild>
+                <Link href={`/activos/por-empleado?employeeId=${assetsSheetEmployee?.id ?? ''}`}>
+                  Ver ficha completa en Activos
+                </Link>
+              </Button>
+              {canDischargeActa && assetsSheetEmployee ? (
+                <Button type="button" variant="outline" size="sm" onClick={() => setDischargeOpen(true)}>
+                  Acta de descargo
+                </Button>
+              ) : null}
+            </div>
             {sheetAssetsLoading ? (
               <p className="text-sm text-muted-foreground">Cargando licencias…</p>
             ) : assetsSheetEmployee ? (
@@ -425,6 +435,13 @@ export default function EmployeesPage() {
           </div>
         </SheetContent>
       </Sheet>
+
+      <DischargeActaDialog
+        employeeId={assetsSheetEmployee?.id ?? null}
+        open={dischargeOpen}
+        onOpenChange={setDischargeOpen}
+        onGenerated={reloadSheetLicenses}
+      />
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-lg">
